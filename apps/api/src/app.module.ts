@@ -1,0 +1,74 @@
+import { MiddlewareConsumer, Module, NestModule, Injectable, NestMiddleware } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type { NextFunction, Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
+import { AuditModule } from './audit/audit.service';
+import { AuthModule } from './auth/auth.controller';
+import { JwtAuthGuard, RolesGuard } from './auth/auth-core';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { IdempotencyInterceptor } from './common/idempotency.interceptor';
+import { AppLogger } from './common/logger';
+import { RequestContext } from './common/request-context';
+import { CollateralModule } from './collateral/collateral.service';
+import { ENV, Env, EnvModule } from './config/env';
+import { EventBusModule, RealtimeModule } from './events/events.module';
+import { FilesModule } from './files/files.service';
+import { HealthController } from './health.controller';
+import { NotificationsModule } from './notifications/notifications.service';
+import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
+import { RegistrationModule } from './registration/registration.service';
+import { PayRateModule } from './settings/pay-rate.service';
+import { StorageModule } from './storage/storage.module';
+import { WorkersModule } from './workers/workers.service';
+
+const VALID_ID = /^[A-Za-z0-9._-]{8,64}$/;
+
+/** Request id + async context (used by audit and logs) + one structured log line per request. */
+@Injectable()
+class RequestMiddleware implements NestMiddleware {
+  constructor(private readonly logger: AppLogger) {}
+  use(req: Request, res: Response, next: NextFunction) {
+    const inc = req.header('x-request-id');
+    const requestId = inc && VALID_ID.test(inc) ? inc : randomUUID();
+    req.requestId = requestId;
+    res.setHeader('X-Request-Id', requestId);
+    const started = process.hrtime.bigint();
+    RequestContext.run({ requestId, ip: req.ip, userAgent: req.headers['user-agent'] }, () => {
+      res.on('finish', () => {
+        if (req.path.startsWith('/health')) return;
+        const status = res.statusCode;
+        this.logger.event('http_request', { method: req.method, path: req.originalUrl.split('?')[0], status, durationMs: Math.round(Number(process.hrtime.bigint() - started) / 1e6), ip: req.ip }, status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info');
+      });
+      next();
+    });
+  }
+}
+
+@Module({
+  imports: [
+    EnvModule,
+    ThrottlerModule.forRootAsync({
+      inject: [ENV],
+      useFactory: (env: Env) => ({ throttlers: [{ name: 'default', ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE }], skipIf: () => !env.RATE_LIMIT_ENABLED }),
+    }),
+    PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule,
+    AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
+  ],
+  controllers: [HealthController],
+  providers: [
+    AppLogger,
+    // Global guards in order: rate limit -> authenticate -> authorise (deny by default)
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    RequestMiddleware,
+  ],
+  exports: [AppLogger],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) { consumer.apply(RequestMiddleware).forRoutes('*'); }
+}

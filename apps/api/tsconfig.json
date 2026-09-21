@@ -1,0 +1,5 @@
+{
+  "extends": "../../packages/config/tsconfig.node.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": ".", "baseUrl": ".", "types": ["node", "jest", "multer"] },
+  "include": ["src", "test"]
+}
