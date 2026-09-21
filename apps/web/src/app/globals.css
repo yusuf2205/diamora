@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+/* Design tokens live here only: screens use these names, so re-theming never touches components. */
+:root {
+  --background: #faf7f5;
+  --foreground: #221a1c;
+  --card: #ffffff;
+  --border: #eadfe0;
+  --muted: #7b6a6d;
+  --primary: #a3324f;
+  --ok: #1b7f4b;
+  --danger: #c62828;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #171213;
+    --foreground: #f2eaeb;
+    --card: #211a1c;
+    --border: #372c2e;
+    --muted: #a99a9d;
+    --primary: #e26d8a;
+    --ok: #4cc38a;
+    --danger: #ff6b6b;
+  }
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+}
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
