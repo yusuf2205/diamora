@@ -1,0 +1,26 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm 12: dependency install scripts are opt-in. Each entry is a deliberate decision (docs/DECISIONS.md D-018).
+allowBuilds:
+  esbuild: true
+  prisma: true
+  "@prisma/client": true
+  "@prisma/engines": true
+  "@swc/core": true
+  argon2: true
+  sharp: true
+  unrs-resolver: true
+  bufferutil: false
+  utf-8-validate: false
+  "@nestjs/core": false
+  # dev/test only: hydrates the embedded PostgreSQL binaries used by `pnpm dev:db` and integration tests
+  "@embedded-postgres/windows-x64": true
+  "@embedded-postgres/linux-x64": true
+  "@embedded-postgres/linux-arm64": true
+  "@embedded-postgres/darwin-x64": true
+  "@embedded-postgres/darwin-arm64": true
+  # no telemetry / optional native watchers
+  "@parcel/watcher": false
+  "@scarf/scarf": false

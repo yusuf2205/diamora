@@ -1,0 +1,38 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# SECRETS & PRODUCTION DATA: never commit (docs/DECISIONS.md D-016)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# backups / dumps / local data
+*.dump
+*.sql.gz
+*.age
+backups/
+.dev-data/
+.tmp/
+*.log
+
+.DS_Store
+Thumbs.db
+.idea/
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/build/
+apps/mobile/android/local.properties
+apps/mobile/android/key.properties
+apps/mobile/android/.gradle/
