@@ -1,0 +1,874 @@
+// Yusmus — PostgreSQL schema (NAS is the source of truth). See docs/DATABASE.md.
+// ids UUIDv7 · timestamptz UTC · money BigInt whole UZS · metres Decimal(10,2) · quantities Decimal(14,3)
+// Append-only tables are protected by DB triggers (migration *_integrity_guards). Single organisation (D-003).
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  WORKER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum WorkerStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  PAUSED
+  REJECTED
+  ARCHIVED
+}
+
+enum LocationSource {
+  TELEGRAM
+  APP
+}
+
+enum CollateralType {
+  MONEY
+  ITEM
+}
+
+enum CollateralStatus {
+  PENDING
+  HELD
+  RETURNED
+}
+
+enum CollateralHistoryType {
+  DECLARED
+  PHOTO_ADDED
+  RECEIVED
+  RETURNED
+  NOTE
+}
+
+enum MaterialUnit {
+  METER
+  GRAM
+  PCS
+  SET
+  ROLL
+  PACKAGE
+}
+
+enum StockMovementType {
+  RECEIPT
+  ISSUE_TO_KIT
+  ISSUE_TO_WORKER
+  RETURN_FROM_WORKER
+  CONSUMPTION
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  WRITE_OFF
+}
+
+enum AssignmentStatus {
+  DRAFT
+  READY_TO_DELIVER
+  DELIVERED
+  IN_PROGRESS
+  READY_FOR_PICKUP
+  PICKED_UP
+  UNDER_REVIEW
+  PARTIALLY_ACCEPTED
+  ACCEPTED
+  REWORK_REQUIRED
+  COMPLETED
+  CANCELLED
+}
+
+enum JobRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FULFILLED
+}
+
+enum DeliveryType {
+  DELIVERY_TO_WORKER
+  PICKUP_FROM_WORKER
+}
+
+enum DeliveryStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum QualityResult {
+  ACCEPTED
+  PARTIALLY_ACCEPTED
+  REWORK_REQUIRED
+}
+
+enum LedgerType {
+  EARNING
+  PAYOUT_CASH
+  BONUS
+  CORRECTION
+}
+
+enum ExpenseCategory {
+  DELIVERY_FUEL
+  PACKAGING
+  OTHER
+}
+
+enum QrType {
+  ASSIGNMENT
+  WORKER
+}
+
+enum NotificationChannel {
+  TELEGRAM
+  APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ------------------------------------------------------------------------------------------------ access
+
+model User {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  phone        String     @unique
+  fullName     String
+  role         Role
+  status       UserStatus @default(ACTIVE)
+  /// argon2id; null for WORKER (workers sign in with a one-time code sent by the Telegram bot)
+  passwordHash String?
+  lastLoginAt  DateTime?  @db.Timestamptz(3)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+
+  sessions      UserSession[]
+  workerProfile WorkerProfile?
+
+  @@map("users")
+}
+
+model UserSession {
+  id                       String    @id @default(uuid(7)) @db.Uuid
+  userId                   String    @db.Uuid
+  user                     User      @relation(fields: [userId], references: [id])
+  installId                String
+  deviceName               String?
+  platform                 String
+  appVersion               String?
+  /// SHA-256 of the opaque refresh token (raw token is never stored)
+  refreshTokenHash         String    @unique
+  /// previous token: replaying it after the grace period = theft -> whole session revoked
+  previousRefreshTokenHash String?
+  rotatedAt                DateTime? @db.Timestamptz(3)
+  expiresAt                DateTime  @db.Timestamptz(3)
+  revokedAt                DateTime? @db.Timestamptz(3)
+  revokedReason            String?
+  ip                       String?
+  userAgent                String?
+  createdAt                DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt               DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, revokedAt])
+  @@index([previousRefreshTokenHash])
+  @@map("user_sessions")
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  phone     String
+  ip        String?
+  success   Boolean
+  reason    String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([phone, createdAt])
+  @@index([ip, createdAt])
+  @@map("login_attempts")
+}
+
+/// One-time login codes for workers (6 digits, hashed, 5 min, 5 attempts).
+model LoginCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  workerId  String    @db.Uuid
+  codeHash  String
+  expiresAt DateTime  @db.Timestamptz(3)
+  attempts  Int       @default(0)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([workerId, createdAt])
+  @@map("login_codes")
+}
+
+// ---------------------------------------------------------------------------------------------- workers
+
+model WorkerProfile {
+  id                 String       @id @default(uuid(7)) @db.Uuid
+  userId             String?      @unique @db.Uuid
+  user               User?        @relation(fields: [userId], references: [id])
+  telegramUserId     BigInt       @unique
+  telegramChatId     BigInt
+  /// human-friendly, e.g. W-0001
+  code               String       @unique
+  fullName           String
+  phone              String       @unique
+  secondaryPhone     String?
+  latitude           Decimal?     @db.Decimal(9, 6)
+  longitude          Decimal?     @db.Decimal(9, 6)
+  locationReceivedAt DateTime?    @db.Timestamptz(3)
+  status             WorkerStatus @default(PENDING_APPROVAL)
+  notes              String?
+  approvedAt         DateTime?    @db.Timestamptz(3)
+  approvedById       String?      @db.Uuid
+  rejectedReason     String?
+  /// materialised sum of the cash ledger ("К получению"); verified by the integrity job
+  balance            BigInt       @default(0)
+  createdAt          DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime     @updatedAt @db.Timestamptz(3)
+
+  locations    WorkerLocation[]
+  collaterals  WorkerCollateral[]
+  assignments  WorkAssignment[]
+  jobRequests  WorkerJobRequest[]
+  deliveries   Delivery[]
+  ledger       WorkerLedgerTransaction[]
+  cashPayments CashPayment[]
+  qrEntities   QrEntity[]
+
+  @@index([status])
+  @@index([updatedAt])
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "worker_profiles_fullName_trgm")
+  @@map("worker_profiles")
+}
+
+/// GPS history (only what the worker deliberately shared through Telegram / the app).
+model WorkerLocation {
+  id         String         @id @default(uuid(7)) @db.Uuid
+  workerId   String         @db.Uuid
+  worker     WorkerProfile  @relation(fields: [workerId], references: [id])
+  latitude   Decimal        @db.Decimal(9, 6)
+  longitude  Decimal        @db.Decimal(9, 6)
+  receivedAt DateTime       @default(now()) @db.Timestamptz(3)
+  source     LocationSource @default(TELEGRAM)
+
+  @@index([workerId, receivedAt])
+  @@map("worker_locations")
+}
+
+/// Telegram bot conversation state (D-005): survives bot restarts.
+model RegistrationDraft {
+  telegramUserId BigInt   @id
+  chatId         BigInt
+  /// RegState from packages/shared
+  state          Json
+  /// FileAsset ids of collateral photos stored so far
+  photoFileIds   String[] @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("registration_drafts")
+}
+
+// ------------------------------------------------------------------------------------------- collateral
+
+model WorkerCollateral {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  code            String           @unique
+  workerId        String           @db.Uuid
+  worker          WorkerProfile    @relation(fields: [workerId], references: [id])
+  type            CollateralType
+  /// MONEY: declared/held cash amount
+  amount          BigInt?
+  /// ITEM: what it is
+  description     String?
+  estimatedValue  BigInt?
+  storageLocation String?
+  status          CollateralStatus @default(PENDING)
+  declaredAt      DateTime         @default(now()) @db.Timestamptz(3)
+  receivedAt      DateTime?        @db.Timestamptz(3)
+  receivedById    String?          @db.Uuid
+  returnedAt      DateTime?        @db.Timestamptz(3)
+  returnedById    String?          @db.Uuid
+  returnNote      String?
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+
+  photos  CollateralPhoto[]
+  history CollateralHistory[]
+
+  @@index([workerId])
+  @@index([status])
+  @@map("worker_collaterals")
+}
+
+model CollateralPhoto {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  collateralId String           @db.Uuid
+  collateral   WorkerCollateral @relation(fields: [collateralId], references: [id])
+  fileId       String           @db.Uuid
+  caption      String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([collateralId])
+  @@map("collateral_photos")
+}
+
+/// IMMUTABLE.
+model CollateralHistory {
+  id           String                @id @default(uuid(7)) @db.Uuid
+  collateralId String                @db.Uuid
+  collateral   WorkerCollateral      @relation(fields: [collateralId], references: [id])
+  type         CollateralHistoryType
+  /// null = the worker herself (Telegram)
+  actorId      String?               @db.Uuid
+  actorLabel   String
+  note         String?
+  snapshot     Json
+  createdAt    DateTime              @default(now()) @db.Timestamptz(3)
+
+  @@index([collateralId, createdAt])
+  @@map("collateral_history")
+}
+
+// --------------------------------------------------------------------------------------------- catalog
+
+model Color {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  name        String           @unique
+  hex         String?
+  variants    ProductVariant[]
+  materials   Material[]
+  assignments WorkAssignment[]
+
+  @@map("colors")
+}
+
+model ProductModel {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  code         String           @unique
+  name         String
+  description  String?
+  photoFileId  String?          @db.Uuid
+  schemeFileId String?          @db.Uuid
+  videoFileId  String?          @db.Uuid
+  active       Boolean          @default(true)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
+  variants     ProductVariant[]
+  assignments  WorkAssignment[]
+  saleItems    SaleItem[]
+
+  @@map("product_models")
+}
+
+model ProductVariant {
+  id           String                @id @default(uuid(7)) @db.Uuid
+  modelId      String                @db.Uuid
+  model        ProductModel          @relation(fields: [modelId], references: [id])
+  colorId      String                @db.Uuid
+  color        Color                 @relation(fields: [colorId], references: [id])
+  sku          String                @unique
+  photoFileId  String?               @db.Uuid
+  active       Boolean               @default(true)
+  createdAt    DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime              @updatedAt @db.Timestamptz(3)
+  kitTemplates MaterialKitTemplate[]
+  assignments  WorkAssignment[]
+  saleItems    SaleItem[]
+
+  @@unique([modelId, colorId])
+  @@map("product_variants")
+}
+
+model MaterialCategory {
+  id        String     @id @default(uuid(7)) @db.Uuid
+  name      String     @unique
+  materials Material[]
+
+  @@map("material_categories")
+}
+
+model Material {
+  id         String            @id @default(uuid(7)) @db.Uuid
+  name       String
+  categoryId String?           @db.Uuid
+  category   MaterialCategory? @relation(fields: [categoryId], references: [id])
+  colorId    String?           @db.Uuid
+  color      Color?            @relation(fields: [colorId], references: [id])
+  article    String?
+  unit       MaterialUnit
+  minStock   Decimal           @default(0) @db.Decimal(14, 3)
+  /// UZS per unit; used for cost of materials in the profit report
+  unitCost   BigInt?
+  isActive   Boolean           @default(true)
+  createdAt  DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime          @updatedAt @db.Timestamptz(3)
+
+  balance             StockBalance?
+  movements           StockMovement[]
+  kitItems            MaterialKitTemplateItem[]
+  assignmentMaterials WorkAssignmentMaterial[]
+  deliveryItems       DeliveryItem[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "materials_name_trgm")
+  @@map("materials")
+}
+
+/// "Rose Gold / 9m" = ribbon 9 m + beads + thread + extras.
+model MaterialKitTemplate {
+  id           String                    @id @default(uuid(7)) @db.Uuid
+  name         String                    @unique
+  variantId    String?                   @db.Uuid
+  variant      ProductVariant?           @relation(fields: [variantId], references: [id])
+  ribbonMeters Decimal                   @default(9) @db.Decimal(10, 2)
+  active       Boolean                   @default(true)
+  createdAt    DateTime                  @default(now()) @db.Timestamptz(3)
+  items        MaterialKitTemplateItem[]
+  assignments  WorkAssignment[]
+
+  @@map("material_kit_templates")
+}
+
+model MaterialKitTemplateItem {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  templateId       String              @db.Uuid
+  template         MaterialKitTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  materialId       String              @db.Uuid
+  material         Material            @relation(fields: [materialId], references: [id])
+  requiredQuantity Decimal             @db.Decimal(14, 3)
+
+  @@unique([templateId, materialId])
+  @@map("material_kit_template_items")
+}
+
+// ----------------------------------------------------------------------------------------------- stock
+
+/// IMMUTABLE. quantity is the positive magnitude; the two deltas are the signed effect on the warehouse and on
+/// the worker's holdings (D-011). Balances are Σ deltas.
+model StockMovement {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  groupId        String            @db.Uuid
+  type           StockMovementType
+  materialId     String            @db.Uuid
+  material       Material          @relation(fields: [materialId], references: [id])
+  quantity       Decimal           @db.Decimal(14, 3)
+  warehouseDelta Decimal           @db.Decimal(14, 3)
+  workerDelta    Decimal           @default(0) @db.Decimal(14, 3)
+  workerId       String?           @db.Uuid
+  assignmentId   String?           @db.Uuid
+  performedById  String            @db.Uuid
+  comment        String?
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@index([materialId, createdAt])
+  @@index([workerId])
+  @@index([assignmentId])
+  @@map("stock_movements")
+}
+
+/// Materialised warehouse balance; CHECK (quantity >= 0).
+model StockBalance {
+  materialId String   @id @db.Uuid
+  material   Material @relation(fields: [materialId], references: [id])
+  quantity   Decimal  @default(0) @db.Decimal(14, 3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("stock_balances")
+}
+
+// ------------------------------------------------------------------------------------------ production
+
+model WorkAssignment {
+  id                    String               @id @default(uuid(7)) @db.Uuid
+  code                  String               @unique
+  workerId              String               @db.Uuid
+  worker                WorkerProfile        @relation(fields: [workerId], references: [id])
+  productModelId        String               @db.Uuid
+  productModel          ProductModel         @relation(fields: [productModelId], references: [id])
+  productVariantId      String               @db.Uuid
+  productVariant        ProductVariant       @relation(fields: [productVariantId], references: [id])
+  colorId               String               @db.Uuid
+  color                 Color                @relation(fields: [colorId], references: [id])
+  materialKitTemplateId String?              @db.Uuid
+  materialKitTemplate   MaterialKitTemplate? @relation(fields: [materialKitTemplateId], references: [id])
+  jobRequestId          String?              @unique @db.Uuid
+  jobRequest            WorkerJobRequest?    @relation(fields: [jobRequestId], references: [id])
+  /// 1 = 9 m, 2 = 18 m, 3 = 27 m
+  kitCount              Int
+  plannedMeters         Decimal              @db.Decimal(10, 2)
+  issuedAt              DateTime?            @db.Timestamptz(3)
+  dueAt                 DateTime?            @db.Timestamptz(3)
+  /// The ONE global rate per 9 m kit that was in force when this work was accepted (D-027). NULL while the work is open:
+  /// open work is paid at the CURRENT global rate, so a change by ADMIN applies to everyone. Set once, at acceptance.
+  settledRatePerKit     BigInt?
+  /// latest metres reported by the worker
+  reportedMeters        Decimal              @default(0) @db.Decimal(10, 2)
+  /// metres physically brought to the company (pickup)
+  deliveredMeters       Decimal              @default(0) @db.Decimal(10, 2)
+  acceptedMeters        Decimal              @default(0) @db.Decimal(10, 2)
+  defectiveMeters       Decimal              @default(0) @db.Decimal(10, 2)
+  calculatedPayment     BigInt               @default(0)
+  status                AssignmentStatus     @default(DRAFT)
+  notes                 String?
+  createdById           String               @db.Uuid
+  createdAt             DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime             @updatedAt @db.Timestamptz(3)
+
+  materials     WorkAssignmentMaterial[]
+  statusHistory WorkAssignmentStatusHistory[]
+  progress      WorkProgress[]
+  inspections   QualityInspection[]
+  deliveries    Delivery[]
+  qrEntities    QrEntity[]
+  ledger        WorkerLedgerTransaction[]
+
+  @@index([workerId, status])
+  @@index([status])
+  @@index([dueAt])
+  @@map("work_assignments")
+}
+
+model WorkAssignmentMaterial {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  assignmentId String         @db.Uuid
+  assignment   WorkAssignment @relation(fields: [assignmentId], references: [id])
+  materialId   String         @db.Uuid
+  material     Material       @relation(fields: [materialId], references: [id])
+  quantity     Decimal        @db.Decimal(14, 3)
+
+  @@index([assignmentId])
+  @@map("work_assignment_materials")
+}
+
+/// IMMUTABLE.
+model WorkAssignmentStatusHistory {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  assignmentId String            @db.Uuid
+  assignment   WorkAssignment    @relation(fields: [assignmentId], references: [id])
+  fromStatus   AssignmentStatus?
+  toStatus     AssignmentStatus
+  changedById  String?           @db.Uuid
+  /// ADMIN | WORKER | SYSTEM
+  actor        String
+  comment      String?
+  changedAt    DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@index([assignmentId, changedAt])
+  @@map("work_assignment_status_history")
+}
+
+model WorkProgress {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  assignmentId   String         @db.Uuid
+  assignment     WorkAssignment @relation(fields: [assignmentId], references: [id])
+  workerId       String         @db.Uuid
+  reportedMeters Decimal        @db.Decimal(10, 2)
+  percent        Decimal        @db.Decimal(5, 2)
+  comment        String?
+  /// client-generated: offline retries stay idempotent
+  clientId       String?
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@unique([assignmentId, clientId])
+  @@index([assignmentId, createdAt])
+  @@map("work_progress")
+}
+
+model WorkerJobRequest {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  workerId     String           @db.Uuid
+  worker       WorkerProfile    @relation(fields: [workerId], references: [id])
+  /// 1..3 kits = 9/18/27 m
+  kitCount     Int
+  note         String?
+  status       JobRequestStatus @default(PENDING)
+  decidedById  String?          @db.Uuid
+  decidedAt    DateTime?        @db.Timestamptz(3)
+  decisionNote String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+
+  assignment WorkAssignment?
+
+  @@index([status])
+  @@index([workerId])
+  @@map("worker_job_requests")
+}
+
+model Delivery {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  code          String          @unique
+  workerId      String          @db.Uuid
+  worker        WorkerProfile   @relation(fields: [workerId], references: [id])
+  assignmentId  String?         @db.Uuid
+  assignment    WorkAssignment? @relation(fields: [assignmentId], references: [id])
+  type          DeliveryType
+  status        DeliveryStatus  @default(PENDING)
+  notes         String?
+  createdById   String          @db.Uuid
+  createdAt     DateTime        @default(now()) @db.Timestamptz(3)
+  completedAt   DateTime?       @db.Timestamptz(3)
+  completedById String?         @db.Uuid
+
+  items DeliveryItem[]
+
+  @@index([status, type])
+  @@index([workerId])
+  @@map("deliveries")
+}
+
+model DeliveryItem {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  deliveryId   String    @db.Uuid
+  delivery     Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  materialId   String?   @db.Uuid
+  material     Material? @relation(fields: [materialId], references: [id])
+  description  String
+  quantity     Decimal   @db.Decimal(14, 3)
+  assignmentId String?   @db.Uuid
+
+  @@index([deliveryId])
+  @@map("delivery_items")
+}
+
+model QualityInspection {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  assignmentId    String         @db.Uuid
+  assignment      WorkAssignment @relation(fields: [assignmentId], references: [id])
+  inspectorId     String         @db.Uuid
+  result          QualityResult
+  broughtMeters   Decimal        @db.Decimal(10, 2)
+  acceptedMeters  Decimal        @db.Decimal(10, 2)
+  defectiveMeters Decimal        @default(0) @db.Decimal(10, 2)
+  reworkMeters    Decimal        @default(0) @db.Decimal(10, 2)
+  comment         String?
+  photoFileIds    String[]       @db.Uuid
+  inspectedAt     DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@index([assignmentId])
+  @@map("quality_inspections")
+}
+
+/// QR carries only this opaque code (D-012).
+model QrEntity {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  code         String          @unique
+  type         QrType
+  assignmentId String?         @db.Uuid
+  assignment   WorkAssignment? @relation(fields: [assignmentId], references: [id])
+  workerId     String?         @db.Uuid
+  worker       WorkerProfile?  @relation(fields: [workerId], references: [id])
+  createdAt    DateTime        @default(now()) @db.Timestamptz(3)
+  revokedAt    DateTime?       @db.Timestamptz(3)
+
+  @@index([assignmentId])
+  @@index([workerId])
+  @@map("qr_entities")
+}
+
+// ---------------------------------------------------------------------------------------------- money
+
+/// IMMUTABLE cash ledger. Corrections are CORRECTION rows.
+model WorkerLedgerTransaction {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  workerId       String          @db.Uuid
+  worker         WorkerProfile   @relation(fields: [workerId], references: [id])
+  assignmentId   String?         @db.Uuid
+  assignment     WorkAssignment? @relation(fields: [assignmentId], references: [id])
+  type           LedgerType
+  /// signed: + we owe the worker more, - we paid / reduced
+  amount         BigInt
+  balanceAfter   BigInt
+  cashPaymentId  String?         @unique @db.Uuid
+  cashPayment    CashPayment?    @relation(fields: [cashPaymentId], references: [id])
+  reversalOfId   String?         @unique @db.Uuid
+  comment        String?
+  idempotencyKey String?         @unique
+  createdById    String          @db.Uuid
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@index([workerId, createdAt])
+  @@map("worker_ledger_transactions")
+}
+
+model CashPayment {
+  id       String        @id @default(uuid(7)) @db.Uuid
+  workerId String        @db.Uuid
+  worker   WorkerProfile @relation(fields: [workerId], references: [id])
+  amount   BigInt
+  comment  String?
+  /// ADMIN paid more than the balance (audited)
+  forced   Boolean       @default(false)
+  paidById String        @db.Uuid
+  paidAt   DateTime      @default(now()) @db.Timestamptz(3)
+
+  ledger WorkerLedgerTransaction?
+
+  @@index([workerId, paidAt])
+  @@map("cash_payments")
+}
+
+/// IMMUTABLE history of the ONE global price of a 9 m kit, in UZS (D-024, D-027). The current rate is the row with the
+/// highest `seq`; ADMIN changes it at any moment and it applies to everyone. Seeded with 30 000 by the migration.
+model PayRateChange {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  seq                Int      @unique @default(autoincrement())
+  ratePerKit         BigInt
+  previousRatePerKit BigInt?
+  /// NULL for the seeded initial rate
+  changedById        String?  @db.Uuid
+  note               String?
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("pay_rate_changes")
+}
+
+model Sale {
+  id          String     @id @default(uuid(7)) @db.Uuid
+  code        String     @unique
+  date        DateTime   @db.Timestamptz(3)
+  customer    String?
+  total       BigInt
+  notes       String?
+  createdById String     @db.Uuid
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  items       SaleItem[]
+
+  @@index([date])
+  @@map("sales")
+}
+
+model SaleItem {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  saleId         String          @db.Uuid
+  sale           Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productModelId String?         @db.Uuid
+  productModel   ProductModel?   @relation(fields: [productModelId], references: [id])
+  variantId      String?         @db.Uuid
+  variant        ProductVariant? @relation(fields: [variantId], references: [id])
+  description    String
+  /// metres or pieces
+  quantity       Decimal         @db.Decimal(14, 3)
+  unitPrice      BigInt
+  totalPrice     BigInt
+
+  @@index([saleId])
+  @@map("sale_items")
+}
+
+model Expense {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  category    ExpenseCategory
+  amount      BigInt
+  date        DateTime        @db.Timestamptz(3)
+  comment     String?
+  createdById String          @db.Uuid
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@index([date])
+  @@map("expenses")
+}
+
+// ------------------------------------------------------------------------------------------ platform
+
+/// Outbox for Telegram messages + in-app notifications (D-006).
+model Notification {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  channel        NotificationChannel
+  status         NotificationStatus  @default(PENDING)
+  workerId       String?             @db.Uuid
+  telegramChatId BigInt?
+  /// e.g. worker.approved, login_code
+  type           String
+  /// cleared after a successful send for sensitive messages (login codes)
+  body           String?
+  data           Json?
+  attempts       Int                 @default(0)
+  nextAttemptAt  DateTime            @default(now()) @db.Timestamptz(3)
+  lastError      String?
+  sentAt         DateTime?           @db.Timestamptz(3)
+  readAt         DateTime?           @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([status, nextAttemptAt])
+  @@index([workerId, createdAt])
+  @@map("notifications")
+}
+
+/// IMMUTABLE.
+model AuditLog {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  actorId   String?  @db.Uuid
+  actorRole String?
+  action    String
+  entity    String
+  entityId  String?  @db.Uuid
+  before    Json?
+  after     Json?
+  ip        String?
+  device    String?
+  requestId String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([entity, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Metadata of an object in MinIO; bytes never live in PostgreSQL.
+model FileAsset {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  bucket       String
+  objectKey    String
+  thumbKey     String?
+  mimeType     String
+  size         BigInt
+  sha256       String
+  width        Int?
+  height       Int?
+  originalName String?
+  uploadedById String?  @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([bucket, objectKey])
+  @@index([sha256])
+  @@map("file_assets")
+}
+
+model IdempotencyKey {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  userId       String   @db.Uuid
+  key          String
+  method       String
+  path         String
+  requestHash  String
+  statusCode   Int?
+  responseBody Json?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, key])
+  @@index([createdAt])
+  @@map("idempotency_keys")
+}
+
+model Sequence {
+  key   String @id
+  value Int    @default(0)
+
+  @@map("sequences")
+}
