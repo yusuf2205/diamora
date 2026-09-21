@@ -1,0 +1,16 @@
+{
+  "name": "@yusmus/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Domain core: roles, state machines, Telegram registration flow, realtime contracts, validation, money/metres",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": { "zod": "^4.6.5" },
+  "devDependencies": { "@types/node": "^24.0.0", "tsx": "^4.23.13", "typescript": "~5.9.3" }
+}
