@@ -1,0 +1,353 @@
+# Yusmus — the whole system on OUR NAS.   docker compose up -d
+#
+# Networks (fixed subnets: this NAS runs many other Docker projects and the LAN is 192.168.1.0/24 — no clashes, D-025)
+#   edge   : Caddy <-> api/web (+ cloudflared). The ONLY published port of the stack is Caddy's ${HTTP_PORT} (plain HTTP;
+#            ports 80/443 belong to the NAS itself). HTTPS for the internet comes from the optional Cloudflare Tunnel.
+#   data   : `internal: true` — PostgreSQL, Redis, MinIO have NO route to the internet and are never published
+#   egress : outbound-only network for the Telegram bot worker (Telegram Bot API)
+# Persistent data: ${DATA_ROOT} (bind mounts on NAS storage). Backups: ${BACKUP_ROOT} (a different physical disk if possible).
+# Internet HTTPS:  docker compose --profile tunnel up -d      (needs CLOUDFLARE_TUNNEL_TOKEN, docs/NAS-DEPLOYMENT.md §3)
+name: yusmus
+
+x-logging: &default-logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+x-hardened: &hardened
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  logging: *default-logging
+
+networks:
+  edge:
+    ipam:
+      config: [{ subnet: "${NET_EDGE_SUBNET:-172.30.61.0/24}" }]
+  data:
+    internal: true
+    ipam:
+      config: [{ subnet: "${NET_DATA_SUBNET:-172.30.62.0/24}" }]
+  egress:
+    ipam:
+      config: [{ subnet: "${NET_EGRESS_SUBNET:-172.30.63.0/24}" }]
+
+services:
+  # ---------------------------------------------------------------------------------------------- PostgreSQL
+  postgres:
+    <<: *hardened
+    image: postgres:17-bookworm
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-yusmus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-yusmus}
+      BACKUP_DB_PASSWORD: ${BACKUP_DB_PASSWORD:?set BACKUP_DB_PASSWORD in .env}
+      # UTF-8 + ICU collation (correct Russian/Uzbek sorting, emoji safe). Fixed at first init!
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=icu --icu-locale=ru-RU --data-checksums"
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: UTC
+    volumes:
+      - ${DATA_ROOT:?set DATA_ROOT in .env}/postgres:/var/lib/postgresql/data
+      - ${BACKUP_ROOT:?set BACKUP_ROOT in .env}/postgres/wal:/wal-archive
+      - ./infra/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./infra/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks: [data]
+    shm_size: 256mb
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ------------------------------------------------------------------------------------------------- Redis
+  # Realtime bus (pub/sub) between the API sockets and the bot worker.
+  redis:
+    <<: *hardened
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-128mb}
+      - --maxmemory-policy
+      - noeviction
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    volumes:
+      - ${DATA_ROOT}/redis:/data
+    networks: [data]
+    mem_limit: ${REDIS_MEM_LIMIT:-256m}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # -------------------------------------------------------------------------------------------------- MinIO
+  # S3-compatible file storage ON THE NAS (photos of collateral, works, schemes). Upstream is archived: docs/DECISIONS.md D-015.
+  minio:
+    <<: *hardened
+    image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772}
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - ${DATA_ROOT}/minio:/data
+    networks: [data]
+    # admin console: only from the NAS itself (SSH tunnel). Never routed by the proxy.
+    ports:
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    mem_limit: ${MINIO_MEM_LIMIT:-512m}
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    restart: "no"
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "/init/minio-init.sh"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set S3_ACCESS_KEY in .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in .env}
+      S3_BACKUP_ACCESS_KEY: ${S3_BACKUP_ACCESS_KEY:?set S3_BACKUP_ACCESS_KEY in .env}
+      S3_BACKUP_SECRET_KEY: ${S3_BACKUP_SECRET_KEY:?set S3_BACKUP_SECRET_KEY in .env}
+      S3_BUCKET_PREFIX: ${S3_BUCKET_PREFIX:-}
+      MINIO_BUCKET_QUOTA_GB: ${MINIO_BUCKET_QUOTA_GB:-100}
+    volumes:
+      - ./infra/minio/minio-init.sh:/init/minio-init.sh:ro
+    networks: [data]
+    logging: *default-logging
+
+  # --------------------------------------------------------------------------------------------- migrations
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+      target: migrator
+    image: yusmus/migrate:${APP_VERSION:-local}
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: &database-url postgresql://${POSTGRES_USER:-yusmus}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-yusmus}?schema=public&connection_limit=${DB_POOL_SIZE:-10}&pool_timeout=20
+    networks: [data]
+    logging: *default-logging
+
+  # ------------------------------------------------------------------------------------------------- API
+  # REST + Socket.IO. All business logic. No Telegram access (the worker delivers messages).
+  api:
+    <<: *hardened
+    build:
+      context: .
+      dockerfile: infra/docker/service.Dockerfile
+      target: runtime
+    image: yusmus/api:${APP_VERSION:-local}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+      migrate: { condition: service_completed_successfully }
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: *database-url
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
+      FILE_SIGNING_SECRET: ${FILE_SIGNING_SECRET:?set FILE_SIGNING_SECRET in .env}
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET_PREFIX: ${S3_BUCKET_PREFIX:-}
+      PUBLIC_API_URL: ${PUBLIC_URL:?set PUBLIC_URL in .env (no trailing slash)}
+      CORS_ORIGINS: ${PUBLIC_URL}
+      TRUST_PROXY_HOPS: "1" # Caddy is the only hop the API sees; Caddy resolves the real client IP itself
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+    networks: [edge, data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    mem_limit: ${API_MEM_LIMIT:-512m}
+    cpus: ${API_CPUS:-1.5}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------------------------------------------------------------- Worker
+  # Telegram bot (long polling, no inbound port) + outbox delivery + integrity checks. Same image as the API.
+  worker:
+    <<: *hardened
+    image: yusmus/api:${APP_VERSION:-local}
+    command: ["dist/worker.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+      migrate: { condition: service_completed_successfully }
+    environment:
+      NODE_ENV: production
+      SERVICE_NAME: worker
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: *database-url
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      FILE_SIGNING_SECRET: ${FILE_SIGNING_SECRET}
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET_PREFIX: ${S3_BUCKET_PREFIX:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env (@BotFather)}
+      WORKER_HEALTH_PORT: "3100"
+      TZ: UTC
+    networks: [data, egress]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    mem_limit: ${WORKER_MEM_LIMIT:-384m}
+    cpus: ${WORKER_CPUS:-1}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ------------------------------------------------------------------------------------------------- Web
+  web:
+    <<: *hardened
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
+    image: yusmus/web:${APP_VERSION:-local}
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      API_INTERNAL_URL: http://api:3000
+    networks: [edge]
+    read_only: true
+    tmpfs: [/tmp, /app/apps/web/.next/cache]
+    cap_drop: [ALL]
+    mem_limit: ${WEB_MEM_LIMIT:-384m}
+    cpus: ${WEB_CPUS:-1}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ------------------------------------------------------------------------------ Reverse proxy (plain HTTP)
+  # Routes /v1, /socket.io, /health/live to the API and everything else to the web app. No TLS here (D-025).
+  # HTTP_BIND=127.0.0.1 -> reachable from the NAS itself and from the tunnel only (safe default);
+  # HTTP_BIND=0.0.0.0   -> also from the home network / Tailscale (phones without internet HTTPS, first tests).
+  caddy:
+    <<: *hardened
+    image: caddy:2.11-alpine
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_started }
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8088}:8080"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${DATA_ROOT}/caddy/data:/data
+      - ${DATA_ROOT}/caddy/config:/config
+    networks: [edge]
+    mem_limit: ${CADDY_MEM_LIMIT:-128m}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # --------------------------------------------------------------------- Internet HTTPS (optional, profile "tunnel")
+  # Outbound-only tunnel to Cloudflare: no router port-forwarding, works behind CGNAT. Cloudflare terminates TLS, so it can
+  # see HTTP traffic (D-002 lists this as the owner's explicit decision; the NAS already uses it for other projects).
+  # In Zero Trust -> Tunnels create a public hostname that points to  http://caddy:8080  and put the token in .env.
+  cloudflared:
+    <<: *hardened
+    profiles: ["tunnel"]
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.8.3}
+    command: ["tunnel", "--no-autoupdate", "--metrics", "127.0.0.1:2000", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      caddy: { condition: service_healthy }
+    networks: [edge]
+    read_only: true
+    cap_drop: [ALL]
+    mem_limit: ${CLOUDFLARED_MEM_LIMIT:-128m}
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------------------------- Backup
+  backup:
+    <<: *hardened
+    build:
+      context: .
+      dockerfile: infra/docker/backup.Dockerfile
+    image: yusmus/backup:${APP_VERSION:-local}
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: backup
+      PGPASSWORD: ${BACKUP_DB_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-yusmus}
+      S3_ENDPOINT: http://minio:9000
+      S3_BACKUP_ACCESS_KEY: ${S3_BACKUP_ACCESS_KEY}
+      S3_BACKUP_SECRET_KEY: ${S3_BACKUP_SECRET_KEY}
+      S3_BUCKET_PREFIX: ${S3_BUCKET_PREFIX:-}
+      BACKUP_DIR: /backups
+      BACKUP_SCHEDULE_DUMP: ${BACKUP_SCHEDULE_DUMP:-0 21 * * *}
+      BACKUP_SCHEDULE_MINIO: ${BACKUP_SCHEDULE_MINIO:-30 21 * * *}
+      BACKUP_SCHEDULE_BASE: ${BACKUP_SCHEDULE_BASE:-0 22 * * 0}
+      BACKUP_SCHEDULE_VERIFY: ${BACKUP_SCHEDULE_VERIFY:-30 22 * * *}
+      BACKUP_SCHEDULE_CONFIG: ${BACKUP_SCHEDULE_CONFIG:-45 21 * * *}
+      RETENTION_DAILY: ${BACKUP_RETENTION_DAILY:-7}
+      RETENTION_WEEKLY: ${BACKUP_RETENTION_WEEKLY:-4}
+      RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-6}
+      RETENTION_BASE: ${BACKUP_RETENTION_BASE:-3}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      TZ: UTC
+    volumes:
+      - ${BACKUP_ROOT}:/backups
+      - ./:/repo:ro
+    networks: [data]
+    mem_limit: ${BACKUP_MEM_LIMIT:-192m}
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/scheduler.alive && find /tmp/scheduler.alive -mmin -3 | grep -q ."]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

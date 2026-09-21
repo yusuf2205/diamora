@@ -1,0 +1,58 @@
+# Reverse proxy INSIDE the stack: plain HTTP on :8080 (published as ${HTTP_BIND}:${HTTP_PORT}, see docker-compose.yml).
+# Our NAS already owns ports 80/443 (D-025), so TLS is NOT done here:
+#   - internet: Cloudflare Tunnel (compose profile "tunnel") terminates HTTPS and forwards to http://caddy:8080
+#   - home Wi-Fi / Tailscale: http://<NAS-address>:${HTTP_PORT}
+# One origin serves everything, routed by PATH (so the hostname does not matter). Only the paths below are reachable:
+# PostgreSQL, Redis and MinIO are NEVER routed from here.
+{
+	auto_https off
+	admin 127.0.0.1:2019
+	log {
+		output stdout
+		format json
+	}
+	servers {
+		# cloudflared and Docker's port-publishing arrive from private addresses: trust them and use the REAL client IP
+		# (Cloudflare's header first) so login lockout and rate limits are per person, not per proxy.
+		trusted_proxies static private_ranges
+		client_ip_headers Cf-Connecting-Ip X-Forwarded-For
+	}
+}
+
+:8080 {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+	request_body {
+		max_size 25MB
+	}
+
+	# never exposed: readiness details and API docs
+	@internal path /health/ready /docs /docs/* /docs-json
+	respond @internal 404
+
+	# API for the phones: REST + Socket.IO (WebSocket)
+	@api path /v1/* /health/live /socket.io/*
+	handle @api {
+		reverse_proxy api:3000 {
+			health_uri /health/live
+			health_interval 15s
+			transport http {
+				dial_timeout 3s
+				response_header_timeout 60s
+			}
+		}
+	}
+
+	# everything else is the web application (tables, reports, settings)
+	handle {
+		reverse_proxy web:3000 {
+			health_uri /api/health
+			health_interval 20s
+		}
+	}
+}
