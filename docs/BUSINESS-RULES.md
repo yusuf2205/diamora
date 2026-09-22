@@ -10,9 +10,11 @@
 6. **Pay is per 9 m kit at ONE global price** (30 000 UZS at the start, D-027). ADMIN may change it at any moment; it applies to everyone. Work not yet accepted is paid at the current price; accepted work is never recalculated.
 7. A cash payout can never exceed the worker's balance without an explicit `force` flag from ADMIN (recorded in audit).
 8. Only the server decides: the client only requests; realtime events are sent after COMMIT.
-8. A worker sees only her own data. ADMIN sees everything. Deny by default.
-9. Collateral is not income; sales are not linked to collateral.
-10. Critical operations are idempotent (`Idempotency-Key`).
+9. **Roles are ranked and permission-gated (D-028):** a WORKER sees only her own data; a MANAGER sees only her assigned workers, server-side, everywhere (REST and realtime); ADMIN's defaults cover day-to-day operations, sensitive settings (pay rate, company contact, user management) need an explicit grant; SUPER_ADMIN always has everything. Deny by default (a test enumerates every route).
+10. Collateral is not income; sales are not linked to collateral.
+11. Critical operations are idempotent (`Idempotency-Key`).
+12. **The catalog never carries a price** (D-029): the tables have no price column, and nothing in the worker-facing payloads references `pay_rate_changes`.
+13. **A live position is either fresh or explicitly marked stale** (D-030): a position older than 15 minutes is flagged `stale`, never presented as current.
 
 ## WorkerProfile status
 

@@ -11,8 +11,8 @@ The price is **one global number: UZS per 9 m kit** — 30 000 at the start (D-0
 
 `amount = round_half_up(ratePerKit × acceptedCm / 900)` (integer arithmetic in centimetres; `earningFor` in `packages/shared`). Whole accepted kits are exact multiples of the rate. A kit that is only partly accepted (defect, shortfall) is paid pro rata (confirmed by the owner). Switching to "whole kits only" later would be a one-line change: floor `acceptedCm` to a multiple of 900 in `earningFor`.
 
-### Changing the price (ADMIN, any moment)
-ADMIN app → Профиль → **Ставка за 9 м** → *Изменить ставку*. The change is one new row in the append-only `pay_rate_changes` (previous → new, who, when, note), is audited, and is pushed to every open ADMIN and WORKER screen (`pay_rate.changed`). It applies to **everyone at once**:
+### Changing the price (`PAY_RATE_MANAGE`, any moment)
+Profile → **Ставка за 9 м** → *Изменить ставку*. `SUPER_ADMIN` always has this permission; `ADMIN` only if explicitly granted (§39); `MANAGER`/`WORKER` never (D-028, [RBAC.md](RBAC.md)). The change is one new row in the append-only `pay_rate_changes` (previous → new, who, when, note), is audited, and is pushed to every open staff and WORKER screen (`pay_rate.changed`). It applies to **everyone at once**:
 
 | Work | Price used |
 |---|---|
@@ -22,7 +22,10 @@ ADMIN app → Профиль → **Ставка за 9 м** → *Изменит�
 A mistake is fixed by setting the price again (history keeps both). Workers see the current price on their home screen; the app also shows the expected amount of an open assignment as `kits × current price`.
 
 ## Cash payout
-ADMIN → "Выплатить наличными": screen shows *К выплате* (= balance); choose full or other amount → `CashPayment` + `PAYOUT_CASH` in one transaction → `cash_payment.created` + `worker.balance_updated`. Amount ≤ balance unless ADMIN passes `force=true` (audited).
+"Выплатить наличными" (`CASH_PAYOUT`; a MANAGER can be granted it for her own workers): screen shows *К выплате* (= balance); choose full or other amount → `CashPayment` + `PAYOUT_CASH` in one transaction → `cash_payment.created` + `worker.balance_updated`. Amount ≤ balance unless the actor passes `force=true` (audited).
+
+## Who sees whose money (`FINANCE_VIEW_ALL` / `_ASSIGNED`, D-028)
+`SUPER_ADMIN`/`ADMIN` (default) see every worker's ledger and balance. A `MANAGER` sees only her own assigned workers' — enforced server-side (`scopeFor(..., 'FINANCE')`), the same way as everywhere else. A `WORKER` sees only her own (`GET /workers/me`).
 
 ## Worker screen wording
 **К получению** (balance) · **Заработано** · **Выплачено** · history: `+450 000 — Rose Gold`, `−900 000 — выплата наличными`.

@@ -1,8 +1,9 @@
-# Yandex Maps (ADMIN app)
+# Yandex Maps (SUPER_ADMIN / ADMIN / MANAGER app)
 
-- Package: **`yandex_maps_mapkit_lite`** — Yandex's own Flutter package (publisher maps.yandex.ru, v4.45.0, Android + iOS; D-026). The community `yandex_mapkit` is no longer preferred. "Lite" = interactive map, markers, user location, traffic — everything the ADMIN map needs. Route building (the "Full" SDK) is not needed: **Route** is a deep link into the Yandex Maps app.
-- Key: `--dart-define=YANDEX_MAPKIT_KEY=...` → `init.initMapkit(apiKey: …)` in `main()` (owner action, D-013; steps in NAS-DEPLOYMENT "Owner checklist"). Free licence: up to 25 000 monthly active users — we have a dozen. Map screen arrives in M4; the API contract below is available from M1/M3.
-- Workers are markers at their Telegram GPS (`latitude/longitude`, `locationReceivedAt`).
+- Package: **`yandex_maps_mapkit_lite`** — Yandex's own Flutter package (publisher maps.yandex.ru, v4.45.0, Android + iOS; D-026). The community `yandex_mapkit` is no longer preferred. "Lite" = interactive map, markers, user location, traffic — everything the map needs. Route building (the "Full" SDK) is not needed: **Route** is a deep link into the Yandex Maps app.
+- Key: `--dart-define=YANDEX_MAPKIT_KEY=...` → `init.initMapkit(apiKey: …)` in `main()` (owner action, D-013; steps in NAS-DEPLOYMENT "Owner checklist"). Free licence: up to 25 000 monthly active users — we have a dozen. **The map screen itself is still M4** — not built in this round. What already exists and is tested: the live-location data source it will read (`GET /v1/locations`, [LIVE-LOCATION.md](LIVE-LOCATION.md)) and a plain-list screen (`locations_screen.dart`) showing exactly the fields a marker will need.
+- Workers are markers at their live position (`UserLiveLocation`, D-030) or, until she has reported one from the app, her Telegram registration GPS (`WorkerProfile.latitude/longitude`, `locationReceivedAt`).
+- **Who sees whom is the same rule as everywhere else** (§23-26, D-028): `SUPER_ADMIN`/`ADMIN` with `MAP_VIEW_ALL`/`LIVE_LOCATION_VIEW_ALL` see everyone; a `MANAGER` with the `_ASSIGNED` variants sees only her own assigned workers, enforced server-side — never a client-side filter on a full list.
 
 ## Filters (no distance sorting)
 `GET /v1/map/workers?filter=all|pickup|delivery`
