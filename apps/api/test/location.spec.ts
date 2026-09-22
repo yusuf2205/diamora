@@ -99,4 +99,16 @@ describe('live location (D-030): every role reports its own position; reads are 
       mgr.socket.close();
     }
   });
+
+  it('the map read carries a freshness tier, online presence and phone — everything a marker needs (M2 §14-17)', async () => {
+    const admin = await superAdminActor(t);
+    const reg = await registerViaBot(t);
+    const worker = await approveAndLoginWorker(t, admin.api, reg.phone);
+    await worker.api.post('/v1/location', { ...TASHKENT, recordedAt: new Date().toISOString() }).expect(200);
+    const list = await admin.api.get('/v1/locations').expect(200);
+    const row = (list.body.items as { worker: { id: string } | null; freshness: string; online: boolean; phone: string }[]).find((i) => i.worker?.id === worker.workerId)!;
+    expect(row.freshness).toBe('LIVE');
+    expect(typeof row.online).toBe('boolean');
+    expect(row.phone).toBe(reg.phone);
+  });
 });
