@@ -1,11 +1,11 @@
 import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import type { Role } from '@yusmus/shared';
+import { effectivePermissions, type Permission, type Role } from '@yusmus/shared';
 import * as argon2 from 'argon2';
 import type { Request } from 'express';
 import { randomBytes, randomInt } from 'node:crypto';
-import { IS_AUTHENTICATED, IS_PUBLIC, ROLES_KEY } from '../common/decorators';
+import { IS_AUTHENTICATED, IS_PUBLIC, PERMISSIONS_KEY, ROLES_KEY } from '../common/decorators';
 import { forbidden, sessionRevoked, unauthenticated } from '../common/errors';
 import { RequestContext, type AuthUser } from '../common/request-context';
 import { PrismaService } from '../prisma/prisma.module';
@@ -36,17 +36,28 @@ export class SessionAuthService {
     if (hit && hit.expires > now) return hit.user;
     const s = await this.prisma.userSession.findUnique({
       where: { id: sessionId },
-      select: { id: true, revokedAt: true, expiresAt: true, user: { select: { id: true, role: true, status: true, fullName: true, workerProfile: { select: { id: true } } } } },
+      select: { id: true, revokedAt: true, expiresAt: true, user: { select: { id: true, role: true, status: true, fullName: true, workerProfile: { select: { id: true } }, permissions: { select: { permission: true, granted: true } } } } },
     });
     const valid = !!s && !s.revokedAt && s.expiresAt.getTime() > now && s.user.status === 'ACTIVE';
     const user: AuthUser | null = valid
-      ? { id: s.user.id, role: s.user.role as Role, fullName: s.user.fullName, sessionId: s.id, workerId: s.user.workerProfile?.id ?? null }
+      ? { id: s.user.id, role: s.user.role as Role, fullName: s.user.fullName, sessionId: s.id, workerId: s.user.workerProfile?.id ?? null, permissions: effectivePermissions(s.user.role as Role, s.user.permissions) }
       : null;
     this.cache.set(sessionId, { user, expires: now + CACHE_MS });
     if (this.cache.size > 5000) for (const [k, v] of this.cache) if (v.expires <= now) this.cache.delete(k);
     return user;
   }
   onRevoked(h: (ids: string[]) => void) { this.revokedHandlers.push(h); }
+  /** Role/permission/status of a user changed: drop cached principals and disconnect their sockets (they reconnect with fresh rooms). */
+  async refreshUser(userId: string) {
+    const live = await this.prisma.userSession.findMany({ where: { userId, revokedAt: null }, select: { id: true } });
+    this.invalidateSessions(live.map((s) => s.id));
+  }
+  /** Effective permissions of a user straight from the DB (used when building login responses). */
+  async permissionsOf(userId: string, role: Role): Promise<Permission[]> {
+    if (role === 'SUPER_ADMIN') return effectivePermissions(role);
+    const rows = await this.prisma.userPermission.findMany({ where: { userId }, select: { permission: true, granted: true } });
+    return effectivePermissions(role, rows);
+  }
   invalidateSessions(ids: string[]) { for (const id of ids) this.cache.delete(id); if (ids.length) this.revokedHandlers.forEach((h) => h(ids)); }
   invalidateAll() { const ids = [...this.cache.keys()]; this.cache.clear(); if (ids.length) this.revokedHandlers.forEach((h) => h(ids)); }
 }
@@ -74,7 +85,7 @@ export class JwtAuthGuard implements CanActivate {
   }
 }
 
-/** DENY BY DEFAULT: a route must declare @Public, @Authenticated or @Roles (a test enumerates all routes). */
+/** DENY BY DEFAULT: a route must declare @Public, @Authenticated, @Roles or @Perm (a test enumerates all routes). */
 @Injectable()
 export class RolesGuard implements CanActivate {
   private readonly log = new Logger('RolesGuard');
@@ -85,8 +96,10 @@ export class RolesGuard implements CanActivate {
     const user = ctx.switchToHttp().getRequest<Request>().user;
     if (!user) throw unauthenticated();
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, t);
-    if (roles) {
-      if (!roles.includes(user.role)) throw forbidden();
+    const perms = this.reflector.getAllAndOverride<Permission[] | undefined>(PERMISSIONS_KEY, t);
+    if (roles || perms) {
+      if (roles && !roles.includes(user.role)) throw forbidden();
+      if (perms && !perms.some((p) => user.permissions.includes(p))) throw forbidden();
       return true;
     }
     if (this.reflector.getAllAndOverride<boolean>(IS_AUTHENTICATED, t)) return true;

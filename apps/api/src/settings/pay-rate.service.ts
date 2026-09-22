@@ -4,12 +4,12 @@ import type { PayRateChange } from '@yusmus/database';
 import { KIT_METERS, changePayRateSchema, earningFor } from '@yusmus/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
-import { ApiZodBody, CurrentUser, Roles } from '../common/decorators';
+import { ApiZodBody, Authenticated, CurrentUser, Perm } from '../common/decorators';
 import type { AuthUser } from '../common/request-context';
 import type { Tx } from '../common/sequence';
 import { money } from '../common/serialize';
 import { ZodBody } from '../common/zod.pipe';
-import { EventBus } from '../events/events.module';
+import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
 
 /**
@@ -81,14 +81,15 @@ export class PayRateService {
 export class PayRateController {
   constructor(private readonly rates: PayRateService) {}
 
-  /** ADMIN and WORKER read the same current price (workers see what a 9 m kit pays). */
-  @Roles('ADMIN', 'WORKER') @Get()
+  /** Every signed-in role (SUPER_ADMIN, ADMIN, MANAGER, WORKER) reads the same current price. */
+  @Authenticated() @Get()
   async get() { return this.rates.dto(await this.rates.current()); }
 
-  @Roles('ADMIN') @Put() @HttpCode(200) @ApiZodBody(changePayRateSchema)
+  /** SUPER_ADMIN always may; ADMIN only with PAY_RATE_MANAGE explicitly granted (D-028); MANAGER/WORKER never (§39). */
+  @Perm('PAY_RATE_MANAGE') @Put() @HttpCode(200) @ApiZodBody(changePayRateSchema)
   change(@CurrentUser() u: AuthUser, @ZodBody(changePayRateSchema) b: z.output<typeof changePayRateSchema>) { return this.rates.change(u, b); }
 
-  @Roles('ADMIN') @Get('history')
+  @Perm('PAY_RATE_MANAGE') @Get('history')
   history() { return this.rates.history(); }
 }
 

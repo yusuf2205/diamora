@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { User, UserSession } from '@yusmus/database';
-import type { Role } from '@yusmus/shared';
+import { isStaffRole, type Permission, type Role } from '@yusmus/shared';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
 import { AppError, invalidCode, invalidCredentials, notFound, rateLimited, sessionRevoked, unauthenticated } from '../common/errors';
@@ -13,7 +13,7 @@ import { PasswordService, SessionAuthService, randomCode6 } from './auth-core';
 
 export interface ClientMeta { ip?: string; userAgent?: string }
 export interface DeviceInput { installId: string; platform: string; name?: string; appVersion?: string }
-export interface MeDto { id: string; fullName: string; phone: string; role: Role; workerId: string | null }
+export interface MeDto { id: string; fullName: string; phone: string; role: Role; workerId: string | null; permissions: Permission[] }
 export interface AuthResult { accessToken: string; accessTokenExpiresAt: string; refreshToken: string; refreshTokenExpiresAt: string; user: MeDto }
 
 const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
@@ -36,7 +36,7 @@ export class AuthService {
   async adminLogin(input: { phone: string; password: string; device: DeviceInput }, meta: ClientMeta): Promise<AuthResult> {
     await this.assertNotThrottled(input.phone, meta.ip);
     const user = await this.prisma.user.findUnique({ where: { phone: input.phone } });
-    const ok = user && user.role === 'ADMIN' && user.passwordHash ? await this.passwords.verify(user.passwordHash, input.password) : (await this.passwords.verifyDummy(input.password), false);
+    const ok = user && isStaffRole(user.role) && user.passwordHash ? await this.passwords.verify(user.passwordHash, input.password) : (await this.passwords.verifyDummy(input.password), false);
     if (!user || !ok) {
       await this.attempt(input.phone, meta.ip, false, user ? 'bad_password' : 'unknown_phone');
       throw invalidCredentials();
@@ -169,7 +169,7 @@ export class AuthService {
   async me(user: AuthUser): Promise<MeDto> {
     const u = await this.prisma.user.findUnique({ where: { id: user.id }, include: { workerProfile: { select: { id: true } } } });
     if (!u) throw notFound('User');
-    return { id: u.id, fullName: u.fullName, phone: u.phone, role: u.role as Role, workerId: u.workerProfile?.id ?? null };
+    return { id: u.id, fullName: u.fullName, phone: u.phone, role: u.role as Role, workerId: u.workerProfile?.id ?? null, permissions: user.permissions };
   }
 
   /** ADMIN unlocks a phone after a login lockout (a synthetic success row resets the failure counter). */
@@ -205,7 +205,7 @@ export class AuthService {
     return {
       accessToken, accessTokenExpiresAt: new Date(Date.now() + this.env.ACCESS_TOKEN_TTL_SECONDS * 1000).toISOString(),
       refreshToken, refreshTokenExpiresAt: session.expiresAt.toISOString(),
-      user: { id: user.id, fullName: user.fullName, phone: user.phone, role: user.role as Role, workerId: profile?.id ?? null },
+      user: { id: user.id, fullName: user.fullName, phone: user.phone, role: user.role as Role, workerId: profile?.id ?? null, permissions: await this.sessionAuth.permissionsOf(user.id, user.role as Role) },
     };
   }
 }

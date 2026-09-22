@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { Role } from '@yusmus/shared';
+import type { Permission, Role } from '@yusmus/shared';
 
 /** The authenticated principal. Loaded from the DB session on every request — never trusted from the client. */
 export interface AuthUser {
@@ -9,6 +9,8 @@ export interface AuthUser {
   sessionId: string;
   /** WorkerProfile id when role = WORKER */
   workerId: string | null;
+  /** EFFECTIVE permissions (role defaults + per-user overrides), computed server-side from the DB on every request */
+  permissions: Permission[];
 }
 
 export interface RequestStore {

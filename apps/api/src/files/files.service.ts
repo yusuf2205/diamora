@@ -15,6 +15,13 @@ export interface FileRef { id: string; url: string; thumbUrl: string }
 export interface PreparedImage { main: Buffer; thumb: Buffer; sha256: string; width: number; height: number }
 
 const ACCEPTED = new Set(['jpeg', 'png', 'webp']);
+const ACCEPTED_VIDEO = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+/** Sniffs the first bytes so the client's declared MIME is never trusted (mirrors the image-magic-bytes check `sharp` does for photos). */
+function sniffVideoMime(buf: Buffer): string | null {
+  if (buf.length > 12 && buf.toString('ascii', 4, 8) === 'ftyp') return 'video/mp4';
+  if (buf.length > 4 && buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return 'video/webm';
+  return null;
+}
 
 @Injectable()
 export class FilesService {
@@ -61,6 +68,23 @@ export class FilesService {
 
   async uploadImage(p: { bucket: FileBucket; buffer: Buffer; uploadedById?: string; originalName?: string }): Promise<FileAsset> {
     return this.store({ ...p, image: await this.prepareImage(p.buffer) });
+  }
+
+  /** Video is stored as-is (no thumbnail, no transcode): real bytes are sniffed so a renamed file cannot pass as video. */
+  async uploadVideo(p: { bucket: FileBucket; buffer: Buffer; uploadedById?: string; originalName?: string }): Promise<FileAsset> {
+    if (p.buffer.length === 0) throw fileRejected('Empty file');
+    if (p.buffer.length > this.env.MAX_UPLOAD_BYTES * 20) throw fileRejected('Video is too large');
+    const mime = sniffVideoMime(p.buffer);
+    if (!mime || !ACCEPTED_VIDEO.has(mime)) throw fileRejected('Only MP4, MOV or WebM videos are accepted');
+    const now = new Date();
+    const id = randomUUID();
+    const ext = mime === 'video/webm' ? 'webm' : mime === 'video/quicktime' ? 'mov' : 'mp4';
+    const objectKey = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}.${ext}`;
+    const bucket = bucketName(this.env, p.bucket);
+    await this.storage.put(bucket, objectKey, p.buffer, mime);
+    return this.prisma.fileAsset.create({
+      data: { bucket: p.bucket, objectKey, mimeType: mime, size: BigInt(p.buffer.length), sha256: createHash('sha256').update(p.buffer).digest('hex'), originalName: p.originalName?.slice(0, 200), uploadedById: p.uploadedById },
+    });
   }
 
   // ---- signed URLs (bearer capability issued only inside already-authorised responses) ----------------------------

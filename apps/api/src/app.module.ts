@@ -10,17 +10,25 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { AppLogger } from './common/logger';
 import { RequestContext } from './common/request-context';
+import { CatalogModule } from './catalog/catalog.service';
 import { CollateralModule } from './collateral/collateral.service';
 import { ENV, Env, EnvModule } from './config/env';
-import { EventBusModule, RealtimeModule } from './events/events.module';
+import { EventBusModule } from './events/event-bus';
+import { RealtimeModule } from './events/events.module';
 import { FilesModule } from './files/files.service';
 import { HealthController } from './health.controller';
+import { LocationModule } from './location/location.service';
 import { NotificationsModule } from './notifications/notifications.service';
+import { PresenceModule } from './presence/presence.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { RegistrationModule } from './registration/registration.service';
+import { CompanyContactModule } from './settings/company-contact.service';
 import { PayRateModule } from './settings/pay-rate.service';
+import { DashboardModule } from './stats/dashboard.controller';
+import { StatsModule } from './stats/stats.service';
 import { StorageModule } from './storage/storage.module';
+import { UsersModule } from './users/users.service';
 import { WorkersModule } from './workers/workers.service';
 
 const VALID_ID = /^[A-Za-z0-9._-]{8,64}$/;
@@ -53,8 +61,9 @@ class RequestMiddleware implements NestMiddleware {
       inject: [ENV],
       useFactory: (env: Env) => ({ throttlers: [{ name: 'default', ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE }], skipIf: () => !env.RATE_LIMIT_ENABLED }),
     }),
-    PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule,
+    PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
+    UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,
   ],
   controllers: [HealthController],
   providers: [
