@@ -50,7 +50,15 @@ export interface EventMap {
   'earning.created': { workerId: string; assignmentId: string | null; amount: string } & WithManager;
   'cash_payment.created': { workerId: string; paymentId: string; amount: string } & WithManager;
   'worker.balance_updated': { workerId: string; balance: string; earned: string; paid: string } & WithManager;
+  // inventory (M2)
+  'material.created': { materialId: string };
+  'material.updated': { materialId: string };
+  'stock.movement.created': { movementId: string; materialId: string; type: string };
   'stock.updated': { materialId: string; quantity: string; low: boolean };
+  'kit.created': { kitTemplateId: string };
+  'kit.updated': { kitTemplateId: string };
+  'kit.assembled': { kitTemplateId: string; qrCode: string; count: number };
+  'qr.created': { code: string; type: string; workerId?: string | null; kitTemplateId?: string | null };
   'sale.created': { saleId: string };
   'profit.updated': { period: string };
 }
@@ -109,7 +117,14 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'earning.created': w('FINANCE'),
   'cash_payment.created': w('FINANCE'),
   'worker.balance_updated': w('FINANCE'),
+  'material.created': { perms: ['INVENTORY_VIEW'] },
+  'material.updated': { perms: ['INVENTORY_VIEW'] },
+  'stock.movement.created': { perms: ['INVENTORY_VIEW'] },
   'stock.updated': { perms: ['INVENTORY_VIEW'] },
+  'kit.created': { perms: ['INVENTORY_VIEW'] },
+  'kit.updated': { perms: ['INVENTORY_VIEW'] },
+  'kit.assembled': { perms: ['INVENTORY_VIEW'] },
+  'qr.created': { perms: ['INVENTORY_VIEW'] },
   'sale.created': { perms: ['PROFIT_VIEW'] },
   'profit.updated': { perms: ['PROFIT_VIEW'] },
 };

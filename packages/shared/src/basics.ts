@@ -28,6 +28,11 @@ export type CollateralStatus = (typeof COLLATERAL_STATUSES)[number];
 export const MATERIAL_UNITS = ['METER', 'GRAM', 'PCS', 'SET', 'ROLL', 'PACKAGE'] as const;
 export type MaterialUnit = (typeof MATERIAL_UNITS)[number];
 
+/** Fixed material categories (owner request, M2 §5). Seeded once by a migration as `MaterialCategory` rows (`code` column) -
+ * kept as a lookup table, not a hard Postgres enum, so the owner can rename the DISPLAY text later without a migration. */
+export const MATERIAL_CATEGORY_CODES = ['TAPE', 'BEAD', 'THREAD', 'ACCESSORY', 'OTHER'] as const;
+export type MaterialCategoryCode = (typeof MATERIAL_CATEGORY_CODES)[number];
+
 export const STOCK_MOVEMENT_TYPES = [
   'RECEIPT',
   'ISSUE_TO_KIT',
@@ -146,6 +151,20 @@ export const ERROR_CODES = [
 export type ErrorCode = (typeof ERROR_CODES)[number];
 export interface ApiErrorBody {
   error: { code: ErrorCode; message: string; requestId?: string; details?: unknown };
+}
+
+// ---- live location freshness (M2 §17): thresholds live HERE so the API, Flutter and Web all agree ---------------------
+/** < 2 min: "Сейчас" / LIVE. */
+export const LOCATION_LIVE_SECONDS = 120;
+/** 2–10 min: "Обновлено N мин назад" / RECENT. Past this, a position is STALE: never shown as if it were current. */
+export const LOCATION_RECENT_SECONDS = 10 * 60;
+/** Kept for backward compatibility with the existing `stale` boolean (D-030): STALE starts here, same as RECENT's end. */
+export const LOCATION_STALE_SECONDS = LOCATION_RECENT_SECONDS;
+export type LocationFreshness = 'LIVE' | 'RECENT' | 'STALE';
+export function locationFreshness(ageSeconds: number): LocationFreshness {
+  if (ageSeconds < LOCATION_LIVE_SECONDS) return 'LIVE';
+  if (ageSeconds < LOCATION_RECENT_SECONDS) return 'RECENT';
+  return 'STALE';
 }
 
 // ---- QR (D-012): opaque code only -----------------------------------------------------------------------------------

@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { CATALOG_AVAILABILITY, CATALOG_STATUSES, COLLATERAL_STATUSES, MAX_PAY_RATE_UZS, MEDIA_KINDS, WORKER_STATUSES, normalizePhone, parseUzs } from './basics';
+import {
+  CATALOG_AVAILABILITY, CATALOG_STATUSES, COLLATERAL_STATUSES, MATERIAL_UNITS, MAX_PAY_RATE_UZS, MEDIA_KINDS, STOCK_MOVEMENT_TYPES,
+  WORKER_STATUSES, normalizePhone, parseUzs,
+} from './basics';
 import { PERMISSIONS } from './permissions';
 
 export const idSchema = z.uuid();
@@ -142,3 +145,56 @@ export const changePayRateSchema = z.object({
   ratePerKit: uzsSchema.refine((v) => v >= 1n && v <= MAX_PAY_RATE_UZS, { message: `Rate must be between 1 and ${MAX_PAY_RATE_UZS} UZS` }),
   note: z.string().trim().max(500).optional(),
 });
+
+// ---- materials & stock (M2) — INVENTORY_VIEW / INVENTORY_MANAGE ----------------------------------------------------------
+/** Quantities are decimal strings on the wire (mirrors `uzsSchema`'s money handling): up to 3 decimals, never a float. */
+export const quantitySchema = z
+  .union([z.string().regex(/^\d{1,11}(\.\d{1,3})?$/, 'Quantity must be a positive number with at most 3 decimals'), z.number().positive()])
+  .transform((v) => (typeof v === 'number' ? v.toFixed(3) : v));
+
+export const createMaterialSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  categoryId: idSchema.nullable().optional(),
+  colorId: idSchema.nullable().optional(),
+  article: z.string().trim().max(60).optional(),
+  unit: z.enum(MATERIAL_UNITS),
+  minStock: quantitySchema.optional(),
+});
+export const updateMaterialSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120), categoryId: idSchema.nullable(), colorId: idSchema.nullable(),
+    article: z.string().trim().max(60).nullable(), unit: z.enum(MATERIAL_UNITS), minStock: quantitySchema, isActive: z.boolean(),
+  })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+export const listMaterialsSchema = paginationSchema.extend({
+  categoryId: idSchema.optional(),
+  isActive: z.coerce.boolean().optional(),
+  q: z.string().trim().max(100).optional(),
+});
+
+export const listStockMovementsSchema = paginationSchema.extend({ materialId: idSchema.optional(), type: z.enum(STOCK_MOVEMENT_TYPES).optional() });
+export const stockReceiptSchema = z.object({ materialId: idSchema, quantity: quantitySchema, comment: z.string().trim().max(500).optional() });
+export const stockAdjustSchema = z.object({
+  materialId: idSchema, direction: z.enum(['IN', 'OUT']), quantity: quantitySchema,
+  reason: z.string().trim().min(2).max(500),
+});
+export const stockWriteOffSchema = z.object({ materialId: idSchema, quantity: quantitySchema, reason: z.string().trim().min(2).max(500) });
+
+// ---- material kit templates — the 9 m recipe (M2 §8-9) --------------------------------------------------------------------
+export const kitTemplateItemInput = z.object({ materialId: idSchema, requiredQuantity: quantitySchema });
+export const createKitTemplateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  variantId: idSchema.optional(),
+  ribbonMeters: z.coerce.number().positive().max(100).default(9),
+  items: z.array(kitTemplateItemInput).min(1).max(50),
+});
+export const updateKitTemplateSchema = z
+  .object({ name: z.string().trim().min(2).max(120), variantId: idSchema.nullable(), active: z.boolean(), items: z.array(kitTemplateItemInput).min(1).max(50) })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+/** Physically assemble N copies of a template from warehouse stock (M2 §8/§11): consumes materials, issues ONE QR for the batch. */
+export const assembleKitSchema = z.object({ count: z.coerce.number().int().min(1).max(200).default(1), comment: z.string().trim().max(500).optional() });
+
+// ---- QR (M2 §10-13): opaque code resolve, never personal data in the code itself ------------------------------------------
+export const qrCodeParamSchema = z.string().trim().max(40);

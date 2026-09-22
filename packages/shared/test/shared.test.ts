@@ -8,7 +8,10 @@ import {
   EVENT_ROUTES,
   INITIAL_PAY_RATE_UZS,
   InvalidTransitionError,
+  LOCATION_LIVE_SECONDS,
+  LOCATION_RECENT_SECONDS,
   MANAGER_GRANTABLE,
+  MATERIAL_CATEGORY_CODES,
   MAX_PAY_RATE_UZS,
   MAX_PHOTOS,
   PERMISSIONS,
@@ -27,6 +30,7 @@ import {
   initialRegState,
   isStaffRole,
   isTerminal,
+  locationFreshness,
   metersToCm,
   normalizePhone,
   parseQrCode,
@@ -217,6 +221,23 @@ describe('state machines', () => {
     for (const [type, r] of Object.entries(EVENT_ROUTES)) {
       assert.ok(r.perms?.length || r.cat || r.worker || r.allWorkers || r.staff || r.user, type);
     }
+  });
+});
+
+describe('live location freshness (M2 §17): thresholds live in shared/config, not duplicated per client', () => {
+  test('LIVE < 2 min, RECENT 2-10 min, STALE past that — the boundaries themselves are never presented as "current"', () => {
+    assert.equal(locationFreshness(0), 'LIVE');
+    assert.equal(locationFreshness(LOCATION_LIVE_SECONDS - 1), 'LIVE');
+    assert.equal(locationFreshness(LOCATION_LIVE_SECONDS), 'RECENT');
+    assert.equal(locationFreshness(LOCATION_RECENT_SECONDS - 1), 'RECENT');
+    assert.equal(locationFreshness(LOCATION_RECENT_SECONDS), 'STALE');
+    assert.equal(locationFreshness(60 * 60), 'STALE');
+  });
+});
+
+describe('material categories (M2 §5): a fixed, known set', () => {
+  test('exactly the 5 requested categories, nothing invented', () => {
+    assert.deepEqual([...MATERIAL_CATEGORY_CODES].sort(), ['ACCESSORY', 'BEAD', 'OTHER', 'TAPE', 'THREAD']);
   });
 });
 
