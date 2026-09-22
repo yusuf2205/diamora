@@ -1147,6 +1147,138 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Минимальный остаток'**
   String get materialMinStock;
+
+  /// No description provided for @workMeters9.
+  ///
+  /// In ru, this message translates to:
+  /// **'9 м'**
+  String get workMeters9;
+
+  /// No description provided for @workMeters18.
+  ///
+  /// In ru, this message translates to:
+  /// **'18 м'**
+  String get workMeters18;
+
+  /// No description provided for @workMeters27.
+  ///
+  /// In ru, this message translates to:
+  /// **'27 м'**
+  String get workMeters27;
+
+  /// No description provided for @workDoneOf.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово {done} из {planned} м'**
+  String workDoneOf(String done, String planned);
+
+  /// No description provided for @workDueDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок'**
+  String get workDueDate;
+
+  /// No description provided for @workExpectedEarning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидаемая оплата'**
+  String get workExpectedEarning;
+
+  /// No description provided for @workMaterials.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы'**
+  String get workMaterials;
+
+  /// No description provided for @workUpdateProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить прогресс'**
+  String get workUpdateProgress;
+
+  /// No description provided for @workReady.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа готова'**
+  String get workReady;
+
+  /// No description provided for @workReadyConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердите: готово {planned} м. После этого работу заберут.'**
+  String workReadyConfirm(String planned);
+
+  /// No description provided for @workProblem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть проблема'**
+  String get workProblem;
+
+  /// No description provided for @workMetersDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько метров готово'**
+  String get workMetersDone;
+
+  /// No description provided for @workStatusReadyToDeliver.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидает доставки материалов'**
+  String get workStatusReadyToDeliver;
+
+  /// No description provided for @workStatusDelivered.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы доставлены'**
+  String get workStatusDelivered;
+
+  /// No description provided for @workStatusInProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'В работе'**
+  String get workStatusInProgress;
+
+  /// No description provided for @workStatusReadyForPickup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово, ждём забора'**
+  String get workStatusReadyForPickup;
+
+  /// No description provided for @workStatusPickedUp.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрано'**
+  String get workStatusPickedUp;
+
+  /// No description provided for @workStatusUnderReview.
+  ///
+  /// In ru, this message translates to:
+  /// **'На проверке'**
+  String get workStatusUnderReview;
+
+  /// No description provided for @workCurrentTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущая работа'**
+  String get workCurrentTitle;
+
+  /// No description provided for @workNoCurrent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас нет активной работы'**
+  String get workNoCurrent;
+
+  /// No description provided for @workNoCurrentHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как только вам назначат задание, оно появится здесь'**
+  String get workNoCurrentHint;
+
+  /// No description provided for @workPickedUp.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрал'**
+  String get workPickedUp;
 }
 
 class _AppLocalizationsDelegate

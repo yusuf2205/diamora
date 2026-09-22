@@ -561,4 +561,75 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get materialMinStock => 'Минимальный остаток';
+
+  @override
+  String get workMeters9 => '9 м';
+
+  @override
+  String get workMeters18 => '18 м';
+
+  @override
+  String get workMeters27 => '27 м';
+
+  @override
+  String workDoneOf(String done, String planned) {
+    return 'Готово $done из $planned м';
+  }
+
+  @override
+  String get workDueDate => 'Срок';
+
+  @override
+  String get workExpectedEarning => 'Ожидаемая оплата';
+
+  @override
+  String get workMaterials => 'Материалы';
+
+  @override
+  String get workUpdateProgress => 'Обновить прогресс';
+
+  @override
+  String get workReady => 'Работа готова';
+
+  @override
+  String workReadyConfirm(String planned) {
+    return 'Подтвердите: готово $planned м. После этого работу заберут.';
+  }
+
+  @override
+  String get workProblem => 'Есть проблема';
+
+  @override
+  String get workMetersDone => 'Сколько метров готово';
+
+  @override
+  String get workStatusReadyToDeliver => 'Ожидает доставки материалов';
+
+  @override
+  String get workStatusDelivered => 'Материалы доставлены';
+
+  @override
+  String get workStatusInProgress => 'В работе';
+
+  @override
+  String get workStatusReadyForPickup => 'Готово, ждём забора';
+
+  @override
+  String get workStatusPickedUp => 'Забрано';
+
+  @override
+  String get workStatusUnderReview => 'На проверке';
+
+  @override
+  String get workCurrentTitle => 'Текущая работа';
+
+  @override
+  String get workNoCurrent => 'Сейчас нет активной работы';
+
+  @override
+  String get workNoCurrentHint =>
+      'Как только вам назначат задание, оно появится здесь';
+
+  @override
+  String get workPickedUp => 'Забрал';
 }

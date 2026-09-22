@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../l10n/app_localizations.dart';
+import '../work/assignment_admin_repository.dart';
 import 'qr_repository.dart';
 
 /// Full QR scanner (M2 §12-13). After a scan: a WORKER code opens Worker Detail (scope-checked server-side — a MANAGER
@@ -44,6 +45,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           return; // screen is gone; no need to reset _busy
         case QrOutcomeType.kit:
           await _showKit(l, (res['kit'] as Map).cast<String, dynamic>());
+        case QrOutcomeType.assignment:
+          await _showAssignment(l, (res['assignment'] as Map).cast<String, dynamic>());
         case QrOutcomeType.invalid:
           _snack(l.qrInvalid);
       }
@@ -83,6 +86,55 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.confirm))),
           ]),
+        ),
+      ),
+    );
+  }
+
+  /// M3 §12 pickup: scan an assignment QR -> see who/what -> one tap "Забрал" when it's actually ready. Any other
+  /// status just shows the card (nothing to do yet, e.g. it's still being worked on).
+  Future<void> _showAssignment(AppLocalizations l, Map<String, dynamic> a) async {
+    final worker = (a['worker'] as Map).cast<String, dynamic>();
+    final product = (a['product'] as Map?)?.cast<String, dynamic>();
+    final color = (a['color'] as Map?)?.cast<String, dynamic>();
+    final status = a['status'] as String;
+    var busy = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(worker['fullName'] as String? ?? '', style: Theme.of(ctx).textTheme.titleMedium),
+              Text(worker['phone'] as String? ?? '', style: Theme.of(ctx).textTheme.bodySmall),
+              const Divider(height: 24),
+              Text('${product?['name'] ?? ''} · ${color?['name'] ?? ''}', style: Theme.of(ctx).textTheme.bodyLarge),
+              Text('${a['reportedMeters']} / ${a['plannedMeters']} м'),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: status == 'READY_FOR_PICKUP'
+                    ? FilledButton.icon(
+                        onPressed: busy ? null : () async {
+                          setSheetState(() => busy = true);
+                          try {
+                            await ref.read(assignmentAdminRepositoryProvider).pickup(a['id'] as String);
+                            if (ctx.mounted) Navigator.of(ctx).pop();
+                            if (mounted) _snack(l.workPickedUp);
+                          } on ApiException catch (e) {
+                            setSheetState(() => busy = false);
+                            if (ctx.mounted) _snack(e.message);
+                          }
+                        },
+                        icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_circle_outline),
+                        label: Text(l.workPickedUp),
+                      )
+                    : OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.confirm)),
+              ),
+            ]),
+          ),
         ),
       ),
     );

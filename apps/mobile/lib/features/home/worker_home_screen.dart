@@ -6,10 +6,12 @@ import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/pay_rate.dart';
 import '../settings/pay_rate_screen.dart';
+import '../work/current_work_card.dart';
+import '../work/work_repository.dart';
 import '../workers/collateral_card.dart';
 import '../workers/workers_providers.dart';
 
-/// WORKER home: understand in one look where you stand. (Current work, progress and earnings arrive with M3–M5.)
+/// WORKER home: understand in one look where you stand (M3 §8: current work now included).
 class WorkerHomeScreen extends ConsumerWidget {
   const WorkerHomeScreen({super.key});
 
@@ -18,6 +20,7 @@ class WorkerHomeScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final profile = ref.watch(myProfileProvider);
     final collateral = ref.watch(myCollateralProvider);
+    final currentWork = ref.watch(currentWorkProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l.home)),
       body: Column(children: [
@@ -31,6 +34,7 @@ class WorkerHomeScreen extends ConsumerWidget {
                 ref.invalidate(myProfileProvider);
                 ref.invalidate(myCollateralProvider);
                 ref.invalidate(payRateProvider);
+                ref.invalidate(currentWorkProvider);
               },
               child: ListView(padding: AppTokens.screenPadding.copyWith(top: 8, bottom: 24), children: [
                 Text(me.fullName, style: Theme.of(context).textTheme.headlineSmall),
@@ -46,6 +50,18 @@ class WorkerHomeScreen extends ConsumerWidget {
                     ]),
                   ),
                 ),
+                if (me.status != 'PENDING_APPROVAL') ...[
+                  const SizedBox(height: 20),
+                  Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  currentWork.when(
+                    loading: () => const SkeletonList(count: 1),
+                    error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+                    data: (w) => w == null
+                        ? EmptyState(icon: Icons.inbox_outlined, title: l.workNoCurrent, hint: l.workNoCurrentHint)
+                        : CurrentWorkCard(work: w),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 const PayRateCard(),
                 const SizedBox(height: 20),

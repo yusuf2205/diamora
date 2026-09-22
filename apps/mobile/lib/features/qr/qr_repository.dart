@@ -15,12 +15,13 @@ class QrRepository {
 final qrRepositoryProvider = Provider<QrRepository>((ref) => QrRepository(ref.watch(apiClientProvider)));
 
 /// Pure classification of a resolved QR response — kept separate from the scanner widget so it is unit-testable
-/// without a camera. `worker`/`kit` never mean anything without the matching JSON key actually being present.
-enum QrOutcomeType { worker, kit, invalid }
+/// without a camera. `worker`/`kit`/`assignment` never mean anything without the matching JSON key actually present.
+enum QrOutcomeType { worker, kit, assignment, invalid }
 
 QrOutcomeType classifyQr(Map<String, dynamic> json) => switch (json['type']) {
       'WORKER' when json['worker'] is Map => QrOutcomeType.worker,
       'KIT' when json['kit'] is Map => QrOutcomeType.kit,
+      'ASSIGNMENT' when json['assignment'] is Map => QrOutcomeType.assignment,
       _ => QrOutcomeType.invalid,
     };
 

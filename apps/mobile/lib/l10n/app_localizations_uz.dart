@@ -564,4 +564,75 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get materialMinStock => 'Minimal qoldiq';
+
+  @override
+  String get workMeters9 => '9 m';
+
+  @override
+  String get workMeters18 => '18 m';
+
+  @override
+  String get workMeters27 => '27 m';
+
+  @override
+  String workDoneOf(String done, String planned) {
+    return 'Bajarildi $done / $planned m';
+  }
+
+  @override
+  String get workDueDate => 'Muddat';
+
+  @override
+  String get workExpectedEarning => 'Kutilayotgan toʻlov';
+
+  @override
+  String get workMaterials => 'Materiallar';
+
+  @override
+  String get workUpdateProgress => 'Jarayonni yangilash';
+
+  @override
+  String get workReady => 'Ish tayyor';
+
+  @override
+  String workReadyConfirm(String planned) {
+    return 'Tasdiqlang: $planned m tayyor. Shundan keyin ish olib ketiladi.';
+  }
+
+  @override
+  String get workProblem => 'Muammo bor';
+
+  @override
+  String get workMetersDone => 'Necha metr tayyor';
+
+  @override
+  String get workStatusReadyToDeliver => 'Material yetkazilishini kutmoqda';
+
+  @override
+  String get workStatusDelivered => 'Material yetkazildi';
+
+  @override
+  String get workStatusInProgress => 'Ishlanmoqda';
+
+  @override
+  String get workStatusReadyForPickup => 'Tayyor, olib ketishni kutmoqda';
+
+  @override
+  String get workStatusPickedUp => 'Olib ketildi';
+
+  @override
+  String get workStatusUnderReview => 'Tekshiruvda';
+
+  @override
+  String get workCurrentTitle => 'Joriy ish';
+
+  @override
+  String get workNoCurrent => 'Hozircha faol ish yoʻq';
+
+  @override
+  String get workNoCurrentHint =>
+      'Sizga topshiriq berilishi bilan u shu yerda paydo boʻladi';
+
+  @override
+  String get workPickedUp => 'Oldim';
 }

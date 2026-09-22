@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android blocks plain HTTP by default in release builds (debug builds get an automatic exemption from
+  Flutter tooling that release builds don't). The app's real production target is HTTPS
+  (docs/NAS-DEPLOYMENT.md §3 option A, Cloudflare Tunnel) — this file exists only for the pilot phase, while
+  testing on the same home network/Tailscale as the NAS, before the tunnel + domain are live (D-025).
+  Cleartext is allowed ONLY for these specific NAS addresses, never as a blanket app-wide exemption.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.105</domain>
+        <domain includeSubdomains="false">100.126.164.29</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
