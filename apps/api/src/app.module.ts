@@ -17,16 +17,20 @@ import { EventBusModule } from './events/event-bus';
 import { RealtimeModule } from './events/events.module';
 import { FilesModule } from './files/files.service';
 import { HealthController } from './health.controller';
+import { KitsModule } from './kits/kits.service';
 import { LocationModule } from './location/location.service';
+import { MaterialsModule } from './materials/materials.service';
 import { NotificationsModule } from './notifications/notifications.service';
 import { PresenceModule } from './presence/presence.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { QrModule } from './qr/qr.service';
 import { RedisModule } from './redis/redis.module';
 import { RegistrationModule } from './registration/registration.service';
 import { CompanyContactModule } from './settings/company-contact.service';
 import { PayRateModule } from './settings/pay-rate.service';
-import { DashboardModule } from './stats/dashboard.controller';
 import { StatsModule } from './stats/stats.service';
+import { DashboardModule } from './stats/dashboard.controller';
+import { StockModule } from './stock/stock.service';
 import { StorageModule } from './storage/storage.module';
 import { UsersModule } from './users/users.service';
 import { WorkersModule } from './workers/workers.service';
@@ -64,6 +68,7 @@ class RequestMiddleware implements NestMiddleware {
     PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
     UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,
+    MaterialsModule, StockModule, KitsModule, QrModule,
   ],
   controllers: [HealthController],
   providers: [

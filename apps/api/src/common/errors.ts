@@ -19,3 +19,4 @@ export const validationFailed = (m: string, details?: unknown) => new AppError('
 export const rateLimited = (retryAfterSeconds: number) =>
   new AppError('RATE_LIMITED', 'Too many attempts, try again later', 429, { retryAfterSeconds });
 export const fileRejected = (m: string) => new AppError('FILE_REJECTED', m, 422);
+export const insufficientStock = (m = 'Not enough stock', details?: unknown) => new AppError('INSUFFICIENT_STOCK', m, 409, details);

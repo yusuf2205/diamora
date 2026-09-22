@@ -18,6 +18,12 @@ export async function lockRow(tx: Tx, table: 'worker_collaterals' | 'worker_prof
   return rows.length === 1;
 }
 
+/** `stock_balances` is keyed by `materialId`, not `id` — a dedicated lock helper (used by StockService.recordMovement). */
+export async function lockMaterialBalance(tx: Tx, materialId: string): Promise<boolean> {
+  const rows = await tx.$queryRawUnsafe<{ materialId: string }[]>('SELECT "materialId" FROM stock_balances WHERE "materialId" = $1::uuid FOR UPDATE', materialId);
+  return rows.length === 1;
+}
+
 const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // Crockford base32 (no I L O U)
 /** Opaque QR code: YQ1.<12 chars> (packages/shared parseQrCode validates the same alphabet). */
 export function generateQrCode(): string {

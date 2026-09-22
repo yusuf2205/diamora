@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@yusmus/database';
 import { idSchema, paginationSchema } from '@yusmus/shared';
 import { z } from 'zod';
-import { Roles } from '../common/decorators';
+import { Perm } from '../common/decorators';
 import { RequestContext } from '../common/request-context';
 import { jsonSafe } from '../common/serialize';
 import { ZodQuery } from '../common/zod.pipe';
@@ -48,7 +48,9 @@ const querySchema = paginationSchema.extend({ entity: z.string().max(60).optiona
 export class AuditController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Roles('ADMIN')
+  /** Fixed bug (M2 audit): was `@Roles('ADMIN')`, which silently excluded SUPER_ADMIN (D-028: SUPER_ADMIN always has every
+   * permission, including AUDIT_VIEW, now in ADMIN_DEFAULTS too). MANAGER is never grantable this — audit is store-wide. */
+  @Perm('AUDIT_VIEW')
   @Get()
   async list(@ZodQuery(querySchema) q: z.output<typeof querySchema>) {
     const rows = await this.prisma.auditLog.findMany({

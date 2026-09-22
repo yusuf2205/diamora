@@ -60,9 +60,11 @@ export class WorkersService {
   async get(actor: AuthUser, id: string) {
     const w = await this.load(id);
     assertWorkerInScope(actor, 'WORKER', w);
+    // her personal QR (M2 §13): opaque code only, so staff can show/print it — resolving it is scope-checked exactly like this route.
+    const qr = await this.prisma.qrEntity.findFirst({ where: { workerId: id, type: 'WORKER', revokedAt: null }, orderBy: { createdAt: 'desc' } });
     return {
       ...this.adminDto(w), collaterals: w.collaterals.map((c) => this.collateralBrief(c)), notes: w.notes,
-      approvedAt: w.approvedAt?.toISOString() ?? null, rejectedReason: w.rejectedReason, telegramLinked: true,
+      approvedAt: w.approvedAt?.toISOString() ?? null, rejectedReason: w.rejectedReason, telegramLinked: true, qrCode: qr?.code ?? null,
     };
   }
 

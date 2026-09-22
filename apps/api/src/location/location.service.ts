@@ -1,15 +1,15 @@
 import { Controller, Injectable, Module, Post, Get, HttpCode } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { reportLocationSchema, scopeFor } from '@yusmus/shared';
+import { LOCATION_STALE_SECONDS, locationFreshness, reportLocationSchema, scopeFor } from '@yusmus/shared';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Perm } from '../common/decorators';
 import type { AuthUser } from '../common/request-context';
 import { ZodBody } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
+import { PresenceModule, PresenceService } from '../presence/presence.service';
 import { PrismaService } from '../prisma/prisma.module';
 
-/** Location is considered STALE past this age: the UI must show "last seen N minutes ago", never a stale point as if it were current. */
-export const LOCATION_STALE_SECONDS = 15 * 60;
+export { LOCATION_STALE_SECONDS }; // re-exported: thresholds now live in packages/shared (M2 §17), this keeps old imports working
 
 /**
  * Background live location (D-030, docs/LIVE-LOCATION.md). Every role reports its OWN current working position; the server
@@ -19,7 +19,7 @@ export const LOCATION_STALE_SECONDS = 15 * 60;
  */
 @Injectable()
 export class LocationService {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventBus) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventBus, private readonly presence: PresenceService) {}
 
   async report(user: AuthUser, input: z.output<typeof reportLocationSchema>) {
     const receivedAt = new Date();
@@ -54,14 +54,16 @@ export class LocationService {
     });
     const now = Date.now();
     return {
+      // map markers (M2 §14-16): role, online (presence, separate from GPS) and phone are what a marker's bottom sheet needs.
       items: users.filter((u) => u.liveLocation).map((u) => {
         const l = u.liveLocation!;
         const ageSeconds = Math.max(0, Math.round((now - l.recordedAt.getTime()) / 1000));
         return {
-          userId: u.id, role: u.role, fullName: u.fullName,
+          userId: u.id, role: u.role, fullName: u.fullName, phone: u.phone,
+          online: this.presence.isOnline(u.id),
           worker: u.workerProfile ? { id: u.workerProfile.id, code: u.workerProfile.code, phone: u.workerProfile.phone, managerId: u.workerProfile.assignedManagerId } : null,
           latitude: l.latitude, longitude: l.longitude, accuracy: l.accuracy, heading: l.heading, speed: l.speed,
-          recordedAt: l.recordedAt.toISOString(), ageSeconds, stale: ageSeconds > LOCATION_STALE_SECONDS, isBackground: l.isBackground,
+          recordedAt: l.recordedAt.toISOString(), ageSeconds, freshness: locationFreshness(ageSeconds), stale: ageSeconds > LOCATION_STALE_SECONDS, isBackground: l.isBackground,
         };
       }),
     };
@@ -82,5 +84,5 @@ export class LocationController {
   list(@CurrentUser() u: AuthUser) { return this.location.list(u); }
 }
 
-@Module({ controllers: [LocationController], providers: [LocationService], exports: [LocationService] })
+@Module({ imports: [PresenceModule], controllers: [LocationController], providers: [LocationService], exports: [LocationService] })
 export class LocationModule {}

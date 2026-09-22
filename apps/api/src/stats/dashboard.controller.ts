@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Perm } from '../common/decorators';
 import { PrismaService } from '../prisma/prisma.module';
 import { PresenceModule, PresenceService } from '../presence/presence.service';
+import { StockModule, StockService } from '../stock/stock.service';
 import { StatsModule, StatsService } from './stats.service';
 
 /**
@@ -12,16 +13,20 @@ import { StatsModule, StatsService } from './stats.service';
  */
 @Injectable()
 class DashboardService {
-  constructor(private readonly prisma: PrismaService, private readonly presence: PresenceService, private readonly stats: StatsService) {}
+  constructor(
+    private readonly prisma: PrismaService, private readonly presence: PresenceService, private readonly stats: StatsService,
+    private readonly stock: StockService,
+  ) {}
 
   async get() {
-    const [workers, catalogPublished, catalogDraft, users, stockLow] = await Promise.all([
+    const [workers, catalogPublished, catalogDraft, users, lowStock] = await Promise.all([
       this.prisma.workerProfile.groupBy({ by: ['status'], _count: true }),
       this.prisma.productModel.count({ where: { status: 'PUBLISHED' } }),
       this.prisma.productModel.count({ where: { status: 'DRAFT' } }),
       this.prisma.user.groupBy({ by: ['role'], where: { status: 'ACTIVE' }, _count: true }),
-      this.prisma.stockBalance.count({ where: { quantity: { lte: 0 } } }).catch(() => 0),
+      this.stock.balances(true), // real "below minStock" count, now that Materials/Stock exist (M2)
     ]);
+    const stockLow = lowStock.items.length;
     const byStatus = Object.fromEntries(workers.map((w) => [w.status, w._count]));
     const byRole = Object.fromEntries(users.map((u) => [u.role, u._count]));
     const global = await this.stats.forWorkers({});
@@ -46,5 +51,5 @@ class DashboardController {
   get() { return this.dashboard.get(); }
 }
 
-@Module({ imports: [PresenceModule, StatsModule], controllers: [DashboardController], providers: [DashboardService] })
+@Module({ imports: [PresenceModule, StatsModule, StockModule], controllers: [DashboardController], providers: [DashboardService] })
 export class DashboardModule {}
