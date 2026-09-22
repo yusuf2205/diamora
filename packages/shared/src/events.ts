@@ -53,6 +53,8 @@ export interface EventMap {
   // inventory (M2)
   'material.created': { materialId: string };
   'material.updated': { materialId: string };
+  'color.created': { colorId: string };
+  'color.updated': { colorId: string };
   'stock.movement.created': { movementId: string; materialId: string; type: string };
   'stock.updated': { materialId: string; quantity: string; low: boolean };
   'kit.created': { kitTemplateId: string };
@@ -119,6 +121,8 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'worker.balance_updated': w('FINANCE'),
   'material.created': { perms: ['INVENTORY_VIEW'] },
   'material.updated': { perms: ['INVENTORY_VIEW'] },
+  'color.created': { perms: ['CATALOG_VIEW'] },
+  'color.updated': { perms: ['CATALOG_VIEW'] },
   'stock.movement.created': { perms: ['INVENTORY_VIEW'] },
   'stock.updated': { perms: ['INVENTORY_VIEW'] },
   'kit.created': { perms: ['INVENTORY_VIEW'] },

@@ -173,6 +173,14 @@ export const listMaterialsSchema = paginationSchema.extend({
   q: z.string().trim().max(100).optional(),
 });
 
+// ---- colors (M3 tech-debt closeout, D-039): a plain lookup shared by Materials, ProductVariant and WorkAssignment ------
+export const createColorSchema = z.object({ name: z.string().trim().min(1).max(60), hex: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, 'hex must be like #RRGGBB').optional() });
+export const updateColorSchema = z
+  .object({ name: z.string().trim().min(1).max(60), hex: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, 'hex must be like #RRGGBB').nullable(), isActive: z.boolean() })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+export const listColorsSchema = z.object({ isActive: z.coerce.boolean().optional() });
+
 export const listStockMovementsSchema = paginationSchema.extend({ materialId: idSchema.optional(), type: z.enum(STOCK_MOVEMENT_TYPES).optional() });
 export const stockReceiptSchema = z.object({ materialId: idSchema, quantity: quantitySchema, comment: z.string().trim().max(500).optional() });
 export const stockAdjustSchema = z.object({
@@ -198,3 +206,62 @@ export const assembleKitSchema = z.object({ count: z.coerce.number().int().min(1
 
 // ---- QR (M2 §10-13): opaque code resolve, never personal data in the code itself ------------------------------------------
 export const qrCodeParamSchema = z.string().trim().max(40);
+
+// ---- M3: work assignments, delivery, progress, pickup, acceptance, earnings ------------------------------------------
+/** 1 = 9 m, 2 = 18 m, 3 = 27 m (the same 9 m kit recipe × count — D-035, never a separate template). */
+export const kitCountSchema = z.coerce.number().int().min(1).max(3);
+export const metersSchema = z.union([z.string().regex(/^\d{1,8}(\.\d{1,2})?$/, 'Metres must be a positive number with at most 2 decimals'), z.number().nonnegative()])
+  .transform((v) => (typeof v === 'number' ? v.toFixed(2) : v));
+
+export const createAssignmentSchema = z.object({
+  workerId: idSchema,
+  productModelId: idSchema,
+  productVariantId: idSchema,
+  colorId: idSchema,
+  materialKitTemplateId: idSchema,
+  kitCount: kitCountSchema,
+  dueAt: z.coerce.date().optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const reportProgressSchema = z.object({
+  reportedMeters: metersSchema,
+  comment: z.string().trim().max(500).optional(),
+  /** client-generated: an offline retry with the same id is a no-op, never a duplicate row. */
+  clientId: z.string().trim().max(80).optional(),
+});
+
+export const readyForPickupSchema = z.object({
+  readyMeters: metersSchema,
+  comment: z.string().trim().max(500).optional(),
+  photoFileIds: z.array(idSchema).max(10).optional(),
+});
+
+export const completePickupSchema = z.object({ comment: z.string().trim().max(500).optional() });
+
+export const acceptanceSchema = z.object({
+  broughtMeters: metersSchema,
+  acceptedMeters: metersSchema,
+  defectiveMeters: metersSchema.optional(),
+  reworkMeters: metersSchema.optional(),
+  comment: z.string().trim().max(1000).optional(),
+  photoFileIds: z.array(idSchema).max(10).optional(),
+});
+
+export const listAssignmentsSchema = paginationSchema.extend({
+  workerId: idSchema.optional(),
+  status: z.enum([
+    'DRAFT', 'READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'PICKED_UP',
+    'UNDER_REVIEW', 'PARTIALLY_ACCEPTED', 'ACCEPTED', 'REWORK_REQUIRED', 'COMPLETED', 'CANCELLED',
+  ]).optional(),
+});
+
+export const completeDeliverySchema = z.object({ comment: z.string().trim().max(500).optional() });
+
+// ---- money: cash payout (M3 §15) ---------------------------------------------------------------------------------------
+export const cashPayoutSchema = z.object({
+  amount: uzsSchema,
+  comment: z.string().trim().max(500).optional(),
+  /** ADMIN paying more than the current balance — allowed, but flagged in the ledger and audit. */
+  forced: z.boolean().optional(),
+});

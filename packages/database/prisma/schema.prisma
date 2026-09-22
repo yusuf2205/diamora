@@ -447,6 +447,9 @@ model Color {
   id          String           @id @default(uuid(7)) @db.Uuid
   name        String           @unique
   hex         String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
   variants    ProductVariant[]
   materials   Material[]
   assignments WorkAssignment[]
