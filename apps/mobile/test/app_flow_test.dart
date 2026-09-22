@@ -13,6 +13,7 @@ import 'package:yusmus_mobile/core/storage/token_store.dart';
 import 'package:yusmus_mobile/features/auth/auth_controller.dart';
 import 'package:yusmus_mobile/features/auth/models.dart';
 
+import 'fakes/fake_geo.dart';
 import 'models_test.dart' show workerListItem;
 
 class MockApi extends Mock implements ApiClient {}
@@ -38,6 +39,7 @@ Future<ProviderScope> appWith(Session? session, MockApi api) async {
       apiClientProvider.overrideWithValue(api),
       authControllerProvider.overrideWith(() => FakeAuth(session)),
       connectivityProvider.overrideWith((ref) => Stream.value(true)),
+      geoProvider.overrideWithValue(const FakeGeo()), // real geolocator/permission_handler have no platform channel in tests
     ],
     child: const YusmusApp(),
   );
@@ -87,14 +89,20 @@ void main() {
     await lastDb!.close();
   });
 
-  testWidgets('WORKER role never lands in the ADMIN area', (tester) async {
+  testWidgets('WORKER role never lands in the ADMIN area; her default screen is the catalog (§18), not a dashboard', (tester) async {
     when(() => api.getJson('/workers/me')).thenAnswer((_) async => {...workerListItem, 'status': 'ACTIVE', 'collaterals': []});
     when(() => api.getJson('/workers/me/collateral')).thenAnswer((_) async => {'items': []});
     when(() => api.getJson('/settings/pay-rate')).thenAnswer((_) async => {'ratePerKit': '30000', 'kitMeters': 9, 'updatedAt': '2026-09-21T12:00:00.000Z'});
+    when(() => api.getJson('/catalog')).thenAnswer((_) async => {'items': []});
     final worker = Session.fromJson({'id': 'u2', 'fullName': 'Малика', 'phone': '+998901234567', 'role': 'WORKER', 'workerId': 'w1'});
     await tester.pumpWidget(await appWith(worker, api));
     await tester.pumpAndSettle();
-    expect(find.text('К получению'), findsOneWidget);
+    expect(find.text('Наши работы'), findsWidgets); // default screen = catalog (app bar + bottom nav label)
     expect(find.text('Заявки'), findsNothing);
+    expect(find.text('Мастерицы'), findsNothing);
+
+    await tester.tap(find.text('Главная'));
+    await tester.pumpAndSettle();
+    expect(find.text('К получению'), findsOneWidget);
   });
 }

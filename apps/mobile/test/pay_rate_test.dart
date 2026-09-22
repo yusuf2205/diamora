@@ -18,6 +18,7 @@ import 'package:yusmus_mobile/features/auth/models.dart';
 import 'package:yusmus_mobile/features/settings/pay_rate.dart';
 
 import 'app_flow_test.dart' show FakeAuth, MockApi;
+import 'fakes/fake_geo.dart';
 import 'models_test.dart' show workerListItem;
 
 /// amounts use a non-breaking space between thousands (formatUzs), so the tests build their expectations with it
@@ -37,6 +38,7 @@ Future<ProviderScope> app(Session session, MockApi api, StreamController<Realtim
       apiClientProvider.overrideWithValue(api),
       authControllerProvider.overrideWith(() => FakeAuth(session)),
       connectivityProvider.overrideWith((ref) => Stream.value(true)),
+      geoProvider.overrideWithValue(const FakeGeo()),
       realtimeEventsProvider.overrideWith((ref) => events.stream),
     ],
     child: const YusmusApp(),
@@ -88,7 +90,7 @@ void main() {
       return {...rate(current), 'changed': true};
     });
 
-    final admin = Session.fromJson({'id': 'u1', 'fullName': 'Owner', 'phone': '+998901112233', 'role': 'ADMIN'});
+    final admin = Session.fromJson({'id': 'u1', 'fullName': 'Owner', 'phone': '+998901112233', 'role': 'ADMIN', 'permissions': ['PAY_RATE_MANAGE']});
     await tester.pumpWidget(await app(admin, api, events));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Профиль').last);
@@ -126,8 +128,11 @@ void main() {
     when(() => api.getJson('/workers/me')).thenAnswer((_) async => {...workerListItem, 'status': 'ACTIVE', 'collaterals': []});
     when(() => api.getJson('/workers/me/collateral')).thenAnswer((_) async => {'items': []});
     when(() => api.getJson('/settings/pay-rate')).thenAnswer((_) async => rate(current));
+    when(() => api.getJson('/catalog')).thenAnswer((_) async => {'items': []});
     final worker = Session.fromJson({'id': 'u2', 'fullName': 'Малика', 'phone': '+998901234567', 'role': 'WORKER', 'workerId': 'w1'});
     await tester.pumpWidget(await app(worker, api, events));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Главная')); // the worker's default screen is now the catalog (§18)
     await tester.pumpAndSettle();
     expect(find.text('Оплата за 9 метров'), findsOneWidget);
     expect(tester.widget<Text>(find.byKey(const Key('workerPayRate'))).data, sum('30000'));
