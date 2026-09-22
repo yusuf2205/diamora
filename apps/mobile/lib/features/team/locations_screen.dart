@@ -45,13 +45,21 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    // LIVE / RECENT / STALE (M2 §17): a RECENT or STALE point is never worded as if it were happening right now.
     final minutes = row.ageSeconds ~/ 60;
-    final age = minutes < 1 ? l.locationJustNow : l.locationStaleMinutes(minutes);
+    final age = switch (row.freshness) {
+      LocationFreshness.live => l.locationJustNow,
+      LocationFreshness.recent => l.locationRecentMinutes(minutes),
+      LocationFreshness.stale => l.locationStaleMinutes(minutes),
+    };
     return Card(
       child: ListTile(
-        leading: CircleAvatar(backgroundColor: row.stale ? Theme.of(context).colorScheme.surfaceContainerHighest : AppTokens.ok.withValues(alpha: 0.15), child: Icon(Icons.place_outlined, color: row.stale ? null : AppTokens.ok)),
+        leading: CircleAvatar(
+          backgroundColor: row.stale ? Theme.of(context).colorScheme.surfaceContainerHighest : AppTokens.ok.withValues(alpha: 0.15),
+          child: Icon(Icons.place_outlined, color: row.stale ? null : AppTokens.ok),
+        ),
         title: Text(row.fullName),
-        subtitle: Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''} · ${row.latitude.toStringAsFixed(4)}, ${row.longitude.toStringAsFixed(4)}'),
+        subtitle: Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}${row.online ? ' · ${l.onlineNow}' : ''} · ${row.latitude.toStringAsFixed(4)}, ${row.longitude.toStringAsFixed(4)}'),
         trailing: Text(age, style: TextStyle(color: row.stale ? Theme.of(context).colorScheme.error : null)),
       ),
     );

@@ -941,13 +941,19 @@ abstract class AppLocalizations {
   /// No description provided for @locationStaleMinutes.
   ///
   /// In ru, this message translates to:
-  /// **'{minutes} мин назад'**
+  /// **'Последняя позиция {minutes} мин назад'**
   String locationStaleMinutes(int minutes);
+
+  /// No description provided for @locationRecentMinutes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновлено {minutes} мин назад'**
+  String locationRecentMinutes(int minutes);
 
   /// No description provided for @locationJustNow.
   ///
   /// In ru, this message translates to:
-  /// **'только что'**
+  /// **'Сейчас'**
   String get locationJustNow;
 
   /// No description provided for @onlineNow.
@@ -961,6 +967,186 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'не в сети'**
   String get offlineNow;
+
+  /// No description provided for @map.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта'**
+  String get map;
+
+  /// No description provided for @mapListView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Список'**
+  String get mapListView;
+
+  /// No description provided for @mapMapView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта'**
+  String get mapMapView;
+
+  /// No description provided for @mapEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет координат'**
+  String get mapEmpty;
+
+  /// No description provided for @mapOpenProfile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть профиль'**
+  String get mapOpenProfile;
+
+  /// No description provided for @qrScan.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сканировать QR'**
+  String get qrScan;
+
+  /// No description provided for @qrScanHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Наведите камеру на QR-код'**
+  String get qrScanHint;
+
+  /// No description provided for @qrInvalid.
+  ///
+  /// In ru, this message translates to:
+  /// **'QR-код не найден или недоступен'**
+  String get qrInvalid;
+
+  /// No description provided for @qrWorkerFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица найдена'**
+  String get qrWorkerFound;
+
+  /// No description provided for @qrKitFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комплект найден'**
+  String get qrKitFound;
+
+  /// No description provided for @showQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать QR-код'**
+  String get showQr;
+
+  /// No description provided for @workerQrTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Личный QR-код'**
+  String get workerQrTitle;
+
+  /// No description provided for @inventory.
+  ///
+  /// In ru, this message translates to:
+  /// **'Склад'**
+  String get inventory;
+
+  /// No description provided for @materials.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы'**
+  String get materials;
+
+  /// No description provided for @materialsEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалов пока нет'**
+  String get materialsEmpty;
+
+  /// No description provided for @materialAdd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый материал'**
+  String get materialAdd;
+
+  /// No description provided for @stockLow.
+  ///
+  /// In ru, this message translates to:
+  /// **'мало'**
+  String get stockLow;
+
+  /// No description provided for @stockReceipt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приход'**
+  String get stockReceipt;
+
+  /// No description provided for @stockReceiptHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поступление материала на склад'**
+  String get stockReceiptHint;
+
+  /// No description provided for @quantity.
+  ///
+  /// In ru, this message translates to:
+  /// **'Количество'**
+  String get quantity;
+
+  /// No description provided for @kits.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комплекты (9 м)'**
+  String get kits;
+
+  /// No description provided for @kitsEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комплектов пока нет'**
+  String get kitsEmpty;
+
+  /// No description provided for @kitAssemble.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собрать комплект'**
+  String get kitAssemble;
+
+  /// No description provided for @kitAssembled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комплект собран, QR-код готов'**
+  String get kitAssembled;
+
+  /// No description provided for @kitCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Количество комплектов'**
+  String get kitCount;
+
+  /// No description provided for @kitTemplateName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название комплекта'**
+  String get kitTemplateName;
+
+  /// No description provided for @kitAddMaterial.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материал'**
+  String get kitAddMaterial;
+
+  /// No description provided for @commentOptional.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комментарий (необязательно)'**
+  String get commentOptional;
+
+  /// No description provided for @materialName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название материала'**
+  String get materialName;
+
+  /// No description provided for @materialMinStock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Минимальный остаток'**
+  String get materialMinStock;
 }
 
 class _AppLocalizationsDelegate

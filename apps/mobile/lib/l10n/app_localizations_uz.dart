@@ -458,15 +458,110 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String locationStaleMinutes(int minutes) {
-    return '$minutes daqiqa oldin';
+    return 'Oxirgi joylashuv $minutes daqiqa oldin';
   }
 
   @override
-  String get locationJustNow => 'hozirgina';
+  String locationRecentMinutes(int minutes) {
+    return '$minutes daqiqa oldin yangilangan';
+  }
+
+  @override
+  String get locationJustNow => 'Hozir';
 
   @override
   String get onlineNow => 'onlayn';
 
   @override
   String get offlineNow => 'oflayn';
+
+  @override
+  String get map => 'Xarita';
+
+  @override
+  String get mapListView => 'Roʻyxat';
+
+  @override
+  String get mapMapView => 'Xarita';
+
+  @override
+  String get mapEmpty => 'Hozircha koordinata yo\'q';
+
+  @override
+  String get mapOpenProfile => 'Profilni ochish';
+
+  @override
+  String get qrScan => 'QR skanerlash';
+
+  @override
+  String get qrScanHint => 'Kamerani QR-kodga qarating';
+
+  @override
+  String get qrInvalid => 'QR-kod topilmadi yoki mavjud emas';
+
+  @override
+  String get qrWorkerFound => 'Usta topildi';
+
+  @override
+  String get qrKitFound => 'Toʻplam topildi';
+
+  @override
+  String get showQr => 'QR-kodni koʻrsatish';
+
+  @override
+  String get workerQrTitle => 'Shaxsiy QR-kod';
+
+  @override
+  String get inventory => 'Ombor';
+
+  @override
+  String get materials => 'Materiallar';
+
+  @override
+  String get materialsEmpty => 'Hozircha material yoʻq';
+
+  @override
+  String get materialAdd => 'Yangi material';
+
+  @override
+  String get stockLow => 'kam';
+
+  @override
+  String get stockReceipt => 'Kirim';
+
+  @override
+  String get stockReceiptHint => 'Omborga material kelib tushishi';
+
+  @override
+  String get quantity => 'Miqdor';
+
+  @override
+  String get kits => 'Toʻplamlar (9 m)';
+
+  @override
+  String get kitsEmpty => 'Hozircha toʻplam yoʻq';
+
+  @override
+  String get kitAssemble => 'Toʻplamni yigʻish';
+
+  @override
+  String get kitAssembled => 'Toʻplam yigʻildi, QR-kod tayyor';
+
+  @override
+  String get kitCount => 'Toʻplamlar soni';
+
+  @override
+  String get kitTemplateName => 'Toʻplam nomi';
+
+  @override
+  String get kitAddMaterial => 'Material';
+
+  @override
+  String get commentOptional => 'Izoh (ixtiyoriy)';
+
+  @override
+  String get materialName => 'Material nomi';
+
+  @override
+  String get materialMinStock => 'Minimal qoldiq';
 }

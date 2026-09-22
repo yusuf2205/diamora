@@ -895,7 +895,7 @@ as List<CollateralPhoto>,
 /// @nodoc
 mixin _$Worker {
 
- String get id; String get code; String get fullName; String get phone; String? get secondaryPhone; String get status; double? get latitude; double? get longitude; String? get locationReceivedAt; String get balance; String? get createdAt; String? get updatedAt; Collateral? get collateral; List<Collateral> get collaterals; String? get notes; String? get rejectedReason;
+ String get id; String get code; String get fullName; String get phone; String? get secondaryPhone; String get status; double? get latitude; double? get longitude; String? get locationReceivedAt; String get balance; String? get createdAt; String? get updatedAt; Collateral? get collateral; List<Collateral> get collaterals; String? get notes; String? get rejectedReason; String? get qrCode;
 /// Create a copy of Worker
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -909,20 +909,20 @@ $WorkerCopyWith<Worker> get copyWith => _$WorkerCopyWithImpl<Worker>(this as Wor
 @override
 bool operator ==(Object other) {
   final _this = this as Worker;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Worker&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.code, _this.code) || other.code == _this.code)&&(identical(other.fullName, _this.fullName) || other.fullName == _this.fullName)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.secondaryPhone, _this.secondaryPhone) || other.secondaryPhone == _this.secondaryPhone)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.latitude, _this.latitude) || other.latitude == _this.latitude)&&(identical(other.longitude, _this.longitude) || other.longitude == _this.longitude)&&(identical(other.locationReceivedAt, _this.locationReceivedAt) || other.locationReceivedAt == _this.locationReceivedAt)&&(identical(other.balance, _this.balance) || other.balance == _this.balance)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt)&&(identical(other.collateral, _this.collateral) || other.collateral == _this.collateral)&&const DeepCollectionEquality().equals(other.collaterals, _this.collaterals)&&(identical(other.notes, _this.notes) || other.notes == _this.notes)&&(identical(other.rejectedReason, _this.rejectedReason) || other.rejectedReason == _this.rejectedReason));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Worker&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.code, _this.code) || other.code == _this.code)&&(identical(other.fullName, _this.fullName) || other.fullName == _this.fullName)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.secondaryPhone, _this.secondaryPhone) || other.secondaryPhone == _this.secondaryPhone)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.latitude, _this.latitude) || other.latitude == _this.latitude)&&(identical(other.longitude, _this.longitude) || other.longitude == _this.longitude)&&(identical(other.locationReceivedAt, _this.locationReceivedAt) || other.locationReceivedAt == _this.locationReceivedAt)&&(identical(other.balance, _this.balance) || other.balance == _this.balance)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt)&&(identical(other.collateral, _this.collateral) || other.collateral == _this.collateral)&&const DeepCollectionEquality().equals(other.collaterals, _this.collaterals)&&(identical(other.notes, _this.notes) || other.notes == _this.notes)&&(identical(other.rejectedReason, _this.rejectedReason) || other.rejectedReason == _this.rejectedReason)&&(identical(other.qrCode, _this.qrCode) || other.qrCode == _this.qrCode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Worker;
-  return Object.hash(runtimeType,_this.id,_this.code,_this.fullName,_this.phone,_this.secondaryPhone,_this.status,_this.latitude,_this.longitude,_this.locationReceivedAt,_this.balance,_this.createdAt,_this.updatedAt,_this.collateral,const DeepCollectionEquality().hash(_this.collaterals),_this.notes,_this.rejectedReason);
+  return Object.hash(runtimeType,_this.id,_this.code,_this.fullName,_this.phone,_this.secondaryPhone,_this.status,_this.latitude,_this.longitude,_this.locationReceivedAt,_this.balance,_this.createdAt,_this.updatedAt,_this.collateral,const DeepCollectionEquality().hash(_this.collaterals),_this.notes,_this.rejectedReason,_this.qrCode);
 }
 
 @override
 String toString() {
   final _this = this as Worker;
-  return 'Worker(id: ${_this.id}, code: ${_this.code}, fullName: ${_this.fullName}, phone: ${_this.phone}, secondaryPhone: ${_this.secondaryPhone}, status: ${_this.status}, latitude: ${_this.latitude}, longitude: ${_this.longitude}, locationReceivedAt: ${_this.locationReceivedAt}, balance: ${_this.balance}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt}, collateral: ${_this.collateral}, collaterals: ${_this.collaterals}, notes: ${_this.notes}, rejectedReason: ${_this.rejectedReason})';
+  return 'Worker(id: ${_this.id}, code: ${_this.code}, fullName: ${_this.fullName}, phone: ${_this.phone}, secondaryPhone: ${_this.secondaryPhone}, status: ${_this.status}, latitude: ${_this.latitude}, longitude: ${_this.longitude}, locationReceivedAt: ${_this.locationReceivedAt}, balance: ${_this.balance}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt}, collateral: ${_this.collateral}, collaterals: ${_this.collaterals}, notes: ${_this.notes}, rejectedReason: ${_this.rejectedReason}, qrCode: ${_this.qrCode})';
 }
 
 
@@ -933,7 +933,7 @@ abstract mixin class $WorkerCopyWith<$Res>  {
   factory $WorkerCopyWith(Worker value, $Res Function(Worker) _then) = _$WorkerCopyWithImpl;
 @useResult
 $Res call({
- String id, String code, String fullName, String phone, String? secondaryPhone, String status, double? latitude, double? longitude, String? locationReceivedAt, String balance, String? createdAt, String? updatedAt, Collateral? collateral, List<Collateral> collaterals, String? notes, String? rejectedReason
+ String id, String code, String fullName, String phone, String? secondaryPhone, String status, double? latitude, double? longitude, String? locationReceivedAt, String balance, String? createdAt, String? updatedAt, Collateral? collateral, List<Collateral> collaterals, String? notes, String? rejectedReason, String? qrCode
 });
 
 
@@ -950,7 +950,7 @@ class _$WorkerCopyWithImpl<$Res>
 
 /// Create a copy of Worker
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? code = null,Object? fullName = null,Object? phone = null,Object? secondaryPhone = freezed,Object? status = null,Object? latitude = freezed,Object? longitude = freezed,Object? locationReceivedAt = freezed,Object? balance = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? collateral = freezed,Object? collaterals = null,Object? notes = freezed,Object? rejectedReason = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? code = null,Object? fullName = null,Object? phone = null,Object? secondaryPhone = freezed,Object? status = null,Object? latitude = freezed,Object? longitude = freezed,Object? locationReceivedAt = freezed,Object? balance = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? collateral = freezed,Object? collaterals = null,Object? notes = freezed,Object? rejectedReason = freezed,Object? qrCode = freezed,}) {
   return _then(Worker(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
@@ -968,6 +968,7 @@ as String?,collateral: freezed == collateral ? _self.collateral : collateral // 
 as Collateral?,collaterals: null == collaterals ? _self.collaterals : collaterals // ignore: cast_nullable_to_non_nullable
 as List<Collateral>,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,rejectedReason: freezed == rejectedReason ? _self.rejectedReason : rejectedReason // ignore: cast_nullable_to_non_nullable
+as String?,qrCode: freezed == qrCode ? _self.qrCode : qrCode // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -1065,10 +1066,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String code,  String fullName,  String phone,  String? secondaryPhone,  String status,  double? latitude,  double? longitude,  String? locationReceivedAt,  String balance,  String? createdAt,  String? updatedAt,  Collateral? collateral,  List<Collateral> collaterals,  String? notes,  String? rejectedReason)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String code,  String fullName,  String phone,  String? secondaryPhone,  String status,  double? latitude,  double? longitude,  String? locationReceivedAt,  String balance,  String? createdAt,  String? updatedAt,  Collateral? collateral,  List<Collateral> collaterals,  String? notes,  String? rejectedReason,  String? qrCode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Worker() when $default != null:
-return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPhone,_that.status,_that.latitude,_that.longitude,_that.locationReceivedAt,_that.balance,_that.createdAt,_that.updatedAt,_that.collateral,_that.collaterals,_that.notes,_that.rejectedReason);case _:
+return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPhone,_that.status,_that.latitude,_that.longitude,_that.locationReceivedAt,_that.balance,_that.createdAt,_that.updatedAt,_that.collateral,_that.collaterals,_that.notes,_that.rejectedReason,_that.qrCode);case _:
   return orElse();
 
 }
@@ -1086,10 +1087,10 @@ return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPh
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String code,  String fullName,  String phone,  String? secondaryPhone,  String status,  double? latitude,  double? longitude,  String? locationReceivedAt,  String balance,  String? createdAt,  String? updatedAt,  Collateral? collateral,  List<Collateral> collaterals,  String? notes,  String? rejectedReason)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String code,  String fullName,  String phone,  String? secondaryPhone,  String status,  double? latitude,  double? longitude,  String? locationReceivedAt,  String balance,  String? createdAt,  String? updatedAt,  Collateral? collateral,  List<Collateral> collaterals,  String? notes,  String? rejectedReason,  String? qrCode)  $default,) {final _that = this;
 switch (_that) {
 case _Worker():
-return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPhone,_that.status,_that.latitude,_that.longitude,_that.locationReceivedAt,_that.balance,_that.createdAt,_that.updatedAt,_that.collateral,_that.collaterals,_that.notes,_that.rejectedReason);case _:
+return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPhone,_that.status,_that.latitude,_that.longitude,_that.locationReceivedAt,_that.balance,_that.createdAt,_that.updatedAt,_that.collateral,_that.collaterals,_that.notes,_that.rejectedReason,_that.qrCode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1106,10 +1107,10 @@ return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPh
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String code,  String fullName,  String phone,  String? secondaryPhone,  String status,  double? latitude,  double? longitude,  String? locationReceivedAt,  String balance,  String? createdAt,  String? updatedAt,  Collateral? collateral,  List<Collateral> collaterals,  String? notes,  String? rejectedReason)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String code,  String fullName,  String phone,  String? secondaryPhone,  String status,  double? latitude,  double? longitude,  String? locationReceivedAt,  String balance,  String? createdAt,  String? updatedAt,  Collateral? collateral,  List<Collateral> collaterals,  String? notes,  String? rejectedReason,  String? qrCode)?  $default,) {final _that = this;
 switch (_that) {
 case _Worker() when $default != null:
-return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPhone,_that.status,_that.latitude,_that.longitude,_that.locationReceivedAt,_that.balance,_that.createdAt,_that.updatedAt,_that.collateral,_that.collaterals,_that.notes,_that.rejectedReason);case _:
+return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPhone,_that.status,_that.latitude,_that.longitude,_that.locationReceivedAt,_that.balance,_that.createdAt,_that.updatedAt,_that.collateral,_that.collaterals,_that.notes,_that.rejectedReason,_that.qrCode);case _:
   return null;
 
 }
@@ -1121,7 +1122,7 @@ return $default(_that.id,_that.code,_that.fullName,_that.phone,_that.secondaryPh
 @JsonSerializable()
 
 class _Worker extends Worker {
-  const _Worker({required this.id, required this.code, required this.fullName, required this.phone, this.secondaryPhone, required this.status, this.latitude, this.longitude, this.locationReceivedAt, this.balance = '0', this.createdAt, this.updatedAt, this.collateral,  List<Collateral> collaterals = const <Collateral>[], this.notes, this.rejectedReason}): _collaterals = collaterals,super._();
+  const _Worker({required this.id, required this.code, required this.fullName, required this.phone, this.secondaryPhone, required this.status, this.latitude, this.longitude, this.locationReceivedAt, this.balance = '0', this.createdAt, this.updatedAt, this.collateral,  List<Collateral> collaterals = const <Collateral>[], this.notes, this.rejectedReason, this.qrCode}): _collaterals = collaterals,super._();
   factory _Worker.fromJson(Map<String, dynamic> json) => _$WorkerFromJson(json);
 
 @override final  String id;
@@ -1146,6 +1147,7 @@ class _Worker extends Worker {
 
 @override final  String? notes;
 @override final  String? rejectedReason;
+@override final  String? qrCode;
 
 /// Create a copy of Worker
 /// with the given fields replaced by the non-null parameter values.
@@ -1160,18 +1162,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Worker&&(identical(other.id, id) || other.id == id)&&(identical(other.code, code) || other.code == code)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.secondaryPhone, secondaryPhone) || other.secondaryPhone == secondaryPhone)&&(identical(other.status, status) || other.status == status)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.locationReceivedAt, locationReceivedAt) || other.locationReceivedAt == locationReceivedAt)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.collateral, collateral) || other.collateral == collateral)&&const DeepCollectionEquality().equals(other.collaterals, _collaterals)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.rejectedReason, rejectedReason) || other.rejectedReason == rejectedReason));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Worker&&(identical(other.id, id) || other.id == id)&&(identical(other.code, code) || other.code == code)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.secondaryPhone, secondaryPhone) || other.secondaryPhone == secondaryPhone)&&(identical(other.status, status) || other.status == status)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude)&&(identical(other.locationReceivedAt, locationReceivedAt) || other.locationReceivedAt == locationReceivedAt)&&(identical(other.balance, balance) || other.balance == balance)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.collateral, collateral) || other.collateral == collateral)&&const DeepCollectionEquality().equals(other.collaterals, _collaterals)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.rejectedReason, rejectedReason) || other.rejectedReason == rejectedReason)&&(identical(other.qrCode, qrCode) || other.qrCode == qrCode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,code,fullName,phone,secondaryPhone,status,latitude,longitude,locationReceivedAt,balance,createdAt,updatedAt,collateral,const DeepCollectionEquality().hash(_collaterals),notes,rejectedReason);
+    return Object.hash(runtimeType,id,code,fullName,phone,secondaryPhone,status,latitude,longitude,locationReceivedAt,balance,createdAt,updatedAt,collateral,const DeepCollectionEquality().hash(_collaterals),notes,rejectedReason,qrCode);
 }
 
 @override
 String toString() {
-    return 'Worker(id: $id, code: $code, fullName: $fullName, phone: $phone, secondaryPhone: $secondaryPhone, status: $status, latitude: $latitude, longitude: $longitude, locationReceivedAt: $locationReceivedAt, balance: $balance, createdAt: $createdAt, updatedAt: $updatedAt, collateral: $collateral, collaterals: $collaterals, notes: $notes, rejectedReason: $rejectedReason)';
+    return 'Worker(id: $id, code: $code, fullName: $fullName, phone: $phone, secondaryPhone: $secondaryPhone, status: $status, latitude: $latitude, longitude: $longitude, locationReceivedAt: $locationReceivedAt, balance: $balance, createdAt: $createdAt, updatedAt: $updatedAt, collateral: $collateral, collaterals: $collaterals, notes: $notes, rejectedReason: $rejectedReason, qrCode: $qrCode)';
 }
 
 
@@ -1182,7 +1184,7 @@ abstract mixin class _$WorkerCopyWith<$Res> implements $WorkerCopyWith<$Res> {
   factory _$WorkerCopyWith(_Worker value, $Res Function(_Worker) _then) = __$WorkerCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String code, String fullName, String phone, String? secondaryPhone, String status, double? latitude, double? longitude, String? locationReceivedAt, String balance, String? createdAt, String? updatedAt, Collateral? collateral, List<Collateral> collaterals, String? notes, String? rejectedReason
+ String id, String code, String fullName, String phone, String? secondaryPhone, String status, double? latitude, double? longitude, String? locationReceivedAt, String balance, String? createdAt, String? updatedAt, Collateral? collateral, List<Collateral> collaterals, String? notes, String? rejectedReason, String? qrCode
 });
 
 
@@ -1199,7 +1201,7 @@ class __$WorkerCopyWithImpl<$Res>
 
 /// Create a copy of Worker
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? code = null,Object? fullName = null,Object? phone = null,Object? secondaryPhone = freezed,Object? status = null,Object? latitude = freezed,Object? longitude = freezed,Object? locationReceivedAt = freezed,Object? balance = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? collateral = freezed,Object? collaterals = null,Object? notes = freezed,Object? rejectedReason = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? code = null,Object? fullName = null,Object? phone = null,Object? secondaryPhone = freezed,Object? status = null,Object? latitude = freezed,Object? longitude = freezed,Object? locationReceivedAt = freezed,Object? balance = null,Object? createdAt = freezed,Object? updatedAt = freezed,Object? collateral = freezed,Object? collaterals = null,Object? notes = freezed,Object? rejectedReason = freezed,Object? qrCode = freezed,}) {
   return _then(_Worker(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
@@ -1217,6 +1219,7 @@ as String?,collateral: freezed == collateral ? _self.collateral : collateral // 
 as Collateral?,collaterals: null == collaterals ? _self._collaterals : collaterals // ignore: cast_nullable_to_non_nullable
 as List<Collateral>,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,rejectedReason: freezed == rejectedReason ? _self.rejectedReason : rejectedReason // ignore: cast_nullable_to_non_nullable
+as String?,qrCode: freezed == qrCode ? _self.qrCode : qrCode // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

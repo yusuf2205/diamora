@@ -33,6 +33,7 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
     return Scaffold(
       appBar: AppBar(
         title: Text(l.workers),
+        actions: [IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan'))],
         bottom: TabBar(controller: _tabs, tabs: [Tab(text: l.tabPending), Tab(text: l.tabActive), Tab(text: l.tabAll)]),
       ),
       body: Column(children: [

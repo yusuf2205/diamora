@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
@@ -20,7 +21,13 @@ class WorkerDetailScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final async = ref.watch(workerDetailProvider(workerId));
     return Scaffold(
-      appBar: AppBar(title: Text(async.value?.fullName ?? l.workers)),
+      appBar: AppBar(
+        title: Text(async.value?.fullName ?? l.workers),
+        actions: [
+          if (async.value?.qrCode != null)
+            IconButton(icon: const Icon(Icons.qr_code_2), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
+        ],
+      ),
       body: Column(children: [
         const ConnectionBanner(),
         Expanded(
@@ -107,6 +114,24 @@ class WorkerDetailScreen extends ConsumerWidget {
       if (context.mounted) showError(context, e);
     }
   }
+
+  /// The worker's opaque, personal QR (M2 §13): rendered locally from the code text, nothing downloaded or printed
+  /// server-side. Scanning it later resolves through the exact same scope check as this very screen (`GET /qr/:code`).
+  Future<void> _showQr(BuildContext context, AppLocalizations l, String code) => showModalBottomSheet<void>(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(l.workerQrTitle, style: Theme.of(ctx).textTheme.titleMedium),
+              const SizedBox(height: 16),
+              QrImageView(data: code, size: 220),
+              const SizedBox(height: 8),
+              SelectableText(code, style: Theme.of(ctx).textTheme.bodySmall),
+            ]),
+          ),
+        ),
+      );
 
   Future<String?> _askText(BuildContext context, String title, String label, {bool required = true}) {
     final l = AppLocalizations.of(context);

@@ -61,6 +61,7 @@ abstract class Worker with _$Worker {
     @Default(<Collateral>[]) List<Collateral> collaterals, // detail
     String? notes,
     String? rejectedReason,
+    String? qrCode, // her personal QR (M2 §13), detail only
   }) = _Worker;
 
   factory Worker.fromJson(Map<String, dynamic> json) => _$WorkerFromJson(json);

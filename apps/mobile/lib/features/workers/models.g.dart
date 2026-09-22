@@ -85,6 +85,7 @@ _Worker _$WorkerFromJson(Map<String, dynamic> json) => _Worker(
       const <Collateral>[],
   notes: json['notes'] as String?,
   rejectedReason: json['rejectedReason'] as String?,
+  qrCode: json['qrCode'] as String?,
 );
 
 Map<String, dynamic> _$WorkerToJson(_Worker instance) => <String, dynamic>{
@@ -104,4 +105,5 @@ Map<String, dynamic> _$WorkerToJson(_Worker instance) => <String, dynamic>{
   'collaterals': instance.collaterals,
   'notes': instance.notes,
   'rejectedReason': instance.rejectedReason,
+  'qrCode': instance.qrCode,
 };

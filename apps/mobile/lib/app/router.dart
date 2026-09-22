@@ -7,7 +7,10 @@ import '../features/auth/login_screen.dart';
 import '../features/catalog/admin_catalog_screen.dart';
 import '../features/catalog/worker_catalog_screen.dart';
 import '../features/home/worker_home_screen.dart';
+import '../features/inventory/inventory_screen.dart';
+import '../features/map/map_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/qr/qr_scanner_screen.dart';
 import '../features/settings/company_contact_screen.dart';
 import '../features/settings/pay_rate_screen.dart';
 import '../features/team/audit_screen.dart';
@@ -44,6 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+      GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => AdminShell(shell: shell),
         branches: [
@@ -61,6 +65,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               routes: [GoRoute(path: ':id', builder: (_, s) => AdminCatalogDetailScreen(itemId: s.pathParameters['id']!))],
             ),
           ]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/inventory', builder: (_, _) => const InventoryScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/map', builder: (_, _) => const MapScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/admin/team', builder: (_, _) => const TeamScreen())]),
           StatefulShellBranch(routes: [
             GoRoute(

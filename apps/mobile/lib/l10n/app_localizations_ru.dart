@@ -455,15 +455,110 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String locationStaleMinutes(int minutes) {
-    return '$minutes мин назад';
+    return 'Последняя позиция $minutes мин назад';
   }
 
   @override
-  String get locationJustNow => 'только что';
+  String locationRecentMinutes(int minutes) {
+    return 'Обновлено $minutes мин назад';
+  }
+
+  @override
+  String get locationJustNow => 'Сейчас';
 
   @override
   String get onlineNow => 'в сети';
 
   @override
   String get offlineNow => 'не в сети';
+
+  @override
+  String get map => 'Карта';
+
+  @override
+  String get mapListView => 'Список';
+
+  @override
+  String get mapMapView => 'Карта';
+
+  @override
+  String get mapEmpty => 'Пока нет координат';
+
+  @override
+  String get mapOpenProfile => 'Открыть профиль';
+
+  @override
+  String get qrScan => 'Сканировать QR';
+
+  @override
+  String get qrScanHint => 'Наведите камеру на QR-код';
+
+  @override
+  String get qrInvalid => 'QR-код не найден или недоступен';
+
+  @override
+  String get qrWorkerFound => 'Мастерица найдена';
+
+  @override
+  String get qrKitFound => 'Комплект найден';
+
+  @override
+  String get showQr => 'Показать QR-код';
+
+  @override
+  String get workerQrTitle => 'Личный QR-код';
+
+  @override
+  String get inventory => 'Склад';
+
+  @override
+  String get materials => 'Материалы';
+
+  @override
+  String get materialsEmpty => 'Материалов пока нет';
+
+  @override
+  String get materialAdd => 'Новый материал';
+
+  @override
+  String get stockLow => 'мало';
+
+  @override
+  String get stockReceipt => 'Приход';
+
+  @override
+  String get stockReceiptHint => 'Поступление материала на склад';
+
+  @override
+  String get quantity => 'Количество';
+
+  @override
+  String get kits => 'Комплекты (9 м)';
+
+  @override
+  String get kitsEmpty => 'Комплектов пока нет';
+
+  @override
+  String get kitAssemble => 'Собрать комплект';
+
+  @override
+  String get kitAssembled => 'Комплект собран, QR-код готов';
+
+  @override
+  String get kitCount => 'Количество комплектов';
+
+  @override
+  String get kitTemplateName => 'Название комплекта';
+
+  @override
+  String get kitAddMaterial => 'Материал';
+
+  @override
+  String get commentOptional => 'Комментарий (необязательно)';
+
+  @override
+  String get materialName => 'Название материала';
+
+  @override
+  String get materialMinStock => 'Минимальный остаток';
 }

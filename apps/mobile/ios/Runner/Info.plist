@@ -31,6 +31,9 @@
 	<string>Нужна геолокация, чтобы админ видел, где сейчас находится работа (доставка/забор).</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Фоновая геолокация нужна, чтобы адрес оставался актуальным, даже когда приложение свёрнуто.</string>
+	<!-- QR scanner (M2 §12): scanning a worker's or a kit's QR code -->
+	<key>NSCameraUsageDescription</key>
+	<string>Камера нужна, чтобы отсканировать QR-код мастерицы или комплекта.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
