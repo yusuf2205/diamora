@@ -26,7 +26,9 @@ die() { log "ERROR: $*"; write_status failed 0; exit 1; }
 prune() {
   local dir="$1" glob="$2" keep="$3"
   [ -d "$dir" ] || return 0
+  # an unmatched glob stays literal (no nullglob here) and makes `ls` fail — harmless (nothing to prune yet), but
+  # under `set -o pipefail` that failure would otherwise abort the whole job; explicitly treat it as "nothing found"
   # shellcheck disable=SC2012
-  ls -1t "$dir"/$glob 2>/dev/null | tail -n +"$((keep + 1))" | while read -r f; do log "retention: removing $f"; rm -rf -- "$f"; done
+  ls -1t "$dir"/$glob 2>/dev/null | tail -n +"$((keep + 1))" | while read -r f; do log "retention: removing $f"; rm -rf -- "$f"; done || true
 }
 file_size() { stat -c %s "$1" 2>/dev/null || wc -c < "$1"; }

@@ -41,7 +41,15 @@ if [ -n "$(dc ps -q cloudflared 2>/dev/null)" ]; then
 fi
 
 echo "== persistent volumes hold data"
-for d in postgres redis minio; do [ -n "$(ls -A "$DATA_ROOT/$d" 2>/dev/null)" ] && ok "$DATA_ROOT/$d populated" || fail "$DATA_ROOT/$d is empty"; done
+# host-side `ls` can be denied by design (nas-init.sh chmod 700s postgres's dir to uid 999) — check through a
+# throwaway container instead, which sees the bind mount with real (root) access regardless of the host user.
+for d in postgres redis minio; do
+  if docker run --rm -v "$DATA_ROOT/$d:/check:ro" alpine:3.22 sh -c '[ -n "$(ls -A /check 2>/dev/null)" ]'; then
+    ok "$DATA_ROOT/$d populated"
+  else
+    fail "$DATA_ROOT/$d is empty"
+  fi
+done
 
 if [ "${1:-}" = "--restart" ]; then
   echo "== restart persistence"

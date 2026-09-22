@@ -19,8 +19,8 @@ mv "$tmp" "$out"
 size="$(file_size "$out")"
 log "created $out ($size bytes)"
 
-[ "$(date -u +%u)" = "7" ] && cp -p "$out" "$out.sha256" "$WEEKLY/" && log "promoted to weekly"
-[ "$(date -u +%d)" = "01" ] && cp -p "$out" "$out.sha256" "$MONTHLY/" && log "promoted to monthly"
+if [ "$(date -u +%u)" = "7" ]; then cp -p "$out" "$out.sha256" "$WEEKLY/"; log "promoted to weekly"; fi
+if [ "$(date -u +%d)" = "01" ]; then cp -p "$out" "$out.sha256" "$MONTHLY/"; log "promoted to monthly"; fi
 for d in "$DAILY:$RETENTION_DAILY" "$WEEKLY:$RETENTION_WEEKLY" "$MONTHLY:$RETENTION_MONTHLY"; do
   prune "${d%%:*}" "${PGDATABASE}-*.dump" "${d##*:}"; prune "${d%%:*}" "${PGDATABASE}-*.dump.sha256" "${d##*:}"
 done
