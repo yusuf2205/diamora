@@ -4,8 +4,8 @@ import type { WorkerLedgerTransaction } from '@yusmus/database';
 import { cashPayoutSchema } from '@yusmus/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
-import { ApiZodBody, CurrentUser, Perm } from '../common/decorators';
-import { invariant, notFound } from '../common/errors';
+import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';
+import { forbidden, invariant, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { assertWorkerInScope } from '../common/scope';
 import { lockRow, type Tx } from '../common/sequence';
@@ -40,6 +40,16 @@ export class LedgerService {
     const w = await this.prisma.workerProfile.findUnique({ where: { id: workerId } });
     if (!w) throw notFound('Worker');
     assertWorkerInScope(actor, 'FINANCE', w);
+    return this.summaryFor(workerId);
+  }
+
+  /** A worker reading her OWN earnings (§13): self-only, no staff scope check — same trust pattern as `work/current`. */
+  async summaryForWorker(workerId: string) {
+    return this.summaryFor(workerId);
+  }
+
+  private async summaryFor(workerId: string) {
+    const w = await this.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
     const [earnedAgg, paidAgg, history] = await Promise.all([
       this.prisma.workerLedgerTransaction.aggregate({ where: { workerId, type: 'EARNING' }, _sum: { amount: true } }),
       this.prisma.workerLedgerTransaction.aggregate({ where: { workerId, type: 'PAYOUT_CASH' }, _sum: { amount: true } }),
@@ -97,16 +107,23 @@ export class LedgerService {
 
 @ApiTags('ledger')
 @ApiBearerAuth()
-@Controller('admin/workers')
+@Controller()
 export class LedgerController {
   constructor(private readonly ledger: LedgerService) {}
 
-  @Perm('FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED') @Get(':id/ledger')
+  @Perm('FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED') @Get('admin/workers/:id/ledger')
   summary(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.ledger.summary(u, id); }
 
-  @Perm('CASH_PAYOUT') @Post(':id/payout') @HttpCode(200) @ApiZodBody(cashPayoutSchema)
+  @Perm('CASH_PAYOUT') @Post('admin/workers/:id/payout') @HttpCode(200) @ApiZodBody(cashPayoutSchema)
   payout(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(cashPayoutSchema) b: z.output<typeof cashPayoutSchema>) {
     return this.ledger.payout(u, id, b);
+  }
+
+  /** M3 §13: a worker's own "К получению / Заработано / Выплачено" — self-only, scoped by the JWT's workerId. */
+  @Roles('WORKER') @Get('work/earnings')
+  myEarnings(@CurrentUser() u: AuthUser) {
+    if (!u.workerId) throw forbidden();
+    return this.ledger.summaryForWorker(u.workerId);
   }
 }
 

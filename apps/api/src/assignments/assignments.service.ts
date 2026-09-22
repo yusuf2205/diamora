@@ -31,6 +31,7 @@ type AssignmentFull = WorkAssignment & {
   productModel: { id: string; name: string };
   productVariant: { id: string; label: string | null };
   color: { id: string; name: string; hex: string | null };
+  qrEntities: { code: string }[];
 };
 
 /**
@@ -293,6 +294,7 @@ export class AssignmentsService {
       deliveries: { orderBy: { createdAt: 'desc' as const } },
       worker: { select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true } },
       productModel: { select: { id: true, name: true } }, productVariant: { select: { id: true, label: true } }, color: { select: { id: true, name: true, hex: true } },
+      qrEntities: { where: { type: 'ASSIGNMENT' as const, revokedAt: null }, orderBy: { createdAt: 'desc' as const }, take: 1, select: { code: true } },
     };
   }
   /** A worker reading her OWN assignment: no staff permission/scope check applies, self-ownership was already verified. */
@@ -312,6 +314,7 @@ export class AssignmentsService {
       reportedMeters: num(a.reportedMeters), deliveredMeters: num(a.deliveredMeters), acceptedMeters: num(a.acceptedMeters),
       defectiveMeters: num(a.defectiveMeters), calculatedPayment: money(a.calculatedPayment), settledRatePerKit: money(a.settledRatePerKit),
       dueAt: a.dueAt?.toISOString() ?? null, notes: a.notes, issuedAt: a.issuedAt?.toISOString() ?? null,
+      qrCode: a.qrEntities[0]?.code ?? null,
       worker: a.worker, product: a.productModel, variant: a.productVariant, color: a.color,
       materials: a.materials.map((m) => ({ materialId: m.materialId, quantity: num(m.quantity) })),
       statusHistory: a.statusHistory.map((h) => ({ from: h.fromStatus, to: h.toStatus, actor: h.actor, comment: h.comment, changedAt: h.changedAt.toISOString() })),

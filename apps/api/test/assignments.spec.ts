@@ -109,6 +109,13 @@ describe('M3 work assignments (§5-16): create -> deliver -> progress -> pickup 
     const ledger = await f.admin.api.get(`/v1/admin/workers/${f.workerId}/ledger`).expect(200);
     expect(ledger.body.balance).toBe(rate.body.ratePerKit);
     expect(ledger.body.earned).toBe(rate.body.ratePerKit);
+
+    // §13: the worker sees the SAME numbers about herself, self-service, no FINANCE permission needed
+    const mine = await f.workerApi.get('/v1/work/earnings').expect(200);
+    expect(mine.body.balance).toBe(rate.body.ratePerKit);
+    expect(mine.body.earned).toBe(rate.body.ratePerKit);
+    const foreignMgr = await staffActor(t, 'MANAGER');
+    await foreignMgr.api.get('/v1/work/earnings').expect(403); // staff never has a workerId -> WORKER-only route
   });
 
   it('partial acceptance: accepted portion is paid, the rest is flagged, never silently dropped', async () => {
