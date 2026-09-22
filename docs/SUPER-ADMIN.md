@@ -14,17 +14,20 @@ Both talk to the same NAS API — no separate backend, no separate rules.
 | Users: create, view, activate/deactivate, roles, permissions | ✅ "Команда" | ✅ `/team` | `/v1/users`, `/v1/permissions` |
 | Managers: per-manager numbers | ✅ | ✅ `/managers` | `/v1/managers` |
 | Assign a worker to a manager | ✅ (worker detail) | — | `POST /v1/workers/:id/manager` |
-| Catalog "Наши работы": create, photos/video, publish/hide, variants | ✅ | ✅ (create, publish/hide; photo upload is mobile-only so far) | `/v1/admin/catalog/*` |
+| Catalog "Наши работы": create, photos/video, publish/hide, variants | ✅ | ✅ create, **photo/video upload**, publish/hide, isNew, description (M2 §22) | `/v1/admin/catalog/*` |
 | Global 9 m pay rate + history | ✅ | ✅ | `/v1/settings/pay-rate*` |
 | Company contact (phone/Telegram shown to workers) | ✅ | ✅ | `/v1/settings/company-contact` |
-| Live locations (list; a real map is M4) | ✅ "Геолокация команды" | — | `GET /v1/locations` |
-| Presence (online/offline) | used inside the above lists | used inside the above lists | `GET /v1/presence` |
+| Materials (fixed categories, balances, receipt) | ✅ "Склад" | — (M2 gave web catalog upload + map priority; see [INVENTORY.md](INVENTORY.md)) | `/v1/admin/materials*`, `/v1/admin/stock/*` |
+| 9 m kit templates + physical assembly → QR | ✅ "Склад" | — | `/v1/admin/kits*` |
+| QR resolve (worker card / kit composition) | ✅ scanner (`mobile_scanner`) | — | `GET /v1/qr/:code` |
+| Live locations + **Yandex map** (brought forward from M4) | ✅ "Карта" (real map) + list fallback | ✅ `/map` (real map if `NEXT_PUBLIC_YANDEX_MAPS_JS_KEY` is set, else a real list) | `GET /v1/locations` |
+| Presence (online/offline) | used inside the above | used inside the above | `GET /v1/presence` |
 | Audit log | ✅ | ✅ | `GET /v1/audit` |
 
 ## Not built yet (by design — D-023, no mocks in critical flows)
 
-Assignments, deliveries, pickup/acceptance, the Yandex map, QR resolution, materials/stock, sales, expenses and net
-profit belong to milestones **M2–M6**, which have not started. Nothing in this session invents data or screens for
+Assignments, deliveries, pickup/acceptance, the map's `pickup`/`delivery` filters, sales, expenses and net profit
+belong to milestones **M3–M6**, which have not started. Nothing in this session invents data or screens for
 them; `GET /v1/dashboard`'s `finance.salesRevenue/expenses/netProfit` are explicit `null`, not a fabricated zero. See
 [MVP-ROADMAP.md](MVP-ROADMAP.md) for the plan and the honest gap register.
 

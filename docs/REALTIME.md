@@ -40,7 +40,12 @@
 | `quality.completed` | assignmentId, workerId, result, acceptedMeters, managerId | staff scoped to this worker, + the worker |
 | `pay_rate.changed` | ratePerKit, previousRatePerKit, changedAt | every staff user + **every worker** |
 | `earning.created` / `cash_payment.created` / `worker.balance_updated` | workerId, …, managerId | staff scoped to this worker (`FINANCE`), + the worker |
+| `material.created` / `.updated` | materialId | staff with `INVENTORY_VIEW` |
+| `stock.movement.created` | movementId, materialId, type | staff with `INVENTORY_VIEW` |
 | `stock.updated` | materialId, quantity, low | staff with `INVENTORY_VIEW` |
+| `kit.created` / `.updated` | kitTemplateId | staff with `INVENTORY_VIEW` |
+| `kit.assembled` | kitTemplateId, qrCode, count | staff with `INVENTORY_VIEW` |
+| `qr.created` | code, type, workerId?, kitTemplateId? | staff with `INVENTORY_VIEW` |
 | `sale.created` / `profit.updated` | saleId / period | staff with `PROFIT_VIEW` |
 
-Implemented: `user.*`, `worker.*`, `collateral.*`, `catalog.*`, `company_contact.changed`, `pay_rate.changed`. The rest are added with their milestone; the contract file (`EVENT_ROUTES`) already lists all of them with their final routing.
+Implemented: `user.*`, `worker.*`, `collateral.*`, `catalog.*`, `company_contact.changed`, `pay_rate.changed`, `material.*`, `stock.*`, `kit.*`, `qr.created` (M2). The rest are added with their milestone; the contract file (`EVENT_ROUTES`) already lists all of them with their final routing.

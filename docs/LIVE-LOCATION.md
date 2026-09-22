@@ -42,11 +42,26 @@ built — brief §21's own instruction: "Не хранить бессмысле�
 
 `GET /v1/locations` requires `LIVE_LOCATION_VIEW_ALL` or `LIVE_LOCATION_VIEW_ASSIGNED` and is filtered by the same
 `scopeFor('LOCATION', ...)` as worker/collateral/finance data (see [RBAC.md](RBAC.md)) — a `MANAGER` gets only her own
-workers' positions plus her own; nothing else. Each row carries `ageSeconds` and `stale` (> 15 minutes): the UI must
-show *"Последняя геолокация: N минут назад"*, never present an old point as if it were current (§22).
+workers' positions plus her own; nothing else. Each row also carries `phone` and live `online` presence now (M2 §14-16),
+so a map marker's bottom sheet needs no second request.
 
-`apps/mobile/lib/features/team/locations_screen.dart` is a plain list today, not a map — Yandex MapKit is M4 (needs the
-owner's key, integrated on a real device). The list already carries every field a map marker will need.
+### Freshness tiers (M2 §17) — never present an old point as if it were current
+
+Thresholds live in ONE place, `packages/shared/src/basics.ts` (`LOCATION_LIVE_SECONDS = 120`, `LOCATION_RECENT_SECONDS = 600`,
+`locationFreshness(ageSeconds)`), so the API, Flutter and the web panel can never disagree:
+
+| `ageSeconds` | `freshness` | Example wording |
+|---|---|---|
+| < 120 | `LIVE` | «Сейчас» |
+| 120–599 | `RECENT` | «Обновлено 6 мин назад» |
+| ≥ 600 | `STALE` | «Последняя позиция 18 мин назад» |
+
+The boolean `stale` field (D-030's original threshold, > 15 minutes → now 10, to match `RECENT`'s end) is kept for
+backward compatibility: `stale === (freshness === 'STALE')`. `RECENT` is the new middle tier between "just now" and
+"actually stale".
+
+`apps/mobile/lib/features/team/locations_screen.dart` (plain list) and `apps/mobile/lib/features/map/map_screen.dart`
+(the real Yandex map, M2) both use the same `freshness` field — see [YANDEX-MAPS.md](YANDEX-MAPS.md).
 
 ## Presence — separate from GPS (D-031)
 

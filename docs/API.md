@@ -18,12 +18,14 @@ Legend: **A** = any staff role with the permission shown (SUPER_ADMIN always qua
 | Realtime ✅ | Socket.IO `wss://…/socket.io` ([REALTIME.md](REALTIME.md)) |
 | Files ✅ | `GET /files/:id/(original\|thumb)?exp&sig` (signed) |
 | Audit ✅ | `AUDIT_VIEW`: `GET /audit?entity&entityId` |
-| Stock (M2) | A: `GET /stock`, `POST /stock/receipts`, `POST /stock/adjustments`, `GET /stock/movements` |
-| QR (M2) | A: `POST /qr/assignments/:id` · `GET /qr/:code` · `GET /workers/:id/qr` |
+| Materials ✅ (M2) | `INVENTORY_VIEW`/`_MANAGE`: `GET /admin/materials/categories` (the 5 fixed categories) · `GET /admin/materials?categoryId&isActive&q` · `GET /admin/materials/:id` · `INVENTORY_MANAGE`: `POST /admin/materials` · `PATCH .../:id` · `POST .../:id/deactivate` — see [INVENTORY.md](INVENTORY.md) |
+| Stock ✅ (M2) | `INVENTORY_VIEW`/`_MANAGE`: `GET /admin/stock/balances` · `GET /admin/stock/movements?materialId&type` · `INVENTORY_MANAGE`: `POST /admin/stock/receipt` · `POST /admin/stock/adjust` (`direction: IN\|OUT`) · `POST /admin/stock/write-off` — every write is one immutable `StockMovement`, never a negative balance |
+| 9 m kit templates ✅ (M2) | `INVENTORY_VIEW`/`_MANAGE`: `GET /admin/kits` · `GET /admin/kits/:id` · `INVENTORY_MANAGE`: `POST /admin/kits` · `PATCH .../:id` · `POST .../:id/assemble` `{ count }` (consumes stock, issues one QR for the whole batch; 18/27 m = the same recipe assembled with `count: 2\|3`, never a separate template) |
+| QR ✅ (M2) | staff (SUPER_ADMIN/ADMIN/MANAGER): `GET /qr/:code` (resolves a WORKER or KIT code; a worker outside a MANAGER's scope is a plain 404) · a worker's own code is `qrCode` on `GET /workers/:id` (set once, at approval) · a kit's code is returned by `POST /admin/kits/:id/assemble` — architecture ready for a future `ASSIGNMENT`-type code, none issued yet (M3) |
 | Assignments (M3) | A: `POST /assignments` (9/18/27 m, kitCount) · `GET /assignments` · `POST /assignments/:id/issue` (DRAFT→READY_TO_DELIVER) · `POST /assignments/:id/cancel` · W: `GET /assignments/mine` · `POST /assignments/:id/progress` · `POST /assignments/:id/ready` · `POST /assignments/:id/problem` |
 | Job requests (M3) | W: `POST /job-requests` · A: `GET /job-requests` · `POST /job-requests/:id/approve`/`reject` |
 | Deliveries (M3/M4) | A: `GET /deliveries?status&type` · `POST /deliveries` · `POST /deliveries/:id/complete` · `POST /deliveries/:id/cancel` |
-| Map (M4) | A: `GET /map/workers?filter=all\|pickup\|delivery` (the live-location list above already carries what a marker needs; the map itself is M4) |
+| Map ✅ (M2, brought forward from M4) | Flutter (Yandex MapKit Lite) and Web (Yandex JS Maps, optional key) both render `GET /locations` (above) as markers, coloured by role/freshness — see [YANDEX-MAPS.md](YANDEX-MAPS.md). Still M4: the `pickup`/`delivery` filters (need Assignment/Delivery, not built yet) |
 | Acceptance (M4) | A: `POST /assignments/:id/pickup` · `POST /assignments/:id/review` (accepted / defective / rework, photos) |
 | Finance (M5) | A: `GET /workers/:id/ledger` · `POST /workers/:id/payouts` · `POST /workers/:id/bonus` · `POST /workers/:id/corrections` · W: `GET /me/finance` |
 | Sales & profit (M6) | A: `POST /sales` · `GET /sales` · `POST /expenses` · `GET /expenses` · `GET /profit?from&to` |
