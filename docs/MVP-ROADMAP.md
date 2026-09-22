@@ -6,9 +6,9 @@
 | **M1** Registration | Telegram registration (phone, GPS, collateral), ADMIN approval/rejection, worker profile, realtime, worker login by Telegram code, collateral receive/return, audit | ✅ done — see "Verification" |
 | **RBAC/Catalog/Location upgrade** (owner request, 2026-09-22, ahead of M2) | Four ranked roles + fine-grained permissions ([RBAC.md](RBAC.md)), manager-worker assignment and isolation, catalog "Наши работы" ([CATALOG.md](CATALOG.md)), background live location + presence ([LIVE-LOCATION.md](LIVE-LOCATION.md)), SUPER_ADMIN web control panel ([SUPER-ADMIN.md](SUPER-ADMIN.md)), audit/dashboard | ✅ done — see "Verification" |
 | M2 | Materials, 9 m kit templates, stock movements (issue/receipt/adjust), QR, and (brought forward from M4) the **Yandex map** on Flutter + web | ✅ done — see "Verification" |
-| M3 | Assignments 9/18/27 m, delivery, Worker app (work, progress), job requests | next |
-| M4 | Ready for pickup, map `pickup`/`delivery` filters (the map screen itself moved to M2), acceptance | – |
-| M5 | Earnings **per 9 m kit** (D-024), cash payout, ledger, worker "К получению" | – |
+| **Production Gate** (owner, 2026-09-22) | First real NAS deployment over SSH, backup+restore live tests, M0-M2 verified end-to-end against production, 4 real infra bugs found and fixed (D-039) | ✅ done |
+| M3 (owner accelerated M3+M4+M5 into one push, 2026-09-22) | Assignments 9/18/27 m, delivery, worker progress, pickup, acceptance, earnings **per 9 m kit** (D-024), cash payout — the full work-order lifecycle in one round (D-041) | 🟡 **backend done + tested**; Flutter: worker current-work card (progress/ready) + QR-triggered staff pickup done, staff assignment-creation UI and the acceptance form not yet built (mobile or web) |
+| M4 | Map `pickup`/`delivery` filters (the map screen itself moved to M2; pickup itself moved into M3) | – |
 | M6 | Sales, expenses, net-profit dashboard | – |
 | M7 | Visual improvements, gamification, achievements, portfolio | – |
 
