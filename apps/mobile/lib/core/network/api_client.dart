@@ -96,10 +96,22 @@ class ApiClient {
         (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{},
       );
 
+  /// Multipart upload (catalog photos/videos). `fields` are extra form fields (e.g. `kind`, `caption`).
+  Future<Map<String, dynamic>> uploadFile(String path, {required List<int> bytes, required String filename, Map<String, String> fields = const {}}) => _run(
+        () => dio.post<dynamic>(path, data: FormData.fromMap({...fields, 'file': MultipartFile.fromBytes(bytes, filename: filename)})),
+        (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{},
+      );
+
   Future<Map<String, dynamic>> putJson(String path, {Object? body, String? idempotencyKey}) => _run(
         () => dio.put<dynamic>(path, data: body, options: Options(headers: {'Idempotency-Key': ?idempotencyKey})),
         (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{},
       );
 
+  Future<Map<String, dynamic>> patchJson(String path, {Object? body}) => _run(
+        () => dio.patch<dynamic>(path, data: body),
+        (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{},
+      );
+
   Future<void> delete(String path) => _run(() => dio.delete<dynamic>(path), (_) {});
+  Future<Map<String, dynamic>> deleteJson(String path) => _run(() => dio.delete<dynamic>(path), (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{});
 }

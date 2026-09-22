@@ -589,6 +589,378 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Оплата за {meters} метров'**
   String payRatePerKit(int meters);
+
+  /// No description provided for @locationServicesOffTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включите геолокацию'**
+  String get locationServicesOffTitle;
+
+  /// No description provided for @locationServicesOffBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без геолокации приложение не может показывать, где сейчас находится работа. Включите её в настройках телефона.'**
+  String get locationServicesOffBody;
+
+  /// No description provided for @locationForegroundTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешите доступ к геолокации'**
+  String get locationForegroundTitle;
+
+  /// No description provided for @locationForegroundBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приложению нужна ваша геолокация, пока оно открыто, чтобы админ видел актуальное местоположение.'**
+  String get locationForegroundBody;
+
+  /// No description provided for @locationBackgroundTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешите геолокацию в фоне'**
+  String get locationBackgroundTitle;
+
+  /// No description provided for @locationBackgroundBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чтобы местоположение оставалось точным и когда приложение свёрнуто, разрешите доступ «Всегда».'**
+  String get locationBackgroundBody;
+
+  /// No description provided for @locationDeniedForeverBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступ отклонён. Откройте настройки приложения и разрешите геолокацию вручную.'**
+  String get locationDeniedForeverBody;
+
+  /// No description provided for @locationOpenSettings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть настройки геолокации'**
+  String get locationOpenSettings;
+
+  /// No description provided for @locationAllow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить'**
+  String get locationAllow;
+
+  /// No description provided for @locationOpenAppSettings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть настройки приложения'**
+  String get locationOpenAppSettings;
+
+  /// No description provided for @catalog.
+  ///
+  /// In ru, this message translates to:
+  /// **'Наши работы'**
+  String get catalog;
+
+  /// No description provided for @catalogEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока ничего не опубликовано'**
+  String get catalogEmpty;
+
+  /// No description provided for @catalogEmptyHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новые работы появятся здесь, как только их опубликует администратор'**
+  String get catalogEmptyHint;
+
+  /// No description provided for @catalogNew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новинка'**
+  String get catalogNew;
+
+  /// No description provided for @catalogCall.
+  ///
+  /// In ru, this message translates to:
+  /// **'Позвонить'**
+  String get catalogCall;
+
+  /// No description provided for @catalogTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Написать в Telegram'**
+  String get catalogTelegram;
+
+  /// No description provided for @catalogAvailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть в наличии'**
+  String get catalogAvailable;
+
+  /// No description provided for @catalogOnRequest.
+  ///
+  /// In ru, this message translates to:
+  /// **'Под заказ'**
+  String get catalogOnRequest;
+
+  /// No description provided for @catalogUnavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас нет'**
+  String get catalogUnavailable;
+
+  /// No description provided for @catalogAdminTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Каталог работ'**
+  String get catalogAdminTitle;
+
+  /// No description provided for @catalogAddItem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить работу'**
+  String get catalogAddItem;
+
+  /// No description provided for @catalogItemName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название'**
+  String get catalogItemName;
+
+  /// No description provided for @catalogItemDescription.
+  ///
+  /// In ru, this message translates to:
+  /// **'Описание'**
+  String get catalogItemDescription;
+
+  /// No description provided for @catalogStatusDraft.
+  ///
+  /// In ru, this message translates to:
+  /// **'Черновик'**
+  String get catalogStatusDraft;
+
+  /// No description provided for @catalogStatusPublished.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опубликовано'**
+  String get catalogStatusPublished;
+
+  /// No description provided for @catalogStatusHidden.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыто'**
+  String get catalogStatusHidden;
+
+  /// No description provided for @catalogPublish.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опубликовать'**
+  String get catalogPublish;
+
+  /// No description provided for @catalogHide.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыть'**
+  String get catalogHide;
+
+  /// No description provided for @catalogAddPhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить фото'**
+  String get catalogAddPhoto;
+
+  /// No description provided for @catalogMarkNew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отметить как новинку'**
+  String get catalogMarkNew;
+
+  /// No description provided for @catalogPublishNeedsPhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перед публикацией добавьте хотя бы одно фото'**
+  String get catalogPublishNeedsPhoto;
+
+  /// No description provided for @catalogDeleteBlocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эта работа уже использована — можно только скрыть'**
+  String get catalogDeleteBlocked;
+
+  /// No description provided for @catalogSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранено'**
+  String get catalogSaved;
+
+  /// No description provided for @team.
+  ///
+  /// In ru, this message translates to:
+  /// **'Команда'**
+  String get team;
+
+  /// No description provided for @teamUsers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователи'**
+  String get teamUsers;
+
+  /// No description provided for @teamManagers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менеджеры'**
+  String get teamManagers;
+
+  /// No description provided for @teamAddUser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить пользователя'**
+  String get teamAddUser;
+
+  /// No description provided for @teamFullName.
+  ///
+  /// In ru, this message translates to:
+  /// **'ФИО'**
+  String get teamFullName;
+
+  /// No description provided for @teamRole.
+  ///
+  /// In ru, this message translates to:
+  /// **'Роль'**
+  String get teamRole;
+
+  /// No description provided for @roleSuperAdmin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Главный администратор'**
+  String get roleSuperAdmin;
+
+  /// No description provided for @roleAdmin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Администратор'**
+  String get roleAdmin;
+
+  /// No description provided for @roleManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менеджер'**
+  String get roleManager;
+
+  /// No description provided for @roleWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица'**
+  String get roleWorker;
+
+  /// No description provided for @teamStatusActive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Активен'**
+  String get teamStatusActive;
+
+  /// No description provided for @teamStatusSuspended.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключён'**
+  String get teamStatusSuspended;
+
+  /// No description provided for @teamDeactivate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключить'**
+  String get teamDeactivate;
+
+  /// No description provided for @teamReactivate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включить'**
+  String get teamReactivate;
+
+  /// No description provided for @teamNoAccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Недостаточно прав для просмотра команды'**
+  String get teamNoAccess;
+
+  /// No description provided for @teamCreated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь создан. Пароль показан один раз:'**
+  String get teamCreated;
+
+  /// No description provided for @teamAssignedWorkers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастериц: {count}'**
+  String teamAssignedWorkers(int count);
+
+  /// No description provided for @settingsCompanyContact.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон и Telegram компании'**
+  String get settingsCompanyContact;
+
+  /// No description provided for @settingsPhone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон компании'**
+  String get settingsPhone;
+
+  /// No description provided for @settingsTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Telegram (без @)'**
+  String get settingsTelegram;
+
+  /// No description provided for @settingsCompanyContactHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эти данные видят мастерицы в каталоге на кнопках «Позвонить» и «Написать в Telegram»'**
+  String get settingsCompanyContactHint;
+
+  /// No description provided for @audit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Журнал действий'**
+  String get audit;
+
+  /// No description provided for @auditEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Записей пока нет'**
+  String get auditEmpty;
+
+  /// No description provided for @locations.
+  ///
+  /// In ru, this message translates to:
+  /// **'Геолокация команды'**
+  String get locations;
+
+  /// No description provided for @locationsEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет данных о местоположении'**
+  String get locationsEmpty;
+
+  /// No description provided for @locationStaleMinutes.
+  ///
+  /// In ru, this message translates to:
+  /// **'{minutes} мин назад'**
+  String locationStaleMinutes(int minutes);
+
+  /// No description provided for @locationJustNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'только что'**
+  String get locationJustNow;
+
+  /// No description provided for @onlineNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'в сети'**
+  String get onlineNow;
+
+  /// No description provided for @offlineNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'не в сети'**
+  String get offlineNow;
 }
 
 class _AppLocalizationsDelegate

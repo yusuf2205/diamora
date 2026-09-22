@@ -268,4 +268,202 @@ class AppLocalizationsRu extends AppLocalizations {
   String payRatePerKit(int meters) {
     return 'Оплата за $meters метров';
   }
+
+  @override
+  String get locationServicesOffTitle => 'Включите геолокацию';
+
+  @override
+  String get locationServicesOffBody =>
+      'Без геолокации приложение не может показывать, где сейчас находится работа. Включите её в настройках телефона.';
+
+  @override
+  String get locationForegroundTitle => 'Разрешите доступ к геолокации';
+
+  @override
+  String get locationForegroundBody =>
+      'Приложению нужна ваша геолокация, пока оно открыто, чтобы админ видел актуальное местоположение.';
+
+  @override
+  String get locationBackgroundTitle => 'Разрешите геолокацию в фоне';
+
+  @override
+  String get locationBackgroundBody =>
+      'Чтобы местоположение оставалось точным и когда приложение свёрнуто, разрешите доступ «Всегда».';
+
+  @override
+  String get locationDeniedForeverBody =>
+      'Доступ отклонён. Откройте настройки приложения и разрешите геолокацию вручную.';
+
+  @override
+  String get locationOpenSettings => 'Открыть настройки геолокации';
+
+  @override
+  String get locationAllow => 'Разрешить';
+
+  @override
+  String get locationOpenAppSettings => 'Открыть настройки приложения';
+
+  @override
+  String get catalog => 'Наши работы';
+
+  @override
+  String get catalogEmpty => 'Пока ничего не опубликовано';
+
+  @override
+  String get catalogEmptyHint =>
+      'Новые работы появятся здесь, как только их опубликует администратор';
+
+  @override
+  String get catalogNew => 'Новинка';
+
+  @override
+  String get catalogCall => 'Позвонить';
+
+  @override
+  String get catalogTelegram => 'Написать в Telegram';
+
+  @override
+  String get catalogAvailable => 'Есть в наличии';
+
+  @override
+  String get catalogOnRequest => 'Под заказ';
+
+  @override
+  String get catalogUnavailable => 'Сейчас нет';
+
+  @override
+  String get catalogAdminTitle => 'Каталог работ';
+
+  @override
+  String get catalogAddItem => 'Добавить работу';
+
+  @override
+  String get catalogItemName => 'Название';
+
+  @override
+  String get catalogItemDescription => 'Описание';
+
+  @override
+  String get catalogStatusDraft => 'Черновик';
+
+  @override
+  String get catalogStatusPublished => 'Опубликовано';
+
+  @override
+  String get catalogStatusHidden => 'Скрыто';
+
+  @override
+  String get catalogPublish => 'Опубликовать';
+
+  @override
+  String get catalogHide => 'Скрыть';
+
+  @override
+  String get catalogAddPhoto => 'Добавить фото';
+
+  @override
+  String get catalogMarkNew => 'Отметить как новинку';
+
+  @override
+  String get catalogPublishNeedsPhoto =>
+      'Перед публикацией добавьте хотя бы одно фото';
+
+  @override
+  String get catalogDeleteBlocked =>
+      'Эта работа уже использована — можно только скрыть';
+
+  @override
+  String get catalogSaved => 'Сохранено';
+
+  @override
+  String get team => 'Команда';
+
+  @override
+  String get teamUsers => 'Пользователи';
+
+  @override
+  String get teamManagers => 'Менеджеры';
+
+  @override
+  String get teamAddUser => 'Добавить пользователя';
+
+  @override
+  String get teamFullName => 'ФИО';
+
+  @override
+  String get teamRole => 'Роль';
+
+  @override
+  String get roleSuperAdmin => 'Главный администратор';
+
+  @override
+  String get roleAdmin => 'Администратор';
+
+  @override
+  String get roleManager => 'Менеджер';
+
+  @override
+  String get roleWorker => 'Мастерица';
+
+  @override
+  String get teamStatusActive => 'Активен';
+
+  @override
+  String get teamStatusSuspended => 'Отключён';
+
+  @override
+  String get teamDeactivate => 'Отключить';
+
+  @override
+  String get teamReactivate => 'Включить';
+
+  @override
+  String get teamNoAccess => 'Недостаточно прав для просмотра команды';
+
+  @override
+  String get teamCreated => 'Пользователь создан. Пароль показан один раз:';
+
+  @override
+  String teamAssignedWorkers(int count) {
+    return 'Мастериц: $count';
+  }
+
+  @override
+  String get settingsCompanyContact => 'Телефон и Telegram компании';
+
+  @override
+  String get settingsPhone => 'Телефон компании';
+
+  @override
+  String get settingsTelegram => 'Telegram (без @)';
+
+  @override
+  String get settingsCompanyContactHint =>
+      'Эти данные видят мастерицы в каталоге на кнопках «Позвонить» и «Написать в Telegram»';
+
+  @override
+  String get audit => 'Журнал действий';
+
+  @override
+  String get auditEmpty => 'Записей пока нет';
+
+  @override
+  String get locations => 'Геолокация команды';
+
+  @override
+  String get locationsEmpty => 'Пока нет данных о местоположении';
+
+  @override
+  String locationStaleMinutes(int minutes) {
+    return '$minutes мин назад';
+  }
+
+  @override
+  String get locationJustNow => 'только что';
+
+  @override
+  String get onlineNow => 'в сети';
+
+  @override
+  String get offlineNow => 'не в сети';
 }

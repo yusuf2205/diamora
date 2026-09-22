@@ -270,4 +270,203 @@ class AppLocalizationsUz extends AppLocalizations {
   String payRatePerKit(int meters) {
     return '$meters metr uchun to\'lov';
   }
+
+  @override
+  String get locationServicesOffTitle => 'Geolokatsiyani yoqing';
+
+  @override
+  String get locationServicesOffBody =>
+      'Geolokatsiyasiz ilova ish qayerda ekanini ko\'rsata olmaydi. Uni telefon sozlamalarida yoqing.';
+
+  @override
+  String get locationForegroundTitle => 'Geolokatsiyaga ruxsat bering';
+
+  @override
+  String get locationForegroundBody =>
+      'Ilova ochiq turganda joylashuvingiz kerak, shunda administrator uni ko\'rib turadi.';
+
+  @override
+  String get locationBackgroundTitle => 'Fonda geolokatsiyaga ruxsat bering';
+
+  @override
+  String get locationBackgroundBody =>
+      'Ilova yopiq bo\'lganda ham joylashuv aniq bo\'lishi uchun \"Doim\" ruxsatini bering.';
+
+  @override
+  String get locationDeniedForeverBody =>
+      'Ruxsat rad etildi. Ilova sozlamalarini oching va geolokatsiyaga qo\'lda ruxsat bering.';
+
+  @override
+  String get locationOpenSettings => 'Geolokatsiya sozlamalarini ochish';
+
+  @override
+  String get locationAllow => 'Ruxsat berish';
+
+  @override
+  String get locationOpenAppSettings => 'Ilova sozlamalarini ochish';
+
+  @override
+  String get catalog => 'Bizning ishlarimiz';
+
+  @override
+  String get catalogEmpty => 'Hozircha hech narsa e\'lon qilinmagan';
+
+  @override
+  String get catalogEmptyHint =>
+      'Administrator e\'lon qilishi bilan yangi ishlar shu yerda paydo bo\'ladi';
+
+  @override
+  String get catalogNew => 'Yangi';
+
+  @override
+  String get catalogCall => 'Qo\'ng\'iroq qilish';
+
+  @override
+  String get catalogTelegram => 'Telegramga yozish';
+
+  @override
+  String get catalogAvailable => 'Mavjud';
+
+  @override
+  String get catalogOnRequest => 'Buyurtma bilan';
+
+  @override
+  String get catalogUnavailable => 'Hozircha yo\'q';
+
+  @override
+  String get catalogAdminTitle => 'Ishlar katalogi';
+
+  @override
+  String get catalogAddItem => 'Ish qo\'shish';
+
+  @override
+  String get catalogItemName => 'Nomi';
+
+  @override
+  String get catalogItemDescription => 'Tavsif';
+
+  @override
+  String get catalogStatusDraft => 'Qoralama';
+
+  @override
+  String get catalogStatusPublished => 'E\'lon qilingan';
+
+  @override
+  String get catalogStatusHidden => 'Yashirilgan';
+
+  @override
+  String get catalogPublish => 'E\'lon qilish';
+
+  @override
+  String get catalogHide => 'Yashirish';
+
+  @override
+  String get catalogAddPhoto => 'Rasm qo\'shish';
+
+  @override
+  String get catalogMarkNew => 'Yangi deb belgilash';
+
+  @override
+  String get catalogPublishNeedsPhoto =>
+      'E\'lon qilishdan oldin kamida bitta rasm qo\'shing';
+
+  @override
+  String get catalogDeleteBlocked =>
+      'Bu ish allaqachon ishlatilgan — faqat yashirish mumkin';
+
+  @override
+  String get catalogSaved => 'Saqlandi';
+
+  @override
+  String get team => 'Jamoa';
+
+  @override
+  String get teamUsers => 'Foydalanuvchilar';
+
+  @override
+  String get teamManagers => 'Menejerlar';
+
+  @override
+  String get teamAddUser => 'Foydalanuvchi qo\'shish';
+
+  @override
+  String get teamFullName => 'F.I.Sh.';
+
+  @override
+  String get teamRole => 'Rol';
+
+  @override
+  String get roleSuperAdmin => 'Bosh administrator';
+
+  @override
+  String get roleAdmin => 'Administrator';
+
+  @override
+  String get roleManager => 'Menejer';
+
+  @override
+  String get roleWorker => 'Usta';
+
+  @override
+  String get teamStatusActive => 'Faol';
+
+  @override
+  String get teamStatusSuspended => 'O\'chirilgan';
+
+  @override
+  String get teamDeactivate => 'O\'chirish';
+
+  @override
+  String get teamReactivate => 'Yoqish';
+
+  @override
+  String get teamNoAccess => 'Jamoani ko\'rish uchun huquq yetarli emas';
+
+  @override
+  String get teamCreated =>
+      'Foydalanuvchi yaratildi. Parol bir marta ko\'rsatiladi:';
+
+  @override
+  String teamAssignedWorkers(int count) {
+    return 'Ustalar: $count';
+  }
+
+  @override
+  String get settingsCompanyContact => 'Kompaniya telefoni va Telegram';
+
+  @override
+  String get settingsPhone => 'Kompaniya telefoni';
+
+  @override
+  String get settingsTelegram => 'Telegram (@ siz)';
+
+  @override
+  String get settingsCompanyContactHint =>
+      'Bu ma\'lumotlarni ustalar katalogda \"Qo\'ng\'iroq qilish\" va \"Telegramga yozish\" tugmalarida ko\'radi';
+
+  @override
+  String get audit => 'Amallar jurnali';
+
+  @override
+  String get auditEmpty => 'Hozircha yozuvlar yo\'q';
+
+  @override
+  String get locations => 'Jamoa geolokatsiyasi';
+
+  @override
+  String get locationsEmpty => 'Joylashuv ma\'lumotlari hali yo\'q';
+
+  @override
+  String locationStaleMinutes(int minutes) {
+    return '$minutes daqiqa oldin';
+  }
+
+  @override
+  String get locationJustNow => 'hozirgina';
+
+  @override
+  String get onlineNow => 'onlayn';
+
+  @override
+  String get offlineNow => 'oflayn';
 }

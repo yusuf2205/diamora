@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Session {
 
- String get id; String get fullName; String get phone; String get role; String? get workerId;
+ String get id; String get fullName; String get phone; String get role; String? get workerId; List<String> get permissions;
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $SessionCopyWith<Session> get copyWith => _$SessionCopyWithImpl<Session>(this as
 @override
 bool operator ==(Object other) {
   final _this = this as Session;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Session&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.fullName, _this.fullName) || other.fullName == _this.fullName)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.role, _this.role) || other.role == _this.role)&&(identical(other.workerId, _this.workerId) || other.workerId == _this.workerId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Session&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.fullName, _this.fullName) || other.fullName == _this.fullName)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.role, _this.role) || other.role == _this.role)&&(identical(other.workerId, _this.workerId) || other.workerId == _this.workerId)&&const DeepCollectionEquality().equals(other.permissions, _this.permissions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Session;
-  return Object.hash(runtimeType,_this.id,_this.fullName,_this.phone,_this.role,_this.workerId);
+  return Object.hash(runtimeType,_this.id,_this.fullName,_this.phone,_this.role,_this.workerId,const DeepCollectionEquality().hash(_this.permissions));
 }
 
 @override
 String toString() {
   final _this = this as Session;
-  return 'Session(id: ${_this.id}, fullName: ${_this.fullName}, phone: ${_this.phone}, role: ${_this.role}, workerId: ${_this.workerId})';
+  return 'Session(id: ${_this.id}, fullName: ${_this.fullName}, phone: ${_this.phone}, role: ${_this.role}, workerId: ${_this.workerId}, permissions: ${_this.permissions})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $SessionCopyWith<$Res>  {
   factory $SessionCopyWith(Session value, $Res Function(Session) _then) = _$SessionCopyWithImpl;
 @useResult
 $Res call({
- String id, String fullName, String phone, String role, String? workerId
+ String id, String fullName, String phone, String role, String? workerId, List<String> permissions
 });
 
 
@@ -71,14 +71,15 @@ class _$SessionCopyWithImpl<$Res>
 
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? fullName = null,Object? phone = null,Object? role = null,Object? workerId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? fullName = null,Object? phone = null,Object? role = null,Object? workerId = freezed,Object? permissions = null,}) {
   return _then(Session(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,workerId: freezed == workerId ? _self.workerId : workerId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,permissions: null == permissions ? _self.permissions : permissions // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -163,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String fullName,  String phone,  String role,  String? workerId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String fullName,  String phone,  String role,  String? workerId,  List<String> permissions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Session() when $default != null:
-return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId);case _:
+return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId,_that.permissions);case _:
   return orElse();
 
 }
@@ -184,10 +185,10 @@ return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String fullName,  String phone,  String role,  String? workerId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String fullName,  String phone,  String role,  String? workerId,  List<String> permissions)  $default,) {final _that = this;
 switch (_that) {
 case _Session():
-return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId);case _:
+return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId,_that.permissions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +205,10 @@ return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String fullName,  String phone,  String role,  String? workerId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String fullName,  String phone,  String role,  String? workerId,  List<String> permissions)?  $default,) {final _that = this;
 switch (_that) {
 case _Session() when $default != null:
-return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId);case _:
+return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId,_that.permissions);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.id,_that.fullName,_that.phone,_that.role,_that.workerId);c
 @JsonSerializable()
 
 class _Session extends Session {
-  const _Session({required this.id, required this.fullName, required this.phone, required this.role, this.workerId}): super._();
+  const _Session({required this.id, required this.fullName, required this.phone, required this.role, this.workerId,  List<String> permissions = const []}): _permissions = permissions,super._();
   factory _Session.fromJson(Map<String, dynamic> json) => _$SessionFromJson(json);
 
 @override final  String id;
@@ -227,6 +228,13 @@ class _Session extends Session {
 @override final  String phone;
 @override final  String role;
 @override final  String? workerId;
+ final  List<String> _permissions;
+@override@JsonKey() List<String> get permissions {
+  if (_permissions is EqualUnmodifiableListView) return _permissions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_permissions);
+}
+
 
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
@@ -241,18 +249,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Session&&(identical(other.id, id) || other.id == id)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.role, role) || other.role == role)&&(identical(other.workerId, workerId) || other.workerId == workerId));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Session&&(identical(other.id, id) || other.id == id)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.role, role) || other.role == role)&&(identical(other.workerId, workerId) || other.workerId == workerId)&&const DeepCollectionEquality().equals(other.permissions, _permissions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,fullName,phone,role,workerId);
+    return Object.hash(runtimeType,id,fullName,phone,role,workerId,const DeepCollectionEquality().hash(_permissions));
 }
 
 @override
 String toString() {
-    return 'Session(id: $id, fullName: $fullName, phone: $phone, role: $role, workerId: $workerId)';
+    return 'Session(id: $id, fullName: $fullName, phone: $phone, role: $role, workerId: $workerId, permissions: $permissions)';
 }
 
 
@@ -263,7 +271,7 @@ abstract mixin class _$SessionCopyWith<$Res> implements $SessionCopyWith<$Res> {
   factory _$SessionCopyWith(_Session value, $Res Function(_Session) _then) = __$SessionCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String fullName, String phone, String role, String? workerId
+ String id, String fullName, String phone, String role, String? workerId, List<String> permissions
 });
 
 
@@ -280,14 +288,15 @@ class __$SessionCopyWithImpl<$Res>
 
 /// Create a copy of Session
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? fullName = null,Object? phone = null,Object? role = null,Object? workerId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? fullName = null,Object? phone = null,Object? role = null,Object? workerId = freezed,Object? permissions = null,}) {
   return _then(_Session(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,workerId: freezed == workerId ? _self.workerId : workerId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,permissions: null == permissions ? _self._permissions : permissions // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

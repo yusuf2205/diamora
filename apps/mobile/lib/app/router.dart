@@ -4,9 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
+import '../features/catalog/admin_catalog_screen.dart';
+import '../features/catalog/worker_catalog_screen.dart';
 import '../features/home/worker_home_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/settings/company_contact_screen.dart';
 import '../features/settings/pay_rate_screen.dart';
+import '../features/team/audit_screen.dart';
+import '../features/team/locations_screen.dart';
+import '../features/team/team_screen.dart';
 import '../features/workers/admin_workers_screen.dart';
 import '../features/workers/worker_detail_screen.dart';
 import 'shells.dart';
@@ -17,7 +23,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.listen(authControllerProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
 
-  String home(bool admin) => admin ? '/admin/workers' : '/worker/home';
+  // SUPER_ADMIN / ADMIN / MANAGER share the staff shell (D-028: what each tab shows is then filtered by permission);
+  // WORKER's default screen is the catalog (§18), not a dashboard.
+  String home(bool staff) => staff ? '/admin/workers' : '/worker/catalog';
 
   return GoRouter(
     initialLocation: '/splash',
@@ -28,8 +36,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (auth.isLoading) return loc == '/splash' ? null : '/splash';
       final s = auth.value;
       if (s == null) return loc == '/login' ? null : '/login';
-      if (loc == '/login' || loc == '/splash') return home(s.isAdmin);
-      if (s.isAdmin && loc.startsWith('/worker/')) return home(true);
+      if (loc == '/login' || loc == '/splash') return home(s.isStaff);
+      if (s.isStaff && loc.startsWith('/worker/')) return home(true);
       if (s.isWorker && loc.startsWith('/admin/')) return home(false);
       return null;
     },
@@ -48,9 +56,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
+              path: '/admin/catalog',
+              builder: (_, _) => const AdminCatalogScreen(),
+              routes: [GoRoute(path: ':id', builder: (_, s) => AdminCatalogDetailScreen(itemId: s.pathParameters['id']!))],
+            ),
+          ]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/team', builder: (_, _) => const TeamScreen())]),
+          StatefulShellBranch(routes: [
+            GoRoute(
               path: '/admin/profile',
               builder: (_, _) => const ProfileScreen(),
-              routes: [GoRoute(path: 'pay-rate', builder: (_, _) => const PayRateScreen())],
+              routes: [
+                GoRoute(path: 'pay-rate', builder: (_, _) => const PayRateScreen()),
+                GoRoute(path: 'locations', builder: (_, _) => const LocationsScreen()),
+                GoRoute(path: 'company-contact', builder: (_, _) => const CompanyContactScreen()),
+                GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
+              ],
             ),
           ]),
         ],
@@ -58,6 +79,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => WorkerShell(shell: shell),
         branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/worker/catalog',
+              builder: (_, _) => const WorkerCatalogScreen(),
+              routes: [GoRoute(path: ':id', builder: (_, s) => CatalogItemDetailScreen(itemId: s.pathParameters['id']!))],
+            ),
+          ]),
           StatefulShellBranch(routes: [GoRoute(path: '/worker/home', builder: (_, _) => const WorkerHomeScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/worker/profile', builder: (_, _) => const ProfileScreen())]),
         ],

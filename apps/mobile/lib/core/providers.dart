@@ -6,6 +6,8 @@ import '../features/auth/auth_controller.dart';
 import '../features/auth/auth_repository.dart';
 import '../features/workers/worker_repository.dart';
 import 'db/app_database.dart';
+import 'location/geo.dart';
+import 'location/location_tracker.dart';
 import 'network/api_client.dart';
 import 'realtime/realtime_client.dart';
 import 'storage/token_store.dart';
@@ -48,3 +50,15 @@ final realtimeClientProvider = Provider<RealtimeClient>((ref) {
 /// Every server event (docs/REALTIME.md). Screens listen and refetch; they never treat the payload as truth.
 final realtimeEventsProvider = StreamProvider<RealtimeEvent>((ref) => ref.watch(realtimeClientProvider).events);
 final realtimeConnectedProvider = StreamProvider<bool>((ref) => ref.watch(realtimeClientProvider).connection);
+
+// ---- live location (D-030) -------------------------------------------------------------------------------------------
+final geoProvider = Provider<Geo>((ref) => const GeolocatorGeo());
+
+/// Recomputed on demand (pull-to-refresh, app resume, "I granted it" button) — never cached across app restarts.
+final locationStatusProvider = FutureProvider.autoDispose<LocationStatus>((ref) => ref.watch(geoProvider).status());
+
+final locationTrackerProvider = Provider<LocationTracker>((ref) {
+  final tracker = LocationTracker(ref.watch(geoProvider), ref.watch(apiClientProvider));
+  ref.onDispose(tracker.stop);
+  return tracker;
+});

@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 import 'pay_rate.dart';
 
-/// ADMIN: see and change the ONE price of a 9 m kit. The change applies to every worker at once.
+/// Everyone signed in sees the price; only PAY_RATE_MANAGE may change it (SUPER_ADMIN always, ADMIN only if granted, §39).
 class PayRateScreen extends ConsumerWidget {
   const PayRateScreen({super.key});
 
@@ -15,7 +16,8 @@ class PayRateScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final rate = ref.watch(payRateProvider);
-    final history = ref.watch(payRateHistoryProvider);
+    final canManage = ref.watch(authControllerProvider).value?.has('PAY_RATE_MANAGE') ?? false;
+    final history = canManage ? ref.watch(payRateHistoryProvider) : null;
     return Scaffold(
       appBar: AppBar(title: Text(l.payRateTitle)),
       body: Column(children: [
@@ -39,23 +41,27 @@ class PayRateScreen extends ConsumerWidget {
                       Text('${formatUzs(r.ratePerKit)} ${l.currency}', key: const Key('payRateValue'), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 12),
                       Text(l.payRateAppliesToAll),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        key: const Key('changePayRate'),
-                        onPressed: () => _edit(context, ref, r),
-                        icon: const Icon(Icons.edit),
-                        label: Text(l.payRateChange),
-                      ),
+                      if (canManage) ...[
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          key: const Key('changePayRate'),
+                          onPressed: () => _edit(context, ref, r),
+                          icon: const Icon(Icons.edit),
+                          label: Text(l.payRateChange),
+                        ),
+                      ],
                     ]),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(l.payRateHistory, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
-                ...history.maybeWhen(
-                  data: (items) => [for (final c in items) _HistoryTile(change: c)],
-                  orElse: () => const <Widget>[],
-                ),
+                if (history != null) ...[
+                  const SizedBox(height: 20),
+                  Text(l.payRateHistory, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  ...history.maybeWhen(
+                    data: (items) => [for (final c in items) _HistoryTile(change: c)],
+                    orElse: () => const <Widget>[],
+                  ),
+                ],
               ]),
             ),
           ),

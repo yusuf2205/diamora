@@ -12,6 +12,11 @@ _Session _$SessionFromJson(Map<String, dynamic> json) => _Session(
   phone: json['phone'] as String,
   role: json['role'] as String,
   workerId: json['workerId'] as String?,
+  permissions:
+      (json['permissions'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$SessionToJson(_Session instance) => <String, dynamic>{
@@ -20,6 +25,7 @@ Map<String, dynamic> _$SessionToJson(_Session instance) => <String, dynamic>{
   'phone': instance.phone,
   'role': instance.role,
   'workerId': instance.workerId,
+  'permissions': instance.permissions,
 };
 
 _DeviceSession _$DeviceSessionFromJson(Map<String, dynamic> json) =>

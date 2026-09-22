@@ -26,6 +26,15 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Live working location (D-030): the app still asks explicitly and works fully without background if declined. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Нужна геолокация, чтобы админ видел, где сейчас находится работа (доставка/забор).</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Фоновая геолокация нужна, чтобы адрес оставался актуальным, даже когда приложение свёрнуто.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

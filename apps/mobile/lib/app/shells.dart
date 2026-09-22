@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
+import '../features/location/location_gate.dart';
 import '../l10n/app_localizations.dart';
 
-/// ADMIN shell: bottom navigation + the live link to the NAS. New tabs (map, QR, warehouse, finance) are added per milestone.
+/// Staff shell (SUPER_ADMIN / ADMIN / MANAGER, D-028): bottom navigation + the live link to the NAS. Every tab is reachable
+/// by every staff role; what each one actually shows (or whether it says "insufficient rights") is decided by permissions.
 class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key, required this.shell});
   final StatefulNavigationShell shell;
@@ -48,12 +50,14 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     });
 
     return Scaffold(
-      body: widget.shell,
+      body: LocationGate(child: widget.shell),
       bottomNavigationBar: NavigationBar(
         selectedIndex: widget.shell.currentIndex,
         onDestinationSelected: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
         destinations: [
           NavigationDestination(icon: const Icon(Icons.groups_outlined), selectedIcon: const Icon(Icons.groups), label: l.workers),
+          NavigationDestination(icon: const Icon(Icons.auto_awesome_outlined), selectedIcon: const Icon(Icons.auto_awesome), label: l.catalog),
+          NavigationDestination(icon: const Icon(Icons.badge_outlined), selectedIcon: const Icon(Icons.badge), label: l.team),
           NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: l.profile),
         ],
       ),
@@ -61,7 +65,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   }
 }
 
-/// WORKER shell: deliberately minimal. Home / Work / Earnings / New work / Profile arrive with M3–M5.
+/// WORKER shell: Catalog is the default screen (§18) — everything else (progress, earnings) arrives with M3–M5.
 class WorkerShell extends StatelessWidget {
   const WorkerShell({super.key, required this.shell});
   final StatefulNavigationShell shell;
@@ -70,11 +74,12 @@ class WorkerShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      body: shell,
+      body: LocationGate(child: shell),
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
         destinations: [
+          NavigationDestination(icon: const Icon(Icons.auto_awesome_outlined), selectedIcon: const Icon(Icons.auto_awesome), label: l.catalog),
           NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: l.home),
           NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: l.profile),
         ],
