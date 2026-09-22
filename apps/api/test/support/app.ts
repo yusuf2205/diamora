@@ -62,8 +62,14 @@ const hashCache = argon2.hash(PASSWORD, { type: argon2.argon2id, memoryCost: 194
 export async function createAdmin(t: TestApp, phone = uniquePhone()) {
   return t.prisma.user.create({ data: { phone, fullName: 'Admin Owner', role: 'ADMIN', passwordHash: await hashCache } });
 }
+/** Any staff role (D-028), with optional extra permission grants (created BEFORE login so the first session already has them). */
+export async function createStaff(t: TestApp, role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER', phone = uniquePhone(), permissions: string[] = []) {
+  const user = await t.prisma.user.create({ data: { phone, fullName: `${role} Owner`, role, passwordHash: await hashCache } });
+  if (permissions.length) await t.prisma.userPermission.createMany({ data: permissions.map((permission) => ({ userId: user.id, permission, granted: true })) });
+  return user;
+}
 
-export interface Session { accessToken: string; refreshToken: string; user: { id: string; role: string; workerId: string | null } }
+export interface Session { accessToken: string; refreshToken: string; user: { id: string; role: string; workerId: string | null; permissions: string[] } }
 const device = (installId: string = randomUUID()) => ({ installId, platform: 'ANDROID', name: 'Test phone', appVersion: '0.1.0' });
 
 export async function adminLogin(t: TestApp, phone: string, password = PASSWORD, installId?: string): Promise<Session> {
@@ -76,6 +82,13 @@ export async function adminActor(t: TestApp) {
   const session = await adminLogin(t, user.phone);
   return { user, session, api: client(t, session.accessToken) };
 }
+/** SUPER_ADMIN / ADMIN / MANAGER actor, with optional extra permission grants for the ADMIN/MANAGER case. */
+export async function staffActor(t: TestApp, role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER', permissions: string[] = []) {
+  const user = await createStaff(t, role, undefined, permissions);
+  const session = await adminLogin(t, user.phone);
+  return { user, session, api: client(t, session.accessToken) };
+}
+export const superAdminActor = (t: TestApp) => staffActor(t, 'SUPER_ADMIN');
 
 /** Full worker flow through the real service: registration via bot inputs -> (caller approves) -> code -> login. */
 export const text = (t: string): BotInput => ({ kind: 'text', text: t });
@@ -112,6 +125,7 @@ export function client(t: TestApp, token?: string) {
   return {
     get: (url: string) => auth(request(server).get(url)),
     post: (url: string, body?: object) => auth(request(server).post(url)).send(body),
+    put: (url: string, body?: object) => auth(request(server).put(url)).send(body),
     patch: (url: string, body?: object) => auth(request(server).patch(url)).send(body),
     delete: (url: string) => auth(request(server).delete(url)),
     upload: (url: string, file: Buffer, filename: string, fields: Record<string, string> = {}) => {

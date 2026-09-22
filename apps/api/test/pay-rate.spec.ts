@@ -2,7 +2,7 @@ import type { RealtimeEnvelope } from '@yusmus/shared';
 import { io, type Socket } from 'socket.io-client';
 import request from 'supertest';
 import { PayRateService } from '../src/settings/pay-rate.service';
-import { adminActor, approveAndLoginWorker, createTestApp, registerViaBot, TestApp } from './support/app';
+import { adminActor, approveAndLoginWorker, createTestApp, registerViaBot, staffActor, superAdminActor, TestApp } from './support/app';
 
 function connect(url: string, token: string): Promise<{ socket: Socket; events: RealtimeEnvelope[] }> {
   return new Promise((resolve, reject) => {
@@ -34,29 +34,42 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
     await t.close();
   });
 
-  it('starts at 30 000 UZS per 9 m; ADMIN and WORKER read the same price; anonymous cannot', async () => {
+  it('starts at 30 000 UZS per 9 m; every signed-in role reads the same price; anonymous cannot', async () => {
     const admin = await adminActor(t);
     const reg = await registerViaBot(t);
     const worker = await approveAndLoginWorker(t, admin.api, reg.phone);
+    const manager = await staffActor(t, 'MANAGER');
+    const superAdmin = await superAdminActor(t);
 
-    const a = await admin.api.get('/v1/settings/pay-rate').expect(200);
-    expect(a.body).toMatchObject({ ratePerKit: '30000', kitMeters: 9 });
-    const w = await worker.api.get('/v1/settings/pay-rate').expect(200);
-    expect(w.body.ratePerKit).toBe('30000');
+    for (const actor of [admin, worker, manager, superAdmin]) {
+      const res = await actor.api.get('/v1/settings/pay-rate').expect(200);
+      expect(res.body).toMatchObject({ ratePerKit: '30000', kitMeters: 9 });
+    }
     await request(t.app.getHttpServer()).get('/v1/settings/pay-rate').expect(401);
   });
 
-  it('only ADMIN can change it; a worker gets 403 and the price stays', async () => {
-    const admin = await adminActor(t);
+  it('SUPER_ADMIN always may change it; a plain ADMIN, MANAGER and WORKER cannot; a granted ADMIN then can (D-028, §39)', async () => {
+    const superAdmin = await superAdminActor(t);
+    const plainAdmin = await adminActor(t);
+    const manager = await staffActor(t, 'MANAGER');
     const reg = await registerViaBot(t);
-    const worker = await approveAndLoginWorker(t, admin.api, reg.phone);
-    await worker.api.get('/v1/settings/pay-rate/history').expect(403);
-    await request(t.app.getHttpServer()).put('/v1/settings/pay-rate').set('Authorization', `Bearer ${worker.session.accessToken}`).send({ ratePerKit: 99999 }).expect(403);
-    expect((await admin.api.get('/v1/settings/pay-rate')).body.ratePerKit).toBe('30000');
+    const worker = await approveAndLoginWorker(t, superAdmin.api, reg.phone);
+    const put = (token: string, body: object) => request(t.app.getHttpServer()).put('/v1/settings/pay-rate').set('Authorization', `Bearer ${token}`).send(body);
+
+    for (const actor of [plainAdmin, manager, worker]) {
+      await actor.api.get('/v1/settings/pay-rate/history').expect(403);
+      await put(actor.session.accessToken, { ratePerKit: 99999 }).expect(403);
+    }
+    expect((await superAdmin.api.get('/v1/settings/pay-rate')).body.ratePerKit).toBe('30000'); // still unchanged
+
+    await put(superAdmin.session.accessToken, { ratePerKit: 31000 }).expect(200);
+    const grantedAdmin = await staffActor(t, 'ADMIN', ['PAY_RATE_MANAGE']); // explicit grant (D-028)
+    await put(grantedAdmin.session.accessToken, { ratePerKit: 30000 }).expect(200);
+    expect((await plainAdmin.api.get('/v1/settings/pay-rate')).body.ratePerKit).toBe('30000');
   });
 
-  it('ADMIN changes the price: everybody reads the new value, history keeps who/when/from/to, audit is written', async () => {
-    const admin = await adminActor(t);
+  it('SUPER_ADMIN changes the price: everybody reads the new value, history keeps who/when/from/to, audit is written', async () => {
+    const admin = await superAdminActor(t);
     const reg = await registerViaBot(t);
     const worker = await approveAndLoginWorker(t, admin.api, reg.phone);
 
@@ -66,11 +79,11 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
     expect((await admin.api.get('/v1/settings/pay-rate')).body.ratePerKit).toBe('35000');
 
     const hist = (await admin.api.get('/v1/settings/pay-rate/history').expect(200)).body.items as { ratePerKit: string; previousRatePerKit: string | null; changedBy: string | null; note: string | null }[];
-    expect(hist[0]).toMatchObject({ ratePerKit: '35000', previousRatePerKit: '30000', changedBy: 'Admin Owner', note: 'Индексация' });
+    expect(hist[0]).toMatchObject({ ratePerKit: '35000', previousRatePerKit: '30000', changedBy: 'SUPER_ADMIN Owner', note: 'Индексация' });
     expect(hist[hist.length - 1]).toMatchObject({ ratePerKit: '30000', previousRatePerKit: null, changedBy: null }); // the seeded start
 
     const audit = await t.prisma.auditLog.findFirstOrThrow({ where: { action: 'pay_rate.change' }, orderBy: { id: 'desc' } });
-    expect(audit).toMatchObject({ actorId: admin.user.id, actorRole: 'ADMIN', entity: 'PayRate' });
+    expect(audit).toMatchObject({ actorId: admin.user.id, actorRole: 'SUPER_ADMIN', entity: 'PayRate' });
     expect(audit.after).toMatchObject({ ratePerKit: '35000' });
 
     // and back to 30 000: "at any moment", any number of times
@@ -79,7 +92,7 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
   });
 
   it('the same price again is a no-op (no history row, no event); nonsense is rejected', async () => {
-    const admin = await adminActor(t);
+    const admin = await superAdminActor(t);
     const put = (body: object) => request(t.app.getHttpServer()).put('/v1/settings/pay-rate').set('Authorization', `Bearer ${admin.session.accessToken}`).send(body);
     const before = await t.prisma.payRateChange.count();
     const events = t.events.length;
@@ -97,7 +110,7 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
   });
 
   it('a retried request with the same Idempotency-Key changes the price once', async () => {
-    const admin = await adminActor(t);
+    const admin = await superAdminActor(t);
     const before = await t.prisma.payRateChange.count();
     const send = () => request(t.app.getHttpServer()).put('/v1/settings/pay-rate').set('Authorization', `Bearer ${admin.session.accessToken}`).set('Idempotency-Key', 'rate-change-0001-abcd').send({ ratePerKit: 32000 });
     const first = await send().expect(200);
@@ -108,7 +121,7 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
   });
 
   it('concurrent changes never fork the history: every row points at the one before it', async () => {
-    const admin = await adminActor(t);
+    const admin = await superAdminActor(t);
     const rates = [31000, 32000, 33000, 34000, 35000, 36000];
     await Promise.all(rates.map((r) => request(t.app.getHttpServer()).put('/v1/settings/pay-rate').set('Authorization', `Bearer ${admin.session.accessToken}`).send({ ratePerKit: r }).expect(200)));
     const rows = await t.prisma.payRateChange.findMany({ orderBy: { seq: 'asc' } });
@@ -120,7 +133,7 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
   });
 
   it('realtime: a change reaches every ADMIN and EVERY worker at once (not just one worker)', async () => {
-    const admin = await adminActor(t);
+    const admin = await superAdminActor(t);
     const regA = await registerViaBot(t);
     const regB = await registerViaBot(t);
     const wa = await approveAndLoginWorker(t, admin.api, regA.phone);
@@ -138,7 +151,7 @@ describe('one global price for a 9 m kit: ADMIN can change it at any moment, it 
   });
 
   it('open work follows the current price, accepted work keeps its amount (the rule M5 builds on)', async () => {
-    const admin = await adminActor(t);
+    const admin = await superAdminActor(t);
     const rates = t.app.get(PayRateService);
     const at = async (cm: number) => (await rates.earning(t.prisma, cm)).amount;
     expect(await at(900)).toBe(30000n);

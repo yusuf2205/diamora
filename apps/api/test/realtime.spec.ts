@@ -81,8 +81,11 @@ describe('realtime (Socket.IO): events only after COMMIT, only to the right audi
     const c = await connect(url, admin.session.accessToken);
     sockets.push(c.socket);
     expect(c.outcome).toBe('ready');
+    const eventsBefore = t.events.length;
     await admin.api.post('/v1/auth/logout').expect(204);
     expect(await until(() => c.socket.disconnected)).toBe(true);
+    // presence is best-effort and asynchronous (apps/api/src/presence): let its event land before the next test takes its baseline
+    await until(() => t.events.length > eventsBefore);
   });
 
   it('events are published only after the transaction commits: a rolled-back registration emits nothing', async () => {

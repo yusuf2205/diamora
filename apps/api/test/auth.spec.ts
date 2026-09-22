@@ -1,7 +1,7 @@
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { IS_AUTHENTICATED, IS_PUBLIC, ROLES_KEY } from '../src/common/decorators';
+import { IS_AUTHENTICATED, IS_PUBLIC, PERMISSIONS_KEY, ROLES_KEY } from '../src/common/decorators';
 import { PASSWORD, adminActor, adminLogin, client, createAdmin, createTestApp, uniquePhone, TestApp } from './support/app';
 
 describe('authentication & sessions (ADMIN)', () => {
@@ -83,7 +83,7 @@ describe('authentication & sessions (ADMIN)', () => {
     await client(t, 'garbage').get('/v1/auth/me').expect(401);
   });
 
-  it('DENY BY DEFAULT: every route declares @Public, @Authenticated or @Roles', () => {
+  it('DENY BY DEFAULT: every route declares @Public, @Authenticated, @Roles or @Perm', () => {
     const reflector = t.app.get(Reflector);
     const discovery = new DiscoveryService(t.app.get(ModulesContainer));
     const undeclared: string[] = [];
@@ -97,7 +97,7 @@ describe('authentication & sessions (ADMIN)', () => {
         if (typeof handler !== 'function' || name === 'constructor' || Reflect.getMetadata('path', handler) === undefined) continue;
         routes += 1;
         const targets = [handler as () => unknown, wrapper.metatype as () => unknown];
-        if (!(reflector.getAllAndOverride(IS_PUBLIC, targets) || reflector.getAllAndOverride(IS_AUTHENTICATED, targets) || reflector.getAllAndOverride(ROLES_KEY, targets))) {
+        if (!(reflector.getAllAndOverride(IS_PUBLIC, targets) || reflector.getAllAndOverride(IS_AUTHENTICATED, targets) || reflector.getAllAndOverride(ROLES_KEY, targets) || reflector.getAllAndOverride(PERMISSIONS_KEY, targets))) {
           undeclared.push(`${wrapper.metatype?.name}.${name}`);
         }
       }
