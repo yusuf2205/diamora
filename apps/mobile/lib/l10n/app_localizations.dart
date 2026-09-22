@@ -194,6 +194,18 @@ abstract class AppLocalizations {
   /// **'Что-то пошло не так'**
   String get genericError;
 
+  /// No description provided for @checkYourInput.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверьте введённые данные'**
+  String get checkYourInput;
+
+  /// No description provided for @phoneRequired.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите номер телефона'**
+  String get phoneRequired;
+
   /// No description provided for @retry.
   ///
   /// In ru, this message translates to:
@@ -1279,6 +1291,456 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Забрал'**
   String get workPickedUp;
+
+  /// No description provided for @insufficientStockGeneric.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не хватает материалов на складе'**
+  String get insufficientStockGeneric;
+
+  /// No description provided for @insufficientStockDetail.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не хватает материала: {material}'**
+  String insufficientStockDetail(String material);
+
+  /// No description provided for @back.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назад'**
+  String get back;
+
+  /// No description provided for @next.
+  ///
+  /// In ru, this message translates to:
+  /// **'Далее'**
+  String get next;
+
+  /// No description provided for @assignCreateTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдать работу'**
+  String get assignCreateTitle;
+
+  /// No description provided for @assignStepProduct.
+  ///
+  /// In ru, this message translates to:
+  /// **'Модель'**
+  String get assignStepProduct;
+
+  /// No description provided for @assignStepVariant.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цвет'**
+  String get assignStepVariant;
+
+  /// No description provided for @assignStepVolume.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объём работы'**
+  String get assignStepVolume;
+
+  /// No description provided for @assignStepDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок'**
+  String get assignStepDue;
+
+  /// No description provided for @assignStepComment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комментарий'**
+  String get assignStepComment;
+
+  /// No description provided for @assignStepSummary.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтверждение'**
+  String get assignStepSummary;
+
+  /// No description provided for @assignNoVariants.
+  ///
+  /// In ru, this message translates to:
+  /// **'У этой модели ещё нет цветов. Сначала добавьте цвет в каталоге.'**
+  String get assignNoVariants;
+
+  /// No description provided for @assignNoKitTemplate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет доступного комплекта материалов для этого варианта.'**
+  String get assignNoKitTemplate;
+
+  /// No description provided for @assignSelectWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите мастерицу'**
+  String get assignSelectWorker;
+
+  /// No description provided for @assignSelectProduct.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите модель'**
+  String get assignSelectProduct;
+
+  /// No description provided for @assignSelectVariant.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите цвет'**
+  String get assignSelectVariant;
+
+  /// No description provided for @assignDueOptional.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок (необязательно)'**
+  String get assignDueOptional;
+
+  /// No description provided for @assignNoDueDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без срока'**
+  String get assignNoDueDate;
+
+  /// No description provided for @assignSummaryWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица'**
+  String get assignSummaryWorker;
+
+  /// No description provided for @assignSummaryModel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Модель'**
+  String get assignSummaryModel;
+
+  /// No description provided for @assignSummaryColor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цвет'**
+  String get assignSummaryColor;
+
+  /// No description provided for @assignSummaryVolume.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объём'**
+  String get assignSummaryVolume;
+
+  /// No description provided for @assignSummaryMaterials.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы'**
+  String get assignSummaryMaterials;
+
+  /// No description provided for @assignSummaryDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок'**
+  String get assignSummaryDue;
+
+  /// No description provided for @assignSummaryPayment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расчётная оплата'**
+  String get assignSummaryPayment;
+
+  /// No description provided for @assignSubmit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдать работу'**
+  String get assignSubmit;
+
+  /// No description provided for @assignSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа выдана'**
+  String get assignSuccess;
+
+  /// No description provided for @assignSuccessHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы списаны со склада, QR-код готов'**
+  String get assignSuccessHint;
+
+  /// No description provided for @assignEmptyProducts.
+  ///
+  /// In ru, this message translates to:
+  /// **'В каталоге пока нет моделей'**
+  String get assignEmptyProducts;
+
+  /// No description provided for @assignEmptyWorkers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет активных мастериц'**
+  String get assignEmptyWorkers;
+
+  /// No description provided for @assignmentDetailTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задание'**
+  String get assignmentDetailTitle;
+
+  /// No description provided for @assignmentQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'QR-код задания'**
+  String get assignmentQr;
+
+  /// No description provided for @assignmentHistory.
+  ///
+  /// In ru, this message translates to:
+  /// **'История'**
+  String get assignmentHistory;
+
+  /// No description provided for @assignmentMaterialsIssued.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выданные материалы'**
+  String get assignmentMaterialsIssued;
+
+  /// No description provided for @deliveriesTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доставка и забор'**
+  String get deliveriesTitle;
+
+  /// No description provided for @deliveryNeeded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нужно доставить'**
+  String get deliveryNeeded;
+
+  /// No description provided for @deliveryConfirmTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердите доставку'**
+  String get deliveryConfirmTitle;
+
+  /// No description provided for @deliveryConfirmBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы переданы мастерице?'**
+  String get deliveryConfirmBody;
+
+  /// No description provided for @deliveryDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доставлено'**
+  String get deliveryDone;
+
+  /// No description provided for @pickupNeeded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть что забрать'**
+  String get pickupNeeded;
+
+  /// No description provided for @acceptanceTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приёмка работы'**
+  String get acceptanceTitle;
+
+  /// No description provided for @acceptanceBrought.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принесено'**
+  String get acceptanceBrought;
+
+  /// No description provided for @acceptanceAccepted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принято'**
+  String get acceptanceAccepted;
+
+  /// No description provided for @acceptanceDefective.
+  ///
+  /// In ru, this message translates to:
+  /// **'Брак'**
+  String get acceptanceDefective;
+
+  /// No description provided for @acceptanceRework.
+  ///
+  /// In ru, this message translates to:
+  /// **'На доработку'**
+  String get acceptanceRework;
+
+  /// No description provided for @acceptanceCalculated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начисление'**
+  String get acceptanceCalculated;
+
+  /// No description provided for @acceptanceSubmit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принять работу'**
+  String get acceptanceSubmit;
+
+  /// No description provided for @acceptanceSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа принята'**
+  String get acceptanceSuccess;
+
+  /// No description provided for @acceptanceInvalid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принято + брак + доработка должно равняться принесено'**
+  String get acceptanceInvalid;
+
+  /// No description provided for @acceptancePhotoOptional.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото (необязательно)'**
+  String get acceptancePhotoOptional;
+
+  /// No description provided for @payoutTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплатить наличными'**
+  String get payoutTitle;
+
+  /// No description provided for @payoutDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'К выплате'**
+  String get payoutDue;
+
+  /// No description provided for @payoutFull.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вся сумма'**
+  String get payoutFull;
+
+  /// No description provided for @payoutHalf.
+  ///
+  /// In ru, this message translates to:
+  /// **'Половина'**
+  String get payoutHalf;
+
+  /// No description provided for @payoutAmountLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сумма'**
+  String get payoutAmountLabel;
+
+  /// No description provided for @payoutConfirmTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердите выплату'**
+  String get payoutConfirmTitle;
+
+  /// No description provided for @payoutConfirmBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы действительно выдали {amount} наличными?'**
+  String payoutConfirmBody(String amount);
+
+  /// No description provided for @payoutSubmit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплатить'**
+  String get payoutSubmit;
+
+  /// No description provided for @payoutSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата записана'**
+  String get payoutSuccess;
+
+  /// No description provided for @payoutNothingDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'К выплате: 0 сум'**
+  String get payoutNothingDue;
+
+  /// No description provided for @earningsEarned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заработано'**
+  String get earningsEarned;
+
+  /// No description provided for @earningsPaid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплачено'**
+  String get earningsPaid;
+
+  /// No description provided for @earningsHistory.
+  ///
+  /// In ru, this message translates to:
+  /// **'История'**
+  String get earningsHistory;
+
+  /// No description provided for @earningsEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока нет начислений'**
+  String get earningsEmpty;
+
+  /// No description provided for @actionAssign.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдать работу'**
+  String get actionAssign;
+
+  /// No description provided for @actionScanQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сканировать QR'**
+  String get actionScanQr;
+
+  /// No description provided for @actionAccept.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принять работу'**
+  String get actionAccept;
+
+  /// No description provided for @actionPayout.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплатить наличными'**
+  String get actionPayout;
+
+  /// No description provided for @actionCall.
+  ///
+  /// In ru, this message translates to:
+  /// **'Позвонить'**
+  String get actionCall;
+
+  /// No description provided for @actionRoute.
+  ///
+  /// In ru, this message translates to:
+  /// **'Маршрут'**
+  String get actionRoute;
+
+  /// No description provided for @statusAccepted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принято'**
+  String get statusAccepted;
+
+  /// No description provided for @statusPartiallyAccepted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Частично принято'**
+  String get statusPartiallyAccepted;
+
+  /// No description provided for @statusReworkRequired.
+  ///
+  /// In ru, this message translates to:
+  /// **'На доработку'**
+  String get statusReworkRequired;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершено'**
+  String get statusCompleted;
+
+  /// No description provided for @statusCancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменено'**
+  String get statusCancelled;
 }
 
 class _AppLocalizationsDelegate

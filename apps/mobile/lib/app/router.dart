@@ -16,6 +16,7 @@ import '../features/settings/pay_rate_screen.dart';
 import '../features/team/audit_screen.dart';
 import '../features/team/locations_screen.dart';
 import '../features/team/team_screen.dart';
+import '../features/work/assignment_detail_screen.dart';
 import '../features/workers/admin_workers_screen.dart';
 import '../features/workers/worker_detail_screen.dart';
 import 'shells.dart';
@@ -48,6 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
+      GoRoute(path: '/admin/assignments/:id', builder: (_, s) => AssignmentDetailScreen(assignmentId: s.pathParameters['id']!)),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => AdminShell(shell: shell),
         branches: [

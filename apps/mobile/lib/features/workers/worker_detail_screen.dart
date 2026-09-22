@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,6 +8,11 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../work/assignment_admin_repository.dart';
+import '../work/assignment_detail_screen.dart';
+import '../work/assignment_models.dart';
+import '../work/cash_payout_sheet.dart';
+import '../work/create_assignment_screen.dart';
 import 'collateral_card.dart';
 import 'models.dart';
 import 'workers_providers.dart';
@@ -24,6 +30,7 @@ class WorkerDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(async.value?.fullName ?? l.workers),
         actions: [
+          IconButton(icon: const Icon(Icons.qr_code_scanner_outlined), tooltip: l.actionScanQr, onPressed: () => context.push('/admin/qr-scan')),
           if (async.value?.qrCode != null)
             IconButton(icon: const Icon(Icons.qr_code_2), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
         ],
@@ -40,6 +47,12 @@ class WorkerDetailScreen extends ConsumerWidget {
                 _Header(worker: w),
                 const SizedBox(height: 12),
                 _Contacts(worker: w),
+                if (!w.isPending) ...[
+                  const SizedBox(height: 16),
+                  _CurrentWorkSection(worker: w),
+                  const SizedBox(height: 16),
+                  _EarningsSection(worker: w),
+                ],
                 const SizedBox(height: 16),
                 Text(l.collateral, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
@@ -176,6 +189,94 @@ class _Header extends StatelessWidget {
           if (worker.rejectedReason != null) Text(worker.rejectedReason!, style: TextStyle(color: scheme.error)),
         ]),
       ),
+    ]);
+  }
+}
+
+/// M3 §3: "Выдать работу" + her currently open assignments, right on the card that's already the main operational
+/// screen for a worker — no separate dashboard needed to reach the most common action.
+class _CurrentWorkSection extends ConsumerWidget {
+  const _CurrentWorkSection({required this.worker});
+  final Worker worker;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final assignments = ref.watch(assignmentListProvider(AssignmentListFilter(workerId: worker.id)));
+    final active = assignments.value?.where((a) => a.status != 'COMPLETED' && a.status != 'CANCELLED').toList() ?? const <AssignmentSummary>[];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
+        if (active.isEmpty)
+          TextButton.icon(
+            icon: const Icon(Icons.add),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
+            label: Text(l.actionAssign),
+          ),
+      ]),
+      const SizedBox(height: 8),
+      if (active.isEmpty)
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(l.workNoCurrent)))
+      else
+        for (final a in active)
+          Card(
+            child: ListTile(
+              title: Text('${a.productName} · ${a.colorName}'),
+              subtitle: Text(statusLabel(l, a.status)),
+              trailing: Text('${a.plannedMeters.toStringAsFixed(0)} м'),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))),
+            ),
+          ),
+    ]);
+  }
+}
+
+class _EarningsSection extends ConsumerWidget {
+  const _EarningsSection({required this.worker});
+  final Worker worker;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final ledger = ref.watch(workerLedgerProvider(worker.id));
+    return ledger.when(
+      loading: () => const SizedBox(height: 60, child: Center(child: CircularProgressIndicator())),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (led) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: _MoneyStat(label: l.earningsEarned, value: led.earned)),
+              Expanded(child: _MoneyStat(label: l.earningsPaid, value: led.paid)),
+              Expanded(child: _MoneyStat(label: l.balanceToReceive, value: led.balance, emphasize: true)),
+            ]),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.payments_outlined),
+                onPressed: () => showCashPayoutSheet(context, workerId: worker.id, balance: led.balance),
+                label: Text(l.actionPayout),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoneyStat extends StatelessWidget {
+  const _MoneyStat({required this.label, required this.value, this.emphasize = false});
+  final String label;
+  final String value;
+  final bool emphasize;
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+      Text('${formatUzs(value)} ${l.currency}', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: emphasize ? scheme.primary : null)),
     ]);
   }
 }

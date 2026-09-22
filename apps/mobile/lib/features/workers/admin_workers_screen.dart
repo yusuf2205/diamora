@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../work/deliveries_screen.dart';
 import 'models.dart';
 import 'workers_providers.dart';
 
@@ -33,7 +34,14 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
     return Scaffold(
       appBar: AppBar(
         title: Text(l.workers),
-        actions: [IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan'))],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.local_shipping_outlined),
+            tooltip: l.deliveryNeeded,
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DeliveriesScreen())),
+          ),
+          IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan')),
+        ],
         bottom: TabBar(controller: _tabs, tabs: [Tab(text: l.tabPending), Tab(text: l.tabActive), Tab(text: l.tabAll)]),
       ),
       body: Column(children: [

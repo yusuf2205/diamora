@@ -83,6 +83,10 @@ String errorText(BuildContext context, Object error) {
         return l.tooManyAttempts;
       case 'NETWORK':
         return l.noConnection;
+      case 'VALIDATION_FAILED':
+        return l.checkYourInput;
+      case 'INSUFFICIENT_STOCK':
+        return l.insufficientStockGeneric;
       default:
         return error.message;
     }

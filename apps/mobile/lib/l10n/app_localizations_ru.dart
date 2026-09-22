@@ -59,6 +59,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get genericError => 'Что-то пошло не так';
 
   @override
+  String get checkYourInput => 'Проверьте введённые данные';
+
+  @override
+  String get phoneRequired => 'Введите номер телефона';
+
+  @override
   String get retry => 'Повторить';
 
   @override
@@ -632,4 +638,236 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get workPickedUp => 'Забрал';
+
+  @override
+  String get insufficientStockGeneric => 'Не хватает материалов на складе';
+
+  @override
+  String insufficientStockDetail(String material) {
+    return 'Не хватает материала: $material';
+  }
+
+  @override
+  String get back => 'Назад';
+
+  @override
+  String get next => 'Далее';
+
+  @override
+  String get assignCreateTitle => 'Выдать работу';
+
+  @override
+  String get assignStepProduct => 'Модель';
+
+  @override
+  String get assignStepVariant => 'Цвет';
+
+  @override
+  String get assignStepVolume => 'Объём работы';
+
+  @override
+  String get assignStepDue => 'Срок';
+
+  @override
+  String get assignStepComment => 'Комментарий';
+
+  @override
+  String get assignStepSummary => 'Подтверждение';
+
+  @override
+  String get assignNoVariants =>
+      'У этой модели ещё нет цветов. Сначала добавьте цвет в каталоге.';
+
+  @override
+  String get assignNoKitTemplate =>
+      'Нет доступного комплекта материалов для этого варианта.';
+
+  @override
+  String get assignSelectWorker => 'Выберите мастерицу';
+
+  @override
+  String get assignSelectProduct => 'Выберите модель';
+
+  @override
+  String get assignSelectVariant => 'Выберите цвет';
+
+  @override
+  String get assignDueOptional => 'Срок (необязательно)';
+
+  @override
+  String get assignNoDueDate => 'Без срока';
+
+  @override
+  String get assignSummaryWorker => 'Мастерица';
+
+  @override
+  String get assignSummaryModel => 'Модель';
+
+  @override
+  String get assignSummaryColor => 'Цвет';
+
+  @override
+  String get assignSummaryVolume => 'Объём';
+
+  @override
+  String get assignSummaryMaterials => 'Материалы';
+
+  @override
+  String get assignSummaryDue => 'Срок';
+
+  @override
+  String get assignSummaryPayment => 'Расчётная оплата';
+
+  @override
+  String get assignSubmit => 'Выдать работу';
+
+  @override
+  String get assignSuccess => 'Работа выдана';
+
+  @override
+  String get assignSuccessHint => 'Материалы списаны со склада, QR-код готов';
+
+  @override
+  String get assignEmptyProducts => 'В каталоге пока нет моделей';
+
+  @override
+  String get assignEmptyWorkers => 'Нет активных мастериц';
+
+  @override
+  String get assignmentDetailTitle => 'Задание';
+
+  @override
+  String get assignmentQr => 'QR-код задания';
+
+  @override
+  String get assignmentHistory => 'История';
+
+  @override
+  String get assignmentMaterialsIssued => 'Выданные материалы';
+
+  @override
+  String get deliveriesTitle => 'Доставка и забор';
+
+  @override
+  String get deliveryNeeded => 'Нужно доставить';
+
+  @override
+  String get deliveryConfirmTitle => 'Подтвердите доставку';
+
+  @override
+  String get deliveryConfirmBody => 'Материалы переданы мастерице?';
+
+  @override
+  String get deliveryDone => 'Доставлено';
+
+  @override
+  String get pickupNeeded => 'Есть что забрать';
+
+  @override
+  String get acceptanceTitle => 'Приёмка работы';
+
+  @override
+  String get acceptanceBrought => 'Принесено';
+
+  @override
+  String get acceptanceAccepted => 'Принято';
+
+  @override
+  String get acceptanceDefective => 'Брак';
+
+  @override
+  String get acceptanceRework => 'На доработку';
+
+  @override
+  String get acceptanceCalculated => 'Начисление';
+
+  @override
+  String get acceptanceSubmit => 'Принять работу';
+
+  @override
+  String get acceptanceSuccess => 'Работа принята';
+
+  @override
+  String get acceptanceInvalid =>
+      'Принято + брак + доработка должно равняться принесено';
+
+  @override
+  String get acceptancePhotoOptional => 'Фото (необязательно)';
+
+  @override
+  String get payoutTitle => 'Выплатить наличными';
+
+  @override
+  String get payoutDue => 'К выплате';
+
+  @override
+  String get payoutFull => 'Вся сумма';
+
+  @override
+  String get payoutHalf => 'Половина';
+
+  @override
+  String get payoutAmountLabel => 'Сумма';
+
+  @override
+  String get payoutConfirmTitle => 'Подтвердите выплату';
+
+  @override
+  String payoutConfirmBody(String amount) {
+    return 'Вы действительно выдали $amount наличными?';
+  }
+
+  @override
+  String get payoutSubmit => 'Выплатить';
+
+  @override
+  String get payoutSuccess => 'Выплата записана';
+
+  @override
+  String get payoutNothingDue => 'К выплате: 0 сум';
+
+  @override
+  String get earningsEarned => 'Заработано';
+
+  @override
+  String get earningsPaid => 'Выплачено';
+
+  @override
+  String get earningsHistory => 'История';
+
+  @override
+  String get earningsEmpty => 'Пока нет начислений';
+
+  @override
+  String get actionAssign => 'Выдать работу';
+
+  @override
+  String get actionScanQr => 'Сканировать QR';
+
+  @override
+  String get actionAccept => 'Принять работу';
+
+  @override
+  String get actionPayout => 'Выплатить наличными';
+
+  @override
+  String get actionCall => 'Позвонить';
+
+  @override
+  String get actionRoute => 'Маршрут';
+
+  @override
+  String get statusAccepted => 'Принято';
+
+  @override
+  String get statusPartiallyAccepted => 'Частично принято';
+
+  @override
+  String get statusReworkRequired => 'На доработку';
+
+  @override
+  String get statusCompleted => 'Завершено';
+
+  @override
+  String get statusCancelled => 'Отменено';
 }

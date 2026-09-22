@@ -42,15 +42,16 @@ class KitTemplateItem {
 
 /// The 9 m recipe (M2 §8-9). `baseMeters` is always 9; assembling with `count` = 2/3 gives 18/27 m — never a separate template.
 class KitTemplate {
-  const KitTemplate({required this.id, required this.name, required this.ribbonMeters, required this.baseMeters, required this.active, required this.items});
+  const KitTemplate({required this.id, required this.name, this.variantId, required this.ribbonMeters, required this.baseMeters, required this.active, required this.items});
   final String id;
   final String name;
+  final String? variantId;
   final double ribbonMeters;
   final int baseMeters;
   final bool active;
   final List<KitTemplateItem> items;
   factory KitTemplate.fromJson(Map<String, dynamic> j) => KitTemplate(
-        id: j['id'] as String, name: j['name'] as String, ribbonMeters: (j['ribbonMeters'] as num).toDouble(),
+        id: j['id'] as String, name: j['name'] as String, variantId: j['variantId'] as String?, ribbonMeters: (j['ribbonMeters'] as num).toDouble(),
         baseMeters: (j['baseMeters'] as num).toInt(), active: j['active'] as bool? ?? true,
         items: (j['items'] as List).map((x) => KitTemplateItem.fromJson((x as Map).cast<String, dynamic>())).toList(),
       );

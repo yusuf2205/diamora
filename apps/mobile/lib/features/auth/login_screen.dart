@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -83,10 +84,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     icon: const Icon(Icons.send_outlined),
                     onPressed: _busy
                         ? null
-                        : () => _run(() async {
+                        : () {
+                            if (_phone.text.trim().isEmpty) return showError(context, ApiException(code: 'VALIDATION_FAILED', message: l.phoneRequired));
+                            _run(() async {
                               await ref.read(authRepositoryProvider).requestWorkerCode(_phone.text);
                               if (mounted) setState(() => _codeSent = true);
-                            }),
+                            });
+                          },
                     label: Text(l.getCode),
                   ),
                 ] else ...[

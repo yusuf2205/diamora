@@ -60,6 +60,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get genericError => 'Xatolik yuz berdi';
 
   @override
+  String get checkYourInput => 'Kiritilgan ma\'lumotlarni tekshiring';
+
+  @override
+  String get phoneRequired => 'Telefon raqamini kiriting';
+
+  @override
   String get retry => 'Qayta urinish';
 
   @override
@@ -635,4 +641,237 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get workPickedUp => 'Oldim';
+
+  @override
+  String get insufficientStockGeneric => 'Omborda material yetarli emas';
+
+  @override
+  String insufficientStockDetail(String material) {
+    return 'Material yetarli emas: $material';
+  }
+
+  @override
+  String get back => 'Orqaga';
+
+  @override
+  String get next => 'Keyingisi';
+
+  @override
+  String get assignCreateTitle => 'Ish berish';
+
+  @override
+  String get assignStepProduct => 'Model';
+
+  @override
+  String get assignStepVariant => 'Rang';
+
+  @override
+  String get assignStepVolume => 'Ish hajmi';
+
+  @override
+  String get assignStepDue => 'Muddat';
+
+  @override
+  String get assignStepComment => 'Izoh';
+
+  @override
+  String get assignStepSummary => 'Tasdiqlash';
+
+  @override
+  String get assignNoVariants =>
+      'Bu modelda hali ranglar yoʻq. Avval katalogga rang qoʻshing.';
+
+  @override
+  String get assignNoKitTemplate =>
+      'Bu variant uchun material toʻplami mavjud emas.';
+
+  @override
+  String get assignSelectWorker => 'Mastaricani tanlang';
+
+  @override
+  String get assignSelectProduct => 'Modelni tanlang';
+
+  @override
+  String get assignSelectVariant => 'Rangni tanlang';
+
+  @override
+  String get assignDueOptional => 'Muddat (ixtiyoriy)';
+
+  @override
+  String get assignNoDueDate => 'Muddatsiz';
+
+  @override
+  String get assignSummaryWorker => 'Mastarica';
+
+  @override
+  String get assignSummaryModel => 'Model';
+
+  @override
+  String get assignSummaryColor => 'Rang';
+
+  @override
+  String get assignSummaryVolume => 'Hajm';
+
+  @override
+  String get assignSummaryMaterials => 'Materiallar';
+
+  @override
+  String get assignSummaryDue => 'Muddat';
+
+  @override
+  String get assignSummaryPayment => 'Hisoblangan toʻlov';
+
+  @override
+  String get assignSubmit => 'Ish berish';
+
+  @override
+  String get assignSuccess => 'Ish berildi';
+
+  @override
+  String get assignSuccessHint =>
+      'Materiallar ombordan yechildi, QR-kod tayyor';
+
+  @override
+  String get assignEmptyProducts => 'Katalogda hali model yoʻq';
+
+  @override
+  String get assignEmptyWorkers => 'Faol mastaricalar yoʻq';
+
+  @override
+  String get assignmentDetailTitle => 'Topshiriq';
+
+  @override
+  String get assignmentQr => 'Topshiriq QR-kodi';
+
+  @override
+  String get assignmentHistory => 'Tarix';
+
+  @override
+  String get assignmentMaterialsIssued => 'Berilgan materiallar';
+
+  @override
+  String get deliveriesTitle => 'Yetkazish va olib ketish';
+
+  @override
+  String get deliveryNeeded => 'Yetkazish kerak';
+
+  @override
+  String get deliveryConfirmTitle => 'Yetkazishni tasdiqlang';
+
+  @override
+  String get deliveryConfirmBody => 'Materiallar mastaricaga topshirildimi?';
+
+  @override
+  String get deliveryDone => 'Yetkazildi';
+
+  @override
+  String get pickupNeeded => 'Olib ketish kerak';
+
+  @override
+  String get acceptanceTitle => 'Ishni qabul qilish';
+
+  @override
+  String get acceptanceBrought => 'Keltirildi';
+
+  @override
+  String get acceptanceAccepted => 'Qabul qilindi';
+
+  @override
+  String get acceptanceDefective => 'Brak';
+
+  @override
+  String get acceptanceRework => 'Qayta ishlash';
+
+  @override
+  String get acceptanceCalculated => 'Hisoblanadi';
+
+  @override
+  String get acceptanceSubmit => 'Ishni qabul qilish';
+
+  @override
+  String get acceptanceSuccess => 'Ish qabul qilindi';
+
+  @override
+  String get acceptanceInvalid =>
+      'Qabul + brak + qayta ishlash keltirilganiga teng boʻlishi kerak';
+
+  @override
+  String get acceptancePhotoOptional => 'Foto (ixtiyoriy)';
+
+  @override
+  String get payoutTitle => 'Naqd toʻlash';
+
+  @override
+  String get payoutDue => 'Toʻlanadigan';
+
+  @override
+  String get payoutFull => 'Butun summa';
+
+  @override
+  String get payoutHalf => 'Yarmi';
+
+  @override
+  String get payoutAmountLabel => 'Summa';
+
+  @override
+  String get payoutConfirmTitle => 'Toʻlovni tasdiqlang';
+
+  @override
+  String payoutConfirmBody(String amount) {
+    return 'Haqiqatan ham $amount naqd berdingizmi?';
+  }
+
+  @override
+  String get payoutSubmit => 'Toʻlash';
+
+  @override
+  String get payoutSuccess => 'Toʻlov yozildi';
+
+  @override
+  String get payoutNothingDue => 'Toʻlanadigan: 0 soʻm';
+
+  @override
+  String get earningsEarned => 'Ishlab topildi';
+
+  @override
+  String get earningsPaid => 'Toʻlandi';
+
+  @override
+  String get earningsHistory => 'Tarix';
+
+  @override
+  String get earningsEmpty => 'Hozircha hisoblanganlar yoʻq';
+
+  @override
+  String get actionAssign => 'Ish berish';
+
+  @override
+  String get actionScanQr => 'QR skanerlash';
+
+  @override
+  String get actionAccept => 'Ishni qabul qilish';
+
+  @override
+  String get actionPayout => 'Naqd toʻlash';
+
+  @override
+  String get actionCall => 'Qoʻngʻiroq';
+
+  @override
+  String get actionRoute => 'Yoʻnalish';
+
+  @override
+  String get statusAccepted => 'Qabul qilindi';
+
+  @override
+  String get statusPartiallyAccepted => 'Qisman qabul qilindi';
+
+  @override
+  String get statusReworkRequired => 'Qayta ishlash kerak';
+
+  @override
+  String get statusCompleted => 'Yakunlandi';
+
+  @override
+  String get statusCancelled => 'Bekor qilindi';
 }
