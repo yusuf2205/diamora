@@ -1,9 +1,23 @@
-// ---- roles (D-004): two roles only -------------------------------------------------------------------------
-export const ROLES = ['ADMIN', 'WORKER'] as const;
+// ---- roles (D-004, extended by D-028): SUPER_ADMIN > ADMIN > MANAGER > WORKER ------------------------------------------
+export const ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'WORKER'] as const;
 export type Role = (typeof ROLES)[number];
+/** People who run the business from the staff apps (phone + password login). */
+export const STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] as const;
+export type StaffRole = (typeof STAFF_ROLES)[number];
+export const isStaffRole = (r: string): r is StaffRole => (STAFF_ROLES as readonly string[]).includes(r);
+/** Higher rank = more authority. A user may only manage users of a strictly lower rank (SUPER_ADMIN may manage every role). */
+export const ROLE_RANK: Record<Role, number> = { SUPER_ADMIN: 4, ADMIN: 3, MANAGER: 2, WORKER: 1 };
 
 export const WORKER_STATUSES = ['PENDING_APPROVAL', 'ACTIVE', 'PAUSED', 'REJECTED', 'ARCHIVED'] as const;
 export type WorkerStatus = (typeof WORKER_STATUSES)[number];
+
+// ---- catalog "Наши работы" (D-029): informational only, NEVER a price ----------------------------------------------------
+export const CATALOG_STATUSES = ['DRAFT', 'PUBLISHED', 'HIDDEN'] as const;
+export type CatalogStatus = (typeof CATALOG_STATUSES)[number];
+export const CATALOG_AVAILABILITY = ['AVAILABLE', 'ON_REQUEST', 'UNAVAILABLE'] as const;
+export type CatalogAvailability = (typeof CATALOG_AVAILABILITY)[number];
+export const MEDIA_KINDS = ['PHOTO', 'VIDEO'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 export const COLLATERAL_TYPES = ['MONEY', 'ITEM'] as const;
 export type CollateralType = (typeof COLLATERAL_TYPES)[number];

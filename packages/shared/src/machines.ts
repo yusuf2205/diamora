@@ -1,4 +1,4 @@
-import type { Role } from './basics';
+import { isStaffRole, type Role } from './basics';
 
 /** Who may trigger a transition. SYSTEM = automatic effect of another domain event. */
 export type Actor = Role | 'SYSTEM';
@@ -18,11 +18,11 @@ export class InvalidTransitionError extends Error {
   }
 }
 
-/** ADMIN may perform every edge except SYSTEM-only ones; WORKER only edges that list WORKER. */
+/** Any staff role (SUPER_ADMIN, ADMIN, MANAGER) acts as ADMIN: every edge except SYSTEM-only ones; WORKER only edges that list WORKER. */
 function allowed(edge: Transition<string>, actor: Actor): boolean {
   if (edge.actors.includes(actor)) return true;
   const systemOnly = edge.actors.length === 1 && edge.actors[0] === 'SYSTEM';
-  return actor === 'ADMIN' && !systemOnly;
+  return isStaffRole(actor) && !systemOnly;
 }
 
 export function canTransition<S extends string>(m: Machine<S>, from: S, to: S, actor: Actor): boolean {

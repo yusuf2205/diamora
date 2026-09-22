@@ -1,26 +1,40 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ADMIN_GRANTABLE,
   ASSIGNMENT_MACHINE,
   ASSIGNMENT_STATUSES,
   COLLATERAL_MACHINE,
-  EVENT_AUDIENCE,
+  EVENT_ROUTES,
   INITIAL_PAY_RATE_UZS,
   InvalidTransitionError,
+  MANAGER_GRANTABLE,
   MAX_PAY_RATE_UZS,
   MAX_PHOTOS,
+  PERMISSIONS,
+  ROLE_DEFAULT_PERMISSIONS,
+  ROLE_RANK,
+  SUPER_ADMIN_ONLY,
   advance,
+  catAllRoom,
+  catManagerRoom,
   changePayRateSchema,
   assertTransition,
   canTransition,
   divRoundHalfUp,
   earningFor,
+  effectivePermissions,
   initialRegState,
+  isStaffRole,
   isTerminal,
   metersToCm,
   normalizePhone,
   parseQrCode,
   parseUzs,
+  roomsForEvent,
+  roomsForUser,
+  scopeFor,
+  workerRoom,
   type RegInput,
   type RegState,
 } from '../src';
@@ -71,7 +85,7 @@ describe('phone / money / qr', () => {
     assert.equal(changePayRateSchema.parse({ ratePerKit: 30000, note: '  Индексация ' }).note, 'Индексация');
     assert.equal(changePayRateSchema.parse({ ratePerKit: MAX_PAY_RATE_UZS.toString() }).ratePerKit, MAX_PAY_RATE_UZS);
     for (const bad of [0, -1, 1.5, '12.5', 'abc', '', '10000001', null, undefined]) assert.equal(changePayRateSchema.safeParse({ ratePerKit: bad }).success, false, `must reject ${String(bad)}`);
-    assert.deepEqual(EVENT_AUDIENCE['pay_rate.changed'], { admin: true, worker: false, allWorkers: true });
+    assert.deepEqual(EVENT_ROUTES['pay_rate.changed'], { staff: true, allWorkers: true });
   });
   test('QR code: only our opaque format is accepted', () => {
     assert.equal(parseQrCode(' yq1.k7m2qx9tpd4r '), 'YQ1.K7M2QX9TPD4R');
@@ -199,7 +213,80 @@ describe('state machines', () => {
     assert.equal(canTransition(COLLATERAL_MACHINE, 'HELD', 'RETURNED', 'WORKER'), false);
     assert.equal(isTerminal(COLLATERAL_MACHINE, 'RETURNED'), true);
   });
-  test('every realtime event has an audience', () => {
-    for (const [type, aud] of Object.entries(EVENT_AUDIENCE)) assert.ok(aud.admin || aud.worker, type);
+  test('every realtime event routes somewhere (staff, a worker category, or a broadcast)', () => {
+    for (const [type, r] of Object.entries(EVENT_ROUTES)) {
+      assert.ok(r.perms?.length || r.cat || r.worker || r.allWorkers || r.staff || r.user, type);
+    }
+  });
+});
+
+describe('RBAC (D-028): roles, permissions, manager scope, realtime rooms', () => {
+  test('rank: SUPER_ADMIN > ADMIN > MANAGER > WORKER, strictly decreasing', () => {
+    assert.deepEqual(ROLE_RANK, { SUPER_ADMIN: 4, ADMIN: 3, MANAGER: 2, WORKER: 1 });
+    assert.deepEqual([...new Set(Object.values(ROLE_RANK))].sort((a, b) => a - b), [1, 2, 3, 4]);
+    assert.equal(isStaffRole('SUPER_ADMIN'), true);
+    assert.equal(isStaffRole('MANAGER'), true);
+    assert.equal(isStaffRole('WORKER'), false);
+  });
+
+  test('SUPER_ADMIN has every permission; WORKER has none; ADMIN/MANAGER defaults are disjoint from each other\'s exclusives', () => {
+    assert.deepEqual(effectivePermissions('SUPER_ADMIN'), PERMISSIONS);
+    assert.deepEqual(effectivePermissions('WORKER'), []);
+    assert.deepEqual(effectivePermissions('WORKER', [{ permission: 'PAY_RATE_MANAGE', granted: true }]), []); // fixed set: overrides ignored
+    assert.ok(ROLE_DEFAULT_PERMISSIONS.ADMIN.includes('WORKER_VIEW_ALL'));
+    assert.ok(!ROLE_DEFAULT_PERMISSIONS.ADMIN.includes('PAY_RATE_MANAGE')); // §39: only "если permission разрешает"
+    assert.ok(ROLE_DEFAULT_PERMISSIONS.MANAGER.includes('WORKER_VIEW_ASSIGNED'));
+    assert.ok(!ROLE_DEFAULT_PERMISSIONS.MANAGER.includes('WORKER_VIEW_ALL'));
+  });
+
+  test('ROLE_ASSIGN / PERMISSION_MANAGE can never be granted to anyone but SUPER_ADMIN', () => {
+    assert.deepEqual(SUPER_ADMIN_ONLY, ['ROLE_ASSIGN', 'PERMISSION_MANAGE']);
+    assert.ok(!ADMIN_GRANTABLE.includes('ROLE_ASSIGN') && !ADMIN_GRANTABLE.includes('PERMISSION_MANAGE'));
+    assert.ok(!MANAGER_GRANTABLE.includes('ROLE_ASSIGN') && !MANAGER_GRANTABLE.includes('PERMISSION_MANAGE'));
+    // a MANAGER is never grantable an _ALL (global) permission, only the _ASSIGNED ones come by default
+    assert.ok(!MANAGER_GRANTABLE.some((p) => p.endsWith('_ALL')));
+  });
+
+  test('effectivePermissions: grant adds, revoke removes, an override outside what the role may hold is ignored', () => {
+    const granted = effectivePermissions('ADMIN', [{ permission: 'PAY_RATE_MANAGE', granted: true }]);
+    assert.ok(granted.includes('PAY_RATE_MANAGE') && granted.includes('WORKER_VIEW_ALL'));
+    const revoked = effectivePermissions('ADMIN', [{ permission: 'WORKER_VIEW_ALL', granted: false }]);
+    assert.ok(!revoked.includes('WORKER_VIEW_ALL'));
+    const ignored = effectivePermissions('MANAGER', [{ permission: 'PAY_RATE_MANAGE', granted: true }]); // not MANAGER_GRANTABLE
+    assert.ok(!ignored.includes('PAY_RATE_MANAGE'));
+  });
+
+  test('scopeFor: _ALL beats _ASSIGNED, missing both is "none"', () => {
+    assert.equal(scopeFor(['WORKER_VIEW_ALL'], 'WORKER'), 'all');
+    assert.equal(scopeFor(['WORKER_VIEW_ASSIGNED'], 'WORKER'), 'assigned');
+    assert.equal(scopeFor([], 'WORKER'), 'none');
+    // COLLATERAL needs WORKER_VIEW_ASSIGNED *and* COLLATERAL_VIEW together for 'assigned'
+    assert.equal(scopeFor(['WORKER_VIEW_ASSIGNED'], 'COLLATERAL'), 'none');
+    assert.equal(scopeFor(['WORKER_VIEW_ASSIGNED', 'COLLATERAL_VIEW'], 'COLLATERAL'), 'assigned');
+  });
+
+  test('roomsForUser: a MANAGER only ever joins her own manager-scoped rooms, never a blanket "all" room', () => {
+    const manager = { id: 'mgr-1', role: 'MANAGER' as const, workerId: null, permissions: effectivePermissions('MANAGER') };
+    const rooms = roomsForUser(manager);
+    assert.ok(rooms.includes(catManagerRoom('WORKER', 'mgr-1')));
+    assert.ok(!rooms.includes(catAllRoom('WORKER')));
+    assert.ok(rooms.includes('staff'));
+    const worker = { id: 'u-1', role: 'WORKER' as const, workerId: 'w-1', permissions: [] };
+    assert.deepEqual(roomsForUser(worker).sort(), ['user:u-1', 'worker:w-1', 'workers'].sort());
+  });
+
+  test('roomsForEvent: a manager-scoped event reaches the current AND the previous manager, never a bystander', () => {
+    const rooms = roomsForEvent('worker.manager_changed', { workerId: 'w-1', managerId: 'mgr-a', previousManagerId: 'mgr-b' });
+    assert.ok(rooms.includes(catManagerRoom('WORKER', 'mgr-a')));
+    assert.ok(rooms.includes(catManagerRoom('WORKER', 'mgr-b')));
+    assert.ok(!rooms.includes(catManagerRoom('WORKER', 'mgr-c')));
+    assert.ok(rooms.includes(catAllRoom('WORKER')));
+  });
+
+  test('roomsForEvent: pay_rate.changed reaches staff and every worker; worker.approved also reaches that one worker', () => {
+    assert.deepEqual(roomsForEvent('pay_rate.changed', {}).sort(), ['staff', 'workers'].sort());
+    const rooms = roomsForEvent('worker.approved', { workerId: 'w-9', managerId: null });
+    assert.ok(rooms.includes(workerRoom('w-9')));
+    assert.ok(rooms.includes(catAllRoom('WORKER')));
   });
 });
