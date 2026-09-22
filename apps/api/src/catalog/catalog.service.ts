@@ -116,8 +116,13 @@ export class CatalogService {
   // ---- variants ------------------------------------------------------------------------------------------------------------------
   async addVariant(modelId: string, input: z.output<typeof createVariantSchema>) {
     await this.load(modelId);
-    const sku = `${modelId.slice(0, 8)}-${input.colorId.slice(0, 8)}`.toUpperCase();
-    const v = await this.prisma.productVariant.create({ data: { modelId, colorId: input.colorId, sku, label: input.label } });
+    // NOT modelId/colorId prefixes: both are UUIDv7 (time-ordered — the leading hex chars are mostly a timestamp), so
+    // two variants created close together collided on `sku @unique` under any rapid creation burst (found by the M3
+    // assignments test suite, which creates several variants in quick succession — a real bug, not a flaky test).
+    const v = await this.prisma.$transaction(async (tx) => {
+      const sku = await nextCode(tx, 'product_variant_sku', 'SKU-', 6);
+      return tx.productVariant.create({ data: { modelId, colorId: input.colorId, sku, label: input.label } });
+    });
     await this.audit.record({ action: 'catalog.variant_add', entity: 'ProductVariant', entityId: v.id, after: { modelId, colorId: input.colorId } });
     await this.events.publish('catalog.item.updated', { itemId: modelId });
     return this.get(modelId);

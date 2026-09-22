@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
+import { AssignmentsModule } from './assignments/assignments.service';
 import { AuditModule } from './audit/audit.service';
 import { AuthModule } from './auth/auth.controller';
 import { JwtAuthGuard, RolesGuard } from './auth/auth-core';
@@ -15,9 +16,11 @@ import { CollateralModule } from './collateral/collateral.service';
 import { ENV, Env, EnvModule } from './config/env';
 import { EventBusModule } from './events/event-bus';
 import { RealtimeModule } from './events/events.module';
+import { ColorsModule } from './colors/colors.service';
 import { FilesModule } from './files/files.service';
 import { HealthController } from './health.controller';
 import { KitsModule } from './kits/kits.service';
+import { LedgerModule } from './ledger/ledger.service';
 import { LocationModule } from './location/location.service';
 import { MaterialsModule } from './materials/materials.service';
 import { NotificationsModule } from './notifications/notifications.service';
@@ -68,7 +71,7 @@ class RequestMiddleware implements NestMiddleware {
     PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
     UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,
-    MaterialsModule, StockModule, KitsModule, QrModule,
+    MaterialsModule, StockModule, KitsModule, QrModule, ColorsModule, LedgerModule, AssignmentsModule,
   ],
   controllers: [HealthController],
   providers: [

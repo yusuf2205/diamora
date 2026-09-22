@@ -1,6 +1,7 @@
 import { Controller, Get, Injectable, Module, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { parseQrCode } from '@yusmus/shared';
+import { AssignmentsModule, AssignmentsService } from '../assignments/assignments.service';
 import { CurrentUser, Roles } from '../common/decorators';
 import { forbidden, notFound } from '../common/errors';
 import { can } from '../common/scope';
@@ -17,7 +18,7 @@ import type { AuthUser } from '../common/request-context';
  */
 @Injectable()
 export class QrService {
-  constructor(private readonly prisma: PrismaService, private readonly workers: WorkersService) {}
+  constructor(private readonly prisma: PrismaService, private readonly workers: WorkersService, private readonly assignments: AssignmentsService) {}
 
   async resolve(actor: AuthUser, rawCode: string) {
     const code = parseQrCode(rawCode);
@@ -46,8 +47,13 @@ export class QrService {
       };
     }
 
-    // type === 'ASSIGNMENT': architecture is ready (same QrEntity, same opaque code), but nothing creates one of these
-    // yet — WorkAssignment is M3. Never fabricate a response for it.
+    if (qr.type === 'ASSIGNMENT') {
+      if (!qr.assignmentId) throw notFound('QR code');
+      // Reuses the exact same scope check as GET /admin/assignments/:id (workerScope 'ASSIGNMENT'): a MANAGER scanning a
+      // stranger's assignment gets 404, never the data (M2 §13's rule, extended to M3).
+      return { type: 'ASSIGNMENT' as const, assignment: await this.assignments.get(actor, qr.assignmentId) };
+    }
+
     throw notFound('QR code');
   }
 }
@@ -62,5 +68,5 @@ export class QrController {
   resolve(@CurrentUser() u: AuthUser, @Param('code') code: string) { return this.qr.resolve(u, code); }
 }
 
-@Module({ imports: [WorkersModule], controllers: [QrController], providers: [QrService], exports: [QrService] })
+@Module({ imports: [WorkersModule, AssignmentsModule], controllers: [QrController], providers: [QrService], exports: [QrService] })
 export class QrModule {}
