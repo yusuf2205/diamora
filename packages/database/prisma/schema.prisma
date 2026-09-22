@@ -13,7 +13,9 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
+  MANAGER
   WORKER
 }
 
@@ -153,12 +155,19 @@ model User {
   /// argon2id; null for WORKER (workers sign in with a one-time code sent by the Telegram bot)
   passwordHash String?
   lastLoginAt  DateTime?  @db.Timestamptz(3)
+  /// last time the app was seen online (WebSocket heartbeat); presence itself is live, this is the fallback
+  lastSeenAt   DateTime?  @db.Timestamptz(3)
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
-  sessions      UserSession[]
-  workerProfile WorkerProfile?
+  sessions       UserSession[]
+  workerProfile  WorkerProfile?
+  /// workers assigned to this user when role = MANAGER
+  managedWorkers WorkerProfile[]   @relation("ManagerWorkers")
+  permissions    UserPermission[]
+  liveLocation   UserLiveLocation?
 
+  @@index([role, status])
   @@map("users")
 }
 
@@ -236,6 +245,9 @@ model WorkerProfile {
   approvedAt         DateTime?    @db.Timestamptz(3)
   approvedById       String?      @db.Uuid
   rejectedReason     String?
+  /// the MANAGER responsible for this worker (a user with role MANAGER, enforced by a trigger); a manager sees only their workers
+  assignedManagerId  String?      @db.Uuid
+  assignedManager    User?        @relation("ManagerWorkers", fields: [assignedManagerId], references: [id])
   /// materialised sum of the cash ledger ("К получению"); verified by the integrity job
   balance            BigInt       @default(0)
   createdAt          DateTime     @default(now()) @db.Timestamptz(3)
@@ -252,6 +264,7 @@ model WorkerProfile {
 
   @@index([status])
   @@index([updatedAt])
+  @@index([assignedManagerId])
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "worker_profiles_fullName_trgm")
   @@map("worker_profiles")
 }
@@ -347,6 +360,86 @@ model CollateralHistory {
 
 // --------------------------------------------------------------------------------------------- catalog
 
+enum CatalogStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+enum CatalogAvailability {
+  AVAILABLE
+  ON_REQUEST
+  UNAVAILABLE
+}
+
+enum MediaKind {
+  PHOTO
+  VIDEO
+}
+
+/// Gallery of a catalog item: ordered photos (one is the main photo) and videos. Files live in MinIO on the NAS.
+model ProductMedia {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  productModelId String          @db.Uuid
+  productModel   ProductModel    @relation(fields: [productModelId], references: [id], onDelete: Cascade)
+  variantId      String?         @db.Uuid
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  fileId         String          @db.Uuid
+  kind           MediaKind       @default(PHOTO)
+  sortOrder      Int             @default(0)
+  isMain         Boolean         @default(false)
+  caption        String?
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@index([productModelId, sortOrder])
+  @@map("product_media")
+}
+
+/// Company phone + Telegram shown in the WORKER app ("Позвонить" / "Написать в Telegram"). One row (id = 1), never hard-coded in apps.
+model CompanyContactSettings {
+  id               Int      @id @default(1)
+  phone            String?
+  telegramUsername String?
+  telegramUrl      String?
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+  updatedById      String?  @db.Uuid
+
+  @@map("company_contact_settings")
+}
+
+/// Per-user permission overrides on top of the role defaults (docs/RBAC.md): granted = true adds, false takes a default away.
+model UserPermission {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission  String
+  granted     Boolean
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, permission])
+  @@map("user_permissions")
+}
+
+/// The CURRENT working location of a user (one row per user, overwritten). No endless coordinate history (docs/LIVE-LOCATION.md).
+model UserLiveLocation {
+  userId       String   @id @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  latitude     Float
+  longitude    Float
+  accuracy     Float?
+  heading      Float?
+  speed        Float?
+  recordedAt   DateTime @db.Timestamptz(3)
+  receivedAt   DateTime @default(now()) @db.Timestamptz(3)
+  /// GPS | NETWORK | TELEGRAM | MANUAL
+  source       String   @default("GPS")
+  isBackground Boolean  @default(false)
+
+  @@index([recordedAt])
+  @@map("user_live_locations")
+}
+
 model Color {
   id          String           @id @default(uuid(7)) @db.Uuid
   name        String           @unique
@@ -359,20 +452,28 @@ model Color {
 }
 
 model ProductModel {
-  id           String           @id @default(uuid(7)) @db.Uuid
-  code         String           @unique
+  id           String              @id @default(uuid(7)) @db.Uuid
+  code         String              @unique
   name         String
   description  String?
-  photoFileId  String?          @db.Uuid
-  schemeFileId String?          @db.Uuid
-  videoFileId  String?          @db.Uuid
-  active       Boolean          @default(true)
-  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
+  photoFileId  String?             @db.Uuid
+  schemeFileId String?             @db.Uuid
+  videoFileId  String?             @db.Uuid
+  active       Boolean             @default(true)
+  /// catalog "Наши работы": only PUBLISHED items are visible to workers (never any price)
+  status       CatalogStatus       @default(DRAFT)
+  availability CatalogAvailability @default(AVAILABLE)
+  isNew        Boolean             @default(false)
+  sortOrder    Int                 @default(0)
+  publishedAt  DateTime?           @db.Timestamptz(3)
+  createdAt    DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @db.Timestamptz(3)
   variants     ProductVariant[]
   assignments  WorkAssignment[]
   saleItems    SaleItem[]
+  media        ProductMedia[]
 
+  @@index([status, sortOrder])
   @@map("product_models")
 }
 
@@ -383,6 +484,9 @@ model ProductVariant {
   colorId      String                @db.Uuid
   color        Color                 @relation(fields: [colorId], references: [id])
   sku          String                @unique
+  /// short human label of the variant ("Rose Gold, long"), shown in the catalog
+  label        String?
+  sortOrder    Int                   @default(0)
   photoFileId  String?               @db.Uuid
   active       Boolean               @default(true)
   createdAt    DateTime              @default(now()) @db.Timestamptz(3)
@@ -390,6 +494,7 @@ model ProductVariant {
   kitTemplates MaterialKitTemplate[]
   assignments  WorkAssignment[]
   saleItems    SaleItem[]
+  media        ProductMedia[]
 
   @@unique([modelId, colorId])
   @@map("product_variants")
