@@ -18,6 +18,10 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lo
 FROM deps AS build
 ARG NEXT_PUBLIC_API_URL=https://api.example.com
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Optional: web (JS API) Yandex Maps key for the SUPER_ADMIN/ADMIN/MANAGER map (M2 §20). Distinct product/key from the
+# mobile MapKit key (D-026) — Yandex issues them separately. Empty = the map page falls back to a real list view.
+ARG NEXT_PUBLIC_YANDEX_MAPS_JS_KEY=
+ENV NEXT_PUBLIC_YANDEX_MAPS_JS_KEY=${NEXT_PUBLIC_YANDEX_MAPS_JS_KEY}
 COPY packages packages
 COPY apps/web apps/web
 RUN pnpm --filter @yusmus/shared build && pnpm --filter @yusmus/web build

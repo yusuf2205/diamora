@@ -1,3 +1,14 @@
+import { LOCATION_LIVE_SECONDS, LOCATION_RECENT_SECONDS } from '@yusmus/shared';
+
+/** LIVE / RECENT / STALE (M2 §17) — same thresholds as the API and the Flutter app (packages/shared). A RECENT or
+ * STALE point is never worded as if it were happening right now. */
+export function freshnessLabel(ageSeconds: number): string {
+  const minutes = Math.floor(ageSeconds / 60);
+  if (ageSeconds < LOCATION_LIVE_SECONDS) return 'Сейчас';
+  if (ageSeconds < LOCATION_RECENT_SECONDS) return `Обновлено ${minutes} мин назад`;
+  return `Последняя позиция ${minutes} мин назад`;
+}
+
 export function formatUzs(amount: string | null | undefined): string {
   if (amount == null) return '—';
   const negative = amount.startsWith('-');

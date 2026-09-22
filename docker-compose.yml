@@ -240,6 +240,7 @@ services:
       dockerfile: infra/docker/web.Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
+        NEXT_PUBLIC_YANDEX_MAPS_JS_KEY: ${YANDEX_MAPS_JS_KEY:-}
     image: yusmus/web:${APP_VERSION:-local}
     depends_on:
       api: { condition: service_healthy }

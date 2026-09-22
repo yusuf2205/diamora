@@ -67,7 +67,12 @@ export interface PayRate { ratePerKit: string; kitMeters: number; updatedAt: str
 export interface PayRateChange { id: string; ratePerKit: string; previousRatePerKit: string | null; changedBy: string | null; note: string | null; createdAt: string }
 export interface CompanyContact { phone: string | null; telegramUsername: string | null; telegramUrl: string | null; updatedAt: string }
 export interface AuditEntry { id: string; action: string; entity: string; entityId: string | null; actorId: string | null; actorRole: string | null; before: unknown; after: unknown; requestId: string | null; createdAt: string }
-export interface LiveLocation { userId: string; role: Me['role']; fullName: string; worker: { id: string; code: string; phone: string; managerId: string | null } | null; latitude: number; longitude: number; accuracy: number | null; recordedAt: string; ageSeconds: number; stale: boolean; isBackground: boolean }
+export interface LiveLocation {
+  userId: string; role: Me['role']; fullName: string; phone: string | null; online: boolean;
+  worker: { id: string; code: string; phone: string; managerId: string | null } | null;
+  latitude: number; longitude: number; accuracy: number | null; recordedAt: string;
+  ageSeconds: number; freshness: 'LIVE' | 'RECENT' | 'STALE'; stale: boolean; isBackground: boolean;
+}
 
 export interface Dashboard {
   workers: { total: number; active: number; pendingApproval: number; paused: number };

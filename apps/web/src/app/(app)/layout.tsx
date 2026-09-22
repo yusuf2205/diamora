@@ -11,6 +11,7 @@ const NAV: { href: string; label: string; perms?: string[] }[] = [
   { href: '/dashboard', label: 'Обзор' },
   { href: '/workers', label: 'Мастерицы', perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/catalog', label: 'Каталог', perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
+  { href: '/map', label: 'Карта', perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },
   { href: '/team', label: 'Команда', perms: ['USER_VIEW_ALL'] },
   { href: '/managers', label: 'Менеджеры', perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/settings', label: 'Настройки', perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },

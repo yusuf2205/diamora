@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { hasPerm } from '@/lib/types';
@@ -14,6 +15,7 @@ const STATUS_TONE: Record<CatalogItem['status'], 'default' | 'ok' | 'warn'> = { 
 /** "Наши работы" management (§16). WORKER never sees this route; the public catalog has no price field at all (D-029). */
 export default function CatalogPage() {
   const { me } = useAuth();
+  const router = useRouter();
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const canManage = hasPerm(me, 'CATALOG_MANAGE');
@@ -45,30 +47,32 @@ export default function CatalogPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {data.items.map((item) => (
             <div key={item.id} className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="flex h-40 items-center justify-center bg-border/30">
-                {item.media[0]?.file ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.media[0].file.thumbUrl ?? item.media[0].file.url} alt={item.name} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-muted">Нет фото</span>
-                )}
-              </div>
-              <div className="space-y-2 p-3">
-                <p className="truncate font-medium">{item.name}</p>
-                <div className="flex items-center justify-between">
-                  <Badge tone={STATUS_TONE[item.status]}>{statusLabel(item.status)}</Badge>
-                  {item.isNew && <Badge tone="warn">Новинка</Badge>}
+              <button onClick={() => router.push(`/catalog/${item.id}`)} className="block w-full text-left">
+                <div className="flex h-40 items-center justify-center bg-border/30">
+                  {item.media[0]?.file ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.media[0].file.thumbUrl ?? item.media[0].file.url} alt={item.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-muted">Нет фото</span>
+                  )}
                 </div>
-                {canManage && (
-                  <div className="flex gap-2 pt-1">
-                    {item.status === 'PUBLISHED' ? (
-                      <Button variant="outline" className="flex-1" onClick={() => hide.mutate(item.id)} disabled={hide.isPending}>Скрыть</Button>
-                    ) : (
-                      <Button variant="outline" className="flex-1" onClick={() => publish.mutate(item.id)} disabled={publish.isPending}>Опубликовать</Button>
-                    )}
+                <div className="space-y-2 p-3 pb-0">
+                  <p className="truncate font-medium">{item.name}</p>
+                  <div className="flex items-center justify-between">
+                    <Badge tone={STATUS_TONE[item.status]}>{statusLabel(item.status)}</Badge>
+                    {item.isNew && <Badge tone="warn">Новинка</Badge>}
                   </div>
-                )}
-              </div>
+                </div>
+              </button>
+              {canManage && (
+                <div className="flex gap-2 p-3 pt-2">
+                  {item.status === 'PUBLISHED' ? (
+                    <Button variant="outline" className="flex-1" onClick={() => hide.mutate(item.id)} disabled={hide.isPending}>Скрыть</Button>
+                  ) : (
+                    <Button variant="outline" className="flex-1" onClick={() => publish.mutate(item.id)} disabled={publish.isPending}>Опубликовать</Button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
