@@ -131,6 +131,9 @@ enum ExpenseCategory {
 enum QrType {
   ASSIGNMENT
   WORKER
+  /// a physically-assembled batch of a MaterialKitTemplate, printed/shown at preparation time (M2 §11); the same
+  /// opaque code architecture a future WorkAssignment QR will reuse.
+  KIT
 }
 
 enum NotificationChannel {
@@ -502,6 +505,9 @@ model ProductVariant {
 
 model MaterialCategory {
   id        String     @id @default(uuid(7)) @db.Uuid
+  /// stable machine key (TAPE | BEAD | THREAD | ACCESSORY | OTHER, M2 §5); `name` is the RU display label and can be
+  /// renamed without a migration. Seeded once by the M2 migration; not user-creatable in this round (fixed set, by design).
+  code      String?    @unique
   name      String     @unique
   materials Material[]
 
@@ -545,6 +551,7 @@ model MaterialKitTemplate {
   createdAt    DateTime                  @default(now()) @db.Timestamptz(3)
   items        MaterialKitTemplateItem[]
   assignments  WorkAssignment[]
+  qrEntities   QrEntity[]
 
   @@map("material_kit_templates")
 }
@@ -768,20 +775,26 @@ model QualityInspection {
   @@map("quality_inspections")
 }
 
-/// QR carries only this opaque code (D-012).
+/// QR carries only this opaque code (D-012). type=KIT (M2 §10-11): a physically-assembled batch, produced by
+/// `KitsService.assemble`; kitCount/stockGroupId describe WHAT was assembled and link back to its StockMovement rows.
 model QrEntity {
-  id           String          @id @default(uuid(7)) @db.Uuid
-  code         String          @unique
-  type         QrType
-  assignmentId String?         @db.Uuid
-  assignment   WorkAssignment? @relation(fields: [assignmentId], references: [id])
-  workerId     String?         @db.Uuid
-  worker       WorkerProfile?  @relation(fields: [workerId], references: [id])
-  createdAt    DateTime        @default(now()) @db.Timestamptz(3)
-  revokedAt    DateTime?       @db.Timestamptz(3)
+  id            String               @id @default(uuid(7)) @db.Uuid
+  code          String               @unique
+  type          QrType
+  assignmentId  String?              @db.Uuid
+  assignment    WorkAssignment?      @relation(fields: [assignmentId], references: [id])
+  workerId      String?              @db.Uuid
+  worker        WorkerProfile?       @relation(fields: [workerId], references: [id])
+  kitTemplateId String?              @db.Uuid
+  kitTemplate   MaterialKitTemplate? @relation(fields: [kitTemplateId], references: [id])
+  kitCount      Int?
+  stockGroupId  String?              @db.Uuid
+  createdAt     DateTime             @default(now()) @db.Timestamptz(3)
+  revokedAt     DateTime?            @db.Timestamptz(3)
 
   @@index([assignmentId])
   @@index([workerId])
+  @@index([kitTemplateId])
   @@map("qr_entities")
 }
 
