@@ -74,13 +74,15 @@ export interface LiveLocation {
   ageSeconds: number; freshness: 'LIVE' | 'RECENT' | 'STALE'; stale: boolean; isBackground: boolean;
 }
 
+// Every section is `null` when the viewer lacks the permission to see it (never a fabricated zero, never a 403 for
+// the whole endpoint over one out-of-reach section) — apps/api/src/stats/dashboard.controller.ts.
 export interface Dashboard {
-  workers: { total: number; active: number; pendingApproval: number; paused: number };
-  users: { superAdmins: number; admins: number; managers: number; online: number };
-  catalog: { published: number; draft: number };
-  work: { activeAssignments: number; metersOnHand: number; toDeliver: number; toPickup: number; overdue: number };
-  finance: { earned: string; paid: string; due: string; salesRevenue: string | null; expenses: string | null; netProfit: string | null };
-  inventory: { lowStockMaterials: number };
+  workers: { total: number; active: number; withActiveAssignment: number; withoutActiveAssignment: number } | null;
+  users: { superAdmins: number; admins: number; managers: number; online: number } | null;
+  catalog: { published: number; draft: number } | null;
+  work: { activeAssignments: number; inProgress: number; metersOnHand: number; toDeliver: number; toPickup: number; needsAcceptance: number; completed: number; overdue: number } | null;
+  finance: { earned: string; paid: string; due: string; salesRevenue: string | null; expenses: string | null; netProfit: string | null } | null;
+  materials: { lowStock: number; outOfStock: number } | null;
 }
 
 export interface Page<T> { items: T[]; nextCursor?: string | null }

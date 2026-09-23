@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { formatUzs, statusLabel } from '@/lib/format';
@@ -14,9 +15,10 @@ const STATUS_TONE: Record<Worker['status'], 'default' | 'ok' | 'danger' | 'warn'
 
 /** Mirrors the Flutter ADMIN workers list — same API, same server-side scope (a MANAGER sees only her own, D-028). */
 export default function WorkersPage() {
-  const [status, setStatus] = useState('');
+  const params = useSearchParams();
+  const [status, setStatus] = useState(() => params.get('status') ?? '');
   const [q, setQ] = useState('');
-  const { data, error, isLoading } = useQuery<Page<Worker>>({
+  const { data, error, isLoading, refetch } = useQuery<Page<Worker>>({
     queryKey: ['workers', status, q],
     queryFn: () => api.get<Page<Worker>>('/workers', { status: status || undefined, q: q || undefined, limit: 100 }),
   });
@@ -40,7 +42,7 @@ export default function WorkersPage() {
           <option value="ARCHIVED">В архиве</option>
         </Select>
       </div>
-      {error && <ErrorState error={error} />}
+      {error && <ErrorState error={error} onRetry={() => refetch()} />}
       {isLoading && <p className="text-muted">Загрузка…</p>}
       {data && data.items.length === 0 && <EmptyState title="Здесь пока никого нет" />}
       {data && data.items.length > 0 && (

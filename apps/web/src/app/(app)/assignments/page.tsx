@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { assignmentStatusLabel, assignmentStatusTone, formatUzs } from '@/lib/format';
@@ -21,9 +21,10 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
 /** Задания (M3) — same API and status machine as the mobile Staff app; this page never computes a status transition,
  * a payment, or a material requirement on its own (§28: the server is the only source of truth for all three). */
 export default function AssignmentsPage() {
-  const [status, setStatus] = useState('');
-  const [creating, setCreating] = useState(false);
-  const { data, error, isLoading } = useQuery<Page<AssignmentSummary>>({
+  const params = useSearchParams();
+  const [status, setStatus] = useState(() => params.get('status') ?? '');
+  const [creating, setCreating] = useState(() => params.get('create') === '1');
+  const { data, error, isLoading, refetch } = useQuery<Page<AssignmentSummary>>({
     queryKey: ['assignments', status],
     queryFn: () => api.get<Page<AssignmentSummary>>('/admin/assignments', { status: status || undefined, limit: 200 }),
   });
@@ -48,7 +49,7 @@ export default function AssignmentsPage() {
           </button>
         ))}
       </div>
-      {error && <ErrorState error={error} />}
+      {error && <ErrorState error={error} onRetry={() => refetch()} />}
       {isLoading && <p className="text-muted">Загрузка…</p>}
       {data && data.items.length === 0 && <EmptyState title="Заданий нет" />}
       {data && data.items.length > 0 && (
