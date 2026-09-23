@@ -48,7 +48,13 @@ export const envSchema = z
 
     /** worker process (Telegram bot) */
     TELEGRAM_BOT_TOKEN: z.string().optional(),
+    /** public bot username (no @), used to build the /start deep link for WORKER Telegram-only login */
+    TELEGRAM_BOT_USERNAME: z.string().default('diamora1_bot'),
     WORKER_HEALTH_PORT: z.coerce.number().int().default(3100),
+    /** TTL for an app-initiated Telegram login session (time to finish /start + the questionnaire in Telegram) */
+    TELEGRAM_LOGIN_SESSION_TTL_MINUTES: z.coerce.number().int().min(1).default(30),
+    /** TTL for the one-time handoff ticket behind the bot's final button (§7: 1-5 min) */
+    TELEGRAM_HANDOFF_TICKET_TTL_MINUTES: z.coerce.number().int().min(1).default(5),
   })
   .superRefine((v, ctx) => {
     if (v.STORAGE_DRIVER === 's3') {

@@ -2,7 +2,7 @@ import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe
 import { JwtModule } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { adminLoginSchema, refreshSchema, workerCodeRequestSchema, workerLoginSchema } from '@yusmus/shared';
+import { adminLoginSchema, refreshSchema, telegramExchangeSchema, telegramSessionSchema, workerCodeRequestSchema } from '@yusmus/shared';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Public } from '../common/decorators';
@@ -27,13 +27,13 @@ export class AuthController {
   @ApiOperation({ summary: 'ADMIN: phone + password' }) @ApiZodBody(adminLoginSchema)
   adminLogin(@ZodBody(adminLoginSchema) b: z.output<typeof adminLoginSchema>, @Req() r: Request) { return this.auth.adminLogin(b, meta(r)); }
 
-  @Public() @Throttle({ default: { limit: 10, ttl: 60_000 } }) @Post('worker/code') @HttpCode(200)
-  @ApiOperation({ summary: 'WORKER: ask the Telegram bot to send a one-time code' }) @ApiZodBody(workerCodeRequestSchema)
-  workerCode(@ZodBody(workerCodeRequestSchema) b: z.output<typeof workerCodeRequestSchema>, @Req() r: Request) { return this.auth.requestWorkerCode(b.phone, meta(r)); }
+  @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('telegram/session') @HttpCode(200)
+  @ApiOperation({ summary: 'WORKER: start a Telegram-only login — returns a one-time /start deep link, never a phone/password/OTP flow' }) @ApiZodBody(telegramSessionSchema)
+  telegramSession(@ZodBody(telegramSessionSchema) b: z.output<typeof telegramSessionSchema>) { return this.auth.telegramSession(b.device); }
 
-  @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('worker/login') @HttpCode(200)
-  @ApiOperation({ summary: 'WORKER: phone + code from Telegram' }) @ApiZodBody(workerLoginSchema)
-  workerLogin(@ZodBody(workerLoginSchema) b: z.output<typeof workerLoginSchema>, @Req() r: Request) { return this.auth.workerLogin(b, meta(r)); }
+  @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('telegram/exchange') @HttpCode(200)
+  @ApiOperation({ summary: 'WORKER: exchange the bot handoff ticket for a real session (or a not-ready-yet status)' }) @ApiZodBody(telegramExchangeSchema)
+  telegramExchange(@ZodBody(telegramExchangeSchema) b: z.output<typeof telegramExchangeSchema>, @Req() r: Request) { return this.auth.telegramExchange(b, meta(r)); }
 
   @Public() @Throttle({ default: { limit: 60, ttl: 60_000 } }) @Post('refresh') @HttpCode(200) @ApiZodBody(refreshSchema)
   refresh(@ZodBody(refreshSchema) b: z.output<typeof refreshSchema>, @Req() r: Request) { return this.auth.refresh(b.refreshToken, meta(r)); }

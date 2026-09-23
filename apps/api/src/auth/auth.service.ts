@@ -2,19 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { User, UserSession } from '@yusmus/database';
 import { isStaffRole, type Permission, type Role } from '@yusmus/shared';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
-import { accountDisabled, AppError, invalidCode, invalidCredentials, notFound, rateLimited, sessionRevoked, unauthenticated, userNotFound } from '../common/errors';
+import { accountDisabled, AppError, invalidCredentials, notFound, rateLimited, sessionRevoked, ticketInvalid, unauthenticated, userNotFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { ENV, Env } from '../config/env';
-import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.module';
-import { PasswordService, SessionAuthService, randomCode6 } from './auth-core';
+import { PasswordService, SessionAuthService } from './auth-core';
 
 export interface ClientMeta { ip?: string; userAgent?: string }
 export interface DeviceInput { installId: string; platform: string; name?: string; appVersion?: string }
 export interface MeDto { id: string; fullName: string; phone: string; role: Role; workerId: string | null; permissions: Permission[] }
 export interface AuthResult { accessToken: string; accessTokenExpiresAt: string; refreshToken: string; refreshTokenExpiresAt: string; user: MeDto }
+export type TelegramExchangeResult = AuthResult | { status: 'PENDING_APPROVAL' | 'REJECTED' | 'PAUSED'; rejectedReason?: string | null };
 
 const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
 const newRefresh = () => randomBytes(32).toString('base64url');
@@ -28,7 +28,6 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly sessionAuth: SessionAuthService,
     private readonly audit: AuditService,
-    private readonly notifications: NotificationsService,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -52,63 +51,64 @@ export class AuthService {
   // ---- unified login: the human only gives a phone, the server decides everything else ---------------------------------
   /**
    * Step 1 of the single Login Screen (no role selector, ever — the client never asks "who are you"). Looks up the
-   * phone, tells the client which second field to show next. WORKER: the code is requested here so the client can go
-   * straight to "enter code" without a second round trip. Never reveals staff vs worker beyond the method needed.
+   * phone, tells the client which second field to show next. STAFF: password, as always. WORKER: no phone/password/OTP
+   * flow exists any more (Telegram-only login, §telegramSession/telegramExchange below) — the client shows the
+   * "Войти через Telegram" affordance and never asks for anything else. Never reveals staff vs worker beyond the
+   * method needed.
    */
-  async identify(phone: string, meta: ClientMeta): Promise<{ method: 'PASSWORD' | 'CODE' }> {
+  async identify(phone: string, meta: ClientMeta): Promise<{ method: 'PASSWORD' | 'TELEGRAM_ONLY' }> {
     await this.assertNotThrottled(phone, meta.ip);
     const user = await this.prisma.user.findUnique({ where: { phone } });
     if (!user) throw userNotFound();
     if (user.status !== 'ACTIVE') throw accountDisabled();
-    if (isStaffRole(user.role)) return { method: 'PASSWORD' };
-    await this.requestWorkerCode(phone, meta);
-    return { method: 'CODE' };
+    return { method: isStaffRole(user.role) ? 'PASSWORD' : 'TELEGRAM_ONLY' };
   }
 
-  // ---- WORKER: one-time code delivered by the Telegram bot -----------------------------------------------------------
-  /** Always answers "sent" (no phone enumeration). A code is only created for an approved worker with an account. */
-  async requestWorkerCode(phone: string, meta: ClientMeta): Promise<{ sent: true }> {
-    await this.assertNotThrottled(phone, meta.ip);
-    const worker = await this.prisma.workerProfile.findUnique({ where: { phone } });
-    if (worker?.userId && (worker.status === 'ACTIVE' || worker.status === 'PAUSED')) {
-      const recent = await this.prisma.loginCode.count({ where: { workerId: worker.id, createdAt: { gt: new Date(Date.now() - 10 * MIN) } } });
-      if (recent < 3) {
-        const code = randomCode6();
-        await this.prisma.$transaction(async (tx) => {
-          await tx.loginCode.create({ data: { workerId: worker.id, codeHash: this.codeHash(worker.id, code), expiresAt: new Date(Date.now() + this.env.LOGIN_CODE_TTL_MINUTES * MIN) } });
-          await this.notifications.telegram({ workerId: worker.id, chatId: worker.telegramChatId, type: 'login_code', body: `Ваш код входа в приложение: ${code}\nДействует ${this.env.LOGIN_CODE_TTL_MINUTES} минут. Никому не сообщайте его.` }, tx);
-        });
-      }
-    }
-    return { sent: true };
+  // ---- WORKER: Telegram-only login (no phone/password/OTP in the app) -------------------------------------------------
+  /**
+   * The app taps this to start a login: a `/start <token>` deep link the bot will link to whichever Telegram account
+   * opens it. `tokenHash` only is stored (never the raw token) — same pattern as a refresh token.
+   */
+  async telegramSession(device: DeviceInput): Promise<{ deepLink: string; expiresAt: string }> {
+    const token = newRefresh();
+    const expiresAt = new Date(Date.now() + this.env.TELEGRAM_LOGIN_SESSION_TTL_MINUTES * MIN);
+    await this.prisma.telegramLoginSession.create({ data: { tokenHash: sha256(token), installId: device.installId, expiresAt } });
+    return { deepLink: `https://t.me/${this.env.TELEGRAM_BOT_USERNAME}?start=${token}`, expiresAt: expiresAt.toISOString() };
   }
 
-  async workerLogin(input: { phone: string; code: string; device: DeviceInput }, meta: ClientMeta): Promise<AuthResult> {
-    await this.assertNotThrottled(input.phone, meta.ip);
-    const worker = await this.prisma.workerProfile.findUnique({ where: { phone: input.phone }, include: { user: true } });
-    const codeRow = worker?.user
-      ? await this.prisma.loginCode.findFirst({ where: { workerId: worker.id, usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } })
-      : null;
-    let ok = false;
-    if (worker && codeRow && codeRow.attempts < this.env.LOGIN_CODE_MAX_ATTEMPTS) {
-      const a = Buffer.from(codeRow.codeHash);
-      const b = Buffer.from(this.codeHash(worker.id, input.code));
-      ok = a.length === b.length && timingSafeEqual(a, b);
-      if (!ok) await this.prisma.loginCode.update({ where: { id: codeRow.id }, data: { attempts: { increment: 1 } } });
+  /**
+   * The app POSTs the one-time ticket from the bot's handoff URL. Never a password, never a JWT in the URL, never a
+   * client-trusted role (§8) — the backend alone decides, from `ticket.workerId` and that worker's CURRENT status
+   * (never whatever it was when the ticket was issued), whether to issue a real session or a "not ready yet" outcome.
+   */
+  async telegramExchange(input: { ticket: string; device: DeviceInput }, meta: ClientMeta): Promise<TelegramExchangeResult> {
+    const hash = sha256(input.ticket);
+    const now = new Date();
+    const ticket = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.telegramHandoffTicket.findUnique({ where: { tokenHash: hash } });
+      if (!row || row.consumedAt || row.expiresAt <= now) return null;
+      const consumed = await tx.telegramHandoffTicket.updateMany({ where: { id: row.id, consumedAt: null }, data: { consumedAt: now } });
+      return consumed.count === 1 ? row : null; // lost a race with a concurrent exchange of the same ticket
+    });
+    if (!ticket) {
+      await this.audit.record({ action: 'worker.telegram_login_failed', entity: 'TelegramHandoffTicket', actorId: null, actorRole: 'WORKER', after: { reason: 'invalid_or_consumed_ticket' } });
+      throw ticketInvalid();
     }
-    if (!worker?.user || !codeRow || !ok) {
-      await this.attempt(input.phone, meta.ip, false, 'bad_code');
-      throw invalidCode();
+    await this.audit.record({ action: 'worker.telegram_handoff_consumed', entity: 'TelegramHandoffTicket', entityId: ticket.id, actorId: null, actorRole: 'WORKER' });
+    const worker = ticket.workerId ? await this.prisma.workerProfile.findUnique({ where: { id: ticket.workerId }, include: { user: true } }) : null;
+    if (!worker) {
+      await this.audit.record({ action: 'worker.telegram_login_failed', entity: 'TelegramHandoffTicket', entityId: ticket.id, actorId: null, actorRole: 'WORKER', after: { reason: 'no_worker' } });
+      throw ticketInvalid();
     }
-    // single use: compare-and-set
-    const used = await this.prisma.loginCode.updateMany({ where: { id: codeRow.id, usedAt: null }, data: { usedAt: new Date() } });
-    if (used.count !== 1) throw invalidCode();
-    if (worker.user.status !== 'ACTIVE') throw accountDisabled();
-    await this.attempt(input.phone, meta.ip, true, 'login');
+    if (worker.status === 'PENDING_APPROVAL') return { status: 'PENDING_APPROVAL' };
+    if (worker.status === 'REJECTED') return { status: 'REJECTED', rejectedReason: worker.rejectedReason };
+    if (worker.status !== 'ACTIVE' || !worker.user || worker.user.status !== 'ACTIVE') {
+      await this.audit.record({ action: 'worker.telegram_login_failed', entity: 'WorkerProfile', entityId: worker.id, actorId: worker.user?.id ?? null, actorRole: 'WORKER', after: { reason: 'not_active' } });
+      return { status: 'PAUSED' };
+    }
+    await this.audit.record({ action: 'worker.telegram_login_success', entity: 'User', entityId: worker.user.id, actorId: worker.user.id, actorRole: 'WORKER' });
     return this.createSession(worker.user, input.device, meta);
   }
-
-  private codeHash(workerId: string, code: string) { return sha256(`${workerId}:${code}:${this.env.JWT_ACCESS_SECRET}`); }
 
   // ---- sessions ------------------------------------------------------------------------------------------------------
   private async createSession(user: User, d: DeviceInput, meta: ClientMeta): Promise<AuthResult> {

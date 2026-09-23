@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { effectivePermissions, type Permission, type Role } from '@yusmus/shared';
 import * as argon2 from 'argon2';
 import type { Request } from 'express';
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { IS_AUTHENTICATED, IS_PUBLIC, PERMISSIONS_KEY, ROLES_KEY } from '../common/decorators';
 import { forbidden, sessionRevoked, unauthenticated } from '../common/errors';
 import { RequestContext, type AuthUser } from '../common/request-context';
@@ -61,8 +61,6 @@ export class SessionAuthService {
   invalidateSessions(ids: string[]) { for (const id of ids) this.cache.delete(id); if (ids.length) this.revokedHandlers.forEach((h) => h(ids)); }
   invalidateAll() { const ids = [...this.cache.keys()]; this.cache.clear(); if (ids.length) this.revokedHandlers.forEach((h) => h(ids)); }
 }
-
-export const randomCode6 = () => String(randomInt(0, 1_000_000)).padStart(6, '0');
 
 // ---- guards ------------------------------------------------------------------------------------------------------
 @Injectable()

@@ -15,6 +15,7 @@ export const forbidden = (m = 'You do not have permission to do this') => new Ap
 export const notFound = (what: string) => new AppError('NOT_FOUND', `${what} not found`, 404);
 export const userNotFound = () => new AppError('USER_NOT_FOUND', 'No user with this phone', 404);
 export const accountDisabled = () => new AppError('ACCOUNT_DISABLED', 'This account is disabled', 403);
+export const ticketInvalid = () => new AppError('TICKET_INVALID', 'Invalid, expired or already-used ticket', 401);
 export const conflict = (m: string, details?: unknown) => new AppError('CONFLICT', m, 409, details);
 export const invariant = (m: string, details?: unknown) => new AppError('INVARIANT_VIOLATION', m, 409, details);
 export const validationFailed = (m: string, details?: unknown) => new AppError('VALIDATION_FAILED', m, 400, details);

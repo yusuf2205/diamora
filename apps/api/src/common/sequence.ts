@@ -1,7 +1,12 @@
 import type { Prisma } from '@yusmus/database';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 export type Tx = Prisma.TransactionClient;
+
+/** Cryptographically random, URL-safe bearer token (256 bits) — refresh tokens, Telegram login/handoff tokens. */
+export const newOpaqueToken = (): string => randomBytes(32).toString('base64url');
+/** Only the hash is ever persisted for a bearer token — the raw value is shown/used once and never stored. */
+export const sha256 = (v: string): string => createHash('sha256').update(v).digest('hex');
 
 /** Atomic counter; run inside the same transaction as the insert that uses the number (gap-free). */
 export async function nextCode(tx: Tx, key: string, prefix: string, pad: number): Promise<string> {
