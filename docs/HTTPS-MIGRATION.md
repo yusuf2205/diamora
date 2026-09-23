@@ -6,10 +6,12 @@ path-routed (`/v1/*`, `/health/live`, `/socket.io/*` → API; everything else �
 and WebSocket all become `https://`/`wss://` automatically the moment the tunnel exists — **no code changes are
 needed on the server side**. This doc is the exact sequence to flip it on.
 
-## Current status: blocked on step 1 (owner)
+## Current status: step 1 done, blocked on step 2-3 (owner)
 
-Checked `diamoraa.uz`'s nameservers just now (2026-09-22): still `Non-existent domain` — the domain has not yet been
-pointed at Cloudflare. Nothing past step 1 can proceed until that's done.
+Checked again (2026-09-23): `diamoraa.uz` now resolves via `danica.ns.cloudflare.com` / `milan.ns.cloudflare.com` —
+step 1 is done. Checked the NAS's `.env`: `CLOUDFLARE_TUNNEL_TOKEN` is present but empty — the Tunnel itself hasn't
+been created yet. Nothing past step 2 can proceed until that token is set (it's a secret; I never write it myself —
+see step 3).
 
 ## Steps
 
