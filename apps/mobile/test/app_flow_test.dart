@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yusmus_mobile/app/app.dart';
 import 'package:yusmus_mobile/core/db/app_database.dart';
 import 'package:yusmus_mobile/core/network/api_client.dart';
+import 'package:yusmus_mobile/core/network/api_exception.dart';
 import 'package:yusmus_mobile/core/providers.dart';
 import 'package:yusmus_mobile/core/storage/token_store.dart';
 import 'package:yusmus_mobile/features/auth/auth_controller.dart';
@@ -50,28 +51,61 @@ void main() {
   late MockApi api;
   setUp(() => api = MockApi());
 
-  testWidgets('signed out: the login screen is shown; ADMIN tab asks for a password, WORKER tab for a Telegram code', (tester) async {
+  testWidgets('signed out: a single phone field only, no role selector of any kind', (tester) async {
     await tester.pumpWidget(await appWith(null, api));
     await tester.pumpAndSettle();
-    expect(find.text('Я мастерица'), findsOneWidget);
-    expect(find.text('Получить код в Telegram'), findsOneWidget);
+    expect(find.text('Я мастерица'), findsNothing);
+    expect(find.text('Я администратор'), findsNothing);
+    expect(find.byType(SegmentedButton<bool>), findsNothing);
+    expect(find.text('Телефон'), findsOneWidget);
     expect(find.text('Пароль'), findsNothing);
-
-    await tester.tap(find.text('Я администратор'));
-    await tester.pumpAndSettle();
-    expect(find.text('Пароль'), findsOneWidget);
-    expect(find.text('Получить код в Telegram'), findsNothing);
+    expect(find.text('Продолжить'), findsOneWidget);
   });
 
-  testWidgets('worker asks for a code: the API is called, then the code field appears', (tester) async {
-    when(() => api.postJson('/auth/worker/code', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'sent': true});
+  testWidgets('phone identifies as a WORKER: the server decides, sends the code itself, and the code field appears', (tester) async {
+    when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'method': 'CODE'});
     await tester.pumpWidget(await appWith(null, api));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '90 123 45 67');
-    await tester.tap(find.text('Получить код в Telegram'));
+    await tester.tap(find.text('Продолжить'));
     await tester.pumpAndSettle();
-    verify(() => api.postJson('/auth/worker/code', body: {'phone': '90 123 45 67'}, skipAuth: true)).called(1);
+    verify(() => api.postJson('/auth/identify', body: {'phone': '90 123 45 67'}, skipAuth: true)).called(1);
     expect(find.text('Код из Telegram (6 цифр)'), findsOneWidget);
+    expect(find.text('Пароль'), findsNothing);
+  });
+
+  testWidgets('phone identifies as STAFF: the password field appears, never a code field', (tester) async {
+    when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'method': 'PASSWORD'});
+    await tester.pumpWidget(await appWith(null, api));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '90 123 45 67');
+    await tester.tap(find.text('Продолжить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Пароль'), findsOneWidget);
+    expect(find.text('Код из Telegram (6 цифр)'), findsNothing);
+  });
+
+  testWidgets('an unknown phone shows a friendly message, never a raw error code', (tester) async {
+    when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true))
+        .thenThrow(ApiException(code: 'USER_NOT_FOUND', message: 'No user with this phone', status: 404));
+    await tester.pumpWidget(await appWith(null, api));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '90 123 45 67');
+    await tester.tap(find.text('Продолжить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Пользователь с таким номером не найден. Обратитесь к администратору.'), findsOneWidget);
+    expect(find.text('USER_NOT_FOUND'), findsNothing);
+  });
+
+  testWidgets('a blocked/suspended account shows a friendly message, never a raw error code', (tester) async {
+    when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true))
+        .thenThrow(ApiException(code: 'ACCOUNT_DISABLED', message: 'This account is disabled', status: 403));
+    await tester.pumpWidget(await appWith(null, api));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '90 123 45 67');
+    await tester.tap(find.text('Продолжить'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ваш аккаунт отключён. Обратитесь к администратору.'), findsOneWidget);
   });
 
   testWidgets('ADMIN sees the registrations tab with a pending worker from the server (cache-backed list)', (tester) async {

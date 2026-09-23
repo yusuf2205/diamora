@@ -46,6 +46,17 @@ describe('RBAC (D-028): SUPER_ADMIN / ADMIN / MANAGER / WORKER, permissions, man
     await manager.api.post('/v1/users', { phone: phone(), fullName: 'Whoever', role: 'MANAGER' }).expect(403); // MANAGER has no USER_CREATE, not even grantable
   });
 
+  it('SUPER_ADMIN can create an ADMIN outright; an ADMIN can never modify or suspend a SUPER_ADMIN', async () => {
+    const superAdmin = await superAdminActor(t);
+    const admin = await staffActor(t, 'ADMIN');
+    const otherSuperAdmin = await superAdminActor(t);
+    const created = await superAdmin.api.post('/v1/users', { phone: phone(), fullName: 'Brand New Admin', role: 'ADMIN' }).expect(201);
+    expect(created.body.user.role).toBe('ADMIN');
+    await admin.api.post(`/v1/users/${otherSuperAdmin.user.id}/status`, { status: 'SUSPENDED' }).expect(403); // strictly lower rank only
+    await admin.api.put(`/v1/users/${otherSuperAdmin.user.id}/role`, { role: 'MANAGER' }).expect(403);
+    await admin.api.patch(`/v1/users/${otherSuperAdmin.user.id}`, { fullName: 'Renamed' }).expect(403);
+  });
+
   it('only SUPER_ADMIN assigns roles or manages permissions; nobody changes their own role/status/permissions', async () => {
     const superAdmin = await superAdminActor(t);
     const admin = await staffActor(t, 'ADMIN');
