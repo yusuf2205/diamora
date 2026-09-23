@@ -449,6 +449,27 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get teamEditUser => 'Пользователь';
+
+  @override
+  String get teamSaveChanges => 'Сохранить';
+
+  @override
+  String get teamPhoneTaken =>
+      'Этот номер уже используется другим пользователем';
+
+  @override
+  String teamConfirmRoleChange(String from, String to) {
+    return 'Изменить роль с $from на $to?';
+  }
+
+  @override
+  String get teamRoleChanged => 'Роль изменена';
+
+  @override
+  String get teamSaved => 'Изменения сохранены';
+
+  @override
   String get settingsCompanyContact => 'Телефон и Telegram компании';
 
   @override

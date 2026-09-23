@@ -926,6 +926,42 @@ abstract class AppLocalizations {
   /// **'Мастериц: {count}'**
   String teamAssignedWorkers(int count);
 
+  /// No description provided for @teamEditUser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь'**
+  String get teamEditUser;
+
+  /// No description provided for @teamSaveChanges.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get teamSaveChanges;
+
+  /// No description provided for @teamPhoneTaken.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот номер уже используется другим пользователем'**
+  String get teamPhoneTaken;
+
+  /// No description provided for @teamConfirmRoleChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить роль с {from} на {to}?'**
+  String teamConfirmRoleChange(String from, String to);
+
+  /// No description provided for @teamRoleChanged.
+  ///
+  /// In ru, this message translates to:
+  /// **'Роль изменена'**
+  String get teamRoleChanged;
+
+  /// No description provided for @teamSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменения сохранены'**
+  String get teamSaved;
+
   /// No description provided for @settingsCompanyContact.
   ///
   /// In ru, this message translates to:

@@ -452,6 +452,26 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get teamEditUser => 'Foydalanuvchi';
+
+  @override
+  String get teamSaveChanges => 'Saqlash';
+
+  @override
+  String get teamPhoneTaken => 'Bu raqam boshqa foydalanuvchida band';
+
+  @override
+  String teamConfirmRoleChange(String from, String to) {
+    return 'Rolni $from dan $to ga o\'zgartirasizmi?';
+  }
+
+  @override
+  String get teamRoleChanged => 'Rol o\'zgartirildi';
+
+  @override
+  String get teamSaved => 'O\'zgarishlar saqlandi';
+
+  @override
   String get settingsCompanyContact => 'Kompaniya telefoni va Telegram';
 
   @override

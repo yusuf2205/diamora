@@ -142,6 +142,12 @@
   "teamNoAccess": "Jamoani ko'rish uchun huquq yetarli emas",
   "teamCreated": "Foydalanuvchi yaratildi. Parol bir marta ko'rsatiladi:",
   "teamAssignedWorkers": "Ustalar: {count}",
+  "teamEditUser": "Foydalanuvchi",
+  "teamSaveChanges": "Saqlash",
+  "teamPhoneTaken": "Bu raqam boshqa foydalanuvchida band",
+  "teamConfirmRoleChange": "Rolni {from} dan {to} ga o'zgartirasizmi?",
+  "teamRoleChanged": "Rol o'zgartirildi",
+  "teamSaved": "O'zgarishlar saqlandi",
 
   "settingsCompanyContact": "Kompaniya telefoni va Telegram",
   "settingsPhone": "Kompaniya telefoni",

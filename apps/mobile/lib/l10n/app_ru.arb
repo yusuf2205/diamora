@@ -147,6 +147,13 @@
   "teamCreated": "Пользователь создан. Пароль показан один раз:",
   "teamAssignedWorkers": "Мастериц: {count}",
   "@teamAssignedWorkers": { "placeholders": { "count": { "type": "int" } } },
+  "teamEditUser": "Пользователь",
+  "teamSaveChanges": "Сохранить",
+  "teamPhoneTaken": "Этот номер уже используется другим пользователем",
+  "teamConfirmRoleChange": "Изменить роль с {from} на {to}?",
+  "@teamConfirmRoleChange": { "placeholders": { "from": { "type": "String" }, "to": { "type": "String" } } },
+  "teamRoleChanged": "Роль изменена",
+  "teamSaved": "Изменения сохранены",
 
   "settingsCompanyContact": "Телефон и Telegram компании",
   "settingsPhone": "Телефон компании",

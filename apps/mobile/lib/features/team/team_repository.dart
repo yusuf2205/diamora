@@ -20,6 +20,11 @@ class TeamRepository {
 
   Future<void> setStatus(String userId, bool active) => _api.postJson('/users/$userId/status', idempotencyKey: _uuid.v4(), body: {'status': active ? 'ACTIVE' : 'SUSPENDED'});
 
+  Future<TeamUser> updateUser(String userId, {required String fullName, required String phone}) async =>
+      TeamUser.fromJson(await _api.patchJson('/users/$userId', body: {'fullName': fullName, 'phone': phone}));
+
+  Future<TeamUser> changeRole(String userId, String role) async => TeamUser.fromJson(await _api.putJson('/users/$userId/role', body: {'role': role}));
+
   Future<List<ManagerSummary>> managers() async => ((await _api.getJson('/managers'))['items'] as List).map((j) => ManagerSummary.fromJson((j as Map).cast<String, dynamic>())).toList();
 
   Future<List<AuditEntry>> audit() async => ((await _api.getJson('/audit', query: {'limit': 100}))['items'] as List).map((j) => AuditEntry.fromJson((j as Map).cast<String, dynamic>())).toList();

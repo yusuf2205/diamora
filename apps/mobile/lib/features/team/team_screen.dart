@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import '../auth/models.dart';
+import 'models.dart';
 import 'team_repository.dart';
 
 const _staffRoles = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'];
@@ -118,6 +121,7 @@ class _UsersTab extends ConsumerWidget {
             final canDeactivate = (me?.has('USER_DEACTIVATE') ?? false) && u.id != me?.id;
             return Card(
               child: ListTile(
+                onTap: () => _editUser(context, ref, u, me),
                 leading: CircleAvatar(child: Text(initials(u.fullName))),
                 title: Text(u.fullName),
                 subtitle: Text('${u.phone} · ${teamRoleLabel(l, u.role)}${u.online ? ' · ${l.onlineNow}' : ''}'),
@@ -138,6 +142,150 @@ class _UsersTab extends ConsumerWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Open a user: edit name/phone, change role (with a confirm dialog), or flip status — all server-confirmed, all
+/// respecting the SAME rank rules the API enforces regardless of what this sheet chooses to show (§29-30, §33).
+Future<void> _editUser(BuildContext context, WidgetRef ref, TeamUser u, Session? me) async {
+  final canEdit = me?.has('USER_UPDATE') ?? false;
+  final canAssignRole = (me?.has('ROLE_ASSIGN') ?? false) && u.id != me?.id;
+  final canDeactivate = (me?.has('USER_DEACTIVATE') ?? false) && u.id != me?.id;
+  if (!canEdit && !canAssignRole && !canDeactivate) return;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetCtx) => _EditUserSheet(user: u, canEdit: canEdit, canAssignRole: canAssignRole, canDeactivate: canDeactivate),
+  );
+}
+
+class _EditUserSheet extends ConsumerStatefulWidget {
+  const _EditUserSheet({required this.user, required this.canEdit, required this.canAssignRole, required this.canDeactivate});
+  final TeamUser user;
+  final bool canEdit;
+  final bool canAssignRole;
+  final bool canDeactivate;
+  @override
+  ConsumerState<_EditUserSheet> createState() => _EditUserSheetState();
+}
+
+class _EditUserSheetState extends ConsumerState<_EditUserSheet> {
+  late final _name = TextEditingController(text: widget.user.fullName);
+  late final _phone = TextEditingController(text: widget.user.phone);
+  late String _role = widget.user.role;
+  late bool _active = widget.user.isActive;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    try {
+      await ref.read(teamRepositoryProvider).updateUser(widget.user.id, fullName: _name.text.trim(), phone: _phone.text.trim());
+      ref.invalidate(teamUsersProvider);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.teamSaved)));
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.code == 'CONFLICT') {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(l.teamPhoneTaken), backgroundColor: Theme.of(context).colorScheme.error));
+      } else {
+        showError(context, e);
+      }
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _changeRole(String newRole) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.teamConfirmRoleChange(teamRoleLabel(l, widget.user.role), teamRoleLabel(l, newRole))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.confirm)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(teamRepositoryProvider).changeRole(widget.user.id, newRole);
+      ref.invalidate(teamUsersProvider);
+      if (!mounted) return;
+      setState(() => _role = newRole);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.teamRoleChanged)));
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _toggleStatus(bool active) async {
+    try {
+      await ref.read(teamRepositoryProvider).setStatus(widget.user.id, active);
+      ref.invalidate(teamUsersProvider);
+      if (mounted) setState(() => _active = active);
+    } catch (e) {
+      if (mounted) showError(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      child: SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(l.teamEditUser, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          TextField(controller: _name, enabled: widget.canEdit && !_busy, decoration: InputDecoration(labelText: l.teamFullName)),
+          const SizedBox(height: 12),
+          TextField(controller: _phone, enabled: widget.canEdit && !_busy, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: l.phone)),
+          const SizedBox(height: 12),
+          if (widget.canAssignRole)
+            DropdownButtonFormField<String>(
+              initialValue: _role,
+              decoration: InputDecoration(labelText: l.teamRole),
+              items: [for (final r in _staffRoles) DropdownMenuItem(value: r, child: Text(teamRoleLabel(l, r)))],
+              onChanged: _busy ? null : (v) { if (v != null && v != _role) _changeRole(v); },
+            )
+          else
+            ListTile(contentPadding: EdgeInsets.zero, title: Text(l.teamRole), trailing: Text(teamRoleLabel(l, _role))),
+          if (widget.canDeactivate) ...[
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(_active ? l.teamStatusActive : l.teamStatusSuspended),
+              value: _active,
+              onChanged: _busy ? null : _toggleStatus,
+            ),
+          ],
+          const SizedBox(height: 20),
+          if (widget.canEdit)
+            SizedBox(
+              width: double.infinity,
+              child: _busy ? const Center(child: CircularProgressIndicator()) : FilledButton(onPressed: _save, child: Text(l.teamSaveChanges)),
+            ),
+        ]),
       ),
     );
   }
