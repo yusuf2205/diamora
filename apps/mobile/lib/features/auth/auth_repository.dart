@@ -11,7 +11,7 @@ class AuthRepository {
   Future<Map<String, dynamic>> _device(String platform) async => {
         'installId': await _tokens.installId(),
         'platform': platform,
-        'name': 'Yusmus app',
+        'name': 'Diamoraa app',
         'appVersion': AppConfig.appVersion,
       };
 

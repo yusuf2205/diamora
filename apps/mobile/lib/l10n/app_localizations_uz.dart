@@ -10,7 +10,7 @@ class AppLocalizationsUz extends AppLocalizations {
   AppLocalizationsUz([String locale = 'uz']) : super(locale);
 
   @override
-  String get appTitle => 'Yusmus';
+  String get appTitle => 'Diamoraa';
 
   @override
   String get welcomeTitle => 'Xush kelibsiz';

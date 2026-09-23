@@ -48,7 +48,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen">
       <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-card px-4 py-6">
         <div className="mb-6 px-2">
-          <p className="text-lg font-semibold">Yusmus</p>
+          <p className="text-lg font-semibold">Diamoraa</p>
           <p className="text-xs text-muted">Панель управления</p>
         </div>
         <nav className="flex-1 space-y-1">

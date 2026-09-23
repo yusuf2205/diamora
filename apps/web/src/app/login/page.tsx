@@ -37,7 +37,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6">
         <div>
-          <h1 className="text-xl font-semibold">Yusmus</h1>
+          <h1 className="text-xl font-semibold">Diamoraa</h1>
           <p className="text-sm text-muted">Панель управления</p>
         </div>
         <div className="space-y-1">

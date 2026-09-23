@@ -4,7 +4,7 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Yusmus',
+  title: 'Diamoraa',
   description: 'Home production control room — all data lives on our own NAS.',
   robots: { index: false, follow: false },
 };
