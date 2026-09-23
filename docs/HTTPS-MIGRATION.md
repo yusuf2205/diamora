@@ -6,12 +6,28 @@ path-routed (`/v1/*`, `/health/live`, `/socket.io/*` → API; everything else �
 and WebSocket all become `https://`/`wss://` automatically the moment the tunnel exists — **no code changes are
 needed on the server side**. This doc is the exact sequence to flip it on.
 
-## Current status: step 1 done, blocked on step 2-3 (owner)
+## Current status: live (2026-09-23) — one hardening item left (step 5b)
 
-Checked again (2026-09-23): `diamoraa.uz` now resolves via `danica.ns.cloudflare.com` / `milan.ns.cloudflare.com` —
-step 1 is done. Checked the NAS's `.env`: `CLOUDFLARE_TUNNEL_TOKEN` is present but empty — the Tunnel itself hasn't
-been created yet. Nothing past step 2 can proceed until that token is set (it's a secret; I never write it myself —
-see step 3).
+`https://diamoraa.uz` is live: DNS, Tunnel, and the Public Hostname route are all up (`cloudflared tunnel healthy` in
+`verify-stack.sh`), `PUBLIC_URL=https://diamoraa.uz` on the NAS, the web panel and API are on one HTTPS origin, and
+the owner confirmed a real login through it. Steps 1-4 and 8 (mobile dart-define still pending an APK rebuild once
+the phone reconnects) are done.
+
+Found and fixed along the way: right after the `PUBLIC_URL` switch, the web image still had the *old* LAN
+`NEXT_PUBLIC_API_URL` baked in from its previous build (it's a Next.js build-time env var, not read at runtime) —
+the owner's browser, on the HTTPS page, tried to call the plain-HTTP LAN API and got blocked as mixed content
+("Не удалось войти" with no specific error code). Fixed by rebuilding the web image after the `.env` change
+(`docker compose up -d --build`), which re-bakes `NEXT_PUBLIC_API_URL` from the new `PUBLIC_URL`.
+
+**Remaining (step 5b): Cloudflare "Always Use HTTPS" is off.** `curl http://diamoraa.uz/login` returns `200` instead
+of a redirect to `https://` — the master prompt's HTTP→HTTPS redirect check. Not a functional blocker (everyone's
+actually landing on `https://` already via the app/bookmarks), but plain-HTTP requests aren't forced to upgrade.
+Owner action: Cloudflare dashboard → the `diamoraa.uz` zone → SSL/TLS → Edge Certificates → toggle **Always Use
+HTTPS** on. I can re-verify the redirect once that's flipped.
+
+Not yet explicitly checked: WebSocket (`wss://`) upgrade through the tunnel, and a file upload/download round-trip
+over HTTPS (both should work automatically — same origin, same Caddy routing as before — but haven't been
+exercised end-to-end since the switch).
 
 ## Steps
 
