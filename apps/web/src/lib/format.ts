@@ -1,4 +1,5 @@
 import { LOCATION_LIVE_SECONDS, LOCATION_RECENT_SECONDS } from '@yusmus/shared';
+import { ApiError } from './api';
 
 /** LIVE / RECENT / STALE (M2 §17) — same thresholds as the API and the Flutter app (packages/shared). A RECENT or
  * STALE point is never worded as if it were happening right now. */
@@ -52,3 +53,24 @@ const ASSIGNMENT_STATUS_TONE: Record<string, 'default' | 'ok' | 'danger' | 'warn
   COMPLETED: 'ok', CANCELLED: 'danger',
 };
 export const assignmentStatusTone = (status: string) => ASSIGNMENT_STATUS_TONE[status] ?? 'default';
+
+// Human, single global code -> message mapping (same idea as errorText() on mobile, apps/mobile/lib/core/ui/widgets.dart):
+// the raw API error code/message never reaches the screen. A screen that has already resolved a more specific message
+// (e.g. "не хватает материала: X") should show that locally instead of calling this.
+const ERROR_MESSAGES: Record<string, string> = {
+  FORBIDDEN: 'У вас нет доступа к этому действию',
+  UNAUTHENTICATED: 'Сессия истекла — войдите заново',
+  SESSION_REVOKED: 'Сессия истекла — войдите заново',
+  NOT_FOUND: 'Не найдено',
+  VALIDATION_FAILED: 'Проверьте введённые данные',
+  CONFLICT: 'Такое действие уже недоступно',
+  INVALID_TRANSITION: 'Это действие уже недоступно — статус изменился',
+  INSUFFICIENT_STOCK: 'Не хватает материала на складе',
+  RATE_LIMITED: 'Слишком много попыток, подождите немного',
+  INVALID_CREDENTIALS: 'Неверный телефон или пароль',
+};
+export function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) return ERROR_MESSAGES[error.code] ?? 'Не удалось выполнить действие';
+  if (error instanceof TypeError) return 'Нет соединения с сервером'; // fetch() network failure
+  return 'Не удалось выполнить действие';
+}

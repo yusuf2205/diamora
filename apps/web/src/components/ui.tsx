@@ -1,17 +1,31 @@
+import Link from 'next/link';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
-import { ApiError } from '@/lib/api';
+import { errorMessage } from '@/lib/format';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-lg border border-border bg-card p-5 ${className}`}>{children}</div>;
 }
 
-export function StatCard({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
-  return (
-    <Card>
+/** `href` makes the card a link to the exact filtered list it summarises — a card with no `href` is a plain stat
+ * (e.g. an aggregate with no single matching filter), never a button that does nothing. */
+export function StatCard({ label, value, hint, href }: { label: string; value: ReactNode; hint?: string; href?: string }) {
+  const body = (
+    <>
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-2xl font-semibold">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
-    </Card>
+    </>
+  );
+  if (href) return <Link href={href} className="block rounded-lg border border-border bg-card p-5 transition hover:border-primary/50 hover:bg-border/20">{body}</Link>;
+  return <Card>{body}</Card>;
+}
+
+export function StatCardSkeleton() {
+  return (
+    <div className="rounded-lg border border-border bg-card p-5">
+      <div className="h-3.5 w-20 animate-pulse rounded bg-border" />
+      <div className="mt-2 h-7 w-12 animate-pulse rounded bg-border" />
+    </div>
   );
 }
 
@@ -65,9 +79,17 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-export function ErrorState({ error }: { error: unknown }) {
-  const message = error instanceof ApiError ? error.message : error instanceof Error ? error.message : 'Что-то пошло не так';
-  return <div className="rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm text-danger">{message}</div>;
+export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+      <span>{errorMessage(error)}</span>
+      {onRetry && (
+        <button onClick={onRetry} className="shrink-0 rounded-lg border border-danger/30 px-3 py-1 font-medium hover:bg-danger/10">
+          Повторить
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function Spinner() {
