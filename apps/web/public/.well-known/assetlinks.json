@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "uz.yusmus.yusmus_mobile",
+      "sha256_cert_fingerprints": [
+        "BA:92:CE:37:66:5C:A0:89:73:55:47:99:FE:1B:47:E6:90:B9:0E:3A:F7:E6:0E:FE:4B:96:F0:E7:1E:C2:B6:7B"
+      ]
+    }
+  }
+]
