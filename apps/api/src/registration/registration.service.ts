@@ -1,18 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { Prisma, type WorkerProfile } from '@yusmus/database';
 import { advance, initialRegState, parseUzs, type RegInput, type RegState } from '@yusmus/shared';
 import { AuditService } from '../audit/audit.service';
+import { ENV, Env } from '../config/env';
 import { EventBus } from '../events/events.module';
 import { FilesService } from '../files/files.service';
 import { PrismaService } from '../prisma/prisma.module';
-import { nextCode, type Tx } from '../common/sequence';
+import { newOpaqueToken, nextCode, sha256, type Tx } from '../common/sequence';
 import { money } from '../common/serialize';
 import type { BotError, BotPrompt, BotReply, RegSummary } from './texts';
 
-/** Channel-agnostic input: the bot process translates Telegram updates into this (D-005). */
+/** Channel-agnostic input: the bot process translates Telegram updates into this (D-005). `payload` is the
+ * `/start <payload>` deep-link parameter (§ WORKER Telegram-only auth) — absent for an organic `/start`. */
 export type BotInput =
-  | { kind: 'command'; command: 'start' | 'cancel' }
+  | { kind: 'command'; command: 'start' | 'cancel'; payload?: string }
   | { kind: 'text'; text: string }
   | { kind: 'contact'; phone: string; contactUserId: number | null }
   | { kind: 'location'; latitude: number; longitude: number }
@@ -38,6 +40,7 @@ export class RegistrationService {
     private readonly files: FilesService,
     private readonly audit: AuditService,
     private readonly events: EventBus,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   async process(ctx: BotContext, input: BotInput): Promise<BotReply> {
@@ -55,7 +58,10 @@ export class RegistrationService {
 
   private async handle(tx: Tx, ctx: BotContext, input: BotInput, after: Array<() => Promise<void>>): Promise<BotReply> {
     const worker = await tx.workerProfile.findUnique({ where: { telegramUserId: ctx.telegramUserId } });
-    if (worker) return this.existingWorker(tx, worker, input, after);
+    if (worker) return this.existingWorker(tx, ctx, worker, input, after);
+
+    const startPayload = input.kind === 'command' && input.command === 'start' ? input.payload : undefined;
+    if (startPayload) await this.linkTelegramSession(tx, ctx, startPayload); // side effect only: never changes the questionnaire itself
 
     let draft = await tx.registrationDraft.findUnique({ where: { telegramUserId: ctx.telegramUserId } });
     if (input.kind === 'command' && input.command === 'cancel') {
@@ -93,17 +99,58 @@ export class RegistrationService {
     }
 
     if (r.submit) {
-      const created = await this.finalize(tx, ctx, r.state, photoIds, after);
-      if (!created) {
+      const workerId = await this.finalize(tx, ctx, r.state, photoIds, after);
+      if (!workerId) {
         const back: RegState = { ...r.state, step: 'PHONE', returnToConfirm: true };
         await tx.registrationDraft.update({ where: { telegramUserId: ctx.telegramUserId }, data: { state: back as unknown as Prisma.InputJsonValue, photoFileIds: photoIds } });
         return { ...this.replyFor(back), error: 'PHONE_TAKEN' };
       }
-      return { prompt: 'SUBMITTED' };
+      // one tap already covered "confirm" (the questionnaire's own ✅ Подтвердить) — if it arrived via the app's
+      // Telegram-login deep link, the SAME reply also carries the handoff button: no second, separate confirmation.
+      const telegramHandoffUrl = await this.issueHandoffTicketIfLinked(tx, ctx, workerId);
+      return telegramHandoffUrl ? { prompt: 'SUBMITTED', telegramHandoffUrl } : { prompt: 'SUBMITTED' };
     }
 
     await tx.registrationDraft.update({ where: { telegramUserId: ctx.telegramUserId }, data: { state: r.state as unknown as Prisma.InputJsonValue, photoFileIds: photoIds } });
     return this.replyFor(r.state);
+  }
+
+  // ---- WORKER Telegram-only login: app-initiated session <-> this Telegram identity, then a one-time handoff ticket ----
+  /** Links a `/start <token>` deep-link token to this Telegram user. Fails closed (silently, as if absent) on any
+   * expired/unknown/foreign token — an organic `/start` (no payload) never reaches here at all. */
+  private async linkTelegramSession(tx: Tx, ctx: BotContext, payload: string): Promise<string | null> {
+    const row = await tx.telegramLoginSession.findUnique({ where: { tokenHash: sha256(payload) } });
+    if (!row || row.expiresAt <= new Date()) return null;
+    if (row.telegramUserId !== null) return row.telegramUserId === ctx.telegramUserId ? row.id : null; // §18: a foreign token never links
+    await tx.telegramLoginSession.update({ where: { id: row.id }, data: { telegramUserId: ctx.telegramUserId, chatId: ctx.chatId, linkedAt: new Date() } });
+    await this.audit.record({ action: 'worker.telegram_linked', entity: 'TelegramLoginSession', entityId: row.id, actorId: null, actorRole: 'WORKER' }, tx);
+    return row.id;
+  }
+
+  /** Only if THIS telegramUserId has a session linked (and not yet turned into an unconsumed ticket for this same
+   * worker) — a bot conversation that never went through the app's "Войти через Telegram" gets no button, ever. */
+  private async issueHandoffTicketIfLinked(tx: Tx, ctx: BotContext, workerId: string): Promise<string | null> {
+    const session = await tx.telegramLoginSession.findFirst({
+      where: { telegramUserId: ctx.telegramUserId, linkedAt: { not: null }, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return session ? this.issueHandoffTicket(tx, session.id, ctx, workerId) : null;
+  }
+
+  private async issueHandoffTicket(tx: Tx, sessionId: string, ctx: BotContext, workerId: string): Promise<string> {
+    const token = newOpaqueToken();
+    const expiresAt = new Date(Date.now() + this.env.TELEGRAM_HANDOFF_TICKET_TTL_MINUTES * 60_000);
+    await tx.telegramHandoffTicket.create({ data: { tokenHash: sha256(token), sessionId, telegramUserId: ctx.telegramUserId, workerId, expiresAt } });
+    return `${this.env.PUBLIC_API_URL}/app/auth/telegram?t=${token}`;
+  }
+
+  private statusReply(w: WorkerProfile): BotReply {
+    switch (w.status) {
+      case 'PENDING_APPROVAL': return { prompt: 'STATUS_PENDING' };
+      case 'REJECTED': return { prompt: 'STATUS_REJECTED', rejectedReason: w.rejectedReason };
+      case 'ACTIVE': return { prompt: 'STATUS_ACTIVE' };
+      default: return { prompt: 'STATUS_PAUSED' };
+    }
   }
 
   private replyFor(state: RegState): BotReply {
@@ -120,7 +167,7 @@ export class RegistrationService {
     return reply;
   }
 
-  private async existingWorker(tx: Tx, w: WorkerProfile, input: BotInput, after: Array<() => Promise<void>>): Promise<BotReply> {
+  private async existingWorker(tx: Tx, ctx: BotContext, w: WorkerProfile, input: BotInput, after: Array<() => Promise<void>>): Promise<BotReply> {
     if (input.kind === 'location' && Math.abs(input.latitude) <= 90 && Math.abs(input.longitude) <= 180) {
       const now = new Date();
       await tx.workerProfile.update({ where: { id: w.id }, data: { latitude: input.latitude, longitude: input.longitude, locationReceivedAt: now } });
@@ -129,12 +176,16 @@ export class RegistrationService {
       after.push(() => this.events.publish('worker.location.updated', { workerId: w.id, latitude: input.latitude, longitude: input.longitude, receivedAt: now.toISOString() }));
       return { prompt: 'LOCATION_UPDATED' };
     }
-    switch (w.status) {
-      case 'PENDING_APPROVAL': return { prompt: 'STATUS_PENDING' };
-      case 'REJECTED': return { prompt: 'STATUS_REJECTED', rejectedReason: w.rejectedReason };
-      case 'ACTIVE': return { prompt: 'STATUS_ACTIVE' };
-      default: return { prompt: 'STATUS_PAUSED' };
+    // WORKER Telegram-only login (§): this bot conversation IS the login for a returning worker. One tap on the
+    // handoff button that follows — whatever the status text says — opens Diamoraa straight to the right screen.
+    if (input.kind === 'command' && input.command === 'start' && input.payload) {
+      const sessionId = await this.linkTelegramSession(tx, ctx, input.payload);
+      if (sessionId) {
+        const telegramHandoffUrl = await this.issueHandoffTicket(tx, sessionId, ctx, w.id);
+        return { ...this.statusReply(w), telegramHandoffUrl };
+      }
     }
+    return this.statusReply(w);
   }
 
   /**
@@ -142,8 +193,9 @@ export class RegistrationService {
    * by an existing worker OR by a staff account — checked here, at submit time, not only later when the approving
    * admin hits the `User` collision (by then the registration looks "done" and the phone-owner would have to be
    * told to fix it after the fact). Same generic reply either way: never reveals who already holds the number.
+   * Returns the new worker's id on success (so a linked Telegram login session can be handed a ticket for it).
    */
-  private async finalize(tx: Tx, ctx: BotContext, state: RegState, photoIds: string[], after: Array<() => Promise<void>>): Promise<boolean> {
+  private async finalize(tx: Tx, ctx: BotContext, state: RegState, photoIds: string[], after: Array<() => Promise<void>>): Promise<string | false> {
     const d = state.data;
     const phoneTaken = await tx.workerProfile.findUnique({ where: { phone: d.phone as string }, select: { id: true } });
     const staffPhoneTaken = phoneTaken ? null : await tx.user.findUnique({ where: { phone: d.phone as string }, select: { id: true } });
@@ -178,7 +230,7 @@ export class RegistrationService {
 
     after.push(() => this.events.publish('worker.created', { workerId: worker.id, code: worker.code, fullName: worker.fullName, status: worker.status }));
     after.push(() => this.events.publish('collateral.created', { collateralId: collateral.id, workerId: worker.id, type: collateral.type, status: collateral.status }));
-    return true;
+    return worker.id;
   }
 }
 

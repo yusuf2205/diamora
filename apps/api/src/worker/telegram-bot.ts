@@ -5,13 +5,14 @@ import { RegistrationService, type BotInput } from '../registration/registration
 import { parseAction, render, type BotKeyboard } from '../registration/texts';
 import type { TelegramSender } from './outbox';
 
-const toMarkup = (k: BotKeyboard) =>
-  k.type === 'remove'
-    ? { remove_keyboard: true as const }
-    : {
-        keyboard: k.rows.map((row) => row.map((b) => ({ text: b.text, request_contact: b.requestContact, request_location: b.requestLocation }))),
-        resize_keyboard: true,
-      };
+const toMarkup = (k: BotKeyboard) => {
+  if (k.type === 'remove') return { remove_keyboard: true as const };
+  if (k.type === 'inline') return { inline_keyboard: [[{ text: k.text, url: k.url }]] };
+  return {
+    keyboard: k.rows.map((row) => row.map((b) => ({ text: b.text, request_contact: b.requestContact, request_location: b.requestLocation }))),
+    resize_keyboard: true,
+  };
+};
 
 /**
  * Telegram INTERFACE only (D-005): translates updates into `BotInput`, calls RegistrationService (all business logic),
@@ -43,7 +44,7 @@ export class TelegramBot implements TelegramSender {
       await ctx.reply(r.text, { reply_markup: toMarkup(r.keyboard) });
     };
 
-    bot.command('start', (ctx) => handle(ctx, { kind: 'command', command: 'start' }));
+    bot.command('start', (ctx) => handle(ctx, { kind: 'command', command: 'start', payload: ctx.match ? String(ctx.match) : undefined }));
     bot.command('cancel', (ctx) => handle(ctx, { kind: 'command', command: 'cancel' }));
     bot.on('message:contact', (ctx) => handle(ctx, { kind: 'contact', phone: ctx.message.contact.phone_number, contactUserId: ctx.message.contact.user_id ?? null }));
     bot.on('message:location', (ctx) => handle(ctx, { kind: 'location', latitude: ctx.message.location.latitude, longitude: ctx.message.location.longitude }));

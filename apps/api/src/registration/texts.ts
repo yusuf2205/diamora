@@ -29,10 +29,14 @@ export interface BotReply {
   summary?: RegSummary;
   photoCount?: number;
   rejectedReason?: string | null;
+  /** WORKER Telegram-only login (§): set only when this Telegram user has a linked app login session — never present
+   * for an organic bot conversation. Renders as ONE inline URL button, replacing whatever keyboard the prompt would
+   * otherwise show, so confirming (or just reading a status) and opening Diamoraa is a single tap. */
+  telegramHandoffUrl?: string;
 }
 
 export interface BotButton { text: string; requestContact?: boolean; requestLocation?: boolean }
-export type BotKeyboard = { type: 'remove' } | { type: 'reply'; rows: BotButton[][] };
+export type BotKeyboard = { type: 'remove' } | { type: 'reply'; rows: BotButton[][] } | { type: 'inline'; text: string; url: string };
 export interface Rendered { text: string; keyboard: BotKeyboard }
 
 // ---- buttons (text buttons only: no callback queries, so a restart can never orphan a button) --------------------------------
@@ -109,7 +113,10 @@ export function summaryText(s: RegSummary): string {
 
 export function render(r: BotReply): Rendered {
   const err = r.error ? `${ERRORS[r.error]}\n\n` : '';
-  const ask = (text: string, keyboard: BotKeyboard = REMOVE): Rendered => ({ text: err + text, keyboard });
+  const ask = (text: string, keyboard: BotKeyboard = REMOVE): Rendered => ({
+    text: err + text,
+    keyboard: r.telegramHandoffUrl ? { type: 'inline', text: BTN.confirm, url: r.telegramHandoffUrl } : keyboard,
+  });
   switch (r.prompt) {
     case 'WELCOME':
       return ask('Здравствуйте! Давайте познакомимся — это займёт пару минут.\n\nНапишите ваши фамилию и имя.');
@@ -139,13 +146,19 @@ export function render(r: BotReply): Rendered {
     case 'EDIT_MENU':
       return ask('Что хотите изменить?', kb([{ text: BTN.editName }, { text: BTN.editPhone }], [{ text: BTN.editSecondary }, { text: BTN.editLocation }], [{ text: BTN.editCollateral }, { text: BTN.editNote }], [{ text: BTN.back }]));
     case 'SUBMITTED':
-      return ask('Спасибо! Заявка отправлена. Мы сообщим о решении здесь, в Telegram.');
+      return ask(
+        r.telegramHandoffUrl
+          ? 'Спасибо! Заявка отправлена. Нажмите «Подтвердить», чтобы открыть Diamoraa.'
+          : 'Спасибо! Заявка отправлена. Мы сообщим о решении здесь, в Telegram.',
+      );
     case 'CANCELLED':
       return ask('Регистрация отменена. Чтобы начать заново, отправьте /start.');
     case 'STATUS_PENDING':
       return ask('Ваша заявка на рассмотрении. Мы сообщим о решении здесь, в Telegram.');
     case 'STATUS_ACTIVE':
-      return ask('Вы зарегистрированы ✅ Откройте приложение и запросите код входа — он придёт сюда.');
+      return ask(
+        r.telegramHandoffUrl ? 'С возвращением! Нажмите «Подтвердить», чтобы открыть Diamoraa.' : 'Вы уже зарегистрированы ✅ Чтобы войти, откройте Diamoraa и нажмите «Войти через Telegram».',
+      );
     case 'STATUS_PAUSED':
       return ask('Ваш профиль временно приостановлен. Свяжитесь с администратором.');
     case 'STATUS_REJECTED':
