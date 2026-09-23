@@ -153,7 +153,13 @@ class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen>
           final item = k.items.where((i) => i.materialId == materialId).firstOrNull;
           if (item != null) { name = item.materialName; break; }
         }
-        if (mounted) showError(context, ApiException(code: e.code, message: name != null ? l.insufficientStockDetail(name) : l.insufficientStockGeneric));
+        // showError()/errorText() map INSUFFICIENT_STOCK to a fixed generic sentence (the right default for a caller
+        // that hasn't resolved a material name) - bypass it here so the material name actually reaches the screen.
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(name != null ? l.insufficientStockDetail(name) : l.insufficientStockGeneric), backgroundColor: Theme.of(context).colorScheme.error));
+        }
       } else {
         if (mounted) showError(context, e);
       }

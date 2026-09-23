@@ -660,6 +660,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get insufficientStockGeneric => 'Omborda material yetarli emas';
 
   @override
+  String get statusChangedMeanwhile =>
+      'Bu amal endi mavjud emas, chunki topshiriq holati o\'zgardi.';
+
+  @override
   String insufficientStockDetail(String material) {
     return 'Material yetarli emas: $material';
   }
@@ -843,6 +847,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get payoutNothingDue => 'Toʻlanadigan: 0 soʻm';
+
+  @override
+  String get payoutExceedsBalance => 'Summa ustaga tegishli miqdordan katta';
 
   @override
   String get earningsEarned => 'Ishlab topildi';

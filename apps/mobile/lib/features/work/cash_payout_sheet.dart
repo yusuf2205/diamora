@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/network/api_exception.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'assignment_admin_repository.dart';
@@ -89,7 +90,15 @@ class _CashPayoutSheetState extends ConsumerState<_CashPayoutSheet> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.payoutSuccess)));
     } catch (e) {
-      if (mounted) showError(context, e);
+      // the server's INVARIANT_VIOLATION here always means "amount > balance" (the only invariant this endpoint has) -
+      // a plain, specific message beats the generic mapping, which would otherwise show the raw server sentence (§34)
+      if (mounted) {
+        if (e is ApiException && e.code == 'INVARIANT_VIOLATION') {
+          showError(context, ApiException(code: e.code, message: l.payoutExceedsBalance));
+        } else {
+          showError(context, e);
+        }
+      }
       if (mounted) setState(() => _busy = false);
     }
   }

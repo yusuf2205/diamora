@@ -1322,6 +1322,12 @@ abstract class AppLocalizations {
   /// **'Не хватает материалов на складе'**
   String get insufficientStockGeneric;
 
+  /// No description provided for @statusChangedMeanwhile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это действие уже недоступно, потому что статус задания изменился.'**
+  String get statusChangedMeanwhile;
+
   /// No description provided for @insufficientStockDetail.
   ///
   /// In ru, this message translates to:
@@ -1675,6 +1681,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'К выплате: 0 сум'**
   String get payoutNothingDue;
+
+  /// No description provided for @payoutExceedsBalance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сумма больше, чем причитается мастерице'**
+  String get payoutExceedsBalance;
 
   /// No description provided for @earningsEarned.
   ///

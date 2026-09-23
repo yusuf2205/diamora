@@ -91,6 +91,8 @@ String errorText(BuildContext context, Object error) {
         return l.checkYourInput;
       case 'INSUFFICIENT_STOCK':
         return l.insufficientStockGeneric;
+      case 'INVALID_TRANSITION':
+        return l.statusChangedMeanwhile;
       default:
         return error.message;
     }

@@ -657,6 +657,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get insufficientStockGeneric => 'Не хватает материалов на складе';
 
   @override
+  String get statusChangedMeanwhile =>
+      'Это действие уже недоступно, потому что статус задания изменился.';
+
+  @override
   String insufficientStockDetail(String material) {
     return 'Не хватает материала: $material';
   }
@@ -839,6 +843,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get payoutNothingDue => 'К выплате: 0 сум';
+
+  @override
+  String get payoutExceedsBalance => 'Сумма больше, чем причитается мастерице';
 
   @override
   String get earningsEarned => 'Заработано';

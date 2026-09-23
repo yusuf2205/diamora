@@ -218,6 +218,7 @@
   "workNoCurrentHint": "Sizga topshiriq berilishi bilan u shu yerda paydo boʻladi",
   "workPickedUp": "Oldim",
   "insufficientStockGeneric": "Omborda material yetarli emas",
+  "statusChangedMeanwhile": "Bu amal endi mavjud emas, chunki topshiriq holati o'zgardi.",
   "insufficientStockDetail": "Material yetarli emas: {material}",
   "@insufficientStockDetail": { "placeholders": { "material": { "type": "String" } } },
   "back": "Orqaga",
@@ -285,6 +286,7 @@
   "payoutSubmit": "Toʻlash",
   "payoutSuccess": "Toʻlov yozildi",
   "payoutNothingDue": "Toʻlanadigan: 0 soʻm",
+  "payoutExceedsBalance": "Summa ustaga tegishli miqdordan katta",
 
   "earningsEarned": "Ishlab topildi",
   "earningsPaid": "Toʻlandi",

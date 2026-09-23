@@ -223,6 +223,7 @@
   "workNoCurrentHint": "Как только вам назначат задание, оно появится здесь",
   "workPickedUp": "Забрал",
   "insufficientStockGeneric": "Не хватает материалов на складе",
+  "statusChangedMeanwhile": "Это действие уже недоступно, потому что статус задания изменился.",
   "insufficientStockDetail": "Не хватает материала: {material}",
   "@insufficientStockDetail": { "placeholders": { "material": { "type": "String" } } },
   "back": "Назад",
@@ -290,6 +291,7 @@
   "payoutSubmit": "Выплатить",
   "payoutSuccess": "Выплата записана",
   "payoutNothingDue": "К выплате: 0 сум",
+  "payoutExceedsBalance": "Сумма больше, чем причитается мастерице",
 
   "earningsEarned": "Заработано",
   "earningsPaid": "Выплачено",
