@@ -7,9 +7,11 @@ import WorkerDetailPage from '@/app/(app)/workers/[id]/page';
 import { errorResponse, mockFetch, renderWithProviders, signIn } from './helpers';
 
 const push = vi.fn();
+let searchParams = new URLSearchParams();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
   useParams: () => ({ id: 'a1' }),
+  useSearchParams: () => searchParams,
 }));
 
 const ME = { id: 'sa1', fullName: 'Owner', phone: '+998901112233', role: 'SUPER_ADMIN' as const, workerId: null, permissions: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT', 'CASH_PAYOUT', 'FINANCE_VIEW_ALL'] };

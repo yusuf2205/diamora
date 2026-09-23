@@ -9,15 +9,21 @@ let currentPath = '/';
 export function setPathname(path: string) {
   currentPath = path;
 }
+let currentSearchParams = new URLSearchParams();
+export function setSearchParams(params: Record<string, string>) {
+  currentSearchParams = new URLSearchParams(params);
+}
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, replace, refresh: vi.fn(), back: vi.fn() }),
   usePathname: () => currentPath,
   useParams: () => ({ id: 'item-1' }),
+  useSearchParams: () => currentSearchParams,
 }));
 
 beforeEach(() => {
   currentPath = '/';
+  currentSearchParams = new URLSearchParams();
   window.localStorage.clear();
 });
 
