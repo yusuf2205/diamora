@@ -217,6 +217,8 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET_PREFIX: ${S3_BUCKET_PREFIX:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env (@BotFather)}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-diamora1_bot}
+      PUBLIC_API_URL: ${PUBLIC_URL:?set PUBLIC_URL in .env (no trailing slash)}
       WORKER_HEALTH_PORT: "3100"
       TZ: UTC
     networks: [data, egress]
