@@ -1,8 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { io, type Socket } from 'socket.io-client';
 import type { RealtimeEnvelope } from '@yusmus/shared';
 import request from 'supertest';
 import {
-  adminActor, approveAndLoginWorker, client, createTestApp, registerViaBot, staffActor, superAdminActor, TestApp,
+  adminActor, approveAndLoginWorker, client, createAdmin, createTestApp, PASSWORD, registerViaBot, staffActor, superAdminActor, TestApp,
 } from './support/app';
 
 const until = async (cond: () => boolean, ms = 3000) => {
@@ -16,6 +17,8 @@ describe('RBAC (D-028): SUPER_ADMIN / ADMIN / MANAGER / WORKER, permissions, man
   let t: TestApp;
   beforeAll(async () => (t = await createTestApp()));
   afterAll(() => t.close());
+  const dev = () => ({ installId: randomUUID(), platform: 'ANDROID' });
+  const post = (url: string, body: object) => request(t.app.getHttpServer()).post(url).send(body);
 
   it('a fresh SUPER_ADMIN has every permission; ADMIN and MANAGER get the documented defaults; WORKER has none', async () => {
     const superAdmin = await superAdminActor(t);
@@ -55,6 +58,26 @@ describe('RBAC (D-028): SUPER_ADMIN / ADMIN / MANAGER / WORKER, permissions, man
     await admin.api.post(`/v1/users/${otherSuperAdmin.user.id}/status`, { status: 'SUSPENDED' }).expect(403); // strictly lower rank only
     await admin.api.put(`/v1/users/${otherSuperAdmin.user.id}/role`, { role: 'MANAGER' }).expect(403);
     await admin.api.patch(`/v1/users/${otherSuperAdmin.user.id}`, { fullName: 'Renamed' }).expect(403);
+  });
+
+  it('SUPER_ADMIN successfully changes a MANAGER to ADMIN: it takes effect, is audited, and the old session dies immediately', async () => {
+    const superAdmin = await superAdminActor(t);
+    const manager = await staffActor(t, 'MANAGER');
+    const before = await client(t, manager.session.accessToken).get('/v1/auth/me').expect(200);
+    expect(before.body.role).toBe('MANAGER');
+
+    const res = await superAdmin.api.put(`/v1/users/${manager.user.id}/role`, { role: 'ADMIN' }).expect(200);
+    expect(res.body.role).toBe('ADMIN');
+    expect((await t.prisma.user.findUniqueOrThrow({ where: { id: manager.user.id } })).role).toBe('ADMIN');
+    expect(await t.prisma.auditLog.findFirst({ where: { action: 'user.role_change', entityId: manager.user.id } })).toMatchObject({ before: { role: 'MANAGER' }, after: { role: 'ADMIN' } });
+    // the OLD token is dead: a fresh login is required to pick up the new role, exactly like the mobile/web session model expects
+    await client(t, manager.session.accessToken).get('/v1/auth/me').expect(401);
+  });
+
+  it('a client-supplied role in the login body is ignored: only the server-known role ever comes back', async () => {
+    const u = await createAdmin(t);
+    const res = await post('/v1/auth/admin/login', { phone: u.phone, password: PASSWORD, device: dev(), role: 'SUPER_ADMIN' } as never).expect(200);
+    expect(res.body.user.role).toBe('ADMIN'); // the field the client tried to sneak in changes nothing
   });
 
   it('only SUPER_ADMIN assigns roles or manages permissions; nobody changes their own role/status/permissions', async () => {
