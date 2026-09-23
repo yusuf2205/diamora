@@ -286,6 +286,40 @@ model WorkerLocation {
   @@map("worker_locations")
 }
 
+/// App-initiated Telegram login handshake (WORKER auth is Telegram-only). The app creates this, gets back a
+/// `/start <token>` deep link; the bot links `telegramUserId` to it on receipt. `tokenHash` (sha256), not the raw
+/// token, is stored — same pattern as UserSession.refreshTokenHash. Short-lived (createSession picks the TTL).
+model TelegramLoginSession {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  tokenHash      String    @unique
+  installId      String
+  telegramUserId BigInt?
+  chatId         BigInt?
+  linkedAt       DateTime? @db.Timestamptz(3)
+  expiresAt      DateTime  @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([telegramUserId])
+  @@map("telegram_login_sessions")
+}
+
+/// One-time ticket behind the bot's final "Подтвердить" button (§ handoff). Never a password, never a JWT, never a
+/// client-trusted role — POSTed to /auth/telegram/exchange, and the backend alone decides what (if anything) to issue,
+/// from `workerId` + that worker's CURRENT status at exchange time (never a status snapshotted at issue time).
+model TelegramHandoffTicket {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  tokenHash      String    @unique
+  sessionId      String    @db.Uuid
+  telegramUserId BigInt
+  workerId       String?   @db.Uuid
+  expiresAt      DateTime  @db.Timestamptz(3)
+  consumedAt     DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([sessionId])
+  @@map("telegram_handoff_tickets")
+}
+
 /// Telegram bot conversation state (D-005): survives bot restarts.
 model RegistrationDraft {
   telegramUserId BigInt   @id

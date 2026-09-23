@@ -35,12 +35,13 @@ export const deviceSchema = z.object({
 
 export const adminLoginSchema = z.object({ phone: phoneSchema, password: z.string().min(1).max(200), device: deviceSchema });
 export const workerCodeRequestSchema = z.object({ phone: phoneSchema });
-export const workerLoginSchema = z.object({
-  phone: phoneSchema,
-  code: z.string().regex(/^\d{6}$/, 'Code is 6 digits'),
-  device: deviceSchema,
-});
 export const refreshSchema = z.object({ refreshToken: z.string().min(20).max(512) });
+
+// WORKER auth is Telegram-only (no phone/password/OTP in the app): the app opens a login session (gets a `/start`
+// deep link token back), the Telegram bot links it to a telegramUserId and, once confirmed, issues a one-time
+// handoff ticket that this same device exchanges for a real session — never a password, never a JWT in a URL.
+export const telegramSessionSchema = z.object({ device: deviceSchema });
+export const telegramExchangeSchema = z.object({ ticket: z.string().min(16).max(200), device: deviceSchema });
 
 export const listWorkersSchema = paginationSchema.extend({
   status: z.enum(WORKER_STATUSES).optional(),
