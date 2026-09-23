@@ -1,4 +1,4 @@
-import { action, createTestApp, jpeg, nextTelegramId, registerViaBot, text, uniquePhone, TestApp } from './support/app';
+import { action, createStaff, createTestApp, jpeg, nextTelegramId, registerViaBot, text, uniquePhone, TestApp } from './support/app';
 
 describe('Telegram registration (business logic behind the bot)', () => {
   let t: TestApp;
@@ -83,6 +83,25 @@ describe('Telegram registration (business logic behind the bot)', () => {
     await send(action('skip'));
     const r = await send(action('confirm'));
     expect(r).toMatchObject({ prompt: 'ASK_PHONE', error: 'PHONE_TAKEN' });
+    expect(await t.prisma.workerProfile.count({ where: { telegramUserId: ctx.telegramUserId } })).toBe(0);
+  });
+
+  it('a phone already belonging to a staff account is rejected at registration submit time, not only when an admin later tries to approve it (PHONE_TAKEN, message never says who owns it)', async () => {
+    const staff = await createStaff(t, 'MANAGER');
+    const tgId = nextTelegramId();
+    const ctx = { telegramUserId: BigInt(tgId), chatId: BigInt(tgId) };
+    const send = (i: Parameters<typeof t.registration.process>[1]) => t.registration.process(ctx, i);
+    await send({ kind: 'command', command: 'start' });
+    await send(text('Третья Мастерица'));
+    await send({ kind: 'contact', phone: staff.phone.replace('+', ''), contactUserId: tgId });
+    await send(action('skip'));
+    await send({ kind: 'location', latitude: 41.3, longitude: 69.2 });
+    await send(action('type_money'));
+    await send(text('100000'));
+    await send(action('skip'));
+    const r = await send(action('confirm'));
+    expect(r).toMatchObject({ prompt: 'ASK_PHONE', error: 'PHONE_TAKEN' });
+    // no orphaned WorkerProfile left dangling for an admin to trip over at approval time
     expect(await t.prisma.workerProfile.count({ where: { telegramUserId: ctx.telegramUserId } })).toBe(0);
   });
 

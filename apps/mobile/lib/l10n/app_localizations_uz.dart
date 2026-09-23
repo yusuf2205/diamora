@@ -13,10 +13,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get appTitle => 'Yusmus';
 
   @override
-  String get iAmAdmin => 'Men administratorman';
-
-  @override
-  String get iAmWorker => 'Men ustaman';
+  String get welcomeTitle => 'Xush kelibsiz';
 
   @override
   String get phone => 'Telefon';
@@ -31,6 +28,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get signOut => 'Chiqish';
 
   @override
+  String get continueAction => 'Davom etish';
+
+  @override
   String get getCode => 'Telegramdan kod olish';
 
   @override
@@ -38,6 +38,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get codeHint => 'Telegramdagi kod (6 raqam)';
+
+  @override
+  String get resendCode => 'Kodni qayta yuborish';
 
   @override
   String get workerLoginHint =>
@@ -64,6 +67,17 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get phoneRequired => 'Telefon raqamini kiriting';
+
+  @override
+  String get invalidPhoneFormat => 'To\'g\'ri telefon raqamini kiriting';
+
+  @override
+  String get userNotFound =>
+      'Bu raqamli foydalanuvchi topilmadi. Administratorga murojaat qiling.';
+
+  @override
+  String get accountDisabled =>
+      'Hisobingiz faol emas. Administratorga murojaat qiling.';
 
   @override
   String get retry => 'Qayta urinish';

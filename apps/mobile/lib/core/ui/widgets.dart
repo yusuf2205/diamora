@@ -79,6 +79,10 @@ String errorText(BuildContext context, Object error) {
         return l.invalidCredentials;
       case 'INVALID_CODE':
         return l.invalidCode;
+      case 'USER_NOT_FOUND':
+        return l.userNotFound;
+      case 'ACCOUNT_DISABLED':
+        return l.accountDisabled;
       case 'RATE_LIMITED':
         return l.tooManyAttempts;
       case 'NETWORK':

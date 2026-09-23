@@ -4,7 +4,7 @@ import type { User, UserSession } from '@yusmus/database';
 import { isStaffRole, type Permission, type Role } from '@yusmus/shared';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
-import { AppError, invalidCode, invalidCredentials, notFound, rateLimited, sessionRevoked, unauthenticated } from '../common/errors';
+import { accountDisabled, AppError, invalidCode, invalidCredentials, notFound, rateLimited, sessionRevoked, unauthenticated, userNotFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { ENV, Env } from '../config/env';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -43,10 +43,26 @@ export class AuthService {
     }
     if (user.status !== 'ACTIVE') {
       await this.attempt(input.phone, meta.ip, false, 'account_disabled');
-      throw new AppError('ACCOUNT_DISABLED', 'This account is disabled', 403);
+      throw accountDisabled();
     }
     await this.attempt(input.phone, meta.ip, true, 'login');
     return this.createSession(user, input.device, meta);
+  }
+
+  // ---- unified login: the human only gives a phone, the server decides everything else ---------------------------------
+  /**
+   * Step 1 of the single Login Screen (no role selector, ever — the client never asks "who are you"). Looks up the
+   * phone, tells the client which second field to show next. WORKER: the code is requested here so the client can go
+   * straight to "enter code" without a second round trip. Never reveals staff vs worker beyond the method needed.
+   */
+  async identify(phone: string, meta: ClientMeta): Promise<{ method: 'PASSWORD' | 'CODE' }> {
+    await this.assertNotThrottled(phone, meta.ip);
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) throw userNotFound();
+    if (user.status !== 'ACTIVE') throw accountDisabled();
+    if (isStaffRole(user.role)) return { method: 'PASSWORD' };
+    await this.requestWorkerCode(phone, meta);
+    return { method: 'CODE' };
   }
 
   // ---- WORKER: one-time code delivered by the Telegram bot -----------------------------------------------------------
@@ -87,7 +103,7 @@ export class AuthService {
     // single use: compare-and-set
     const used = await this.prisma.loginCode.updateMany({ where: { id: codeRow.id, usedAt: null }, data: { usedAt: new Date() } });
     if (used.count !== 1) throw invalidCode();
-    if (worker.user.status !== 'ACTIVE') throw new AppError('ACCOUNT_DISABLED', 'This account is disabled', 403);
+    if (worker.user.status !== 'ACTIVE') throw accountDisabled();
     await this.attempt(input.phone, meta.ip, true, 'login');
     return this.createSession(worker.user, input.device, meta);
   }

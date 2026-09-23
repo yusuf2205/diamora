@@ -104,17 +104,11 @@ abstract class AppLocalizations {
   /// **'Yusmus'**
   String get appTitle;
 
-  /// No description provided for @iAmAdmin.
+  /// No description provided for @welcomeTitle.
   ///
   /// In ru, this message translates to:
-  /// **'Я администратор'**
-  String get iAmAdmin;
-
-  /// No description provided for @iAmWorker.
-  ///
-  /// In ru, this message translates to:
-  /// **'Я мастерица'**
-  String get iAmWorker;
+  /// **'Добро пожаловать'**
+  String get welcomeTitle;
 
   /// No description provided for @phone.
   ///
@@ -140,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Выйти'**
   String get signOut;
 
+  /// No description provided for @continueAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продолжить'**
+  String get continueAction;
+
   /// No description provided for @getCode.
   ///
   /// In ru, this message translates to:
@@ -157,6 +157,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Код из Telegram (6 цифр)'**
   String get codeHint;
+
+  /// No description provided for @resendCode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить код ещё раз'**
+  String get resendCode;
 
   /// No description provided for @workerLoginHint.
   ///
@@ -205,6 +211,24 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Введите номер телефона'**
   String get phoneRequired;
+
+  /// No description provided for @invalidPhoneFormat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите правильный номер телефона'**
+  String get invalidPhoneFormat;
+
+  /// No description provided for @userNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь с таким номером не найден. Обратитесь к администратору.'**
+  String get userNotFound;
+
+  /// No description provided for @accountDisabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш аккаунт отключён. Обратитесь к администратору.'**
+  String get accountDisabled;
 
   /// No description provided for @retry.
   ///

@@ -137,11 +137,17 @@ export class RegistrationService {
     }
   }
 
-  /** Creates worker + declared collateral in the caller's transaction. Returns false when the phone is already taken. */
+  /**
+   * Creates worker + declared collateral in the caller's transaction. Returns false when the phone is already taken
+   * by an existing worker OR by a staff account — checked here, at submit time, not only later when the approving
+   * admin hits the `User` collision (by then the registration looks "done" and the phone-owner would have to be
+   * told to fix it after the fact). Same generic reply either way: never reveals who already holds the number.
+   */
   private async finalize(tx: Tx, ctx: BotContext, state: RegState, photoIds: string[], after: Array<() => Promise<void>>): Promise<boolean> {
     const d = state.data;
     const phoneTaken = await tx.workerProfile.findUnique({ where: { phone: d.phone as string }, select: { id: true } });
-    if (phoneTaken) return false;
+    const staffPhoneTaken = phoneTaken ? null : await tx.user.findUnique({ where: { phone: d.phone as string }, select: { id: true } });
+    if (phoneTaken || staffPhoneTaken) return false;
     const now = new Date();
     const worker = await tx.workerProfile.create({
       data: {

@@ -2,7 +2,7 @@ import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { IS_AUTHENTICATED, IS_PUBLIC, PERMISSIONS_KEY, ROLES_KEY } from '../src/common/decorators';
-import { PASSWORD, adminActor, adminLogin, client, createAdmin, createTestApp, uniquePhone, TestApp } from './support/app';
+import { PASSWORD, adminActor, adminLogin, client, createAdmin, createTestApp, nextTelegramId, uniquePhone, TestApp } from './support/app';
 
 describe('authentication & sessions (ADMIN)', () => {
   let t: TestApp;
@@ -104,6 +104,30 @@ describe('authentication & sessions (ADMIN)', () => {
     }
     expect(routes).toBeGreaterThan(20);
     expect(undeclared).toEqual([]);
+  });
+
+  it('unified login (/auth/identify): the client only ever gives a phone, the server decides PASSWORD vs CODE — never a role picked by the client', async () => {
+    const admin = await createAdmin(t);
+    const staffRes = await post('/v1/auth/identify', { phone: admin.phone });
+    expect(staffRes.status).toBe(200);
+    expect(staffRes.body).toEqual({ method: 'PASSWORD' });
+
+    const worker = await t.prisma.user.create({ data: { phone: uniquePhone(), fullName: 'W', role: 'WORKER' } });
+    const tgId = nextTelegramId();
+    await t.prisma.workerProfile.create({ data: { userId: worker.id, phone: worker.phone, fullName: worker.fullName, status: 'ACTIVE', code: `W-${tgId % 10_000}`, telegramUserId: BigInt(tgId), telegramChatId: BigInt(tgId) } });
+    const workerRes = await post('/v1/auth/identify', { phone: worker.phone });
+    expect(workerRes.status).toBe(200);
+    expect(workerRes.body).toEqual({ method: 'CODE' });
+    expect(await t.prisma.loginCode.count({ where: { workerId: (await t.prisma.workerProfile.findUniqueOrThrow({ where: { userId: worker.id } })).id } })).toBeGreaterThan(0);
+
+    const unknown = await post('/v1/auth/identify', { phone: uniquePhone() });
+    expect(unknown.status).toBe(404);
+    expect(unknown.body.error.code).toBe('USER_NOT_FOUND');
+
+    await t.prisma.user.update({ where: { id: admin.id }, data: { status: 'SUSPENDED' } });
+    const disabled = await post('/v1/auth/identify', { phone: admin.phone });
+    expect(disabled.status).toBe(403);
+    expect(disabled.body.error.code).toBe('ACCOUNT_DISABLED');
   });
 
   it('health endpoints are public; errors use the uniform envelope with the request id', async () => {

@@ -13,10 +13,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get appTitle => 'Yusmus';
 
   @override
-  String get iAmAdmin => 'Я администратор';
-
-  @override
-  String get iAmWorker => 'Я мастерица';
+  String get welcomeTitle => 'Добро пожаловать';
 
   @override
   String get phone => 'Телефон';
@@ -31,6 +28,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get signOut => 'Выйти';
 
   @override
+  String get continueAction => 'Продолжить';
+
+  @override
   String get getCode => 'Получить код в Telegram';
 
   @override
@@ -38,6 +38,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get codeHint => 'Код из Telegram (6 цифр)';
+
+  @override
+  String get resendCode => 'Отправить код ещё раз';
 
   @override
   String get workerLoginHint =>
@@ -63,6 +66,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get phoneRequired => 'Введите номер телефона';
+
+  @override
+  String get invalidPhoneFormat => 'Введите правильный номер телефона';
+
+  @override
+  String get userNotFound =>
+      'Пользователь с таким номером не найден. Обратитесь к администратору.';
+
+  @override
+  String get accountDisabled =>
+      'Ваш аккаунт отключён. Обратитесь к администратору.';
 
   @override
   String get retry => 'Повторить';

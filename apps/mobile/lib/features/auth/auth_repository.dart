@@ -15,6 +15,13 @@ class AuthRepository {
         'appVersion': AppConfig.appVersion,
       };
 
+  /// Unified login step 1 (no role selector, ever): the server looks at the phone and says which field to show
+  /// next. WORKER: the server has already asked the Telegram bot to send the code as a side effect of this call.
+  Future<String> identify(String phone) async {
+    final res = await _api.postJson('/auth/identify', skipAuth: true, body: {'phone': phone});
+    return res['method'] as String; // 'PASSWORD' | 'CODE'
+  }
+
   Future<Session> adminLogin(String phone, String password, {String platform = 'ANDROID'}) async =>
       _finish(await _api.postJson('/auth/admin/login', skipAuth: true, body: {'phone': phone, 'password': password, 'device': await _device(platform)}));
 

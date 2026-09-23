@@ -19,6 +19,10 @@ const meta = (r: Request): ClientMeta => ({ ip: r.ip, userAgent: r.headers['user
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('identify') @HttpCode(200)
+  @ApiOperation({ summary: 'Unified login step 1: phone -> which method (PASSWORD/CODE) to show next. The client never picks a role.' }) @ApiZodBody(workerCodeRequestSchema)
+  identify(@ZodBody(workerCodeRequestSchema) b: z.output<typeof workerCodeRequestSchema>, @Req() r: Request) { return this.auth.identify(b.phone, meta(r)); }
+
   @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('admin/login') @HttpCode(200)
   @ApiOperation({ summary: 'ADMIN: phone + password' }) @ApiZodBody(adminLoginSchema)
   adminLogin(@ZodBody(adminLoginSchema) b: z.output<typeof adminLoginSchema>, @Req() r: Request) { return this.auth.adminLogin(b, meta(r)); }

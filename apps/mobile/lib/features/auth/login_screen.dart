@@ -7,7 +7,10 @@ import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
 
-/// ADMIN: phone + password. WORKER: phone -> one-time code that the Telegram bot sends to her chat.
+enum _Step { phone, password, code }
+
+/// The single Login Screen. The human only ever gives a phone number — never picks a role. The server (`/auth/identify`)
+/// decides whether the next field is a password (staff) or a Telegram code (worker) and opens the matching UI itself.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -15,8 +18,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  bool _admin = false;
-  bool _codeSent = false;
+  _Step _step = _Step.phone;
   bool _busy = false;
   final _phone = TextEditingController();
   final _password = TextEditingController();
@@ -30,6 +32,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  bool _looksLikePhone(String v) {
+    final digits = v.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 9 && digits.length <= 15;
+  }
+
   Future<void> _run(Future<void> Function() action) async {
     setState(() => _busy = true);
     try {
@@ -40,6 +47,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  void _submitPhone() {
+    final l = AppLocalizations.of(context);
+    final phone = _phone.text.trim();
+    if (phone.isEmpty) return showError(context, ApiException(code: 'VALIDATION_FAILED', message: l.phoneRequired));
+    if (!_looksLikePhone(phone)) return showError(context, ApiException(code: 'VALIDATION_FAILED', message: l.invalidPhoneFormat));
+    _run(() async {
+      final method = await ref.read(authRepositoryProvider).identify(phone);
+      if (!mounted) return;
+      setState(() => _step = method == 'PASSWORD' ? _Step.password : _Step.code);
+    });
+  }
+
+  void _resendCode() => _run(() => ref.read(authRepositoryProvider).identify(_phone.text.trim()));
+
+  void _back() => setState(() {
+        _step = _Step.phone;
+        _password.clear();
+        _code.clear();
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -56,43 +83,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Icon(Icons.diamond_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
                 Text(l.appTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 24),
-                SegmentedButton<bool>(
-                  segments: [ButtonSegment(value: false, label: Text(l.iAmWorker)), ButtonSegment(value: true, label: Text(l.iAmAdmin))],
-                  selected: {_admin},
-                  onSelectionChanged: (s) => setState(() {
-                    _admin = s.first;
-                    _codeSent = false;
-                  }),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  autofillHints: const [AutofillHints.telephoneNumber],
-                  decoration: InputDecoration(labelText: l.phone, hintText: '+998 90 123 45 67', prefixIcon: const Icon(Icons.phone_outlined)),
-                ),
-                const SizedBox(height: 12),
-                if (_admin) ...[
-                  TextField(controller: _password, obscureText: true, autofillHints: const [AutofillHints.password], decoration: InputDecoration(labelText: l.password, prefixIcon: const Icon(Icons.lock_outline))),
-                  const SizedBox(height: 20),
-                  FilledButton(onPressed: _busy ? null : () => _run(() => auth.adminLogin(_phone.text, _password.text)), child: Text(l.signIn)),
-                ] else if (!_codeSent) ...[
-                  Text(l.workerLoginHint, style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 20),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.send_outlined),
-                    onPressed: _busy
-                        ? null
-                        : () {
-                            if (_phone.text.trim().isEmpty) return showError(context, ApiException(code: 'VALIDATION_FAILED', message: l.phoneRequired));
-                            _run(() async {
-                              await ref.read(authRepositoryProvider).requestWorkerCode(_phone.text);
-                              if (mounted) setState(() => _codeSent = true);
-                            });
-                          },
-                    label: Text(l.getCode),
+                Text(l.welcomeTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 28),
+                if (_step != _Step.phone) ...[
+                  Row(children: [
+                    IconButton(onPressed: _busy ? null : _back, icon: const Icon(Icons.arrow_back)),
+                    Expanded(child: Text(_phone.text.trim(), style: Theme.of(context).textTheme.titleMedium)),
+                  ]),
+                  const SizedBox(height: 8),
+                ],
+                if (_step == _Step.phone) ...[
+                  TextField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    autofillHints: const [AutofillHints.telephoneNumber],
+                    decoration: InputDecoration(labelText: l.phone, hintText: '+998 90 123 45 67', prefixIcon: const Icon(Icons.phone_outlined)),
+                    onSubmitted: (_) => _busy ? null : _submitPhone(),
                   ),
+                  const SizedBox(height: 20),
+                  FilledButton(onPressed: _busy ? null : _submitPhone, child: Text(l.continueAction)),
+                ] else if (_step == _Step.password) ...[
+                  TextField(
+                    controller: _password,
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.password],
+                    decoration: InputDecoration(labelText: l.password, prefixIcon: const Icon(Icons.lock_outline)),
+                    onSubmitted: (_) => _busy ? null : _run(() => auth.adminLogin(_phone.text.trim(), _password.text)),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(onPressed: _busy ? null : () => _run(() => auth.adminLogin(_phone.text.trim(), _password.text)), child: Text(l.signIn)),
                 ] else ...[
                   Text(l.codeSent, style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: 12),
@@ -103,10 +122,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: const TextStyle(fontSize: 24, letterSpacing: 8),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(labelText: l.codeHint, counterText: ''),
+                    onSubmitted: (_) => _busy ? null : _run(() => auth.workerLogin(_phone.text.trim(), _code.text.trim())),
                   ),
                   const SizedBox(height: 12),
-                  FilledButton(onPressed: _busy ? null : () => _run(() => auth.workerLogin(_phone.text, _code.text.trim())), child: Text(l.signIn)),
-                  TextButton(onPressed: () => setState(() => _codeSent = false), child: Text(l.retry)),
+                  FilledButton(onPressed: _busy ? null : () => _run(() => auth.workerLogin(_phone.text.trim(), _code.text.trim())), child: Text(l.signIn)),
+                  TextButton(onPressed: _busy ? null : _resendCode, child: Text(l.resendCode)),
                 ],
                 if (_busy) const Padding(padding: EdgeInsets.only(top: 16), child: Center(child: CircularProgressIndicator())),
               ]),
