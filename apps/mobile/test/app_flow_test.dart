@@ -62,16 +62,18 @@ void main() {
     expect(find.text('Продолжить'), findsOneWidget);
   });
 
-  testWidgets('phone identifies as a WORKER: the server decides, sends the code itself, and the code field appears', (tester) async {
-    when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'method': 'CODE'});
+  testWidgets('phone identifies as a WORKER: no code field appears — she is pointed at the Telegram button instead', (tester) async {
+    when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'method': 'TELEGRAM_ONLY'});
     await tester.pumpWidget(await appWith(null, api));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '90 123 45 67');
     await tester.tap(find.text('Продолжить'));
     await tester.pumpAndSettle();
     verify(() => api.postJson('/auth/identify', body: {'phone': '90 123 45 67'}, skipAuth: true)).called(1);
-    expect(find.text('Код из Telegram (6 цифр)'), findsOneWidget);
+    expect(find.text('Мастерицы входят через Telegram — нажмите кнопку ниже.'), findsOneWidget);
     expect(find.text('Пароль'), findsNothing);
+    expect(find.text('Код из Telegram (6 цифр)'), findsNothing);
+    expect(find.text('Войти через Telegram'), findsOneWidget); // still on the phone step, button visible
   });
 
   testWidgets('phone identifies as STAFF: the password field appears, never a code field', (tester) async {
