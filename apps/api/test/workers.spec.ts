@@ -1,9 +1,8 @@
-import request from 'supertest';
 import { adminActor, approveAndLoginWorker, client, registerViaBot, TestApp, createTestApp, uniquePhone } from './support/app';
 
 describe('ADMIN approval, worker profile and worker login', () => {
   let t: TestApp;
-  beforeAll(async () => (t = await createTestApp({ LOGIN_CODE_MAX_ATTEMPTS: '3' })));
+  beforeAll(async () => (t = await createTestApp()));
   afterAll(() => t.close());
 
   it('ADMIN sees pending registrations with collateral summary and full detail (GPS included)', async () => {
@@ -62,47 +61,16 @@ describe('ADMIN approval, worker profile and worker login', () => {
     expect(note.body).toContain('Не подходит по условиям');
   });
 
-  it('WORKER login: code arrives through the Telegram outbox, is single-use, and the profile hides internal notes', async () => {
+  it('WORKER Telegram login: the profile hides internal notes (login mechanics: see telegram-auth.spec.ts)', async () => {
     const admin = await adminActor(t);
     const { phone } = await registerViaBot(t);
-    const { workerId, session, api, code } = await approveAndLoginWorker(t, admin.api, phone);
+    const { workerId, session, api } = await approveAndLoginWorker(t, admin.api, phone);
     expect(session.user).toMatchObject({ role: 'WORKER', workerId });
     await admin.api.patch(`/v1/workers/${workerId}`, { notes: 'внутренняя заметка' }).expect(200);
     const me = await api.get('/v1/workers/me').expect(200);
     expect(me.body).toMatchObject({ id: workerId, phone, status: 'ACTIVE', balance: '0' });
     expect(me.body).not.toHaveProperty('notes');
     expect(me.body.collaterals[0]).toMatchObject({ type: 'MONEY', status: 'HELD', amount: '1500000' });
-    // the same code cannot be used twice
-    const replay = await request(t.app.getHttpServer()).post('/v1/auth/worker/login').send({ phone, code, device: { installId: 'another-install-1', platform: 'ANDROID' } });
-    expect(replay.status).toBe(401);
-    expect(replay.body.error.code).toBe('INVALID_CODE');
-  });
-
-  it('WORKER login security: wrong codes are limited, unknown phones look identical, unapproved workers get no code', async () => {
-    const admin = await adminActor(t);
-    const { phone } = await registerViaBot(t);
-    const pendingWorkerId = (await admin.api.get(`/v1/workers?q=${phone.slice(-7)}`)).body.items[0].id;
-    // not approved yet: the API answers "sent" but creates nothing
-    await request(t.app.getHttpServer()).post('/v1/auth/worker/code').send({ phone }).expect(200);
-    expect(await t.prisma.loginCode.count({ where: { workerId: pendingWorkerId } })).toBe(0);
-    const ghost = await request(t.app.getHttpServer()).post('/v1/auth/worker/code').send({ phone: uniquePhone() }).expect(200);
-    expect(ghost.body).toEqual({ sent: true });
-
-    await admin.api.post(`/v1/workers/${pendingWorkerId}/approve`, {}).expect(201);
-    await request(t.app.getHttpServer()).post('/v1/auth/worker/code').send({ phone }).expect(200);
-    const real = (await t.prisma.notification.findFirstOrThrow({ where: { workerId: pendingWorkerId, type: 'login_code' } })).body!.match(/\d{6}/)![0];
-    const wrong = real === '000000' ? '111111' : '000000';
-    const dev = { installId: 'install-abcdef-1', platform: 'ANDROID' };
-    for (let i = 0; i < 3; i++) {
-      const r = await request(t.app.getHttpServer()).post('/v1/auth/worker/login').send({ phone, code: wrong, device: dev });
-      expect(r.body.error.code).toBe('INVALID_CODE');
-    }
-    // attempts exhausted: even the right code no longer works
-    const locked = await request(t.app.getHttpServer()).post('/v1/auth/worker/login').send({ phone, code: real, device: dev });
-    expect(locked.status).toBe(401);
-    // codes are stored hashed only
-    const row = await t.prisma.loginCode.findFirstOrThrow({ where: { workerId: pendingWorkerId } });
-    expect(row.codeHash).not.toContain(real);
   });
 
   it('a worker has no access to ADMIN endpoints and cannot see other workers', async () => {

@@ -106,19 +106,19 @@ describe('authentication & sessions (ADMIN)', () => {
     expect(undeclared).toEqual([]);
   });
 
-  it('unified login (/auth/identify): the client only ever gives a phone, the server decides PASSWORD vs CODE — never a role picked by the client', async () => {
+  it('unified login (/auth/identify): the client only ever gives a phone, the server decides PASSWORD vs TELEGRAM_ONLY — never a role picked by the client', async () => {
     const admin = await createAdmin(t);
     const staffRes = await post('/v1/auth/identify', { phone: admin.phone });
     expect(staffRes.status).toBe(200);
     expect(staffRes.body).toEqual({ method: 'PASSWORD' });
 
+    // WORKER auth is Telegram-only (§): /auth/identify never triggers a phone+code flow for her any more.
     const worker = await t.prisma.user.create({ data: { phone: uniquePhone(), fullName: 'W', role: 'WORKER' } });
     const tgId = nextTelegramId();
     await t.prisma.workerProfile.create({ data: { userId: worker.id, phone: worker.phone, fullName: worker.fullName, status: 'ACTIVE', code: `W-${tgId % 10_000}`, telegramUserId: BigInt(tgId), telegramChatId: BigInt(tgId) } });
     const workerRes = await post('/v1/auth/identify', { phone: worker.phone });
     expect(workerRes.status).toBe(200);
-    expect(workerRes.body).toEqual({ method: 'CODE' });
-    expect(await t.prisma.loginCode.count({ where: { workerId: (await t.prisma.workerProfile.findUniqueOrThrow({ where: { userId: worker.id } })).id } })).toBeGreaterThan(0);
+    expect(workerRes.body).toEqual({ method: 'TELEGRAM_ONLY' });
 
     const unknown = await post('/v1/auth/identify', { phone: uniquePhone() });
     expect(unknown.status).toBe(404);

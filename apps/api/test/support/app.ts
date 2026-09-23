@@ -140,15 +140,31 @@ export async function jpeg(color = { r: 200, g: 30, b: 30 }, w = 64, h = 48): Pr
   return sharp({ create: { width: w, height: h, channels: 3, background: color } }).jpeg().toBuffer();
 }
 
-/** Approves a registered worker as ADMIN, requests a login code and signs the worker in (reads the code from the outbox row). */
+/**
+ * Approves a registered worker as ADMIN, then signs her in the real way: WORKER auth is Telegram-only (§ worker
+ * Telegram auth), so this opens a login session (real endpoint), links it the same way the bot would (via
+ * RegistrationService directly — same shortcut `registerViaBot` already takes for the Telegram transport itself,
+ * see BotContext below) and exchanges the resulting ticket through the real endpoint.
+ */
 export async function approveAndLoginWorker(t: TestApp, admin: ReturnType<typeof client>, phone: string) {
   const list = await admin.get(`/v1/workers?q=${phone.slice(-7)}`).expect(200);
   const workerId: string = list.body.items[0].id;
   await admin.post(`/v1/workers/${workerId}/approve`, { collateralReceived: true }).expect(201);
-  await request(t.app.getHttpServer()).post('/v1/auth/worker/code').send({ phone }).expect(200);
-  const note = await t.prisma.notification.findFirstOrThrow({ where: { workerId, type: 'login_code' }, orderBy: { createdAt: 'desc' } });
-  const code = /(\d{6})/.exec(note.body ?? '')![1];
-  const res = await request(t.app.getHttpServer()).post('/v1/auth/worker/login').send({ phone, code, device: device() });
-  if (res.status !== 200) throw new Error(`worker login failed ${res.status} ${JSON.stringify(res.body)}`);
-  return { workerId, session: res.body as Session, api: client(t, res.body.accessToken), code };
+  const worker = await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
+  const { ticket } = await telegramLoginTicket(t, worker.telegramUserId, worker.telegramChatId);
+  const res = await request(t.app.getHttpServer()).post('/v1/auth/telegram/exchange').send({ ticket, device: device() });
+  if (res.status !== 200 || !('accessToken' in res.body)) throw new Error(`worker telegram login failed: ${res.status} ${JSON.stringify(res.body)}`);
+  return { workerId, session: res.body as Session, api: client(t, res.body.accessToken) };
+}
+
+/** Opens an app-initiated Telegram login session and links it exactly as the bot would on `/start <token>` (the
+ * RegistrationService call stands in for the real Telegram transport, same shortcut `registerViaBot` takes) —
+ * returns the raw one-time handoff ticket for `/v1/auth/telegram/exchange`. */
+export async function telegramLoginTicket(t: TestApp, telegramUserId: bigint, chatId: bigint) {
+  const sessionRes = await request(t.app.getHttpServer()).post('/v1/auth/telegram/session').send({ device: device() }).expect(200);
+  const startToken = new URL(sessionRes.body.deepLink).searchParams.get('start')!;
+  const reply = await t.registration.process({ telegramUserId, chatId }, { kind: 'command', command: 'start', payload: startToken });
+  if (!reply.telegramHandoffUrl) throw new Error(`no handoff url in bot reply: ${JSON.stringify(reply)}`);
+  const ticket = new URL(reply.telegramHandoffUrl).searchParams.get('t')!;
+  return { startToken, ticket, deepLink: sessionRes.body.deepLink as string };
 }
