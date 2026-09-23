@@ -31,20 +31,43 @@ class AppLocalizationsRu extends AppLocalizations {
   String get continueAction => 'Продолжить';
 
   @override
-  String get getCode => 'Получить код в Telegram';
+  String get signInWithTelegram => 'Войти через Telegram';
 
   @override
-  String get codeSent => 'Код отправлен в ваш Telegram. Введите его ниже.';
+  String get orDivider => 'или';
 
   @override
-  String get codeHint => 'Код из Telegram (6 цифр)';
+  String get openingTelegram => 'Открываем Telegram…';
 
   @override
-  String get resendCode => 'Отправить код ещё раз';
+  String get telegramLoginFailed =>
+      'Не удалось открыть Telegram. Попробуйте ещё раз.';
 
   @override
-  String get workerLoginHint =>
-      'Мы отправим одноразовый код в Telegram, где вы регистрировались.';
+  String get workersUseTelegram =>
+      'Мастерицы входят через Telegram — нажмите кнопку ниже.';
+
+  @override
+  String get pendingApprovalTitle => 'Заявка отправлена';
+
+  @override
+  String get pendingApprovalBody =>
+      'Ожидайте подтверждения администратора. Мы напишем в Telegram, как только решение будет готово.';
+
+  @override
+  String get rejectedTitle => 'Заявка отклонена';
+
+  @override
+  String get workerPausedTitle => 'Профиль приостановлен';
+
+  @override
+  String get workerPausedBody => 'Свяжитесь с администратором.';
+
+  @override
+  String get backToLogin => 'На экран входа';
+
+  @override
+  String get checkAgainInTelegram => 'Попробовать снова через Telegram';
 
   @override
   String get invalidCredentials => 'Неверный телефон или пароль';

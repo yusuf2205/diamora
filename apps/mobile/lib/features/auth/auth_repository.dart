@@ -16,20 +16,30 @@ class AuthRepository {
       };
 
   /// Unified login step 1 (no role selector, ever): the server looks at the phone and says which field to show
-  /// next. WORKER: the server has already asked the Telegram bot to send the code as a side effect of this call.
+  /// next. Staff only — a mastеritsa never types a phone here at all (she uses [telegramSession] instead); if she
+  /// does, the server answers TELEGRAM_ONLY and the screen points her at the Telegram button.
   Future<String> identify(String phone) async {
     final res = await _api.postJson('/auth/identify', skipAuth: true, body: {'phone': phone});
-    return res['method'] as String; // 'PASSWORD' | 'CODE'
+    return res['method'] as String; // 'PASSWORD' | 'TELEGRAM_ONLY'
   }
 
   Future<Session> adminLogin(String phone, String password, {String platform = 'ANDROID'}) async =>
       _finish(await _api.postJson('/auth/admin/login', skipAuth: true, body: {'phone': phone, 'password': password, 'device': await _device(platform)}));
 
-  /// The API asks the Telegram bot to send a one-time code to this worker (always answers "sent": no phone enumeration).
-  Future<void> requestWorkerCode(String phone) async => _api.postJson('/auth/worker/code', skipAuth: true, body: {'phone': phone});
+  // ---- WORKER: Telegram-only login (no phone/password/OTP field ever shown to her) --------------------------------
+  /// Opens a login session and returns the one-time `/start <token>` deep link to hand to url_launcher.
+  Future<String> telegramSession({String platform = 'ANDROID'}) async {
+    final res = await _api.postJson('/auth/telegram/session', skipAuth: true, body: {'device': await _device(platform)});
+    return res['deepLink'] as String;
+  }
 
-  Future<Session> workerLogin(String phone, String code, {String platform = 'ANDROID'}) async =>
-      _finish(await _api.postJson('/auth/worker/login', skipAuth: true, body: {'phone': phone, 'code': code, 'device': await _device(platform)}));
+  /// Exchanges the one-time ticket from the bot's handoff URL. Never a password, never a JWT in the URL that got us
+  /// here — only this POST, from this device, can turn the ticket into a real session (and only for an ACTIVE worker).
+  Future<TelegramExchangeOutcome> telegramExchange(String ticket, {String platform = 'ANDROID'}) async {
+    final res = await _api.postJson('/auth/telegram/exchange', skipAuth: true, body: {'ticket': ticket, 'device': await _device(platform)});
+    if (res.containsKey('accessToken')) return TelegramLoggedIn(await _finish(res));
+    return TelegramNotReady(res['status'] as String, res['rejectedReason'] as String?);
+  }
 
   Future<Session> _finish(Map<String, dynamic> res) async {
     await _tokens.save(access: res['accessToken'] as String, refresh: res['refreshToken'] as String);

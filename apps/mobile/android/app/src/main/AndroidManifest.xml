@@ -36,6 +36,23 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- WORKER Telegram-only login (§): the bot's handoff button opens this exact URL. android:autoVerify
+                 checks /.well-known/assetlinks.json (served by the web app, apps/web/public/.well-known/) against
+                 this APK's own signing certificate before Android will open Diamoraa instead of a browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="diamoraa.uz" android:pathPrefix="/app/auth/telegram"/>
+            </intent-filter>
+            <!-- Fallback only (§9): Telegram's own inline buttons only accept http(s)/tg:// URLs, so this scheme is
+                 never what the bot's button actually opens — it exists for any other caller that wants one. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="diamoraa" android:host="auth"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

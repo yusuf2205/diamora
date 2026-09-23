@@ -47,3 +47,19 @@ abstract class DeviceInfo with _$DeviceInfo {
   const factory DeviceInfo({String? name, required String platform, String? appVersion}) = _DeviceInfo;
   factory DeviceInfo.fromJson(Map<String, dynamic> json) => _$DeviceInfoFromJson(json);
 }
+
+/// What POST /auth/telegram/exchange came back with (WORKER Telegram-only login): either a real session, or the
+/// worker's own current status (never a session) — the backend decides, never the client.
+sealed class TelegramExchangeOutcome {}
+
+class TelegramLoggedIn extends TelegramExchangeOutcome {
+  TelegramLoggedIn(this.session);
+  final Session session;
+}
+
+/// [status] is one of PENDING_APPROVAL / REJECTED / PAUSED (apps/api/src/auth/auth.service.ts:TelegramExchangeResult).
+class TelegramNotReady extends TelegramExchangeOutcome {
+  TelegramNotReady(this.status, [this.reason]);
+  final String status;
+  final String? reason;
+}

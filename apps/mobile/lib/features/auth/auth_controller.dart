@@ -31,7 +31,18 @@ class AuthController extends AsyncNotifier<Session?> {
   }
 
   Future<void> adminLogin(String phone, String password) => _signIn(() => ref.read(authRepositoryProvider).adminLogin(phone, password));
-  Future<void> workerLogin(String phone, String code) => _signIn(() => ref.read(authRepositoryProvider).workerLogin(phone, code));
+
+  /// WORKER Telegram-only login: unlike [adminLogin], this may legitimately NOT produce a session (pending
+  /// approval, rejected, paused) — the caller (the App Link handler) decides what screen to show from the outcome.
+  Future<TelegramExchangeOutcome> telegramExchange(String ticket) async {
+    final outcome = await ref.read(authRepositoryProvider).telegramExchange(ticket);
+    if (outcome is TelegramLoggedIn) {
+      await ref.read(sharedPrefsProvider).setString(_cachedSessionKey, jsonEncode(outcome.session.toJson()));
+      state = AsyncData(outcome.session);
+      await ref.read(realtimeClientProvider).connect();
+    }
+    return outcome;
+  }
 
   /// Throws [ApiException] so the login form can show a precise message.
   Future<void> _signIn(Future<Session> Function() login) async {

@@ -140,35 +140,77 @@ abstract class AppLocalizations {
   /// **'Продолжить'**
   String get continueAction;
 
-  /// No description provided for @getCode.
+  /// No description provided for @signInWithTelegram.
   ///
   /// In ru, this message translates to:
-  /// **'Получить код в Telegram'**
-  String get getCode;
+  /// **'Войти через Telegram'**
+  String get signInWithTelegram;
 
-  /// No description provided for @codeSent.
+  /// No description provided for @orDivider.
   ///
   /// In ru, this message translates to:
-  /// **'Код отправлен в ваш Telegram. Введите его ниже.'**
-  String get codeSent;
+  /// **'или'**
+  String get orDivider;
 
-  /// No description provided for @codeHint.
+  /// No description provided for @openingTelegram.
   ///
   /// In ru, this message translates to:
-  /// **'Код из Telegram (6 цифр)'**
-  String get codeHint;
+  /// **'Открываем Telegram…'**
+  String get openingTelegram;
 
-  /// No description provided for @resendCode.
+  /// No description provided for @telegramLoginFailed.
   ///
   /// In ru, this message translates to:
-  /// **'Отправить код ещё раз'**
-  String get resendCode;
+  /// **'Не удалось открыть Telegram. Попробуйте ещё раз.'**
+  String get telegramLoginFailed;
 
-  /// No description provided for @workerLoginHint.
+  /// No description provided for @workersUseTelegram.
   ///
   /// In ru, this message translates to:
-  /// **'Мы отправим одноразовый код в Telegram, где вы регистрировались.'**
-  String get workerLoginHint;
+  /// **'Мастерицы входят через Telegram — нажмите кнопку ниже.'**
+  String get workersUseTelegram;
+
+  /// No description provided for @pendingApprovalTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявка отправлена'**
+  String get pendingApprovalTitle;
+
+  /// No description provided for @pendingApprovalBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидайте подтверждения администратора. Мы напишем в Telegram, как только решение будет готово.'**
+  String get pendingApprovalBody;
+
+  /// No description provided for @rejectedTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявка отклонена'**
+  String get rejectedTitle;
+
+  /// No description provided for @workerPausedTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Профиль приостановлен'**
+  String get workerPausedTitle;
+
+  /// No description provided for @workerPausedBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Свяжитесь с администратором.'**
+  String get workerPausedBody;
+
+  /// No description provided for @backToLogin.
+  ///
+  /// In ru, this message translates to:
+  /// **'На экран входа'**
+  String get backToLogin;
+
+  /// No description provided for @checkAgainInTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Попробовать снова через Telegram'**
+  String get checkAgainInTelegram;
 
   /// No description provided for @invalidCredentials.
   ///

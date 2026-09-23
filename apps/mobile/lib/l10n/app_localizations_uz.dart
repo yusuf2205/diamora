@@ -31,20 +31,43 @@ class AppLocalizationsUz extends AppLocalizations {
   String get continueAction => 'Davom etish';
 
   @override
-  String get getCode => 'Telegramdan kod olish';
+  String get signInWithTelegram => 'Telegram orqali kirish';
 
   @override
-  String get codeSent => 'Kod Telegramingizga yuborildi. Uni pastga kiriting.';
+  String get orDivider => 'yoki';
 
   @override
-  String get codeHint => 'Telegramdagi kod (6 raqam)';
+  String get openingTelegram => 'Telegram ochilmoqda…';
 
   @override
-  String get resendCode => 'Kodni qayta yuborish';
+  String get telegramLoginFailed =>
+      'Telegramni ochib bo\'lmadi. Qayta urinib ko\'ring.';
 
   @override
-  String get workerLoginHint =>
-      'Ro\'yxatdan o\'tgan Telegramingizga bir martalik kod yuboramiz.';
+  String get workersUseTelegram =>
+      'Ustalar Telegram orqali kiradi — pastdagi tugmani bosing.';
+
+  @override
+  String get pendingApprovalTitle => 'Ariza yuborildi';
+
+  @override
+  String get pendingApprovalBody =>
+      'Administrator tasdiqlashini kuting. Qaror tayyor bo\'lishi bilan Telegramga yozamiz.';
+
+  @override
+  String get rejectedTitle => 'Ariza rad etildi';
+
+  @override
+  String get workerPausedTitle => 'Profil to\'xtatilgan';
+
+  @override
+  String get workerPausedBody => 'Administratorga murojaat qiling.';
+
+  @override
+  String get backToLogin => 'Kirish ekraniga';
+
+  @override
+  String get checkAgainInTelegram => 'Telegram orqali qayta urinish';
 
   @override
   String get invalidCredentials => 'Telefon yoki parol noto\'g\'ri';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
@@ -7,10 +8,12 @@ import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
 
-enum _Step { phone, password, code }
+enum _Step { phone, password }
 
-/// The single Login Screen. The human only ever gives a phone number — never picks a role. The server (`/auth/identify`)
-/// decides whether the next field is a password (staff) or a Telegram code (worker) and opens the matching UI itself.
+/// The single Login Screen. STAFF (SUPER_ADMIN/ADMIN/MANAGER): phone -> the server says PASSWORD, never a role
+/// picked by the client. WORKER: Telegram-only, always — no phone/password/OTP field for her, ever (§ critical
+/// business requirement). Both live on this one screen; picking between them is picking a login METHOD, never a
+/// role — the server alone still decides who anyone actually is, on both paths.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -20,15 +23,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   _Step _step = _Step.phone;
   bool _busy = false;
+  bool _openingTelegram = false;
   final _phone = TextEditingController();
   final _password = TextEditingController();
-  final _code = TextEditingController();
 
   @override
   void dispose() {
     _phone.dispose();
     _password.dispose();
-    _code.dispose();
     super.dispose();
   }
 
@@ -56,17 +58,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _run(() async {
       final method = await ref.read(authRepositoryProvider).identify(phone);
       if (!mounted) return;
-      setState(() => _step = method == 'PASSWORD' ? _Step.password : _Step.code);
+      if (method == 'PASSWORD') {
+        setState(() => _step = _Step.password);
+      } else if (mounted) {
+        // A worker's own phone, typed into the staff field: she doesn't use this field at all — point her at the
+        // Telegram button below. errorText()'s VALIDATION_FAILED case means something else app-wide (D-042), so
+        // this bypasses showError()/errorText() and shows the SnackBar directly, same pattern as
+        // create_assignment_screen.dart's INSUFFICIENT_STOCK case.
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(l.workersUseTelegram)));
+      }
     });
   }
-
-  void _resendCode() => _run(() => ref.read(authRepositoryProvider).identify(_phone.text.trim()));
 
   void _back() => setState(() {
         _step = _Step.phone;
         _password.clear();
-        _code.clear();
       });
+
+  Future<void> _signInWithTelegram() async {
+    setState(() => _openingTelegram = true);
+    try {
+      final deepLink = await ref.read(authRepositoryProvider).telegramSession();
+      final opened = await launchUrl(Uri.parse(deepLink), mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        showError(context, ApiException(code: 'NETWORK', message: AppLocalizations.of(context).telegramLoginFailed));
+      }
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _openingTelegram = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(l.appTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
                 Text(l.welcomeTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 28),
-                if (_step != _Step.phone) ...[
+                if (_step == _Step.password) ...[
                   Row(children: [
                     IconButton(onPressed: _busy ? null : _back, icon: const Icon(Icons.arrow_back)),
                     Expanded(child: Text(_phone.text.trim(), style: Theme.of(context).textTheme.titleMedium)),
@@ -102,7 +126,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   FilledButton(onPressed: _busy ? null : _submitPhone, child: Text(l.continueAction)),
-                ] else if (_step == _Step.password) ...[
+                  const SizedBox(height: 24),
+                  Row(children: [
+                    const Expanded(child: Divider()),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.orDivider, style: Theme.of(context).textTheme.bodySmall)),
+                    const Expanded(child: Divider()),
+                  ]),
+                  const SizedBox(height: 20),
+                  OutlinedButton.icon(
+                    onPressed: _openingTelegram ? null : _signInWithTelegram,
+                    icon: _openingTelegram ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send_rounded),
+                    label: Text(_openingTelegram ? l.openingTelegram : l.signInWithTelegram),
+                  ),
+                ] else ...[
                   TextField(
                     controller: _password,
                     obscureText: true,
@@ -112,21 +148,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   FilledButton(onPressed: _busy ? null : () => _run(() => auth.adminLogin(_phone.text.trim(), _password.text)), child: Text(l.signIn)),
-                ] else ...[
-                  Text(l.codeSent, style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _code,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(labelText: l.codeHint, counterText: ''),
-                    onSubmitted: (_) => _busy ? null : _run(() => auth.workerLogin(_phone.text.trim(), _code.text.trim())),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(onPressed: _busy ? null : () => _run(() => auth.workerLogin(_phone.text.trim(), _code.text.trim())), child: Text(l.signIn)),
-                  TextButton(onPressed: _busy ? null : _resendCode, child: Text(l.resendCode)),
                 ],
                 if (_busy) const Padding(padding: EdgeInsets.only(top: 16), child: Center(child: CircularProgressIndicator())),
               ]),
