@@ -84,3 +84,30 @@ export interface Dashboard {
 }
 
 export interface Page<T> { items: T[]; nextCursor?: string | null }
+
+// ---- M3 work orders (mirrors AssignmentsService.dto exactly, apps/api/src/assignments/assignments.service.ts) ----
+export type AssignmentStatus =
+  | 'DRAFT' | 'READY_TO_DELIVER' | 'DELIVERED' | 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'PICKED_UP' | 'UNDER_REVIEW'
+  | 'PARTIALLY_ACCEPTED' | 'ACCEPTED' | 'REWORK_REQUIRED' | 'COMPLETED' | 'CANCELLED';
+
+export interface AssignmentMaterialLine { materialId: string; quantity: number }
+export interface AssignmentStatusEvent { from: AssignmentStatus | null; to: AssignmentStatus; actor: string; comment: string | null; changedAt: string }
+export interface AssignmentDelivery { id: string; code: string; type: 'DELIVERY_TO_WORKER' | 'PICKUP_FROM_WORKER'; status: 'PENDING' | 'COMPLETED' | 'CANCELLED'; completedAt: string | null }
+
+export interface AssignmentSummary {
+  id: string; status: AssignmentStatus; plannedMeters: number; reportedMeters: number; dueAt: string | null;
+  worker: { id: string; fullName: string; phone: string }; product: { name: string } | null; color: { name: string; hex: string | null } | null;
+}
+
+export interface AssignmentDetail extends AssignmentSummary {
+  code: string; kitCount: number; deliveredMeters: number; acceptedMeters: number; defectiveMeters: number;
+  calculatedPayment: string | null; notes: string | null; qrCode: string | null;
+  variant: { label: string | null } | null;
+  materials: AssignmentMaterialLine[]; statusHistory: AssignmentStatusEvent[]; deliveries: AssignmentDelivery[];
+}
+
+export interface KitTemplateItem { materialId: string; materialName: string; unit: string; requiredQuantity: number }
+export interface KitTemplate { id: string; name: string; variantId: string | null; ribbonMeters: number; baseMeters: number; active: boolean; items: KitTemplateItem[] }
+
+export interface LedgerEntry { id: string; type: 'EARNING' | 'PAYOUT_CASH' | 'BONUS' | 'CORRECTION'; amount: string; comment: string | null; createdAt: string }
+export interface WorkerLedger { workerId: string; balance: string; earned: string; paid: string; history: LedgerEntry[] }

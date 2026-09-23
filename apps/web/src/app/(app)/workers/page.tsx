@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { formatUzs, statusLabel } from '@/lib/format';
@@ -56,13 +57,13 @@ export default function WorkersPage() {
           </thead>
           <tbody>
             {data.items.map((w) => (
-              <tr key={w.id}>
-                <Td className="font-medium">{w.fullName} <span className="text-muted">· {w.code}</span></Td>
-                <Td>{w.phone}</Td>
-                <Td><Badge tone={STATUS_TONE[w.status]}>{statusLabel(w.status)}</Badge></Td>
-                <Td>{w.manager?.fullName ?? '—'}</Td>
-                <Td>{w.collateral ? (w.collateral.type === 'MONEY' ? formatUzs(w.collateral.amount) : w.collateral.description) : '—'}</Td>
-                <Td>{formatUzs(w.balance)}</Td>
+              <tr key={w.id} className="cursor-pointer hover:bg-border/20">
+                <Td className="font-medium"><Link href={`/workers/${w.id}`} className="block">{w.fullName} <span className="text-muted">· {w.code}</span></Link></Td>
+                <Td><Link href={`/workers/${w.id}`} className="block">{w.phone}</Link></Td>
+                <Td><Link href={`/workers/${w.id}`} className="block"><Badge tone={STATUS_TONE[w.status]}>{statusLabel(w.status)}</Badge></Link></Td>
+                <Td><Link href={`/workers/${w.id}`} className="block">{w.manager?.fullName ?? '—'}</Link></Td>
+                <Td><Link href={`/workers/${w.id}`} className="block">{w.collateral ? (w.collateral.type === 'MONEY' ? formatUzs(w.collateral.amount) : w.collateral.description) : '—'}</Link></Td>
+                <Td><Link href={`/workers/${w.id}`} className="block">{formatUzs(w.balance)}</Link></Td>
               </tr>
             ))}
           </tbody>
