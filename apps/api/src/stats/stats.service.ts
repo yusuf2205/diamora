@@ -11,7 +11,12 @@ const ON_HAND_STATUSES = ['DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP'] as con
 export interface GroupStats {
   workers: number;
   activeWorkers: number;
+  workersWithActiveAssignment: number;
+  workersWithoutActiveAssignment: number;
   activeAssignments: number;
+  inProgress: number;
+  needsAcceptance: number;
+  completed: number;
   metersOnHand: number;
   toDeliver: number;
   toPickup: number;
@@ -34,9 +39,10 @@ export class StatsService {
   async forWorkers(where: Prisma.WorkerProfileWhereInput = {}): Promise<GroupStats> {
     const workers = await this.prisma.workerProfile.findMany({ where, select: { id: true, status: true, balance: true } });
     const ids = workers.map((w) => w.id);
+    const activeIds = workers.filter((w) => w.status === 'ACTIVE').map((w) => w.id);
     const wa = { workerId: { in: ids } };
     const now = new Date();
-    const [meters, active, toDeliver, toPickup, overdue, earned, paid] = await Promise.all([
+    const [meters, active, toDeliver, toPickup, overdue, earned, paid, statusRows, holding] = await Promise.all([
       this.prisma.workAssignment.aggregate({ _sum: { plannedMeters: true }, where: { ...wa, status: { in: [...ON_HAND_STATUSES] } } }),
       this.prisma.workAssignment.count({ where: { ...wa, status: { in: [...ACTIVE_STATUSES] } } }),
       this.prisma.workAssignment.count({ where: { ...wa, status: 'READY_TO_DELIVER' } }),
@@ -44,12 +50,22 @@ export class StatsService {
       this.prisma.workAssignment.count({ where: { ...wa, status: { in: ['DELIVERED', 'IN_PROGRESS'] }, dueAt: { lt: now } } }),
       this.prisma.workerLedgerTransaction.aggregate({ _sum: { amount: true }, where: { ...wa, type: { in: ['EARNING', 'BONUS'] } } }),
       this.prisma.workerLedgerTransaction.aggregate({ _sum: { amount: true }, where: { ...wa, type: 'PAYOUT_CASH' } }),
+      this.prisma.workAssignment.groupBy({ by: ['status'], where: wa, _count: true }),
+      this.prisma.workAssignment.findMany({
+        where: { workerId: { in: activeIds }, status: { in: [...ACTIVE_STATUSES] } }, select: { workerId: true }, distinct: ['workerId'],
+      }),
     ]);
     const due = workers.reduce((s, w) => s + w.balance, 0n);
+    const byStatus = Object.fromEntries(statusRows.map((r) => [r.status, r._count]));
     return {
       workers: workers.length,
-      activeWorkers: workers.filter((w) => w.status === 'ACTIVE').length,
+      activeWorkers: activeIds.length,
+      workersWithActiveAssignment: holding.length,
+      workersWithoutActiveAssignment: activeIds.length - holding.length,
       activeAssignments: active,
+      inProgress: byStatus.IN_PROGRESS ?? 0,
+      needsAcceptance: (byStatus.PICKED_UP ?? 0) + (byStatus.UNDER_REVIEW ?? 0),
+      completed: byStatus.COMPLETED ?? 0,
       metersOnHand: Number(meters._sum.plannedMeters ?? 0),
       toDeliver, toPickup, overdue,
       earned: money(earned._sum.amount ?? 0n)!,
