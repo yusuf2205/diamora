@@ -41,8 +41,9 @@ class DashboardService {
     const canCatalog = actor.permissions.includes('CATALOG_VIEW');
     const canInventory = actor.permissions.includes('INVENTORY_VIEW');
 
-    const [global, catalogPublished, catalogDraft, userRoles, lowStock] = await Promise.all([
+    const [global, today, catalogPublished, catalogDraft, userRoles, lowStock] = await Promise.all([
       workerWhere ? this.stats.forWorkers(workerWhere) : null,
+      workerWhere ? this.stats.today(workerWhere) : null,
       canCatalog ? this.prisma.productModel.count({ where: { status: 'PUBLISHED' } }) : null,
       canCatalog ? this.prisma.productModel.count({ where: { status: 'DRAFT' } }) : null,
       canUsers ? this.prisma.user.groupBy({ by: ['role'], where: { status: 'ACTIVE' }, _count: true }) : null,
@@ -60,10 +61,17 @@ class DashboardService {
         ? {
             activeAssignments: global.activeAssignments, inProgress: global.inProgress, metersOnHand: global.metersOnHand,
             toDeliver: global.toDeliver, toPickup: global.toPickup, needsAcceptance: global.needsAcceptance, completed: global.completed, overdue: global.overdue,
+            reworkRequired: global.reworkRequired,
           }
         : null,
       finance: global && canFinance
-        ? { earned: global.earned, paid: global.paid, due: global.due, salesRevenue: null, expenses: null, netProfit: null }
+        ? { earned: global.earned, paid: global.paid, due: global.due, workersDue: global.workersDue, salesRevenue: null, expenses: null, netProfit: null }
+        : null,
+      today: today && (canAssignments || canFinance)
+        ? {
+            dueToday: canAssignments ? today.dueToday : null, deliveredToday: canAssignments ? today.deliveredToday : null,
+            pickedUpToday: canAssignments ? today.pickedUpToday : null, paidToday: canFinance ? today.paidToday : null,
+          }
         : null,
       materials: lowStock ? { lowStock: lowStock.items.length, outOfStock: lowStock.items.filter((i) => i.quantity <= 0).length } : null,
     };

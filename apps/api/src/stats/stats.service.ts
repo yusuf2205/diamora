@@ -21,6 +21,10 @@ export interface GroupStats {
   toDeliver: number;
   toPickup: number;
   overdue: number;
+  /** assignments sent back after acceptance - the only "problem" state the data model actually has */
+  reworkRequired: number;
+  /** workers owed money right now (balance > 0) */
+  workersDue: number;
   /** UZS as decimal strings */
   earned: string;
   paid: string;
@@ -68,10 +72,31 @@ export class StatsService {
       completed: byStatus.COMPLETED ?? 0,
       metersOnHand: Number(meters._sum.plannedMeters ?? 0),
       toDeliver, toPickup, overdue,
+      reworkRequired: byStatus.REWORK_REQUIRED ?? 0,
+      workersDue: workers.filter((w) => w.balance > 0n).length,
       earned: money(earned._sum.amount ?? 0n)!,
       paid: money(-(paid._sum.amount ?? 0n))!,
       due: money(due)!,
     };
+  }
+
+  /**
+   * What happened / is due TODAY in the business's own time zone (Tashkent, UTC+5, no DST). Only facts the tables
+   * record: there is no planned delivery date in the model, so "delivered/picked up today" are completed deliveries.
+   */
+  async today(where: Prisma.WorkerProfileWhereInput = {}, now = new Date()) {
+    const offset = 5 * 3600_000;
+    const start = new Date(Math.floor((now.getTime() + offset) / 86_400_000) * 86_400_000 - offset);
+    const end = new Date(start.getTime() + 86_400_000);
+    const ids = (await this.prisma.workerProfile.findMany({ where, select: { id: true } })).map((w) => w.id);
+    const wa = { workerId: { in: ids } };
+    const [dueToday, deliveredToday, pickedUpToday, paid] = await Promise.all([
+      this.prisma.workAssignment.count({ where: { ...wa, status: { in: [...ACTIVE_STATUSES, 'READY_TO_DELIVER'] }, dueAt: { gte: start, lt: end } } }),
+      this.prisma.delivery.count({ where: { ...wa, type: 'DELIVERY_TO_WORKER', status: 'COMPLETED', completedAt: { gte: start, lt: end } } }),
+      this.prisma.delivery.count({ where: { ...wa, type: 'PICKUP_FROM_WORKER', status: 'COMPLETED', completedAt: { gte: start, lt: end } } }),
+      this.prisma.workerLedgerTransaction.aggregate({ _sum: { amount: true }, where: { ...wa, type: 'PAYOUT_CASH', createdAt: { gte: start, lt: end } } }),
+    ]);
+    return { dueToday, deliveredToday, pickedUpToday, paidToday: money(-(paid._sum.amount ?? 0n))! };
   }
 
   /** Per-worker figures for tables (workers list of the web panel, manager detail). */
