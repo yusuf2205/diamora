@@ -107,7 +107,10 @@ describe('ADMIN approval, worker profile and worker login', () => {
     await wa.api.get('/v1/workers/me').expect(200);
     await admin.api.patch(`/v1/workers/${wa.workerId}`, { status: 'ARCHIVED' }).expect(200);
     await wa.api.get('/v1/workers/me').expect(401);
-    await admin.api.patch(`/v1/workers/${wa.workerId}`, { status: 'ACTIVE' }).expect(409); // ARCHIVED is terminal
+    // an archived worker gets no new work, but nothing is deleted and «Восстановить» brings her back with a working login
+    await admin.api.patch(`/v1/workers/${wa.workerId}`, { status: 'ACTIVE' }).expect(200);
+    expect((await t.prisma.user.findFirstOrThrow({ where: { workerProfile: { id: wa.workerId } } })).status).toBe('ACTIVE');
+    await admin.api.patch(`/v1/workers/${wa.workerId}`, { status: 'REJECTED' }).expect(400); // not a status an admin can set
   });
 
   it('list supports search by name, phone digits and code, plus keyset pagination', async () => {

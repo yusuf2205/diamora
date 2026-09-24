@@ -22,7 +22,7 @@ import { StatsModule, StatsService } from '../stats/stats.service';
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 const generatePassword = () => Array.from({ length: 14 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
 type Tx = Prisma.TransactionClient;
-type UserWithPerms = User & { permissions: UserPermission[]; workerProfile?: { id: string; assignedManagerId: string | null } | null };
+type UserWithPerms = User & { permissions: UserPermission[]; workerProfile?: { id: string; assignedManagerId: string | null; assignedManager?: { fullName: string } | null } | null };
 
 /**
  * Users, roles, permissions (D-028, docs/RBAC.md). Rules enforced here (server-side, whatever the client sends):
@@ -49,7 +49,7 @@ export class UsersService {
         role: q.role, status: q.status,
         OR: text ? [{ fullName: { contains: text, mode: 'insensitive' } }, ...(digits && digits.length >= 3 ? [{ phone: { contains: digits } }] : [])] : undefined,
       },
-      include: { permissions: true, workerProfile: { select: { id: true, assignedManagerId: true } } },
+      include: { permissions: true, workerProfile: { select: { id: true, assignedManagerId: true, assignedManager: { select: { fullName: true } } } } },
       orderBy: { id: 'desc' }, take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
     const items = rows.slice(0, q.limit);
@@ -252,7 +252,7 @@ export class UsersService {
     return {
       id: u.id, phone: u.phone, fullName: u.fullName, role: u.role as Role, status: u.status,
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null, lastSeenAt: u.lastSeenAt?.toISOString() ?? null, createdAt: u.createdAt.toISOString(),
-      workerId: u.workerProfile?.id ?? null, online: this.presence.isOnline(u.id), permissions: effectivePermissions(u.role as Role, u.permissions),
+      workerId: u.workerProfile?.id ?? null, managerName: u.workerProfile?.assignedManager?.fullName ?? null, online: this.presence.isOnline(u.id), permissions: effectivePermissions(u.role as Role, u.permissions),
     };
   }
 }

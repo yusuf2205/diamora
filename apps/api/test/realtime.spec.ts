@@ -70,7 +70,7 @@ describe('realtime (Socket.IO): events only after COMMIT, only to the right audi
     expect(await until(() => conn.events.some((e) => e.type === 'collateral.updated'))).toBe(true);
     await new Promise((r) => setTimeout(r, 150));
     for (const e of conn.events) {
-      expect(['collateral.updated', 'worker.approved', 'worker.rejected']).toContain(e.type);
+      expect(['collateral.updated', 'worker.approved', 'worker.rejected', 'worker.updated']).toContain(e.type);
       expect((e.data as { workerId: string }).workerId).toBe(wa.workerId);
     }
     expect(conn.events.some((e) => e.type === 'worker.created')).toBe(false);

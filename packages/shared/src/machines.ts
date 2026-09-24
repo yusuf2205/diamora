@@ -105,7 +105,8 @@ export const WORKER_MACHINE: Machine<import('./basics').WorkerStatus> = {
     { to: 'ARCHIVED', actors: ['ADMIN'], label: 'Archive' },
   ],
   REJECTED: [],
-  ARCHIVED: [],
+  // «Восстановить»: history was never deleted, so an archived worker can come back (login is re-enabled with it)
+  ARCHIVED: [{ to: 'ACTIVE', actors: ['ADMIN'], label: 'Restore' }],
 };
 
 // ---- Collateral -----------------------------------------------------------------------------------------------------

@@ -21,6 +21,7 @@ export interface EventMap {
   'worker.created': { workerId: string; code: string; fullName: string; status: string } & WithManager;
   'worker.approved': { workerId: string } & WithManager;
   'worker.rejected': { workerId: string } & WithManager;
+  'worker.updated': { workerId: string; status: string } & WithManager;
   'worker.manager_changed': { workerId: string; managerId: string | null; previousManagerId: string | null };
   'worker.location.updated': { workerId: string; latitude: number; longitude: number; receivedAt: string } & WithManager;
   'collateral.created': { collateralId: string; workerId: string; type: string; status: string } & WithManager;
@@ -94,6 +95,7 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'worker.created': w('WORKER', false),
   'worker.approved': w('WORKER'),
   'worker.rejected': w('WORKER'),
+  'worker.updated': w('WORKER'),
   'worker.manager_changed': { cat: 'WORKER' },
   'worker.location.updated': { cat: 'LOCATION' },
   'collateral.created': w('COLLATERAL', false),

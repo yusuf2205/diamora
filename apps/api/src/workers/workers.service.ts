@@ -137,11 +137,16 @@ export class WorkersService {
     await this.prisma.$transaction(async (tx) => {
       await tx.workerProfile.update({ where: { id }, data: patch });
       if (before.userId) {
-        await tx.user.update({ where: { id: before.userId }, data: { phone: patch.phone, ...(patch.status === 'ARCHIVED' ? { status: 'SUSPENDED' as const } : {}) } });
+        await tx.user.update({ where: { id: before.userId }, data: {
+          phone: patch.phone,
+          ...(patch.status === 'ARCHIVED' ? { status: 'SUSPENDED' as const } : {}),
+          ...(before.status === 'ARCHIVED' && patch.status === 'ACTIVE' ? { status: 'ACTIVE' as const } : {}),
+        } });
       }
       await this.audit.record({ action: 'worker.update', entity: 'WorkerProfile', entityId: id, before: { phone: before.phone, secondaryPhone: before.secondaryPhone, notes: before.notes, status: before.status }, after: patch }, tx);
     });
     if (patch.status === 'ARCHIVED' && before.userId) await this.auth.revokeAllOf(before.userId, 'worker_archived');
+    await this.events.publish('worker.updated', { workerId: id, status: patch.status ?? before.status, managerId: before.assignedManagerId });
     return this.get(actor, id);
   }
 
