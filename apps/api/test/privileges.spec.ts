@@ -31,15 +31,18 @@ describe('owner privileges: company contact, passwords, whose location is visibl
     expect(await t.prisma.auditLog.count({ where: { action: 'user.password_change', entityId: mgr.user.id } })).toBe(1);
   });
 
-  it('only the SUPER_ADMIN sets a chosen password for someone; an ADMIN may only issue a generated one', async () => {
+  it('setting a password: always the typed one; SUPER_ADMIN may, an ADMIN only once granted PASSWORD_SET', async () => {
     const owner = await superAdminActor(t);
     const admin = await staffActor(t, 'ADMIN', ['USER_UPDATE']);
+    const trusted = await staffActor(t, 'ADMIN', ['PASSWORD_SET']);
     const mgr = await staffActor(t, 'MANAGER');
     const phone = (await t.prisma.user.findUniqueOrThrow({ where: { id: mgr.user.id } })).phone;
 
-    await admin.api.post(`/v1/users/${mgr.user.id}/reset-password`, { password: 'Chosen-By-Admin-1' }).expect(403);
-    const generated = await admin.api.post(`/v1/users/${mgr.user.id}/reset-password`, {}).expect(200);
-    expect(generated.body.temporaryPassword).toHaveLength(14);
+    await admin.api.post(`/v1/users/${mgr.user.id}/reset-password`, { password: 'Chosen-By-Admin-1' }).expect(403); // not granted
+    await owner.api.post(`/v1/users/${mgr.user.id}/reset-password`, {}).expect(400); // the program never invents one
+    await trusted.api.post(`/v1/users/${mgr.user.id}/reset-password`, { password: 'Chosen-By-Admin-2' }).expect(200);
+    await trusted.api.post(`/v1/users/${owner.user.id}/reset-password`, { password: 'Owner-Takeover-1' }).expect(403); // rank rule
+    await adminLogin(t, phone, 'Chosen-By-Admin-2');
 
     const set = await owner.api.post(`/v1/users/${mgr.user.id}/reset-password`, { password: 'Chosen-By-Owner-1' }).expect(200);
     expect(set.body).toEqual({ passwordSet: true });

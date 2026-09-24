@@ -5,7 +5,6 @@ import {
   PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_RANK, SUPER_ADMIN_ONLY, changeRoleSchema, createUserSchema, effectivePermissions,
   grantablePermissions, listUsersSchema, locationVisibilitySchema, resetPasswordSchema, setPermissionsSchema, setUserStatusSchema, updateUserSchema, type Permission, type Role,
 } from '@yusmus/shared';
-import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { PasswordService, SessionAuthService } from '../auth/auth-core';
@@ -19,8 +18,6 @@ import { PrismaService } from '../prisma/prisma.module';
 import { PresenceModule, PresenceService } from '../presence/presence.service';
 import { StatsModule, StatsService } from '../stats/stats.service';
 
-const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-const generatePassword = () => Array.from({ length: 14 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
 type Tx = Prisma.TransactionClient;
 type UserWithPerms = User & { permissions: UserPermission[]; workerProfile?: { id: string; assignedManagerId: string | null; assignedManager?: { fullName: string } | null } | null };
 
@@ -72,8 +69,7 @@ export class UsersService {
   // ---- writes ---------------------------------------------------------------------------------------------------------------
   async create(actor: AuthUser, input: z.output<typeof createUserSchema>) {
     if (actor.role !== 'SUPER_ADMIN' && ROLE_RANK[input.role] >= ROLE_RANK[actor.role]) throw forbidden('You cannot create a user with this role');
-    const password = input.password ?? generatePassword();
-    const passwordHash = await this.passwords.hash(password);
+    const passwordHash = await this.passwords.hash(input.password);
     const user = await this.prisma.$transaction(async (tx) => {
       await this.lockSuperAdmins(tx);
       if (await tx.user.findUnique({ where: { phone: input.phone }, select: { id: true } })) throw conflict('A user with this phone already exists');
@@ -83,7 +79,7 @@ export class UsersService {
       return u;
     });
     await this.events.publish('user.created', { userId: user.id, role: user.role as Role, fullName: user.fullName });
-    return { user: this.dto(user), ...(input.password ? {} : { temporaryPassword: password }) };
+    return { user: this.dto(user) };
   }
 
   async update(actor: AuthUser, id: string, patch: z.output<typeof updateUserSchema>) {
@@ -170,20 +166,19 @@ export class UsersService {
     return this.get(id);
   }
 
-  async resetPassword(actor: AuthUser, id: string, input: z.output<typeof resetPasswordSchema> = {}) {
+  /** Sets exactly the typed password (PASSWORD_SET, rank rule applies). The person is signed out everywhere. */
+  async resetPassword(actor: AuthUser, id: string, input: z.output<typeof resetPasswordSchema>) {
     const target = await this.load(this.prisma, id);
     this.assertMayManage(actor, target, { allowSelf: false });
     if (target.role === 'WORKER') throw invariant('Workers sign in with a Telegram code, they have no password');
-    // choosing the exact password (instead of a generated one) is a SUPER_ADMIN privilege
-    if (input.password && actor.role !== 'SUPER_ADMIN') throw forbidden('Only the SUPER_ADMIN can set a specific password');
-    const password = input.password ?? generatePassword();
+    const password = input.password;
     const passwordHash = await this.passwords.hash(password);
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { passwordHash } });
       await this.audit.record({ action: 'user.password_reset', entity: 'User', entityId: id }, tx);
     });
     await this.auth.revokeAllOf(id, 'password_reset');
-    return input.password ? { passwordSet: true } : { temporaryPassword: password };
+    return { passwordSet: true };
   }
 
   /** SUPER_ADMIN decides whose position the others may see. The phone keeps reporting; only the map hides it. */
@@ -301,7 +296,7 @@ export class UsersController {
   @Perm('PERMISSION_MANAGE') @Put('users/:id/permissions') @ApiZodBody(setPermissionsSchema)
   permissions(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(setPermissionsSchema) b: z.output<typeof setPermissionsSchema>) { return this.users.setPermissions(u, id, b); }
 
-  @Perm('USER_UPDATE') @Post('users/:id/reset-password') @HttpCode(200) @ApiZodBody(resetPasswordSchema)
+  @Perm('PASSWORD_SET') @Post('users/:id/reset-password') @HttpCode(200) @ApiZodBody(resetPasswordSchema)
   reset(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(resetPasswordSchema) b: z.output<typeof resetPasswordSchema>) { return this.users.resetPassword(u, id, b); }
 
   @Perm('LIVE_LOCATION_VIEW_ALL') @Put('users/:id/location-visibility') @ApiZodBody(locationVisibilitySchema)

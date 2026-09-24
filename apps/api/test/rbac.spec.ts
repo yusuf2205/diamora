@@ -41,19 +41,19 @@ describe('RBAC (D-028): SUPER_ADMIN / ADMIN / MANAGER / WORKER, permissions, man
     const admin = await staffActor(t, 'ADMIN', ['USER_CREATE']); // explicit grant, per D-028: user management defaults to SUPER_ADMIN only
     const manager = await staffActor(t, 'MANAGER');
 
-    await bareAdmin.api.post('/v1/users', { phone: phone(), fullName: 'Nope', role: 'MANAGER' }).expect(403);
-    await superAdmin.api.post('/v1/users', { phone: phone(), fullName: 'New Manager', role: 'MANAGER' }).expect(201);
-    await admin.api.post('/v1/users', { phone: phone(), fullName: 'New Manager 2', role: 'MANAGER' }).expect(201); // ADMIN may create a strictly lower rank
-    await admin.api.post('/v1/users', { phone: phone(), fullName: 'Rival Admin', role: 'ADMIN' }).expect(403); // same rank
-    await admin.api.post('/v1/users', { phone: phone(), fullName: 'Boss', role: 'SUPER_ADMIN' }).expect(403); // higher rank
-    await manager.api.post('/v1/users', { phone: phone(), fullName: 'Whoever', role: 'MANAGER' }).expect(403); // MANAGER has no USER_CREATE, not even grantable
+    await bareAdmin.api.post('/v1/users', { phone: phone(), fullName: 'Nope', role: 'MANAGER', password: 'Typed-Pass-123' }).expect(403);
+    await superAdmin.api.post('/v1/users', { phone: phone(), fullName: 'New Manager', role: 'MANAGER', password: 'Typed-Pass-123' }).expect(201);
+    await admin.api.post('/v1/users', { phone: phone(), fullName: 'New Manager 2', role: 'MANAGER', password: 'Typed-Pass-123' }).expect(201); // ADMIN may create a strictly lower rank
+    await admin.api.post('/v1/users', { phone: phone(), fullName: 'Rival Admin', role: 'ADMIN', password: 'Typed-Pass-123' }).expect(403); // same rank
+    await admin.api.post('/v1/users', { phone: phone(), fullName: 'Boss', role: 'SUPER_ADMIN', password: 'Typed-Pass-123' }).expect(403); // higher rank
+    await manager.api.post('/v1/users', { phone: phone(), fullName: 'Whoever', role: 'MANAGER', password: 'Typed-Pass-123' }).expect(403); // MANAGER has no USER_CREATE, not even grantable
   });
 
   it('SUPER_ADMIN can create an ADMIN outright; an ADMIN can never modify or suspend a SUPER_ADMIN', async () => {
     const superAdmin = await superAdminActor(t);
     const admin = await staffActor(t, 'ADMIN');
     const otherSuperAdmin = await superAdminActor(t);
-    const created = await superAdmin.api.post('/v1/users', { phone: phone(), fullName: 'Brand New Admin', role: 'ADMIN' }).expect(201);
+    const created = await superAdmin.api.post('/v1/users', { phone: phone(), fullName: 'Brand New Admin', role: 'ADMIN', password: 'Typed-Pass-123' }).expect(201);
     expect(created.body.user.role).toBe('ADMIN');
     await admin.api.post(`/v1/users/${otherSuperAdmin.user.id}/status`, { status: 'SUSPENDED' }).expect(403); // strictly lower rank only
     await admin.api.put(`/v1/users/${otherSuperAdmin.user.id}/role`, { role: 'MANAGER' }).expect(403);

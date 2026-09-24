@@ -84,8 +84,8 @@ export const createUserSchema = z.object({
   phone: phoneSchema,
   fullName: z.string().trim().min(2).max(120),
   role: z.enum(STAFF_ROLE_VALUES),
-  /** omitted = the server generates a strong one-time password and returns it once */
-  password: passwordSchema.optional(),
+  /** typed by whoever creates the account (owner, 2026-09-24: the program never invents passwords) */
+  password: passwordSchema,
 });
 export const updateUserSchema = z
   .object({ fullName: z.string().trim().min(2).max(120), phone: phoneSchema })
@@ -94,8 +94,8 @@ export const updateUserSchema = z
 export const changeRoleSchema = z.object({ role: z.enum(STAFF_ROLE_VALUES) });
 /** Anyone with a password changes their OWN: the current one proves it is really them. */
 export const changeOwnPasswordSchema = z.object({ currentPassword: z.string().min(1).max(200), newPassword: passwordSchema });
-/** Staff password reset: omitted = the server generates a strong one-time password; given = exactly this one. */
-export const resetPasswordSchema = z.object({ password: passwordSchema.optional() });
+/** Set someone's password to exactly this (PASSWORD_SET: SUPER_ADMIN always, an ADMIN only if granted). */
+export const resetPasswordSchema = z.object({ password: passwordSchema });
 /** SUPER_ADMIN only: hide/show this person's position on everybody else's map. */
 export const locationVisibilitySchema = z.object({ hidden: z.boolean() });
 export const setUserStatusSchema = z.object({ status: z.enum(['ACTIVE', 'SUSPENDED']), reason: z.string().trim().max(500).optional() });
