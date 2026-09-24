@@ -159,7 +159,8 @@ function DetailSheet({ row, canHide, onClose }: { row: LiveLocation; canHide: bo
     <Modal title={row.fullName} onClose={onClose}>
       <p className="-mt-3 mb-3 text-sm text-muted">{roleLabel(row.role)}{row.worker ? ` · ${row.worker.code}` : ''}{row.hidden ? ' · скрыт с карты для остальных' : ''}</p>
       <div className="space-y-1 text-sm">
-        <p><span className="text-muted">Сейчас: </span>{row.online ? 'в сети' : 'не в сети'} · <span className={row.freshness === 'STALE' ? 'text-danger' : ''}>{freshnessLabel(row.ageSeconds)}</span></p>
+        <p className={row.online ? 'text-ok' : 'text-muted'}>{row.online ? '● в сети' : '○ не в сети'}</p>
+        <p className={row.freshness === 'STALE' ? 'text-danger' : ''}>{freshnessLabel(row.ageSeconds)}</p>
         {row.phone && <p><span className="text-muted">Телефон: </span><a className="text-primary" href={`tel:${row.phone}`}>{row.phone}</a></p>}
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">

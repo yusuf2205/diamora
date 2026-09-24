@@ -1,3 +1,5 @@
+import { Logo } from '@/components/ui';
+
 export const dynamic = 'force-dynamic'; // reads ADMIN_HOST at request time
 
 const BOT = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'diamora1_bot';
@@ -16,7 +18,7 @@ export default function Landing() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col px-5 py-10">
       <div className="flex flex-1 flex-col justify-center">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-3xl text-white" aria-hidden>◆</div>
+          <Logo size={72} className="mx-auto mb-3" />
           <h1 className="text-3xl font-semibold">Diamoraa</h1>
           <p className="mt-2 text-muted">Работа для мастериц: берите заказы, отмечайте прогресс и получайте оплату — всё в одном приложении.</p>
         </div>

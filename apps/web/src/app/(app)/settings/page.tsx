@@ -81,9 +81,10 @@ function CompanyContactSection() {
       setTelegram(contact.data.telegramUsername ?? '');
     }
   }, [contact.data]);
+  const [saved, setSaved] = useState(false);
   const save = useMutation({
     mutationFn: () => api.put('/settings/company-contact', { phone: phone.trim() || null, telegramUsername: telegram.trim() || null }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['company-contact'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['company-contact'] }); setSaved(true); setTimeout(() => setSaved(false), 4000); },
   });
 
   return (
@@ -94,7 +95,8 @@ function CompanyContactSection() {
         <Field label="Телефон компании" htmlFor="cc-phone"><Input id="cc-phone" type="tel" inputMode="tel" placeholder="+998 90 123 45 67" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
         <Field label="Telegram (без @)" htmlFor="cc-tg"><Input id="cc-tg" placeholder="diamoraa" value={telegram} onChange={(e) => setTelegram(e.target.value)} /></Field>
         {save.isError && <ErrorState error={save.error} />}
-        <Button onClick={() => save.mutate()} disabled={save.isPending}>Сохранить</Button>
+        {saved && <p className="text-sm text-ok" role="status">✓ Сохранено. Мастерицы уже видят новые данные в каталоге.</p>}
+        <Button onClick={() => { setSaved(false); save.mutate(); }} disabled={save.isPending}>{save.isPending ? 'Сохраняем…' : 'Сохранить'}</Button>
       </Card>
     </section>
   );

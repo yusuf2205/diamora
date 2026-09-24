@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
+import { Logo } from '@/components/ui';
 import { initials, roleLabel } from '@/lib/format';
 
 const NAV: { href: string; label: string; perms?: string[] }[] = [
@@ -54,18 +55,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   // Desktop: a fixed sidebar. Phone / portrait tablet (< lg): a slim top bar with the page name and a ☰ button; the same menu slides in
   // over the page, so the content always gets the full screen width.
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="min-h-screen lg:flex lg:h-screen lg:overflow-hidden">
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
         <button aria-label="Меню" onClick={() => setMenuOpen(true)} className="-ml-1 rounded-lg p-2 text-xl leading-none hover:bg-border/50">☰</button>
         <p className="truncate text-base font-semibold">{current}</p>
       </header>
       {menuOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMenuOpen(false)} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-card px-4 py-6 transition-transform lg:static lg:z-auto lg:w-64 lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-card px-4 py-6 transition-transform lg:static lg:z-auto lg:h-screen lg:w-64 lg:shrink-0 lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="mb-6 px-2">
-          <p className="text-lg font-semibold">Diamoraa</p>
-          <p className="text-xs text-muted">Панель управления</p>
+        <div className="mb-6 flex items-center gap-2 px-2">
+          <Logo size={30} />
+          <div>
+            <p className="text-lg font-semibold leading-tight">Diamoraa</p>
+            <p className="text-xs text-muted">Панель управления</p>
+          </div>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto">
           {items.map((n) => (
@@ -89,7 +93,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <button onClick={() => logout()} className="mt-3 w-full rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-border/50">Выйти</button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 lg:px-8 lg:py-8">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 lg:h-screen lg:overflow-y-auto lg:px-8 lg:py-8">{children}</main>
     </div>
   );
 }

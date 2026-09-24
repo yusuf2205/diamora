@@ -20,7 +20,6 @@ export default function UserDetailPage() {
   const user = useQuery<UserDetail>({ queryKey: ['user', id], queryFn: () => api.get<UserDetail>(`/users/${id}`) });
   const audit = useQuery<Page<AuditRow>>({ queryKey: ['audit', id], queryFn: () => api.get<Page<AuditRow>>('/audit', { entityId: id, limit: 50 }), enabled: hasPerm(me, 'AUDIT_VIEW') });
   const [confirm, setConfirm] = useState<null | { title: string; body: string; run: () => Promise<unknown>; danger?: boolean }>(null);
-  const [password, setPassword] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [chosen, setChosen] = useState('');
   const [passwordSet, setPasswordSet] = useState(false);
@@ -88,13 +87,13 @@ export default function UserDetailPage() {
 
       <PermissionsCard user={u} editable={canPerms} onSaved={refresh} />
 
-      {hasPerm(me, 'USER_UPDATE') && !isMe && u.role !== 'WORKER' && (
+      {hasPerm(me, 'PASSWORD_SET') && !isMe && u.role !== 'WORKER' && (
         <Card className="space-y-3">
           <div>
             <h2 className="text-sm font-medium">Пароль</h2>
-            <p className="text-sm text-muted">Старый перестанет работать, пользователь выйдет со всех устройств.</p>
+            <p className="text-sm text-muted">Придумайте пароль сами и передайте его лично. Старый перестанет работать, пользователь выйдет со всех устройств.</p>
           </div>
-          {me?.role === 'SUPER_ADMIN' && (
+          {(
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input type="text" autoComplete="off" placeholder="Новый пароль (не меньше 8 символов)" aria-label="Новый пароль" value={chosen} onChange={(e) => setChosen(e.target.value)} />
               <Button
@@ -104,9 +103,6 @@ export default function UserDetailPage() {
             </div>
           )}
           {passwordSet && <p className="text-sm text-ok" role="status">✓ Пароль установлен</p>}
-          <Button variant="outline" onClick={() => setConfirm({ title: 'Выдать новый пароль', body: 'Система придумает надёжный пароль и покажет его один раз.', run: () => api.post<{ temporaryPassword: string }>(`/users/${u.id}/reset-password`, {}, { idempotencyKey: crypto.randomUUID() }).then((r) => setPassword(r.temporaryPassword)) })}>
-            {me?.role === 'SUPER_ADMIN' ? 'Или сгенерировать пароль' : 'Выдать новый пароль'}
-          </Button>
         </Card>
       )}
 
@@ -154,13 +150,6 @@ export default function UserDetailPage() {
             <Button variant="ghost" onClick={() => setConfirm(null)}>Отмена</Button>
             <Button variant={confirm.danger ? 'danger' : 'primary'} disabled={run.isPending} onClick={() => run.mutate(confirm.run)}>Подтвердить</Button>
           </div>
-        </Modal>
-      )}
-      {password && (
-        <Modal title="Временный пароль" onClose={() => setPassword(null)}>
-          <p className="text-sm text-muted">Передайте пароль сотруднику лично. Он показывается только один раз.</p>
-          <p className="mt-3 select-all rounded-lg bg-border/40 p-3 text-center text-lg font-semibold">{password}</p>
-          <div className="flex justify-end pt-4"><Button onClick={() => setPassword(null)}>Готово</Button></div>
         </Modal>
       )}
     </div>

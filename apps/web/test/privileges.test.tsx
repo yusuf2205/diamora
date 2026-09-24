@@ -8,7 +8,7 @@ import { errorResponse, mockFetch, renderWithProviders, signIn } from './helpers
 
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'a1' }), useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
-const OWNER = { id: 'sa1', fullName: 'Owner', phone: '+998901112233', role: 'SUPER_ADMIN' as const, workerId: null, permissions: ['USER_VIEW_ALL', 'USER_UPDATE', 'USER_DEACTIVATE', 'ROLE_ASSIGN', 'PERMISSION_MANAGE', 'LIVE_LOCATION_VIEW_ALL'] };
+const OWNER = { id: 'sa1', fullName: 'Owner', phone: '+998901112233', role: 'SUPER_ADMIN' as const, workerId: null, permissions: ['USER_VIEW_ALL', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE', 'LIVE_LOCATION_VIEW_ALL'] };
 const manager = { id: 'a1', phone: '+998907001122', fullName: 'Manager One', role: 'MANAGER', status: 'ACTIVE', online: false, lastSeenAt: null, lastLoginAt: null, workerId: null, permissions: [], createdAt: '2026-09-10T10:00:00Z', locationHidden: false, permissionDetail: { role: 'MANAGER', defaults: [], effective: [], granted: [], revoked: [] } };
 const sent = (fetch: ReturnType<typeof mockFetch>, method: string, path: string) =>
   fetch.mock.calls.filter(([u, i]) => String(u).includes(path) && (i as RequestInit | undefined)?.method === method).map(([, i]) => JSON.parse(String((i as RequestInit).body)));
@@ -47,6 +47,16 @@ describe('user card: the SUPER_ADMIN sets a chosen password and decides map visi
     fireEvent.click(screen.getByRole('button', { name: 'Задать пароль' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Подтвердить' }));
     await waitFor(() => expect(sent(fetch, 'POST', '/users/a1/reset-password')).toEqual([{ password: 'Chosen-Pass-1' }]));
+  });
+
+  it('an ADMIN without «Задавать пароли» sees no password block at all (the owner grants it per person)', async () => {
+    const ADMIN = { ...OWNER, id: 'ad1', role: 'ADMIN' as const, permissions: ['USER_VIEW_ALL', 'USER_UPDATE'] };
+    signIn(ADMIN);
+    mockFetch({ '/auth/me': ADMIN, '/users/a1': manager, '/permissions': { permissions: [], roleDefaults: {}, grantable: {} } });
+    renderWithProviders(<UserDetailPage />);
+    await screen.findByText('Manager One');
+    expect(screen.queryByRole('button', { name: 'Задать пароль' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/сгенерировать/)).not.toBeInTheDocument();
   });
 
   it('unticking «Показывать на карте» hides the person from everyone else', async () => {

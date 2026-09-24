@@ -3,11 +3,15 @@ import { ApiError } from './api';
 
 /** LIVE / RECENT / STALE (M2 §17) — same thresholds as the API and the Flutter app (packages/shared). A RECENT or
  * STALE point is never worded as if it were happening right now. */
-export function freshnessLabel(ageSeconds: number): string {
+export function freshnessLabel(ageSeconds: number, now = Date.now()): string {
   const minutes = Math.floor(ageSeconds / 60);
-  if (ageSeconds < LOCATION_LIVE_SECONDS) return 'Сейчас';
-  if (ageSeconds < LOCATION_RECENT_SECONDS) return `Обновлено ${minutes} мин назад`;
-  return `Последняя позиция ${minutes} мин назад`;
+  if (ageSeconds < LOCATION_LIVE_SECONDS) return 'Местоположение: сейчас';
+  if (ageSeconds < LOCATION_RECENT_SECONDS || minutes < 60) return `Местоположение обновлено ${Math.max(1, minutes)} мин назад`;
+  if (minutes < 24 * 60) {
+    const h = Math.floor(minutes / 60), m = minutes % 60;
+    return `Местоположение обновлено ${h} ч${m ? ` ${m} мин` : ''} назад`;
+  }
+  return `Местоположение от ${formatDate(new Date(now - ageSeconds * 1000).toISOString())}`;
 }
 
 export function formatUzs(amount: string | null | undefined): string {

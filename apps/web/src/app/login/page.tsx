@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Logo } from '@/components/ui';
 
 /** Staff sign-in (SUPER_ADMIN / ADMIN / MANAGER). WORKER has no password and does not use this panel (D-028). */
 export default function LoginPage() {
@@ -36,7 +36,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6">
-        <div>
+        <div className="text-center">
+          <Logo size={56} className="mx-auto mb-2" />
           <h1 className="text-xl font-semibold">Diamoraa</h1>
           <p className="text-sm text-muted">Панель управления</p>
         </div>

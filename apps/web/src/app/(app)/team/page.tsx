@@ -103,32 +103,18 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
   const [phone, setPhone] = useState('+998');
   const [role, setRole] = useState<'MANAGER' | 'ADMIN'>('MANAGER');
   const [active, setActive] = useState(true);
-  const [password, setPassword] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
   const create = useMutation({
     mutationFn: async () => {
-      const res = await api.post<{ user: TeamUser; temporaryPassword?: string }>('/users', { fullName: fullName.trim(), phone: phone.trim(), role }, { idempotencyKey: crypto.randomUUID() });
+      const res = await api.post<{ user: TeamUser }>('/users', { fullName: fullName.trim(), phone: phone.trim(), role, password }, { idempotencyKey: crypto.randomUUID() });
       if (!active) await api.post(`/users/${res.user.id}/status`, { status: 'SUSPENDED' }, { idempotencyKey: crypto.randomUUID() });
       return res;
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
-      if (res.temporaryPassword) setPassword(res.temporaryPassword);
-      else onClose();
+      onClose();
     },
   });
-
-  if (password) {
-    return (
-      <Modal title="Пользователь создан" onClose={onClose}>
-        <p className="text-sm text-muted">Временный пароль показывается один раз — передайте его лично.</p>
-        <p className="mt-3 select-all rounded-lg bg-border/40 p-3 text-center text-lg font-semibold">{password}</p>
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={() => navigator.clipboard?.writeText(password)}>Копировать</Button>
-          <Button onClick={onClose}>Готово</Button>
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <Modal title="Новый пользователь" onClose={onClose}>
@@ -140,6 +126,9 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
             {roles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
           </Select>
         </Field>
+        <Field label="Пароль для входа" htmlFor="nu-pass" hint="Придумайте сами (не меньше 8 символов) и передайте лично">
+          <Input id="nu-pass" type="text" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </Field>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Сразу активен
         </label>
@@ -147,7 +136,7 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
         {create.isError && <ErrorState error={create.error} />}
         <div className="flex gap-2 pt-2 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
           <Button variant="ghost" onClick={onClose}>Отмена</Button>
-          <Button onClick={() => create.mutate()} disabled={fullName.trim().length < 2 || phone.replace(/\D/g, '').length < 9 || create.isPending}>Создать</Button>
+          <Button onClick={() => create.mutate()} disabled={fullName.trim().length < 2 || phone.replace(/\D/g, '').length < 9 || password.length < 8 || create.isPending}>Создать</Button>
         </div>
       </div>
     </Modal>

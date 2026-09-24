@@ -4,6 +4,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   USER_CREATE: 'Добавлять сотрудников',
   USER_UPDATE: 'Изменять данные сотрудников',
   USER_DEACTIVATE: 'Отключать сотрудников',
+  PASSWORD_SET: 'Задавать пароли сотрудникам',
   ROLE_ASSIGN: 'Менять роли',
   PERMISSION_MANAGE: 'Настраивать права',
   WORKER_VIEW_ALL: 'Видеть всех мастериц',
@@ -35,7 +36,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
 };
 
 export const PERMISSION_GROUPS: { title: string; perms: string[] }[] = [
-  { title: 'Пользователи', perms: ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'ROLE_ASSIGN', 'PERMISSION_MANAGE'] },
+  { title: 'Пользователи', perms: ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE'] },
   { title: 'Мастерицы', perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER'] },
   { title: 'Залог', perms: ['COLLATERAL_VIEW', 'COLLATERAL_MANAGE'] },
   { title: 'Задания', perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT'] },
@@ -54,7 +55,9 @@ export const AUDIT_USER_LABELS: Record<string, string> = {
   'user.reactivate': 'Восстановлен(а)',
   'user.role_change': 'Изменена роль',
   'user.permission_change': 'Изменены права',
-  'user.password_reset': 'Выдан новый пароль',
+  'user.password_reset': 'Пароль задан администратором',
+  'user.password_change': 'Сменил(а) свой пароль',
+  'user.location_visibility': 'Изменена видимость на карте',
 };
 
 /** Every audit action in plain Russian (the raw code stays in the database and in a tooltip). */
