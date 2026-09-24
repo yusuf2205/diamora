@@ -1374,4 +1374,48 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsTitle => 'Настройки';
+
+  @override
+  String get changePassword => 'Сменить пароль';
+
+  @override
+  String get currentPassword => 'Текущий пароль';
+
+  @override
+  String get newPassword => 'Новый пароль';
+
+  @override
+  String get repeatPassword => 'Новый пароль ещё раз';
+
+  @override
+  String get passwordsDontMatch => 'Пароли не совпадают';
+
+  @override
+  String get passwordTooShort => 'Не меньше 8 символов';
+
+  @override
+  String get wrongCurrentPassword => 'Текущий пароль неверный';
+
+  @override
+  String get passwordChanged =>
+      'Пароль изменён. Другие устройства вышли из аккаунта.';
+
+  @override
+  String get setPassword => 'Задать пароль';
+
+  @override
+  String get setPasswordHint =>
+      'Пользователь выйдет со всех устройств. Передайте пароль лично.';
+
+  @override
+  String get passwordSet => 'Пароль установлен';
+
+  @override
+  String get showOnMap => 'Показывать на карте';
+
+  @override
+  String get showOnMapHint => 'Видят все, кому разрешена карта';
+
+  @override
+  String get hiddenOnMapHint => 'Скрыт: позицию видите только вы';
 }

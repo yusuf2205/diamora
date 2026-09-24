@@ -222,4 +222,48 @@ void main() {
     expect(find.textContaining('already exists'), findsNothing);
     await tearDownDb(tester);
   });
+
+  testWidgets('SUPER_ADMIN: «Показывать на карте» switch and «Задать пароль» send exactly what was chosen', (tester) async {
+    stubList();
+    when(() => api.putJson('/users/a1/location-visibility', body: any(named: 'body'))).thenAnswer((_) async => {});
+    when(() => api.postJson('/users/a1/reset-password', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body'))).thenAnswer((_) async => {'passwordSet': true});
+    await openTeam(tester, superAdmin());
+    await tester.tap(find.text('Manager One'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Показывать на карте'));
+    await tester.pumpAndSettle();
+    verify(() => api.putJson('/users/a1/location-visibility', body: {'hidden': true})).called(1);
+
+    await tester.tap(find.text('Задать пароль'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Chosen-Pass-1');
+    await tester.tap(find.text('Сохранить'));
+    await tester.pumpAndSettle();
+    verify(() => api.postJson('/users/a1/reset-password', idempotencyKey: any(named: 'idempotencyKey'), body: {'password': 'Chosen-Pass-1'})).called(1);
+    expect(find.text('Пароль установлен'), findsOneWidget);
+    await tearDownDb(tester);
+  });
+
+  testWidgets('«Сменить пароль» in the profile: a wrong current password is said plainly, nobody is signed out', (tester) async {
+    when(() => api.getJson('/users', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.getList('/auth/sessions')).thenAnswer((_) async => <Object>[]);
+    when(() => api.postJson('/auth/change-password', body: any(named: 'body')))
+        .thenThrow(ApiException(code: 'WRONG_PASSWORD', message: 'Current password is wrong', status: 400));
+    await openTeam(tester, superAdmin());
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Профиль'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Сменить пароль'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Текущий пароль'), 'old-one');
+    await tester.enterText(find.widgetWithText(TextField, 'Новый пароль'), 'New-Pass-123');
+    await tester.enterText(find.widgetWithText(TextField, 'Новый пароль ещё раз'), 'New-Pass-123');
+    await tester.tap(find.widgetWithText(FilledButton, 'Сменить пароль'));
+    await tester.pumpAndSettle();
+    expect(find.text('Текущий пароль неверный'), findsOneWidget);
+    verify(() => api.postJson('/auth/change-password', body: {'currentPassword': 'old-one', 'newPassword': 'New-Pass-123'})).called(1);
+    await tearDownDb(tester);
+  });
 }

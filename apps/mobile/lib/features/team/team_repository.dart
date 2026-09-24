@@ -34,6 +34,13 @@ class TeamRepository {
   Future<String> resetPassword(String userId) async =>
       (await _api.postJson('/users/$userId/reset-password', idempotencyKey: _uuid.v4()))['temporaryPassword'] as String;
 
+  /// SUPER_ADMIN only: set exactly this password (the server refuses it for anyone else).
+  Future<void> setPassword(String userId, String password) =>
+      _api.postJson('/users/$userId/reset-password', idempotencyKey: _uuid.v4(), body: {'password': password});
+
+  /// SUPER_ADMIN only: hide/show this person on everybody else's map.
+  Future<void> setLocationHidden(String userId, bool hidden) => _api.putJson('/users/$userId/location-visibility', body: {'hidden': hidden});
+
   Future<List<AuditEntry>> userAudit(String userId) async =>
       ((await _api.getJson('/audit', query: {'entityId': userId, 'limit': 100}))['items'] as List).map((j) => AuditEntry.fromJson((j as Map).cast<String, dynamic>())).toList();
 

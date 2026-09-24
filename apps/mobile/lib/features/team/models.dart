@@ -2,6 +2,7 @@ class TeamUser {
   const TeamUser({
     required this.id, required this.phone, required this.fullName, required this.role, required this.status,
     this.online = false, this.permissions = const [], this.lastSeenAt, this.lastLoginAt, this.createdAt, this.workerId, this.managerName,
+    this.locationHidden = false,
   });
   final String id;
   final String phone;
@@ -15,6 +16,7 @@ class TeamUser {
   final DateTime? createdAt;
   final String? workerId; // set for WORKER accounts: her card lives at /admin/workers/:workerId
   final String? managerName;
+  final bool locationHidden;
   bool get isActive => status == 'ACTIVE';
   bool get isWorker => role == 'WORKER';
   /// The best "last seen" we know: presence heartbeat, else the last sign-in.
@@ -26,6 +28,7 @@ class TeamUser {
         permissions: ((j['permissions'] as List?) ?? const []).cast<String>(),
         lastSeenAt: DateTime.tryParse(j['lastSeenAt'] as String? ?? ''), lastLoginAt: DateTime.tryParse(j['lastLoginAt'] as String? ?? ''),
         createdAt: DateTime.tryParse(j['createdAt'] as String? ?? ''), workerId: j['workerId'] as String?, managerName: j['managerName'] as String?,
+        locationHidden: j['locationHidden'] as bool? ?? false,
       );
 }
 

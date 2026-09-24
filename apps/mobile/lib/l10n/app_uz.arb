@@ -446,5 +446,19 @@
   "auditUserRoleChange": "Rol o‘zgartirildi",
   "auditUserPermissionChange": "Huquqlar o‘zgartirildi",
   "auditUserPasswordReset": "Yangi parol berildi",
-  "settingsTitle": "Sozlamalar"
+  "settingsTitle": "Sozlamalar",
+  "changePassword": "Parolni o'zgartirish",
+  "currentPassword": "Joriy parol",
+  "newPassword": "Yangi parol",
+  "repeatPassword": "Yangi parolni takrorlang",
+  "passwordsDontMatch": "Parollar mos emas",
+  "passwordTooShort": "Kamida 8 ta belgi",
+  "wrongCurrentPassword": "Joriy parol noto'g'ri",
+  "passwordChanged": "Parol o'zgartirildi. Boshqa qurilmalar hisobdan chiqdi.",
+  "setPassword": "Parol o'rnatish",
+  "setPasswordHint": "Foydalanuvchi barcha qurilmalardan chiqadi. Parolni shaxsan bering.",
+  "passwordSet": "Parol o'rnatildi",
+  "showOnMap": "Xaritada ko'rsatish",
+  "showOnMapHint": "Xaritaga ruxsati borlar ko'radi",
+  "hiddenOnMapHint": "Yashirilgan: joylashuvni faqat siz ko'rasiz"
 }

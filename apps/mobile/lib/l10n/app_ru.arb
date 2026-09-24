@@ -458,5 +458,19 @@
   "auditUserRoleChange": "Изменена роль",
   "auditUserPermissionChange": "Изменены права",
   "auditUserPasswordReset": "Выдан новый пароль",
-  "settingsTitle": "Настройки"
+  "settingsTitle": "Настройки",
+  "changePassword": "Сменить пароль",
+  "currentPassword": "Текущий пароль",
+  "newPassword": "Новый пароль",
+  "repeatPassword": "Новый пароль ещё раз",
+  "passwordsDontMatch": "Пароли не совпадают",
+  "passwordTooShort": "Не меньше 8 символов",
+  "wrongCurrentPassword": "Текущий пароль неверный",
+  "passwordChanged": "Пароль изменён. Другие устройства вышли из аккаунта.",
+  "setPassword": "Задать пароль",
+  "setPasswordHint": "Пользователь выйдет со всех устройств. Передайте пароль лично.",
+  "passwordSet": "Пароль установлен",
+  "showOnMap": "Показывать на карте",
+  "showOnMapHint": "Видят все, кому разрешена карта",
+  "hiddenOnMapHint": "Скрыт: позицию видите только вы"
 }

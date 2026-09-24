@@ -56,6 +56,7 @@ class _Body extends ConsumerWidget {
     final canStatus = (me?.has('USER_DEACTIVATE') ?? false) && !isMe;
     final canEdit = me?.has('USER_UPDATE') ?? false;
     final canHistory = me?.has('AUDIT_VIEW') ?? false;
+    final isSuper = me?.isSuperAdmin ?? false;
     final managerWorkers = u.role == 'MANAGER' ? ref.watch(managersProvider).value?.where((m) => m.user.id == u.id).firstOrNull?.assignedWorkers : null;
 
     Widget info(IconData icon, String label, String value, {VoidCallback? onTap}) => ListTile(
@@ -106,7 +107,16 @@ class _Body extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PermissionsScreen(userId: u.id, editable: canPerms))),
           ),
           if (canEdit) _ActionTile(icon: Icons.edit_outlined, title: l.editDetails, onTap: () => _edit(context, ref, u)),
+          if (isSuper && !isMe) _ActionTile(icon: Icons.password, title: l.setPassword, onTap: () => _setPassword(context, ref, u)),
           if (canEdit && !isMe) _ActionTile(icon: Icons.key_outlined, title: l.resetPassword, onTap: () => _resetPassword(context, ref, u)),
+          if (isSuper)
+            SwitchListTile(
+              secondary: const Icon(Icons.location_on_outlined),
+              title: Text(l.showOnMap),
+              subtitle: Text(u.locationHidden ? l.hiddenOnMapHint : l.showOnMapHint),
+              value: !u.locationHidden,
+              onChanged: (v) => _run(context, ref, u, () => ref.read(teamRepositoryProvider).setLocationHidden(u.id, !v), l.teamSaved),
+            ),
           if (canHistory) _ActionTile(icon: Icons.history, title: l.history, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _UserHistoryScreen(user: u)))),
         ]),
       ),
@@ -185,6 +195,28 @@ class _Body extends ConsumerWidget {
     }
   }
 
+  Future<void> _setPassword(BuildContext context, WidgetRef ref, TeamUser u) async {
+    final l = AppLocalizations.of(context);
+    final ctrl = TextEditingController();
+    final pwd = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.setPassword),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(l.setPasswordHint),
+          const SizedBox(height: 12),
+          TextField(controller: ctrl, autofocus: true, decoration: InputDecoration(labelText: l.newPassword, helperText: l.passwordTooShort)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
+          FilledButton(onPressed: () { if (ctrl.text.length >= 8) Navigator.pop(ctx, ctrl.text); }, child: Text(l.save)),
+        ],
+      ),
+    );
+    if (pwd == null || !context.mounted) return;
+    await _run(context, ref, u, () => ref.read(teamRepositoryProvider).setPassword(u.id, pwd), l.passwordSet);
+  }
+
   Future<void> _edit(BuildContext context, WidgetRef ref, TeamUser u) => showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
@@ -198,7 +230,7 @@ class _Body extends ConsumerWidget {
       ref.invalidate(userDetailProvider(u.id));
       ref.invalidate(teamUsersProvider);
       ref.invalidate(managersProvider);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
+      if (context.mounted) ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(done)));
     } catch (e) {
       if (context.mounted) showError(context, e);
     }

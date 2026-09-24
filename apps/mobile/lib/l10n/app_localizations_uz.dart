@@ -1335,4 +1335,48 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get settingsTitle => 'Sozlamalar';
+
+  @override
+  String get changePassword => 'Parolni o\'zgartirish';
+
+  @override
+  String get currentPassword => 'Joriy parol';
+
+  @override
+  String get newPassword => 'Yangi parol';
+
+  @override
+  String get repeatPassword => 'Yangi parolni takrorlang';
+
+  @override
+  String get passwordsDontMatch => 'Parollar mos emas';
+
+  @override
+  String get passwordTooShort => 'Kamida 8 ta belgi';
+
+  @override
+  String get wrongCurrentPassword => 'Joriy parol noto\'g\'ri';
+
+  @override
+  String get passwordChanged =>
+      'Parol o\'zgartirildi. Boshqa qurilmalar hisobdan chiqdi.';
+
+  @override
+  String get setPassword => 'Parol o\'rnatish';
+
+  @override
+  String get setPasswordHint =>
+      'Foydalanuvchi barcha qurilmalardan chiqadi. Parolni shaxsan bering.';
+
+  @override
+  String get passwordSet => 'Parol o\'rnatildi';
+
+  @override
+  String get showOnMap => 'Xaritada ko\'rsatish';
+
+  @override
+  String get showOnMapHint => 'Xaritaga ruxsati borlar ko\'radi';
+
+  @override
+  String get hiddenOnMapHint => 'Yashirilgan: joylashuvni faqat siz ko\'rasiz';
 }

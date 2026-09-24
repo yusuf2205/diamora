@@ -2605,6 +2605,90 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Настройки'**
   String get settingsTitle;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить пароль'**
+  String get changePassword;
+
+  /// No description provided for @currentPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущий пароль'**
+  String get currentPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый пароль'**
+  String get newPassword;
+
+  /// No description provided for @repeatPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый пароль ещё раз'**
+  String get repeatPassword;
+
+  /// No description provided for @passwordsDontMatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароли не совпадают'**
+  String get passwordsDontMatch;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не меньше 8 символов'**
+  String get passwordTooShort;
+
+  /// No description provided for @wrongCurrentPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущий пароль неверный'**
+  String get wrongCurrentPassword;
+
+  /// No description provided for @passwordChanged.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль изменён. Другие устройства вышли из аккаунта.'**
+  String get passwordChanged;
+
+  /// No description provided for @setPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задать пароль'**
+  String get setPassword;
+
+  /// No description provided for @setPasswordHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь выйдет со всех устройств. Передайте пароль лично.'**
+  String get setPasswordHint;
+
+  /// No description provided for @passwordSet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль установлен'**
+  String get passwordSet;
+
+  /// No description provided for @showOnMap.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показывать на карте'**
+  String get showOnMap;
+
+  /// No description provided for @showOnMapHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видят все, кому разрешена карта'**
+  String get showOnMapHint;
+
+  /// No description provided for @hiddenOnMapHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыт: позицию видите только вы'**
+  String get hiddenOnMapHint;
 }
 
 class _AppLocalizationsDelegate

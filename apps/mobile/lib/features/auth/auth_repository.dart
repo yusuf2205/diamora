@@ -59,6 +59,9 @@ class AuthRepository {
     await _tokens.clear();
   }
 
+  /// My own password. Other devices are signed out by the server; this one stays signed in.
+  Future<void> changePassword(String current, String next) => _api.postJson('/auth/change-password', body: {'currentPassword': current, 'newPassword': next});
+
   Future<void> logoutAll() async {
     await _api.postJson('/auth/logout-all');
     await _tokens.clear();
