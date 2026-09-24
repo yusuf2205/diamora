@@ -27,7 +27,7 @@ class AssignmentAdminRepository {
   Future<AssignmentDetail> get(String id) async => AssignmentDetail.fromJson(await _api.getJson('/admin/assignments/$id'));
 
   Future<List<AssignmentSummary>> list({String? status, String? workerId}) async =>
-      ((await _api.getJson('/admin/assignments', query: {'status': ?status, 'workerId': ?workerId, 'limit': 200}))['items'] as List)
+      ((await _api.getJson('/admin/assignments', query: {'status': ?status, 'workerId': ?workerId, 'limit': 100}))['items'] as List)
           .map((j) => AssignmentSummary.fromJson((j as Map).cast<String, dynamic>()))
           .toList();
 

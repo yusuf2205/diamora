@@ -17,7 +17,7 @@ class InventoryRepository {
       (await _api.getList('/admin/materials/categories')).map((j) => MaterialCategoryRef.fromJson((j as Map).cast<String, dynamic>())).toList();
 
   Future<List<MaterialItem>> materials() async =>
-      ((await _api.getJson('/admin/materials', query: {'limit': 200}))['items'] as List).map((j) => MaterialItem.fromJson((j as Map).cast<String, dynamic>())).toList();
+      ((await _api.getJson('/admin/materials', query: {'limit': 100}))['items'] as List).map((j) => MaterialItem.fromJson((j as Map).cast<String, dynamic>())).toList();
 
   Future<void> createMaterial({required String name, String? categoryId, required String unit, String? minStock}) => _api.postJson(
         '/admin/materials', idempotencyKey: _uuid.v4(),

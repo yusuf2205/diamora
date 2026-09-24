@@ -258,15 +258,14 @@ class _Header extends ConsumerWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(worker.fullName, style: Theme.of(context).textTheme.titleLarge),
           Text('${worker.code} · $status · ${online ? l.onlineNow : l.offlineNow}', style: TextStyle(color: worker.isPending ? AppTokens.warn : scheme.outline)),
-          Row(children: [
-            Flexible(child: Text('${l.managerLabel}: ${worker.managerName ?? l.noManager}', style: TextStyle(color: scheme.outline))),
-            if (canChangeManager && !worker.isPending)
-              TextButton(
-                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                onPressed: () => showChangeManagerSheet(context, worker),
-                child: Text(l.changeManager),
-              ),
-          ]),
+          Text('${l.managerLabel}: ${worker.managerName ?? l.noManager}', style: TextStyle(color: scheme.outline)),
+          if (canChangeManager && !worker.isPending)
+            TextButton.icon(
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
+              icon: const Icon(Icons.swap_horiz, size: 18),
+              onPressed: () => showChangeManagerSheet(context, worker),
+              label: Text(l.changeManager),
+            ),
           if (worker.rejectedReason != null) Text(worker.rejectedReason!, style: TextStyle(color: scheme.error)),
         ]),
       ),
@@ -288,7 +287,7 @@ class _CurrentWorkSection extends ConsumerWidget {
     String m(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
+        Expanded(child: Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium)),
         TextButton.icon(
           icon: const Icon(Icons.add),
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),

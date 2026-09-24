@@ -158,6 +158,7 @@ class _UserRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final u = user;
     final second = [
+      teamRoleLabel(l, u.role),
       u.phone,
       if (u.isWorker) '${l.managerLabel}: ${u.managerName ?? l.noManager}',
       if (!u.online) seenLabel(l, u.seenAt),
@@ -183,11 +184,7 @@ class _UserRow extends StatelessWidget {
                   Text(second, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
                 ]),
               ),
-              const SizedBox(width: 8),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                RoleBadge(role: u.role),
-                if (!u.isActive) ...[const SizedBox(height: 4), Text(l.teamStatusSuspended, style: TextStyle(color: scheme.error, fontSize: 12))],
-              ]),
+              if (!u.isActive) ...[const SizedBox(width: 8), Text(l.teamStatusSuspended, style: TextStyle(color: scheme.error, fontSize: 12))],
             ]),
           ),
         ),
