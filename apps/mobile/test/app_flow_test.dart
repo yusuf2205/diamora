@@ -111,14 +111,17 @@ void main() {
   });
 
   testWidgets('ADMIN sees the registrations tab with a pending worker from the server (cache-backed list)', (tester) async {
+    when(() => api.getJson('/dashboard')).thenAnswer((_) async => {'workers': null, 'work': null, 'finance': null});
     when(() => api.getJson('/workers', query: any(named: 'query'))).thenAnswer((_) async => {'items': [workerListItem], 'nextCursor': null});
     final admin = Session.fromJson({'id': 'u1', 'fullName': 'Owner', 'phone': '+998901112233', 'role': 'ADMIN'});
     await tester.pumpWidget(await appWith(admin, api));
     await tester.pumpAndSettle();
+    expect(find.text('Мастерицы'), findsWidgets); // bottom navigation, reachable from the new Dashboard home
+    await tester.tap(find.text('Мастерицы').first);
+    await tester.pumpAndSettle();
     expect(find.text('Заявки'), findsOneWidget);
     expect(find.text('Малика Каримова'), findsOneWidget);
     expect(find.textContaining('1 500 000'), findsOneWidget);
-    expect(find.text('Мастерицы'), findsWidgets); // bottom navigation
     // drift's stream cleanup uses a zero-length timer: dispose the tree, let it fire, then close the database
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));

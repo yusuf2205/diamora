@@ -829,6 +829,30 @@ class AppLocalizationsUz extends AppLocalizations {
   String get pickupNeeded => 'Olib ketish kerak';
 
   @override
+  String get dashboardTab => 'Umumiy koʻrinish';
+
+  @override
+  String get dashActiveWorkers => 'Faol mastaricalar';
+
+  @override
+  String get dashInProgress => 'Ishda';
+
+  @override
+  String get dashNeedsAcceptance => 'Qabulda';
+
+  @override
+  String get dashOverdue => 'Muddati oʻtgan';
+
+  @override
+  String get queueEmpty => 'Hozircha boʻsh';
+
+  @override
+  String get dueBy => 'muddat ';
+
+  @override
+  String get workersDueEmpty => 'Barcha toʻlovlar yopilgan';
+
+  @override
   String get acceptanceTitle => 'Ishni qabul qilish';
 
   @override

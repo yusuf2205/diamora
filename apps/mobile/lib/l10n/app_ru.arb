@@ -283,6 +283,15 @@
 
   "pickupNeeded": "Есть что забрать",
 
+  "dashboardTab": "Обзор",
+  "dashActiveWorkers": "Активные мастерицы",
+  "dashInProgress": "В работе",
+  "dashNeedsAcceptance": "На приёмке",
+  "dashOverdue": "Просрочено",
+  "queueEmpty": "Здесь пока пусто",
+  "dueBy": "срок ",
+  "workersDueEmpty": "Все выплаты закрыты",
+
   "acceptanceTitle": "Приёмка работы",
   "acceptanceBrought": "Принесено",
   "acceptanceAccepted": "Принято",

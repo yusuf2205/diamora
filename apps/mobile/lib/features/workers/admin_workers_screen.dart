@@ -11,13 +11,14 @@ import 'workers_providers.dart';
 
 /// ADMIN: registrations waiting for a decision, active workers, everyone. New registrations appear in realtime.
 class AdminWorkersScreen extends ConsumerStatefulWidget {
-  const AdminWorkersScreen({super.key});
+  const AdminWorkersScreen({super.key, this.initialTab = 0});
+  final int initialTab;
   @override
   ConsumerState<AdminWorkersScreen> createState() => _AdminWorkersScreenState();
 }
 
 class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 3, vsync: this);
+  late final TabController _tabs = TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
   String _query = '';
 
   static const _statusOfTab = ['PENDING_APPROVAL', 'ACTIVE', null];

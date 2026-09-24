@@ -1640,6 +1640,54 @@ abstract class AppLocalizations {
   /// **'Есть что забрать'**
   String get pickupNeeded;
 
+  /// No description provided for @dashboardTab.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обзор'**
+  String get dashboardTab;
+
+  /// No description provided for @dashActiveWorkers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Активные мастерицы'**
+  String get dashActiveWorkers;
+
+  /// No description provided for @dashInProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'В работе'**
+  String get dashInProgress;
+
+  /// No description provided for @dashNeedsAcceptance.
+  ///
+  /// In ru, this message translates to:
+  /// **'На приёмке'**
+  String get dashNeedsAcceptance;
+
+  /// No description provided for @dashOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просрочено'**
+  String get dashOverdue;
+
+  /// No description provided for @queueEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Здесь пока пусто'**
+  String get queueEmpty;
+
+  /// No description provided for @dueBy.
+  ///
+  /// In ru, this message translates to:
+  /// **'срок '**
+  String get dueBy;
+
+  /// No description provided for @workersDueEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все выплаты закрыты'**
+  String get workersDueEmpty;
+
   /// No description provided for @acceptanceTitle.
   ///
   /// In ru, this message translates to:

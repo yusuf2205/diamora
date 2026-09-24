@@ -10,13 +10,14 @@ import 'assignment_models.dart';
 /// M3 §6/§11 — exactly the two queues a staff member needs to discover without digging through every worker's card:
 /// "Нужно доставить" and "Есть что забрать". Deliberately no map/distance sorting (§7): a plain, fast list.
 class DeliveriesScreen extends StatefulWidget {
-  const DeliveriesScreen({super.key});
+  const DeliveriesScreen({super.key, this.initialTab = 0});
+  final int initialTab;
   @override
   State<DeliveriesScreen> createState() => _DeliveriesScreenState();
 }
 
 class _DeliveriesScreenState extends State<DeliveriesScreen> with SingleTickerProviderStateMixin {
-  late final _tabs = TabController(length: 2, vsync: this);
+  late final _tabs = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
 
   @override
   void dispose() {

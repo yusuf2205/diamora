@@ -826,6 +826,30 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pickupNeeded => 'Есть что забрать';
 
   @override
+  String get dashboardTab => 'Обзор';
+
+  @override
+  String get dashActiveWorkers => 'Активные мастерицы';
+
+  @override
+  String get dashInProgress => 'В работе';
+
+  @override
+  String get dashNeedsAcceptance => 'На приёмке';
+
+  @override
+  String get dashOverdue => 'Просрочено';
+
+  @override
+  String get queueEmpty => 'Здесь пока пусто';
+
+  @override
+  String get dueBy => 'срок ';
+
+  @override
+  String get workersDueEmpty => 'Все выплаты закрыты';
+
+  @override
   String get acceptanceTitle => 'Приёмка работы';
 
   @override

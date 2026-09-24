@@ -277,6 +277,15 @@
 
   "pickupNeeded": "Olib ketish kerak",
 
+  "dashboardTab": "Umumiy koʻrinish",
+  "dashActiveWorkers": "Faol mastaricalar",
+  "dashInProgress": "Ishda",
+  "dashNeedsAcceptance": "Qabulda",
+  "dashOverdue": "Muddati oʻtgan",
+  "queueEmpty": "Hozircha boʻsh",
+  "dueBy": "muddat ",
+  "workersDueEmpty": "Barcha toʻlovlar yopilgan",
+
   "acceptanceTitle": "Ishni qabul qilish",
   "acceptanceBrought": "Keltirildi",
   "acceptanceAccepted": "Qabul qilindi",
