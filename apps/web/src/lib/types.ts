@@ -43,6 +43,7 @@ export interface Worker {
   balance: string;
   manager: { id: string; fullName: string } | null;
   collateral: { id: string; type: string; status: string; amount: string | null; description: string | null } | null;
+  rejectedReason?: string | null; // detail only
   createdAt: string;
   updatedAt: string;
 }

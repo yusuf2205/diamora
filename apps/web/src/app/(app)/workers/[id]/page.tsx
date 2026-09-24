@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -9,7 +9,7 @@ import { assignmentStatusLabel, assignmentStatusTone, formatUzs, statusLabel } f
 import { hasPerm } from '@/lib/types';
 import type { AssignmentSummary, Page, Worker, WorkerLedger } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
-import { Badge, Button, Card, ErrorState, StatCard } from '@/components/ui';
+import { Badge, Button, Card, ErrorState, Input, Modal, StatCard } from '@/components/ui';
 import { PayoutDialog } from '../../assignments/[id]/page';
 
 /** Мастерица: profile, earnings/payout, and her assignments — the same numbers the worker sees on her own phone (§13). */
@@ -34,6 +34,9 @@ export default function WorkerDetailPage() {
         </div>
         {ledger.data && hasPerm(me, 'CASH_PAYOUT') && <Button onClick={() => setPayingOut(true)}>Выплатить наличными</Button>}
       </div>
+
+      {w.status === 'PENDING_APPROVAL' && hasPerm(me, 'WORKER_APPROVE') && <ApprovalCard worker={w} />}
+      {w.status === 'REJECTED' && w.rejectedReason && <Card><p className="text-sm text-muted">Причина отказа: {w.rejectedReason}</p></Card>}
 
       {ledger.data && (
         <div className="grid grid-cols-3 gap-4">
@@ -73,5 +76,70 @@ export default function WorkerDetailPage() {
 
       {payingOut && <PayoutDialog workerId={w.id} onClose={() => setPayingOut(false)} />}
     </div>
+  );
+}
+
+/** Same decision the mobile ADMIN app offers (§ registration): approve (optionally confirming the collateral was
+ * physically received) or reject with a reason she will read in Telegram. The server creates her account on approve. */
+function ApprovalCard({ worker: w }: { worker: Worker }) {
+  const qc = useQueryClient();
+  const [mode, setMode] = useState<'approve' | 'reject' | null>(null);
+  const [collateralReceived, setCollateralReceived] = useState(false);
+  const [reason, setReason] = useState('');
+  const done = () => { qc.invalidateQueries({ queryKey: ['worker', w.id] }); qc.invalidateQueries({ queryKey: ['workers'] }); setMode(null); };
+
+  const approve = useMutation({
+    mutationFn: () => api.post(`/workers/${w.id}/approve`, { collateralReceived }, { idempotencyKey: crypto.randomUUID() }),
+    onSuccess: done,
+  });
+  const reject = useMutation({
+    mutationFn: () => api.post(`/workers/${w.id}/reject`, { reason: reason.trim() }, { idempotencyKey: crypto.randomUUID() }),
+    onSuccess: done,
+  });
+  const c = w.collateral;
+
+  return (
+    <Card>
+      <h2 className="text-sm font-medium">Заявка на рассмотрении</h2>
+      <p className="mt-1 text-sm text-muted">
+        {c ? `Залог: ${c.type === 'MONEY' ? `${formatUzs(c.amount)} сум` : (c.description ?? 'вещь')}` : 'Залог не указан'}
+      </p>
+      <div className="mt-4 flex gap-2">
+        <Button onClick={() => setMode('approve')}>Одобрить</Button>
+        <Button variant="outline" onClick={() => setMode('reject')}>Отклонить</Button>
+      </div>
+
+      {mode === 'approve' && (
+        <Modal title="Одобрить мастерицу?" onClose={() => setMode(null)}>
+          <div className="space-y-3">
+            <p className="text-sm">{w.fullName} получит сообщение в Telegram и сможет войти в приложение.</p>
+            {c && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={collateralReceived} onChange={(e) => setCollateralReceived(e.target.checked)} />
+                Залог получен
+              </label>
+            )}
+            {approve.isError && <ErrorState error={approve.error} />}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setMode(null)}>Отмена</Button>
+              <Button onClick={() => approve.mutate()} disabled={approve.isPending}>Одобрить</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {mode === 'reject' && (
+        <Modal title="Отклонить заявку?" onClose={() => setMode(null)}>
+          <div className="space-y-3">
+            <Input placeholder="Причина (её увидит мастерица)" value={reason} onChange={(e) => setReason(e.target.value)} />
+            {reject.isError && <ErrorState error={reject.error} />}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setMode(null)}>Отмена</Button>
+              <Button onClick={() => reject.mutate()} disabled={reason.trim().length < 3 || reject.isPending}>Отклонить</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </Card>
   );
 }
