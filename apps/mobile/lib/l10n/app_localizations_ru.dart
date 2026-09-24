@@ -519,16 +519,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String locationStaleMinutes(int minutes) {
-    return 'Последняя позиция $minutes мин назад';
+    return 'Местоположение обновлено $minutes мин назад';
   }
 
   @override
   String locationRecentMinutes(int minutes) {
-    return 'Обновлено $minutes мин назад';
+    return 'Местоположение обновлено $minutes мин назад';
   }
 
   @override
-  String get locationJustNow => 'Сейчас';
+  String get locationJustNow => 'Местоположение: сейчас';
 
   @override
   String get onlineNow => 'в сети';
@@ -1418,4 +1418,26 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get hiddenOnMapHint => 'Скрыт: позицию видите только вы';
+
+  @override
+  String locationUpdatedHours(int hours, int minutes) {
+    return 'Местоположение обновлено $hours ч $minutes мин назад';
+  }
+
+  @override
+  String locationUpdatedOn(String date) {
+    return 'Местоположение от $date';
+  }
+
+  @override
+  String get permPasswordSet => 'Задавать пароли сотрудникам';
+
+  @override
+  String get passwordForLogin => 'Пароль для входа';
+
+  @override
+  String get passwordForLoginHint => 'Придумайте сами и передайте лично';
+
+  @override
+  String get userCreated => 'Пользователь создан. Передайте ему пароль лично.';
 }

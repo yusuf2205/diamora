@@ -19,7 +19,7 @@ void main() {
 
   Session superAdmin() => Session.fromJson({
         'id': 'me', 'fullName': 'Owner', 'phone': '+998901112233', 'role': 'SUPER_ADMIN',
-        'permissions': ['USER_VIEW_ALL', 'USER_DEACTIVATE', 'USER_CREATE', 'USER_UPDATE', 'ROLE_ASSIGN', 'PERMISSION_MANAGE', 'AUDIT_VIEW'],
+        'permissions': ['USER_VIEW_ALL', 'USER_DEACTIVATE', 'USER_CREATE', 'USER_UPDATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE', 'AUDIT_VIEW'],
       });
   Map<String, Object?> owner() => {'id': 'me', 'phone': '+998901112233', 'fullName': 'Owner', 'role': 'SUPER_ADMIN', 'status': 'ACTIVE', 'permissions': <String>[], 'createdAt': '2026-09-01T10:00:00Z'};
   Map<String, Object?> manager1({String status = 'ACTIVE', List<String> effective = _managerDefaults}) => {
@@ -187,10 +187,10 @@ void main() {
     await tearDownDb(tester);
   });
 
-  testWidgets('«+ Добавить пользователя»: staff roles only, then the one-time password with a copy button', (tester) async {
+  testWidgets('«+ Добавить пользователя»: staff roles only, the creator types the password (the app never invents one)', (tester) async {
     stubList();
     when(() => api.postJson('/users', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body')))
-        .thenAnswer((_) async => {'user': {...manager1(), 'id': 'n1'}, 'temporaryPassword': 'Abc123xyzQWE45'});
+        .thenAnswer((_) async => {'user': {...manager1(), 'id': 'n1'}});
     await openTeam(tester, superAdmin());
     await tester.tap(find.text('Добавить пользователя'));
     await tester.pumpAndSettle();
@@ -200,9 +200,12 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, 'Телефон'), '+998901234567');
     await tester.tap(find.widgetWithText(FilledButton, 'Добавить пользователя'));
     await tester.pumpAndSettle();
-    verify(() => api.postJson('/users', idempotencyKey: any(named: 'idempotencyKey'), body: {'phone': '+998901234567', 'fullName': 'Дилноза Юсупова', 'role': 'MANAGER'})).called(1);
-    expect(find.text('Abc123xyzQWE45'), findsOneWidget);
-    expect(find.text('Копировать'), findsOneWidget);
+    verifyNever(() => api.postJson('/users', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body'))); // no password yet
+    await tester.enterText(find.widgetWithText(TextField, 'Пароль для входа'), 'Typed-Pass-1');
+    await tester.tap(find.widgetWithText(FilledButton, 'Добавить пользователя'));
+    await tester.pumpAndSettle();
+    verify(() => api.postJson('/users', idempotencyKey: any(named: 'idempotencyKey'), body: {'phone': '+998901234567', 'fullName': 'Дилноза Юсупова', 'role': 'MANAGER', 'password': 'Typed-Pass-1'})).called(1);
+    expect(find.text('Пользователь создан. Передайте ему пароль лично.'), findsOneWidget);
     await tearDownDb(tester);
   });
 

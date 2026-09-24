@@ -274,6 +274,7 @@ class _AddUserSheet extends ConsumerStatefulWidget {
 class _AddUserSheetState extends ConsumerState<_AddUserSheet> {
   final _name = TextEditingController();
   final _phone = TextEditingController(text: '+998');
+  final _password = TextEditingController();
   var _role = 'MANAGER';
   var _active = true;
   var _busy = false;
@@ -282,28 +283,27 @@ class _AddUserSheetState extends ConsumerState<_AddUserSheet> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _password.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final l = AppLocalizations.of(context);
-    if (_name.text.trim().length < 2 || _phone.text.replaceAll(RegExp(r'\D'), '').length < 9) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.checkYourInput)));
+    if (_name.text.trim().length < 2 || _phone.text.replaceAll(RegExp(r'\D'), '').length < 9 || _password.text.length < 8) {
+      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.checkYourInput)));
       return;
     }
     setState(() => _busy = true);
     final repo = ref.read(teamRepositoryProvider);
     try {
-      final res = await repo.createUser(phone: _phone.text.trim(), fullName: _name.text.trim(), role: _role);
+      final res = await repo.createUser(phone: _phone.text.trim(), fullName: _name.text.trim(), role: _role, password: _password.text);
       final id = (res['user'] as Map?)?['id'] as String?;
       if (!_active && id != null) await repo.setStatus(id, false);
       ref.invalidate(teamUsersProvider);
       if (!mounted) return;
-      final nav = Navigator.of(context);
-      final outer = nav.context;
-      nav.pop();
-      final pwd = res['temporaryPassword'] as String?;
-      if (pwd != null && outer.mounted) await showTemporaryPassword(outer, pwd);
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.userCreated)));
     } on ApiException catch (e) {
       if (!mounted) return;
       if (e.code == 'CONFLICT') {
@@ -336,6 +336,8 @@ class _AddUserSheetState extends ConsumerState<_AddUserSheet> {
           TextField(controller: _name, enabled: !_busy, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: l.teamFullName)),
           const SizedBox(height: 12),
           TextField(controller: _phone, enabled: !_busy, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: l.phone)),
+          const SizedBox(height: 12),
+          TextField(controller: _password, enabled: !_busy, autocorrect: false, enableSuggestions: false, decoration: InputDecoration(labelText: l.passwordForLogin, helperText: '${l.passwordForLoginHint} · ${l.passwordTooShort}')),
           const SizedBox(height: 16),
           Text(l.teamRole, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),

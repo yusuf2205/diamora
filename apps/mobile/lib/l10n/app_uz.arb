@@ -166,11 +166,11 @@
 
   "locations": "Jamoa geolokatsiyasi",
   "locationsEmpty": "Joylashuv ma'lumotlari hali yo'q",
-  "locationStaleMinutes": "Oxirgi joylashuv {minutes} daqiqa oldin",
+  "locationStaleMinutes": "Joylashuv {minutes} daqiqa oldin yangilangan",
   "@locationStaleMinutes": { "placeholders": { "minutes": { "type": "int" } } },
-  "locationRecentMinutes": "{minutes} daqiqa oldin yangilangan",
+  "locationRecentMinutes": "Joylashuv {minutes} daqiqa oldin yangilangan",
   "@locationRecentMinutes": { "placeholders": { "minutes": { "type": "int" } } },
-  "locationJustNow": "Hozir",
+  "locationJustNow": "Joylashuv: hozir",
   "onlineNow": "onlayn",
   "offlineNow": "oflayn",
 
@@ -460,5 +460,13 @@
   "passwordSet": "Parol o'rnatildi",
   "showOnMap": "Xaritada ko'rsatish",
   "showOnMapHint": "Xaritaga ruxsati borlar ko'radi",
-  "hiddenOnMapHint": "Yashirilgan: joylashuvni faqat siz ko'rasiz"
+  "hiddenOnMapHint": "Yashirilgan: joylashuvni faqat siz ko'rasiz",
+  "locationUpdatedHours": "Joylashuv {hours} soat {minutes} daqiqa oldin yangilangan",
+  "@locationUpdatedHours": {"placeholders": {"hours": {"type": "int"}, "minutes": {"type": "int"}}},
+  "locationUpdatedOn": "Joylashuv: {date}",
+  "@locationUpdatedOn": {"placeholders": {"date": {"type": "String"}}},
+  "permPasswordSet": "Xodimlarga parol o'rnatish",
+  "passwordForLogin": "Kirish paroli",
+  "passwordForLoginHint": "O'zingiz o'ylab toping va shaxsan bering",
+  "userCreated": "Foydalanuvchi yaratildi. Parolni shaxsan bering."
 }

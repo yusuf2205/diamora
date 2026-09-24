@@ -31,9 +31,6 @@ class TeamRepository {
   Future<UserDetail> setPermissions(String userId, {required List<String> grant, required List<String> revoke}) async =>
       UserDetail.fromJson(await _api.putJson('/users/$userId/permissions', body: {'grant': grant, 'revoke': revoke}));
 
-  Future<String> resetPassword(String userId) async =>
-      (await _api.postJson('/users/$userId/reset-password', idempotencyKey: _uuid.v4()))['temporaryPassword'] as String;
-
   /// SUPER_ADMIN only: set exactly this password (the server refuses it for anyone else).
   Future<void> setPassword(String userId, String password) =>
       _api.postJson('/users/$userId/reset-password', idempotencyKey: _uuid.v4(), body: {'password': password});
@@ -44,8 +41,8 @@ class TeamRepository {
   Future<List<AuditEntry>> userAudit(String userId) async =>
       ((await _api.getJson('/audit', query: {'entityId': userId, 'limit': 100}))['items'] as List).map((j) => AuditEntry.fromJson((j as Map).cast<String, dynamic>())).toList();
 
-  Future<Map<String, Object?>> createUser({required String phone, required String fullName, required String role}) =>
-      _api.postJson('/users', idempotencyKey: _uuid.v4(), body: {'phone': phone, 'fullName': fullName, 'role': role});
+  Future<Map<String, Object?>> createUser({required String phone, required String fullName, required String role, required String password}) =>
+      _api.postJson('/users', idempotencyKey: _uuid.v4(), body: {'phone': phone, 'fullName': fullName, 'role': role, 'password': password});
 
   Future<void> setStatus(String userId, bool active) => _api.postJson('/users/$userId/status', idempotencyKey: _uuid.v4(), body: {'status': active ? 'ACTIVE' : 'SUSPENDED'});
 

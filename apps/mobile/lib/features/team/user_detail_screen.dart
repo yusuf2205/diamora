@@ -107,8 +107,7 @@ class _Body extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PermissionsScreen(userId: u.id, editable: canPerms))),
           ),
           if (canEdit) _ActionTile(icon: Icons.edit_outlined, title: l.editDetails, onTap: () => _edit(context, ref, u)),
-          if (isSuper && !isMe) _ActionTile(icon: Icons.password, title: l.setPassword, onTap: () => _setPassword(context, ref, u)),
-          if (canEdit && !isMe) _ActionTile(icon: Icons.key_outlined, title: l.resetPassword, onTap: () => _resetPassword(context, ref, u)),
+          if ((me?.has('PASSWORD_SET') ?? false) && !isMe) _ActionTile(icon: Icons.password, title: l.setPassword, onTap: () => _setPassword(context, ref, u)),
           if (isSuper)
             SwitchListTile(
               secondary: const Icon(Icons.location_on_outlined),
@@ -182,17 +181,6 @@ class _Body extends ConsumerWidget {
     if (!active && !await _confirm(context, l.deactivateUser, l.deactivateConfirm(u.fullName), danger: true)) return;
     if (!context.mounted) return;
     await _run(context, ref, u, () => ref.read(teamRepositoryProvider).setStatus(u.id, active), active ? l.userRestored : l.userDeactivated);
-  }
-
-  Future<void> _resetPassword(BuildContext context, WidgetRef ref, TeamUser u) async {
-    final l = AppLocalizations.of(context);
-    if (!await _confirm(context, l.resetPassword, l.resetPasswordConfirm)) return;
-    try {
-      final pwd = await ref.read(teamRepositoryProvider).resetPassword(u.id);
-      if (context.mounted) await showTemporaryPassword(context, pwd);
-    } catch (e) {
-      if (context.mounted) showError(context, e);
-    }
   }
 
   Future<void> _setPassword(BuildContext context, WidgetRef ref, TeamUser u) async {

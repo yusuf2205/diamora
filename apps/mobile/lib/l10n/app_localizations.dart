@@ -1055,19 +1055,19 @@ abstract class AppLocalizations {
   /// No description provided for @locationStaleMinutes.
   ///
   /// In ru, this message translates to:
-  /// **'Последняя позиция {minutes} мин назад'**
+  /// **'Местоположение обновлено {minutes} мин назад'**
   String locationStaleMinutes(int minutes);
 
   /// No description provided for @locationRecentMinutes.
   ///
   /// In ru, this message translates to:
-  /// **'Обновлено {minutes} мин назад'**
+  /// **'Местоположение обновлено {minutes} мин назад'**
   String locationRecentMinutes(int minutes);
 
   /// No description provided for @locationJustNow.
   ///
   /// In ru, this message translates to:
-  /// **'Сейчас'**
+  /// **'Местоположение: сейчас'**
   String get locationJustNow;
 
   /// No description provided for @onlineNow.
@@ -2689,6 +2689,42 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Скрыт: позицию видите только вы'**
   String get hiddenOnMapHint;
+
+  /// No description provided for @locationUpdatedHours.
+  ///
+  /// In ru, this message translates to:
+  /// **'Местоположение обновлено {hours} ч {minutes} мин назад'**
+  String locationUpdatedHours(int hours, int minutes);
+
+  /// No description provided for @locationUpdatedOn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Местоположение от {date}'**
+  String locationUpdatedOn(String date);
+
+  /// No description provided for @permPasswordSet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задавать пароли сотрудникам'**
+  String get permPasswordSet;
+
+  /// No description provided for @passwordForLogin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль для входа'**
+  String get passwordForLogin;
+
+  /// No description provided for @passwordForLoginHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Придумайте сами и передайте лично'**
+  String get passwordForLoginHint;
+
+  /// No description provided for @userCreated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь создан. Передайте ему пароль лично.'**
+  String get userCreated;
 }
 
 class _AppLocalizationsDelegate

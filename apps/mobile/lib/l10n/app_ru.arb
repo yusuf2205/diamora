@@ -172,11 +172,11 @@
 
   "locations": "Геолокация команды",
   "locationsEmpty": "Пока нет данных о местоположении",
-  "locationStaleMinutes": "Последняя позиция {minutes} мин назад",
+  "locationStaleMinutes": "Местоположение обновлено {minutes} мин назад",
   "@locationStaleMinutes": { "placeholders": { "minutes": { "type": "int" } } },
-  "locationRecentMinutes": "Обновлено {minutes} мин назад",
+  "locationRecentMinutes": "Местоположение обновлено {minutes} мин назад",
   "@locationRecentMinutes": { "placeholders": { "minutes": { "type": "int" } } },
-  "locationJustNow": "Сейчас",
+  "locationJustNow": "Местоположение: сейчас",
   "onlineNow": "в сети",
   "offlineNow": "не в сети",
 
@@ -472,5 +472,13 @@
   "passwordSet": "Пароль установлен",
   "showOnMap": "Показывать на карте",
   "showOnMapHint": "Видят все, кому разрешена карта",
-  "hiddenOnMapHint": "Скрыт: позицию видите только вы"
+  "hiddenOnMapHint": "Скрыт: позицию видите только вы",
+  "locationUpdatedHours": "Местоположение обновлено {hours} ч {minutes} мин назад",
+  "@locationUpdatedHours": {"placeholders": {"hours": {"type": "int"}, "minutes": {"type": "int"}}},
+  "locationUpdatedOn": "Местоположение от {date}",
+  "@locationUpdatedOn": {"placeholders": {"date": {"type": "String"}}},
+  "permPasswordSet": "Задавать пароли сотрудникам",
+  "passwordForLogin": "Пароль для входа",
+  "passwordForLoginHint": "Придумайте сами и передайте лично",
+  "userCreated": "Пользователь создан. Передайте ему пароль лично."
 }

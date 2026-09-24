@@ -13,6 +13,7 @@ String permissionLabel(AppLocalizations l, String p) => switch (p) {
       'USER_CREATE' => l.permUserCreate,
       'USER_UPDATE' => l.permUserUpdate,
       'USER_DEACTIVATE' => l.permUserDeactivate,
+      'PASSWORD_SET' => l.permPasswordSet,
       'ROLE_ASSIGN' => l.permRoleAssign,
       'PERMISSION_MANAGE' => l.permPermissionManage,
       'WORKER_VIEW_ALL' => l.permWorkerViewAll,
@@ -46,7 +47,7 @@ String permissionLabel(AppLocalizations l, String p) => switch (p) {
 
 /// Groups in the order an owner thinks about the business, each with an icon.
 List<(String, IconData, List<String>)> _groups(AppLocalizations l) => [
-      (l.permGroupUsers, Icons.manage_accounts_outlined, ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'ROLE_ASSIGN', 'PERMISSION_MANAGE']),
+      (l.permGroupUsers, Icons.manage_accounts_outlined, ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE']),
       (l.permGroupWorkers, Icons.groups_2_outlined, ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER']),
       (l.permGroupCollateral, Icons.lock_outline, ['COLLATERAL_VIEW', 'COLLATERAL_MANAGE']),
       (l.permGroupAssignments, Icons.assignment_outlined, ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT']),

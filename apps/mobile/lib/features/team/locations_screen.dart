@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../map/map_screen.dart' show positionAgeLabel;
 import 'models.dart';
 import 'team_repository.dart';
 import 'team_screen.dart' show teamRoleLabel;
@@ -46,12 +47,7 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     // LIVE / RECENT / STALE (M2 §17): a RECENT or STALE point is never worded as if it were happening right now.
-    final minutes = row.ageSeconds ~/ 60;
-    final age = switch (row.freshness) {
-      LocationFreshness.live => l.locationJustNow,
-      LocationFreshness.recent => l.locationRecentMinutes(minutes),
-      LocationFreshness.stale => l.locationStaleMinutes(minutes),
-    };
+    final age = positionAgeLabel(l, row.freshness, row.ageSeconds);
     return Card(
       child: ListTile(
         leading: CircleAvatar(

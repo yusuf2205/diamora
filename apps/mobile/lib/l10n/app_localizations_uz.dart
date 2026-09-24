@@ -521,16 +521,16 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String locationStaleMinutes(int minutes) {
-    return 'Oxirgi joylashuv $minutes daqiqa oldin';
+    return 'Joylashuv $minutes daqiqa oldin yangilangan';
   }
 
   @override
   String locationRecentMinutes(int minutes) {
-    return '$minutes daqiqa oldin yangilangan';
+    return 'Joylashuv $minutes daqiqa oldin yangilangan';
   }
 
   @override
-  String get locationJustNow => 'Hozir';
+  String get locationJustNow => 'Joylashuv: hozir';
 
   @override
   String get onlineNow => 'onlayn';
@@ -1379,4 +1379,27 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get hiddenOnMapHint => 'Yashirilgan: joylashuvni faqat siz ko\'rasiz';
+
+  @override
+  String locationUpdatedHours(int hours, int minutes) {
+    return 'Joylashuv $hours soat $minutes daqiqa oldin yangilangan';
+  }
+
+  @override
+  String locationUpdatedOn(String date) {
+    return 'Joylashuv: $date';
+  }
+
+  @override
+  String get permPasswordSet => 'Xodimlarga parol o\'rnatish';
+
+  @override
+  String get passwordForLogin => 'Kirish paroli';
+
+  @override
+  String get passwordForLoginHint =>
+      'O\'zingiz o\'ylab toping va shaxsan bering';
+
+  @override
+  String get userCreated => 'Foydalanuvchi yaratildi. Parolni shaxsan bering.';
 }

@@ -33,10 +33,17 @@ Color markerColor(LiveLocationRow row, ColorScheme scheme) {
   }
 }
 
-String freshnessLabel(AppLocalizations l, LiveLocationRow row) {
-  if (row.freshness == LocationFreshness.live) return l.locationJustNow;
-  final minutes = row.ageSeconds ~/ 60;
-  return row.freshness == LocationFreshness.recent ? l.locationRecentMinutes(minutes) : l.locationStaleMinutes(minutes);
+String freshnessLabel(AppLocalizations l, LiveLocationRow row) => positionAgeLabel(l, row.freshness, row.ageSeconds);
+
+/// "сейчас" / "обновлено 12 мин назад" / "обновлено 4 ч 51 мин назад" / "от 24.09.2026, 17:05".
+String positionAgeLabel(AppLocalizations l, LocationFreshness freshness, int ageSeconds, {DateTime? now}) {
+  if (freshness == LocationFreshness.live) return l.locationJustNow;
+  final minutes = ageSeconds ~/ 60;
+  if (minutes < 60) return l.locationRecentMinutes(minutes < 1 ? 1 : minutes);
+  if (minutes < 24 * 60) return l.locationUpdatedHours(minutes ~/ 60, minutes % 60);
+  final at = (now ?? DateTime.now()).subtract(Duration(seconds: ageSeconds));
+  String two(int v) => v.toString().padLeft(2, '0');
+  return l.locationUpdatedOn('${two(at.day)}.${two(at.month)}.${at.year}, ${two(at.hour)}:${two(at.minute)}');
 }
 
 /// SUPER_ADMIN / ADMIN / MANAGER live map (M2 §14-16, D-026). Data is `GET /v1/locations` — already scoped server-side
