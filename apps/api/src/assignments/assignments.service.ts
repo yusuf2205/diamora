@@ -23,7 +23,7 @@ import { PrismaService } from '../prisma/prisma.module';
 import { StockModule, StockService } from '../stock/stock.service';
 
 type AssignmentFull = WorkAssignment & {
-  materials: WorkAssignmentMaterial[];
+  materials: (WorkAssignmentMaterial & { material?: { name: string; unit: string } })[];
   statusHistory: WorkAssignmentStatusHistory[];
   progress: WorkProgress[];
   deliveries: Delivery[];
@@ -290,7 +290,7 @@ export class AssignmentsService {
 
   private includeFull() {
     return {
-      materials: true, statusHistory: { orderBy: { changedAt: 'asc' as const } }, progress: { orderBy: { createdAt: 'desc' as const }, take: 20 },
+      materials: { include: { material: { select: { name: true, unit: true } } } }, statusHistory: { orderBy: { changedAt: 'asc' as const } }, progress: { orderBy: { createdAt: 'desc' as const }, take: 20 },
       deliveries: { orderBy: { createdAt: 'desc' as const } },
       worker: { select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true } },
       productModel: { select: { id: true, name: true } }, productVariant: { select: { id: true, label: true } }, color: { select: { id: true, name: true, hex: true } },
@@ -316,7 +316,7 @@ export class AssignmentsService {
       dueAt: a.dueAt?.toISOString() ?? null, notes: a.notes, issuedAt: a.issuedAt?.toISOString() ?? null,
       qrCode: a.qrEntities[0]?.code ?? null,
       worker: a.worker, product: a.productModel, variant: a.productVariant, color: a.color,
-      materials: a.materials.map((m) => ({ materialId: m.materialId, quantity: num(m.quantity) })),
+      materials: a.materials.map((m) => ({ materialId: m.materialId, quantity: num(m.quantity), name: m.material?.name ?? null, unit: m.material?.unit ?? null })),
       statusHistory: a.statusHistory.map((h) => ({ from: h.fromStatus, to: h.toStatus, actor: h.actor, comment: h.comment, changedAt: h.changedAt.toISOString() })),
       progress: a.progress.map((p) => ({ id: p.id, reportedMeters: num(p.reportedMeters), percent: num(p.percent), comment: p.comment, createdAt: p.createdAt.toISOString() })),
       deliveries: a.deliveries.map((d) => ({ id: d.id, code: d.code, type: d.type, status: d.status, completedAt: d.completedAt?.toISOString() ?? null })),
