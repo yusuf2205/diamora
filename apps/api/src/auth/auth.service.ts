@@ -176,6 +176,24 @@ export class AuthService {
     return rows.map((s) => ({ id: s.id, current: s.id === user.sessionId, createdAt: s.createdAt.toISOString(), lastUsedAt: s.lastUsedAt.toISOString(), ip: s.ip, device: { name: s.deviceName, platform: s.platform, appVersion: s.appVersion } }));
   }
 
+  /** Change your OWN password. Every OTHER session of yours is signed out; this one stays. Audited. */
+  async changeOwnPassword(user: AuthUser, currentPassword: string, newPassword: string) {
+    const u = await this.prisma.user.findUnique({ where: { id: user.id } });
+    if (!u?.passwordHash) throw new AppError('INVARIANT_VIOLATION', 'This account signs in through Telegram and has no password', 409);
+    // 400, not 401: a wrong CURRENT password must not look like an expired session to the client
+    if (!(await this.passwords.verify(u.passwordHash, currentPassword))) throw new AppError('WRONG_PASSWORD', 'Current password is wrong', 400);
+    if (currentPassword === newPassword) throw new AppError('VALIDATION_FAILED', 'The new password must differ from the current one', 400);
+    const passwordHash = await this.passwords.hash(newPassword);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: u.id }, data: { passwordHash } });
+      await this.audit.record({ action: 'user.password_change', entity: 'User', entityId: u.id }, tx);
+    });
+    const others = await this.prisma.userSession.findMany({ where: { userId: u.id, revokedAt: null, id: { not: user.sessionId } }, select: { id: true } });
+    await this.prisma.userSession.updateMany({ where: { id: { in: others.map((s) => s.id) } }, data: { revokedAt: new Date(), revokedReason: 'password_changed' } });
+    this.sessionAuth.invalidateSessions(others.map((s) => s.id));
+    return { ok: true, otherSessionsSignedOut: others.length };
+  }
+
   async revokeOwn(user: AuthUser, sessionId: string) {
     const s = await this.prisma.userSession.findFirst({ where: { id: sessionId, userId: user.id, revokedAt: null } });
     if (!s) throw notFound('Session');

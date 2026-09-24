@@ -160,6 +160,8 @@ model User {
   lastLoginAt  DateTime?  @db.Timestamptz(3)
   /// last time the app was seen online (WebSocket heartbeat); presence itself is live, this is the fallback
   lastSeenAt   DateTime?  @db.Timestamptz(3)
+  /// SUPER_ADMIN decides: a hidden person's position is shown to nobody but SUPER_ADMIN (the phone keeps reporting it)
+  locationHidden Boolean  @default(false)
   createdAt    DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 

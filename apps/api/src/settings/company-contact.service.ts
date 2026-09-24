@@ -28,7 +28,7 @@ export class CompanyContactService {
       const before = await tx.companyContactSettings.findUniqueOrThrow({ where: { id: 1 } });
       const after = await tx.companyContactSettings.update({ where: { id: 1 }, data: { phone: input.phone, telegramUsername, telegramUrl, updatedById: actor.id } });
       await this.audit.record({
-        action: 'settings.company_contact', entity: 'CompanyContactSettings', entityId: '1',
+        action: 'settings.company_contact', entity: 'CompanyContactSettings', entityId: null, // a singleton row (id 1): audit ids are UUIDs, so none
         before: { phone: before.phone, telegramUsername: before.telegramUsername }, after: { phone: after.phone, telegramUsername: after.telegramUsername },
       }, tx);
       return after;

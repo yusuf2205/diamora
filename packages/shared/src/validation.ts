@@ -92,6 +92,12 @@ export const updateUserSchema = z
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
 export const changeRoleSchema = z.object({ role: z.enum(STAFF_ROLE_VALUES) });
+/** Anyone with a password changes their OWN: the current one proves it is really them. */
+export const changeOwnPasswordSchema = z.object({ currentPassword: z.string().min(1).max(200), newPassword: passwordSchema });
+/** Staff password reset: omitted = the server generates a strong one-time password; given = exactly this one. */
+export const resetPasswordSchema = z.object({ password: passwordSchema.optional() });
+/** SUPER_ADMIN only: hide/show this person's position on everybody else's map. */
+export const locationVisibilitySchema = z.object({ hidden: z.boolean() });
 export const setUserStatusSchema = z.object({ status: z.enum(['ACTIVE', 'SUSPENDED']), reason: z.string().trim().max(500).optional() });
 export const listUsersSchema = paginationSchema.extend({
   role: z.enum(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'WORKER']).optional(),

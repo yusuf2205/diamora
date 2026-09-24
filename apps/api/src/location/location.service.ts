@@ -48,8 +48,10 @@ export class LocationService {
   async list(viewer: AuthUser) {
     const scope = scopeFor(viewer.permissions, 'LOCATION');
     const where = scope === 'all' ? {} : { OR: [{ id: viewer.id }, { workerProfile: { assignedManagerId: viewer.id } }] };
+    // a person the SUPER_ADMIN hid is invisible to everyone else (except themselves); SUPER_ADMIN sees them, flagged
+    const visibility = viewer.role === 'SUPER_ADMIN' ? {} : { OR: [{ locationHidden: false }, { id: viewer.id }] };
     const users = await this.prisma.user.findMany({
-      where: { status: 'ACTIVE', ...where },
+      where: { AND: [{ status: 'ACTIVE' }, where, visibility] },
       include: { liveLocation: true, workerProfile: { select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true } } },
     });
     const now = Date.now();
@@ -59,7 +61,7 @@ export class LocationService {
         const l = u.liveLocation!;
         const ageSeconds = Math.max(0, Math.round((now - l.recordedAt.getTime()) / 1000));
         return {
-          userId: u.id, role: u.role, fullName: u.fullName, phone: u.phone,
+          userId: u.id, role: u.role, fullName: u.fullName, phone: u.phone, hidden: u.locationHidden,
           online: this.presence.isOnline(u.id),
           worker: u.workerProfile ? { id: u.workerProfile.id, code: u.workerProfile.code, phone: u.workerProfile.phone, managerId: u.workerProfile.assignedManagerId } : null,
           latitude: l.latitude, longitude: l.longitude, accuracy: l.accuracy, heading: l.heading, speed: l.speed,

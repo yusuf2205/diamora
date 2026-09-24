@@ -2,7 +2,7 @@ import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe
 import { JwtModule } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { adminLoginSchema, refreshSchema, telegramExchangeSchema, telegramSessionSchema, workerCodeRequestSchema } from '@yusmus/shared';
+import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramSessionSchema, workerCodeRequestSchema } from '@yusmus/shared';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Public } from '../common/decorators';
@@ -43,6 +43,11 @@ export class AuthController {
 
   @Authenticated() @ApiBearerAuth() @Post('logout-all') @HttpCode(200)
   logoutAll(@CurrentUser() u: AuthUser) { return this.auth.logoutAll(u); }
+
+  @Authenticated() @ApiBearerAuth() @Post('change-password') @HttpCode(200) @ApiZodBody(changeOwnPasswordSchema)
+  changePassword(@CurrentUser() u: AuthUser, @ZodBody(changeOwnPasswordSchema) b: z.output<typeof changeOwnPasswordSchema>) {
+    return this.auth.changeOwnPassword(u, b.currentPassword, b.newPassword);
+  }
 
   @Authenticated() @ApiBearerAuth() @Get('me')
   me(@CurrentUser() u: AuthUser) { return this.auth.me(u); }

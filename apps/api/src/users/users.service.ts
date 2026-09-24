@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma, User, UserPermission } from '@yusmus/database';
 import {
   PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_RANK, SUPER_ADMIN_ONLY, changeRoleSchema, createUserSchema, effectivePermissions,
-  grantablePermissions, listUsersSchema, setPermissionsSchema, setUserStatusSchema, updateUserSchema, type Permission, type Role,
+  grantablePermissions, listUsersSchema, locationVisibilitySchema, resetPasswordSchema, setPermissionsSchema, setUserStatusSchema, updateUserSchema, type Permission, type Role,
 } from '@yusmus/shared';
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
@@ -170,18 +170,32 @@ export class UsersService {
     return this.get(id);
   }
 
-  async resetPassword(actor: AuthUser, id: string) {
+  async resetPassword(actor: AuthUser, id: string, input: z.output<typeof resetPasswordSchema> = {}) {
     const target = await this.load(this.prisma, id);
     this.assertMayManage(actor, target, { allowSelf: false });
     if (target.role === 'WORKER') throw invariant('Workers sign in with a Telegram code, they have no password');
-    const password = generatePassword();
+    // choosing the exact password (instead of a generated one) is a SUPER_ADMIN privilege
+    if (input.password && actor.role !== 'SUPER_ADMIN') throw forbidden('Only the SUPER_ADMIN can set a specific password');
+    const password = input.password ?? generatePassword();
     const passwordHash = await this.passwords.hash(password);
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { passwordHash } });
       await this.audit.record({ action: 'user.password_reset', entity: 'User', entityId: id }, tx);
     });
     await this.auth.revokeAllOf(id, 'password_reset');
-    return { temporaryPassword: password };
+    return input.password ? { passwordSet: true } : { temporaryPassword: password };
+  }
+
+  /** SUPER_ADMIN decides whose position the others may see. The phone keeps reporting; only the map hides it. */
+  async setLocationHidden(actor: AuthUser, id: string, hidden: boolean) {
+    if (actor.role !== 'SUPER_ADMIN') throw forbidden('Only the SUPER_ADMIN decides whose location is visible');
+    const before = await this.load(this.prisma, id);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { locationHidden: hidden } });
+      await this.audit.record({ action: 'user.location_visibility', entity: 'User', entityId: id, before: { hidden: before.locationHidden }, after: { hidden } }, tx);
+    });
+    await this.events.publish('user.updated', { userId: id });
+    return this.get(id);
   }
 
   // ---- managers ---------------------------------------------------------------------------------------------------------------
@@ -252,7 +266,7 @@ export class UsersService {
     return {
       id: u.id, phone: u.phone, fullName: u.fullName, role: u.role as Role, status: u.status,
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null, lastSeenAt: u.lastSeenAt?.toISOString() ?? null, createdAt: u.createdAt.toISOString(),
-      workerId: u.workerProfile?.id ?? null, managerName: u.workerProfile?.assignedManager?.fullName ?? null, online: this.presence.isOnline(u.id), permissions: effectivePermissions(u.role as Role, u.permissions),
+      workerId: u.workerProfile?.id ?? null, locationHidden: u.locationHidden, managerName: u.workerProfile?.assignedManager?.fullName ?? null, online: this.presence.isOnline(u.id), permissions: effectivePermissions(u.role as Role, u.permissions),
     };
   }
 }
@@ -287,8 +301,13 @@ export class UsersController {
   @Perm('PERMISSION_MANAGE') @Put('users/:id/permissions') @ApiZodBody(setPermissionsSchema)
   permissions(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(setPermissionsSchema) b: z.output<typeof setPermissionsSchema>) { return this.users.setPermissions(u, id, b); }
 
-  @Perm('USER_UPDATE') @Post('users/:id/reset-password') @HttpCode(200)
-  reset(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.users.resetPassword(u, id); }
+  @Perm('USER_UPDATE') @Post('users/:id/reset-password') @HttpCode(200) @ApiZodBody(resetPasswordSchema)
+  reset(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(resetPasswordSchema) b: z.output<typeof resetPasswordSchema>) { return this.users.resetPassword(u, id, b); }
+
+  @Perm('LIVE_LOCATION_VIEW_ALL') @Put('users/:id/location-visibility') @ApiZodBody(locationVisibilitySchema)
+  locationVisibility(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(locationVisibilitySchema) b: z.output<typeof locationVisibilitySchema>) {
+    return this.users.setLocationHidden(u, id, b.hidden);
+  }
 
   @Perm('USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED') @Get('managers')
   managers(@CurrentUser() u: AuthUser) { return this.users.managers(u); }
