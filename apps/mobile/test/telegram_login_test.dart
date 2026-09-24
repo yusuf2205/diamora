@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 import 'package:yusmus_mobile/app/router.dart';
+import 'package:yusmus_mobile/features/auth/login_screen.dart' show telegramAppUri;
 import 'package:yusmus_mobile/core/providers.dart';
 import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
 import 'package:yusmus_mobile/core/storage/token_store.dart';
@@ -87,7 +88,7 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(() => api.postJson('/auth/telegram/session', body: any(named: 'body'), skipAuth: true)).called(1);
-      expect(launcher.lastUrl, 'https://t.me/diamora1_bot?start=abc123xyz');
+      expect(launcher.lastUrl, 'tg://resolve?domain=diamora1_bot&start=abc123xyz'); // the Telegram app itself, not the browser
     });
   });
 
@@ -186,5 +187,11 @@ void main() {
 
       verify(() => api.postJson('/auth/telegram/exchange', body: any(named: 'body'), skipAuth: true)).called(2);
     });
+  });
+
+  test('the login link opens the Telegram APP (tg://), never depending on t.me being reachable in a browser', () {
+    expect(telegramAppUri('https://t.me/diamora1_bot?start=abc123xyz').toString(), 'tg://resolve?domain=diamora1_bot&start=abc123xyz');
+    expect(telegramAppUri('https://example.com/x?start=1'), isNull);
+    expect(telegramAppUri('not a url at all'), isNull);
   });
 }

@@ -81,7 +81,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _openingTelegram = true);
     try {
       final deepLink = await ref.read(authRepositoryProvider).telegramSession();
-      final opened = await launchUrl(Uri.parse(deepLink), mode: LaunchMode.externalApplication);
+      // Straight into the Telegram app (tg://): a https://t.me link may open in the browser instead, and t.me itself is
+      // unreachable on some mobile networks here while the Telegram app works fine. The web link is only the fallback.
+      final app = telegramAppUri(deepLink);
+      var opened = app != null && await launchUrl(app, mode: LaunchMode.externalNonBrowserApplication).catchError((_) => false);
+      if (!opened) opened = await launchUrl(Uri.parse(deepLink), mode: LaunchMode.externalApplication);
       if (!opened && mounted) {
         showError(context, ApiException(code: 'NETWORK', message: AppLocalizations.of(context).telegramLoginFailed));
       }
@@ -157,4 +161,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
+
+/// `https://t.me/<bot>?start=<token>` -> `tg://resolve?domain=<bot>&start=<token>` (opens the Telegram app itself).
+/// Null for anything that is not a t.me bot link.
+Uri? telegramAppUri(String deepLink) {
+  final u = Uri.tryParse(deepLink);
+  if (u == null || u.host != 't.me' || u.pathSegments.length != 1) return null;
+  return Uri(scheme: 'tg', host: 'resolve', queryParameters: {'domain': u.pathSegments.first, ...u.queryParameters});
 }
