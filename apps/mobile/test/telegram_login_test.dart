@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+import 'package:yusmus_mobile/app/router.dart';
 import 'package:yusmus_mobile/core/providers.dart';
 import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
 import 'package:yusmus_mobile/core/storage/token_store.dart';
@@ -14,6 +16,25 @@ import 'package:yusmus_mobile/features/auth/telegram_pending_screen.dart';
 import 'package:yusmus_mobile/l10n/app_localizations.dart';
 
 import 'app_flow_test.dart' show MockApi, appWith;
+
+/// Exposes the ambient `Ref` a real widget tree would hand `handleTelegramLink` via `ref.read`
+/// inside `routerProvider`'s builder — there is no widget tree here, so a container reads it back out.
+final _refProvider = Provider<Ref>((ref) => ref);
+
+Future<ProviderContainer> _telegramContainer(MockApi api) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final realtime = MockRealtimeClient();
+  when(realtime.connect).thenAnswer((_) async {});
+  final c = ProviderContainer(overrides: [
+    apiClientProvider.overrideWithValue(api),
+    tokenStoreProvider.overrideWithValue(MemoryTokenStore()),
+    sharedPrefsProvider.overrideWithValue(prefs),
+    realtimeClientProvider.overrideWithValue(realtime), // a real Socket.IO connect() leaves pending timers in tests
+  ]);
+  await c.read(authControllerProvider.future); // let the initial "restore session" build settle first
+  return c;
+}
 
 /// Stands in for the real platform's Telegram/browser launch (url_launcher_platform_interface, same idea as
 /// mocking any other platform channel — there is no real OS to open Telegram in a widget test).
@@ -71,20 +92,7 @@ void main() {
   });
 
   group('AuthController.telegramExchange: only an ACTIVE worker ever gets signed in', () {
-    Future<ProviderContainer> container(MockApi api) async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final realtime = MockRealtimeClient();
-      when(realtime.connect).thenAnswer((_) async {});
-      final c = ProviderContainer(overrides: [
-        apiClientProvider.overrideWithValue(api),
-        tokenStoreProvider.overrideWithValue(MemoryTokenStore()),
-        sharedPrefsProvider.overrideWithValue(prefs),
-        realtimeClientProvider.overrideWithValue(realtime), // a real Socket.IO connect() leaves pending timers in tests
-      ]);
-      await c.read(authControllerProvider.future); // let the initial "restore session" build settle first
-      return c;
-    }
+    final container = _telegramContainer;
 
     testWidgets('a real session comes back: the controller signs her in', (tester) async {
       when(() => api.postJson('/auth/telegram/exchange', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {
@@ -138,6 +146,45 @@ void main() {
       await tester.pumpWidget(pendingHarness('PAUSED'));
       await tester.pumpAndSettle();
       expect(find.text('Профиль приостановлен'), findsOneWidget);
+    });
+  });
+
+  group('handleTelegramLink: app_links cold-start can deliver the same URI twice', () {
+    GoRouter router() => GoRouter(routes: [
+          GoRoute(path: '/', builder: (_, _) => const SizedBox()),
+          GoRoute(path: '/telegram-pending', builder: (_, _) => const SizedBox()),
+        ]);
+
+    testWidgets('the ticket is only ever exchanged once, however many times the link arrives', (tester) async {
+      when(() => api.postJson('/auth/telegram/exchange', body: any(named: 'body'), skipAuth: true))
+          .thenAnswer((_) async => {'status': 'PENDING_APPROVAL'});
+      final c = await _telegramContainer(api);
+      addTearDown(c.dispose);
+      final ref = c.read(_refProvider);
+      final handled = <String>{};
+      final uri = Uri.parse('https://diamoraa.uz/app/auth/telegram?t=ticket-dup');
+
+      // getInitialLink() and uriLinkStream firing "concurrently" on a cold start, both racing to add to the same set.
+      await Future.wait([
+        handleTelegramLink(ref, router(), uri, handled),
+        handleTelegramLink(ref, router(), uri, handled),
+      ]);
+
+      verify(() => api.postJson('/auth/telegram/exchange', body: any(named: 'body'), skipAuth: true)).called(1);
+    });
+
+    testWidgets('a different ticket is not swallowed by an earlier one', (tester) async {
+      when(() => api.postJson('/auth/telegram/exchange', body: any(named: 'body'), skipAuth: true))
+          .thenAnswer((_) async => {'status': 'PENDING_APPROVAL'});
+      final c = await _telegramContainer(api);
+      addTearDown(c.dispose);
+      final ref = c.read(_refProvider);
+      final handled = <String>{};
+
+      await handleTelegramLink(ref, router(), Uri.parse('https://diamoraa.uz/app/auth/telegram?t=ticket-a'), handled);
+      await handleTelegramLink(ref, router(), Uri.parse('https://diamoraa.uz/app/auth/telegram?t=ticket-b'), handled);
+
+      verify(() => api.postJson('/auth/telegram/exchange', body: any(named: 'body'), skipAuth: true)).called(2);
     });
   });
 }

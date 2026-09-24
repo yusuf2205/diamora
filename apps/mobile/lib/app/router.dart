@@ -9,6 +9,7 @@ import '../features/auth/models.dart';
 import '../features/auth/telegram_pending_screen.dart';
 import '../features/catalog/admin_catalog_screen.dart';
 import '../features/catalog/worker_catalog_screen.dart';
+import '../features/dashboard/staff_dashboard_screen.dart';
 import '../features/home/worker_home_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/map/map_screen.dart';
@@ -32,7 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   // SUPER_ADMIN / ADMIN / MANAGER share the staff shell (D-028: what each tab shows is then filtered by permission);
   // WORKER's default screen is the catalog (§18), not a dashboard.
-  String home(bool staff) => staff ? '/admin/workers' : '/worker/catalog';
+  String home(bool staff) => staff ? '/admin/dashboard' : '/worker/catalog';
 
   final router = GoRouter(
     initialLocation: '/splash',
@@ -60,10 +61,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => AdminShell(shell: shell),
         branches: [
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/dashboard', builder: (_, _) => const StaffDashboardScreen())]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: '/admin/workers',
-              builder: (_, _) => const AdminWorkersScreen(),
+              builder: (_, s) => AdminWorkersScreen(initialTab: switch (s.uri.queryParameters['tab']) { 'active' => 1, 'all' => 2, _ => 0 }),
               routes: [GoRoute(path: ':id', builder: (_, s) => WorkerDetailScreen(workerId: s.pathParameters['id']!))],
             ),
           ]),
@@ -109,15 +111,19 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   // WORKER Telegram-only login (§): the App Link that follows the bot's handoff button. `getInitialLink` covers a
-  // cold start (Diamoraa was closed); `uriLinkStream` covers it already running (foreground or background). Both
-  // sides of app_links go through a platform channel that doesn't exist in widget tests (or could hiccup for any
-  // other reason) — never let that take the whole app down, it's just one login path among others.
+  // cold start (Diamoraa was closed); `uriLinkStream` covers it already running (foreground or background). On a
+  // cold start some app_links versions deliver the SAME uri through both — a seen-tickets set makes the one-time
+  // ticket exchange idempotent on the app side too, or the loser of that race would 401 and its stray
+  // /telegram-pending?status=ERROR navigation could overwrite an otherwise-successful login. Both sides also go
+  // through a platform channel that doesn't exist in widget tests (or could hiccup for any other reason) — never
+  // let that take the whole app down, it's just one login path among others.
+  final handledTickets = <String>{};
   try {
     final links = AppLinks();
-    final sub = links.uriLinkStream.listen((uri) => _handleTelegramLink(ref, router, uri), onError: (_) {});
+    final sub = links.uriLinkStream.listen((uri) => handleTelegramLink(ref, router, uri, handledTickets), onError: (_) {});
     ref.onDispose(sub.cancel);
     links.getInitialLink().then((uri) {
-      if (uri != null) _handleTelegramLink(ref, router, uri);
+      if (uri != null) handleTelegramLink(ref, router, uri, handledTickets);
     }).catchError((_) {});
   } catch (_) {
     /* no platform channel available (tests, or a platform app_links doesn't support) - the rest of the app still works */
@@ -128,9 +134,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 /// `t=<ticket>` from the bot's handoff URL, whatever the exact path/host the OS routed here on (custom-scheme
 /// fallback vs. the verified App Link) — a URL we didn't ask for is simply ignored, never acted on.
-Future<void> _handleTelegramLink(Ref ref, GoRouter router, Uri uri) async {
+Future<void> handleTelegramLink(Ref ref, GoRouter router, Uri uri, Set<String> handledTickets) async {
   final ticket = uri.queryParameters['t'];
-  if (ticket == null || ticket.isEmpty) return;
+  if (ticket == null || ticket.isEmpty || !handledTickets.add(ticket)) return; // already seen this exact ticket
   try {
     final outcome = await ref.read(authControllerProvider.notifier).telegramExchange(ticket);
     if (outcome is TelegramNotReady) {
