@@ -457,5 +457,6 @@
   "auditUserReactivate": "Восстановлен(а)",
   "auditUserRoleChange": "Изменена роль",
   "auditUserPermissionChange": "Изменены права",
-  "auditUserPasswordReset": "Выдан новый пароль"
+  "auditUserPasswordReset": "Выдан новый пароль",
+  "settingsTitle": "Настройки"
 }

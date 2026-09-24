@@ -95,7 +95,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ещё'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Профиль').last);
+    await tester.tap(find.text('Настройки'));
     await tester.pumpAndSettle();
     expect(find.descendant(of: find.byKey(const Key('payRateTile')), matching: find.text(sum('30000'))), findsOneWidget);
 

@@ -20,6 +20,7 @@ import '../features/settings/company_contact_screen.dart';
 import '../features/settings/pay_rate_screen.dart';
 import '../features/team/audit_screen.dart';
 import '../features/team/locations_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/team/team_screen.dart';
 import '../features/team/user_detail_screen.dart';
 import '../features/work/assignment_detail_screen.dart';
@@ -74,9 +75,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/profile',
         builder: (_, _) => const ProfileScreen(),
+        routes: [GoRoute(path: 'locations', builder: (_, _) => const LocationsScreen())],
+      ),
+      // «Настройки» (§21): company-wide settings, not the personal profile
+      GoRoute(
+        path: '/admin/settings',
+        builder: (_, _) => const SettingsScreen(),
         routes: [
           GoRoute(path: 'pay-rate', builder: (_, _) => const PayRateScreen()),
-          GoRoute(path: 'locations', builder: (_, _) => const LocationsScreen()),
           GoRoute(path: 'company-contact', builder: (_, _) => const CompanyContactScreen()),
           GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
         ],

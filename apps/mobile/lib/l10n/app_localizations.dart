@@ -2599,6 +2599,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выдан новый пароль'**
   String get auditUserPasswordReset;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки'**
+  String get settingsTitle;
 }
 
 class _AppLocalizationsDelegate

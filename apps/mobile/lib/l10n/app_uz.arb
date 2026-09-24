@@ -445,5 +445,6 @@
   "auditUserReactivate": "Tiklandi",
   "auditUserRoleChange": "Rol o‘zgartirildi",
   "auditUserPermissionChange": "Huquqlar o‘zgartirildi",
-  "auditUserPasswordReset": "Yangi parol berildi"
+  "auditUserPasswordReset": "Yangi parol berildi",
+  "settingsTitle": "Sozlamalar"
 }

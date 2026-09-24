@@ -1332,4 +1332,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get auditUserPasswordReset => 'Yangi parol berildi';
+
+  @override
+  String get settingsTitle => 'Sozlamalar';
 }

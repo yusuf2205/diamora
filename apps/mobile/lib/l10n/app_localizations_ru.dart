@@ -1371,4 +1371,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get auditUserPasswordReset => 'Выдан новый пароль';
+
+  @override
+  String get settingsTitle => 'Настройки';
 }
