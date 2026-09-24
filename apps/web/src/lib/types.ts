@@ -38,6 +38,7 @@ export interface TeamUser {
   permissions: string[];
   createdAt?: string;
   managerName?: string | null;
+  locationHidden?: boolean;
 }
 
 export interface ManagerSummary extends TeamUser {
@@ -87,6 +88,8 @@ export interface LiveLocation {
   worker: { id: string; code: string; phone: string; managerId: string | null } | null;
   latitude: number; longitude: number; accuracy: number | null; recordedAt: string;
   ageSeconds: number; freshness: 'LIVE' | 'RECENT' | 'STALE'; stale: boolean; isBackground: boolean;
+  /** SUPER_ADMIN only ever receives hidden people, flagged; everyone else never gets them at all */
+  hidden?: boolean;
 }
 
 // Every section is `null` when the viewer lacks the permission to see it (never a fabricated zero, never a 403 for

@@ -6,7 +6,9 @@
  * else to this app, D-025). Tokens live in `localStorage` (client-only; this is a staff tool behind a login, same trust
  * model as the mobile app's secure storage) and are refreshed transparently on a 401, exactly like the mobile client.
  */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// In production the panel may be opened on diamoraa.uz OR on its own subdomain: Caddy serves /v1 on every host, so the
+// browser talks to its OWN origin (no CORS, no second domain to trust). Dev keeps the explicit API URL (other port).
+const API_BASE = process.env.NEXT_PUBLIC_SAME_ORIGIN_API === 'true' && typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000');
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) {
@@ -98,3 +100,6 @@ export const api = {
 export function saveTokens(t: Tokens) { writeTokens(t); }
 export function clearTokens() { writeTokens(null); }
 export function isSignedIn() { return readTokens() !== null; }
+export function accessToken() { return readTokens()?.accessToken ?? null; }
+/** Where the API lives for sockets too ('' = this very origin, see API_BASE). */
+export const apiOrigin = () => API_BASE || window.location.origin;

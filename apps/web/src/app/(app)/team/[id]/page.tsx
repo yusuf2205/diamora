@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { AUDIT_USER_LABELS, PERMISSION_GROUPS, PERMISSION_LABELS } from '@/lib/permissions';
 import { hasPerm } from '@/lib/types';
 import type { AuditRow, Page, PermissionCatalog, UserDetail } from '@/lib/types';
-import { Badge, Button, Card, EmptyState, ErrorState, Modal, PageHeader } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Input, Modal, PageHeader } from '@/components/ui';
 
 /** One staff user: facts, role, rights, disable/restore, new password, history. The server enforces every rule
  * (rank, "never yourself", "one SUPER_ADMIN always stays") - the page only hides what can't be done anyway. */
@@ -22,6 +22,8 @@ export default function UserDetailPage() {
   const [confirm, setConfirm] = useState<null | { title: string; body: string; run: () => Promise<unknown>; danger?: boolean }>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [chosen, setChosen] = useState('');
+  const [passwordSet, setPasswordSet] = useState(false);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['user', id] });
@@ -87,13 +89,44 @@ export default function UserDetailPage() {
       <PermissionsCard user={u} editable={canPerms} onSaved={refresh} />
 
       {hasPerm(me, 'USER_UPDATE') && !isMe && u.role !== 'WORKER' && (
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-medium">Пароль</h2>
-              <p className="text-sm text-muted">Старый перестанет работать, пользователь выйдет со всех устройств.</p>
+        <Card className="space-y-3">
+          <div>
+            <h2 className="text-sm font-medium">Пароль</h2>
+            <p className="text-sm text-muted">Старый перестанет работать, пользователь выйдет со всех устройств.</p>
+          </div>
+          {me?.role === 'SUPER_ADMIN' && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input type="text" autoComplete="off" placeholder="Новый пароль (не меньше 8 символов)" aria-label="Новый пароль" value={chosen} onChange={(e) => setChosen(e.target.value)} />
+              <Button
+                disabled={chosen.length < 8}
+                onClick={() => setConfirm({ title: 'Задать пароль', body: `Установить пароль «${chosen}» для ${u.fullName}? Передайте его лично.`, run: () => api.post(`/users/${u.id}/reset-password`, { password: chosen }, { idempotencyKey: crypto.randomUUID() }).then(() => { setChosen(''); setPasswordSet(true); }) })}
+              >Задать пароль</Button>
             </div>
-            <Button variant="outline" onClick={() => setConfirm({ title: 'Выдать новый пароль', body: 'Старый пароль перестанет работать, пользователь выйдет со всех устройств.', run: () => api.post<{ temporaryPassword: string }>(`/users/${u.id}/reset-password`, {}, { idempotencyKey: crypto.randomUUID() }).then((r) => setPassword(r.temporaryPassword)) })}>Выдать новый пароль</Button>
+          )}
+          {passwordSet && <p className="text-sm text-ok" role="status">✓ Пароль установлен</p>}
+          <Button variant="outline" onClick={() => setConfirm({ title: 'Выдать новый пароль', body: 'Система придумает надёжный пароль и покажет его один раз.', run: () => api.post<{ temporaryPassword: string }>(`/users/${u.id}/reset-password`, {}, { idempotencyKey: crypto.randomUUID() }).then((r) => setPassword(r.temporaryPassword)) })}>
+            {me?.role === 'SUPER_ADMIN' ? 'Или сгенерировать пароль' : 'Выдать новый пароль'}
+          </Button>
+        </Card>
+      )}
+
+      {me?.role === 'SUPER_ADMIN' && (
+        <Card>
+          <div className="flex items-start justify-between gap-4">
+            <span>
+              <span className="block text-sm font-medium" id="map-visible">Показывать на карте</span>
+              <span className="block text-sm text-muted">{u.locationHidden ? 'Скрыт: его позицию видите только вы.' : 'Видят все, кому разрешена карта.'}</span>
+            </span>
+            <button
+              role="switch"
+              aria-checked={!u.locationHidden}
+              aria-labelledby="map-visible"
+              disabled={run.isPending}
+              onClick={() => run.mutate(() => api.put(`/users/${u.id}/location-visibility`, { hidden: !u.locationHidden }))}
+              className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition ${u.locationHidden ? 'bg-border' : 'bg-primary'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${u.locationHidden ? 'left-0.5' : 'left-[1.375rem]'}`} />
+            </button>
           </div>
         </Card>
       )}

@@ -243,12 +243,16 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
         NEXT_PUBLIC_YANDEX_MAPS_JS_KEY: ${YANDEX_MAPS_JS_KEY:-}
+        NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-diamora1_bot}
     image: yusmus/web:${APP_VERSION:-local}
     depends_on:
       api: { condition: service_healthy }
     environment:
       NODE_ENV: production
       API_INTERNAL_URL: http://api:3000
+      # staff panel host, e.g. admin.diamoraa.uz (empty = panel stays on the main domain; set it only once the
+      # hostname exists in the Cloudflare tunnel, docs/NAS-DEPLOYMENT.md)
+      ADMIN_HOST: ${ADMIN_HOST:-}
     networks: [edge]
     read_only: true
     tmpfs: [/tmp, /app/apps/web/.next/cache]

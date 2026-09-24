@@ -22,6 +22,10 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 # mobile MapKit key (D-026) — Yandex issues them separately. Empty = the map page falls back to a real list view.
 ARG NEXT_PUBLIC_YANDEX_MAPS_JS_KEY=
 ENV NEXT_PUBLIC_YANDEX_MAPS_JS_KEY=${NEXT_PUBLIC_YANDEX_MAPS_JS_KEY}
+ARG NEXT_PUBLIC_SAME_ORIGIN_API=true
+ENV NEXT_PUBLIC_SAME_ORIGIN_API=${NEXT_PUBLIC_SAME_ORIGIN_API}
+ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=diamora1_bot
+ENV NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
 COPY packages packages
 COPY apps/web apps/web
 RUN pnpm --filter @yusmus/shared build && pnpm --filter @yusmus/web build

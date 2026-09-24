@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
+import { useLivePanel } from '@/lib/live';
 import { initials, roleLabel } from '@/lib/format';
 
 const NAV: { href: string; label: string; perms?: string[] }[] = [
@@ -26,6 +27,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  useLivePanel(!!me && me.role !== 'WORKER'); // presence («в сети»), live refresh and the web user's own map dot
   useEffect(() => setMenuOpen(false), [pathname]); // a tap on a menu item closes the phone drawer
 
   useEffect(() => {
@@ -77,13 +79,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-4 border-t border-border pt-4">
-          <div className="flex items-center gap-2 px-2">
+          <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-border/50" title="Мой профиль и пароль">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs font-semibold">{initials(me.fullName)}</span>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{me.fullName}</p>
               <p className="truncate text-xs text-muted">{roleLabel(me.role)}</p>
             </div>
-          </div>
+          </Link>
           <button onClick={() => logout()} className="mt-3 w-full rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-border/50">Выйти</button>
         </div>
       </aside>
