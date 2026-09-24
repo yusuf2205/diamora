@@ -206,7 +206,11 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
     qc.invalidateQueries({ queryKey: ['workers'] });
     qc.invalidateQueries({ queryKey: ['managers'] });
   };
-  const assign = useMutation({ mutationFn: () => api.post(`/workers/${w.id}/manager`, { managerId: picked || null }, { idempotencyKey: crypto.randomUUID() }), onSuccess: done });
+  const [saved, setSaved] = useState(false);
+  const assign = useMutation({
+    mutationFn: () => api.post(`/workers/${w.id}/manager`, { managerId: picked || null }, { idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => { done(); setSaved(true); setTimeout(() => setSaved(false), 3000); },
+  });
   const status = useMutation({ mutationFn: (next: 'ARCHIVED' | 'ACTIVE') => api.patch(`/workers/${w.id}`, { status: next }), onSuccess: () => { setArchiving(false); done(); } });
 
   return (
@@ -230,6 +234,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
           ? <Button disabled={status.isPending} onClick={() => status.mutate('ACTIVE')}>Восстановить мастерицу</Button>
           : <Button variant="outline" onClick={() => setArchiving(true)}>Архивировать мастерицу</Button>)}
       </div>
+      {saved && <p className="mt-2 text-sm text-ok" role="status">✓ Менеджер изменён</p>}
       {(assign.isError || status.isError) && <ErrorState error={assign.error ?? status.error} />}
       {archiving && (
         <Modal title="Архивировать мастерицу" onClose={() => setArchiving(false)}>

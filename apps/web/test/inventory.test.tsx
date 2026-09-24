@@ -38,7 +38,7 @@ describe('web «Склад»: stock at a glance, receipts and 9 m kits, all thro
     fireEvent.click(screen.getByRole('button', { name: '+ Комплект' }));
     fireEvent.change(await screen.findByLabelText('Материал 1'), { target: { value: 'm1' } });
     fireEvent.change(screen.getByLabelText('Количество 1'), { target: { value: '9' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Сохранить комплект' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
     await waitFor(() => expect(bodies(fetch, '/admin/kits')).toEqual([{ name: 'Комплект 9 м', ribbonMeters: 9, items: [{ materialId: 'm1', requiredQuantity: '9' }] }]));
   });
 });

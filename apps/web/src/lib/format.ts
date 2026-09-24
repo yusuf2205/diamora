@@ -14,8 +14,8 @@ export function formatUzs(amount: string | null | undefined): string {
   if (amount == null) return '—';
   const negative = amount.startsWith('-');
   const digits = negative ? amount.slice(1) : amount;
-  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return `${negative ? '-' : ''}${grouped} сум`;
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+  return `${negative ? '-' : ''}${grouped}\u00a0сум`;
 }
 
 export function initials(name: string): string {

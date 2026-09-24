@@ -52,25 +52,25 @@ export default function InventoryPage() {
           {materials.data && materials.data.items.length === 0 && <EmptyState title="Материалов пока нет" hint="Добавьте ленту, бусины и всё, из чего собирается комплект" />}
           {materials.data && materials.data.items.length > 0 && (
             <DataList
-              rows={materials.data.items}
+              rows={[...materials.data.items].sort((a, b) => Number(b.isActive) - Number(a.isActive))}
               rowKey={(m) => m.id}
               onRowClick={canManage ? (m) => setReceiving(m) : undefined}
               columns={[
                 { header: 'Материал', cell: (m) => <span className="font-medium">{m.name}</span> },
                 { header: 'Остаток', cell: (m) => <span className={`tabular-nums ${m.balance <= 0 ? 'font-semibold text-danger' : m.low ? 'font-semibold text-primary' : ''}`}>{m.balance} {unit(m.unit)}</span>, className: 'text-right' },
                 { header: 'Минимум', cell: (m) => <span className="tabular-nums text-muted">{m.minStock} {unit(m.unit)}</span>, className: 'text-right' },
-                { header: '', cell: (m) => (m.balance <= 0 ? <Badge tone="danger">Закончился</Badge> : m.low ? <Badge tone="warn">Мало</Badge> : null) },
+                { header: '', cell: (m) => (!m.isActive ? <Badge>Выключен</Badge> : m.balance <= 0 ? <Badge tone="danger">Закончился</Badge> : m.low ? <Badge tone="warn">Мало</Badge> : null) },
                 ...(canManage ? [{ header: 'Приход', cell: () => <span className="text-primary">+ Приход</span> }] : []),
               ]}
               card={(m) => (
-                <div className="flex items-center justify-between gap-3">
+                <div className={`flex items-center justify-between gap-3 ${m.isActive ? '' : 'opacity-50'}`}>
                   <div className="min-w-0">
                     <p className="font-medium leading-snug">{m.name}</p>
                     <p className="text-xs text-muted">минимум {m.minStock} {unit(m.unit)}{canManage ? ' · нажмите для прихода' : ''}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className={`font-semibold tabular-nums ${m.balance <= 0 ? 'text-danger' : m.low ? 'text-primary' : ''}`}>{m.balance} {unit(m.unit)}</p>
-                    {m.balance <= 0 ? <Badge tone="danger">Закончился</Badge> : m.low ? <Badge tone="warn">Мало</Badge> : null}
+                    {!m.isActive ? <Badge>Выключен</Badge> : m.balance <= 0 ? <Badge tone="danger">Закончился</Badge> : m.low ? <Badge tone="warn">Мало</Badge> : null}
                   </div>
                 </div>
               )}
@@ -195,11 +195,11 @@ function KitDialog({ materials, onClose }: { materials: Material[]; onClose: () 
           );
         })}
         <Button variant="outline" onClick={() => setRows([...rows, { materialId: '', qty: '' }])}>+ Ещё материал</Button>
-        {materials.length === 0 && <p className="text-sm text-danger">Сначала добавьте материалы на вкладке «Материалы».</p>}
+        {materials.filter((x) => x.isActive).length === 0 && <p className="text-sm text-danger">Нет включённых материалов — сначала добавьте материал на вкладке «Материалы».</p>}
         {save.isError && <ErrorState error={save.error} />}
         <div className="flex gap-2 pt-2 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
           <Button variant="ghost" onClick={onClose}>Отмена</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || name.trim().length < 2 || valid.length === 0}>Сохранить комплект</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || name.trim().length < 2 || valid.length === 0}>Сохранить</Button>
         </div>
       </div>
     </Modal>
