@@ -1091,4 +1091,284 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get statusCancelled => 'Отменено';
+
+  @override
+  String get teamSearch => 'Имя или телефон';
+
+  @override
+  String get filterAll => 'Все';
+
+  @override
+  String get filterActive => 'Активные';
+
+  @override
+  String get filterDisabled => 'Отключённые';
+
+  @override
+  String get lastSeenLabel => 'Был(а) в сети';
+
+  @override
+  String get createdLabel => 'Создан(а)';
+
+  @override
+  String get neverSeen => 'Ещё не входил(а)';
+
+  @override
+  String get changeRole => 'Изменить роль';
+
+  @override
+  String get changeRoleHint =>
+      'После смены роли пользователь выйдет со всех устройств и войдёт заново уже с новыми правами.';
+
+  @override
+  String get roleSuperAdminHint => 'Всё, включая роли и права';
+
+  @override
+  String get roleAdminHint => 'Мастерицы, склад, выплаты, каталог';
+
+  @override
+  String get roleManagerHint => 'Только свои мастерицы';
+
+  @override
+  String get permissionsTitle => 'Права доступа';
+
+  @override
+  String get permissionsAllSuper =>
+      'У главного администратора есть все права. Их нельзя ограничить.';
+
+  @override
+  String get permissionsSaved => 'Права сохранены';
+
+  @override
+  String get permissionsDefault => 'по умолчанию для роли';
+
+  @override
+  String permissionsCount(int on, int total) {
+    return '$on из $total';
+  }
+
+  @override
+  String get deactivateUser => 'Отключить пользователя';
+
+  @override
+  String deactivateConfirm(String name) {
+    return 'Отключить $name? Вход будет запрещён сразу на всех устройствах. Вся история сохранится.';
+  }
+
+  @override
+  String get restoreUser => 'Восстановить';
+
+  @override
+  String get userDeactivated => 'Пользователь отключён';
+
+  @override
+  String get userRestored => 'Пользователь восстановлен';
+
+  @override
+  String get resetPassword => 'Выдать новый пароль';
+
+  @override
+  String get resetPasswordConfirm =>
+      'Старый пароль перестанет работать, пользователь выйдет со всех устройств.';
+
+  @override
+  String get tempPasswordTitle => 'Временный пароль';
+
+  @override
+  String get tempPasswordHint =>
+      'Передайте пароль сотруднику лично. Он показывается только один раз.';
+
+  @override
+  String get copy => 'Копировать';
+
+  @override
+  String get copied => 'Скопировано';
+
+  @override
+  String get editDetails => 'Изменить данные';
+
+  @override
+  String get activeImmediately => 'Сразу активен';
+
+  @override
+  String get workersOfManager => 'Мастерицы менеджера';
+
+  @override
+  String get changeManager => 'Сменить менеджера';
+
+  @override
+  String get managerChanged => 'Менеджер изменён';
+
+  @override
+  String get archiveWorker => 'Архивировать мастерицу';
+
+  @override
+  String get archiveConfirm =>
+      'Мастерица не сможет войти и не получит новую работу. История, выплаты и залог сохранятся.';
+
+  @override
+  String get workerArchived => 'Мастерица в архиве';
+
+  @override
+  String get restoreWorker => 'Восстановить мастерицу';
+
+  @override
+  String get workerRestored => 'Мастерица восстановлена';
+
+  @override
+  String get workersViaTelegram =>
+      'Мастерицы регистрируются сами через Telegram-бота — здесь добавляются только сотрудники.';
+
+  @override
+  String get usersEmpty => 'Никого не найдено';
+
+  @override
+  String get youLabel => 'это вы';
+
+  @override
+  String get permGroupUsers => 'Пользователи';
+
+  @override
+  String get permGroupWorkers => 'Мастерицы';
+
+  @override
+  String get permGroupCollateral => 'Залог';
+
+  @override
+  String get permGroupAssignments => 'Задания';
+
+  @override
+  String get permGroupFinance => 'Выплаты и деньги';
+
+  @override
+  String get permGroupCatalog => 'Каталог';
+
+  @override
+  String get permGroupInventory => 'Склад';
+
+  @override
+  String get permGroupMap => 'Карта';
+
+  @override
+  String get permGroupSettings => 'Настройки';
+
+  @override
+  String get permGroupAudit => 'Журнал действий';
+
+  @override
+  String get permUserViewAll => 'Видеть сотрудников';
+
+  @override
+  String get permUserCreate => 'Добавлять сотрудников';
+
+  @override
+  String get permUserUpdate => 'Изменять данные сотрудников';
+
+  @override
+  String get permUserDeactivate => 'Отключать сотрудников';
+
+  @override
+  String get permRoleAssign => 'Менять роли';
+
+  @override
+  String get permPermissionManage => 'Настраивать права';
+
+  @override
+  String get permWorkerViewAll => 'Видеть всех мастериц';
+
+  @override
+  String get permWorkerViewAssigned => 'Видеть своих мастериц';
+
+  @override
+  String get permWorkerApprove => 'Одобрять заявки';
+
+  @override
+  String get permWorkerUpdate => 'Изменять карточку мастерицы';
+
+  @override
+  String get permWorkerAssignManager => 'Назначать менеджера';
+
+  @override
+  String get permCollateralView => 'Видеть залог';
+
+  @override
+  String get permCollateralManage => 'Принимать и возвращать залог';
+
+  @override
+  String get permAssignmentViewAll => 'Видеть все задания';
+
+  @override
+  String get permAssignmentViewAssigned => 'Видеть задания своих мастериц';
+
+  @override
+  String get permAssignmentCreate => 'Выдавать работу';
+
+  @override
+  String get permAssignmentAccept => 'Принимать работу';
+
+  @override
+  String get permFinanceViewAll => 'Видеть все начисления';
+
+  @override
+  String get permFinanceViewAssigned => 'Видеть начисления своих мастериц';
+
+  @override
+  String get permCashPayout => 'Выплачивать наличными';
+
+  @override
+  String get permProfitView => 'Видеть прибыль';
+
+  @override
+  String get permCatalogView => 'Видеть каталог';
+
+  @override
+  String get permCatalogManage => 'Изменять каталог';
+
+  @override
+  String get permInventoryView => 'Видеть склад';
+
+  @override
+  String get permInventoryManage => 'Приход и комплекты';
+
+  @override
+  String get permMapViewAll => 'Карта: все';
+
+  @override
+  String get permMapViewAssigned => 'Карта: свои мастерицы';
+
+  @override
+  String get permLiveLocationViewAll => 'Геолокация: все';
+
+  @override
+  String get permLiveLocationViewAssigned => 'Геолокация: свои мастерицы';
+
+  @override
+  String get permPayRateManage => 'Менять цену за 9 м';
+
+  @override
+  String get permSettingsManage => 'Настройки компании';
+
+  @override
+  String get permAuditView => 'Видеть журнал действий';
+
+  @override
+  String get auditUserCreate => 'Создан(а)';
+
+  @override
+  String get auditUserUpdate => 'Изменены данные';
+
+  @override
+  String get auditUserDeactivate => 'Отключён(а)';
+
+  @override
+  String get auditUserReactivate => 'Восстановлен(а)';
+
+  @override
+  String get auditUserRoleChange => 'Изменена роль';
+
+  @override
+  String get auditUserPermissionChange => 'Изменены права';
+
+  @override
+  String get auditUserPasswordReset => 'Выдан новый пароль';
 }

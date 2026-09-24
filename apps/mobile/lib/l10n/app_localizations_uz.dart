@@ -1052,4 +1052,284 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get statusCancelled => 'Bekor qilindi';
+
+  @override
+  String get teamSearch => 'Ism yoki telefon';
+
+  @override
+  String get filterAll => 'Hammasi';
+
+  @override
+  String get filterActive => 'Faollar';
+
+  @override
+  String get filterDisabled => 'O\'chirilganlar';
+
+  @override
+  String get lastSeenLabel => 'Oxirgi marta onlayn';
+
+  @override
+  String get createdLabel => 'Yaratilgan';
+
+  @override
+  String get neverSeen => 'Hali kirmagan';
+
+  @override
+  String get changeRole => 'Rolni o\'zgartirish';
+
+  @override
+  String get changeRoleHint =>
+      'Rol o\'zgargach, foydalanuvchi barcha qurilmalardan chiqadi va yangi huquqlar bilan qayta kiradi.';
+
+  @override
+  String get roleSuperAdminHint => 'Hammasi, rollar va huquqlar ham';
+
+  @override
+  String get roleAdminHint => 'Ustalar, ombor, to\'lovlar, katalog';
+
+  @override
+  String get roleManagerHint => 'Faqat o\'z ustalari';
+
+  @override
+  String get permissionsTitle => 'Kirish huquqlari';
+
+  @override
+  String get permissionsAllSuper =>
+      'Bosh administratorda barcha huquqlar bor. Ularni cheklab bo\'lmaydi.';
+
+  @override
+  String get permissionsSaved => 'Huquqlar saqlandi';
+
+  @override
+  String get permissionsDefault => 'rol uchun standart';
+
+  @override
+  String permissionsCount(int on, int total) {
+    return '$on / $total';
+  }
+
+  @override
+  String get deactivateUser => 'Foydalanuvchini o\'chirish';
+
+  @override
+  String deactivateConfirm(String name) {
+    return '$name o\'chirilsinmi? Kirish barcha qurilmalarda darhol taqiqlanadi. Butun tarix saqlanadi.';
+  }
+
+  @override
+  String get restoreUser => 'Tiklash';
+
+  @override
+  String get userDeactivated => 'Foydalanuvchi o\'chirildi';
+
+  @override
+  String get userRestored => 'Foydalanuvchi tiklandi';
+
+  @override
+  String get resetPassword => 'Yangi parol berish';
+
+  @override
+  String get resetPasswordConfirm =>
+      'Eski parol ishlamay qoladi, foydalanuvchi barcha qurilmalardan chiqadi.';
+
+  @override
+  String get tempPasswordTitle => 'Vaqtinchalik parol';
+
+  @override
+  String get tempPasswordHint =>
+      'Parolni xodimga shaxsan bering. U faqat bir marta ko\'rsatiladi.';
+
+  @override
+  String get copy => 'Nusxalash';
+
+  @override
+  String get copied => 'Nusxa olindi';
+
+  @override
+  String get editDetails => 'Ma\'lumotlarni o\'zgartirish';
+
+  @override
+  String get activeImmediately => 'Darhol faol';
+
+  @override
+  String get workersOfManager => 'Menejer ustalari';
+
+  @override
+  String get changeManager => 'Menejerni almashtirish';
+
+  @override
+  String get managerChanged => 'Menejer o\'zgartirildi';
+
+  @override
+  String get archiveWorker => 'Ustani arxivlash';
+
+  @override
+  String get archiveConfirm =>
+      'Usta kira olmaydi va yangi ish olmaydi. Tarix, to\'lovlar va garov saqlanadi.';
+
+  @override
+  String get workerArchived => 'Usta arxivda';
+
+  @override
+  String get restoreWorker => 'Ustani tiklash';
+
+  @override
+  String get workerRestored => 'Usta tiklandi';
+
+  @override
+  String get workersViaTelegram =>
+      'Ustalar Telegram-bot orqali o\'zlari ro\'yxatdan o\'tadi — bu yerda faqat xodimlar qo\'shiladi.';
+
+  @override
+  String get usersEmpty => 'Hech kim topilmadi';
+
+  @override
+  String get youLabel => 'siz';
+
+  @override
+  String get permGroupUsers => 'Foydalanuvchilar';
+
+  @override
+  String get permGroupWorkers => 'Ustalar';
+
+  @override
+  String get permGroupCollateral => 'Garov';
+
+  @override
+  String get permGroupAssignments => 'Topshiriqlar';
+
+  @override
+  String get permGroupFinance => 'To\'lovlar va pul';
+
+  @override
+  String get permGroupCatalog => 'Katalog';
+
+  @override
+  String get permGroupInventory => 'Ombor';
+
+  @override
+  String get permGroupMap => 'Xarita';
+
+  @override
+  String get permGroupSettings => 'Sozlamalar';
+
+  @override
+  String get permGroupAudit => 'Amallar jurnali';
+
+  @override
+  String get permUserViewAll => 'Xodimlarni ko\'rish';
+
+  @override
+  String get permUserCreate => 'Xodim qo\'shish';
+
+  @override
+  String get permUserUpdate => 'Xodim ma\'lumotlarini o\'zgartirish';
+
+  @override
+  String get permUserDeactivate => 'Xodimlarni o\'chirish';
+
+  @override
+  String get permRoleAssign => 'Rollarni o\'zgartirish';
+
+  @override
+  String get permPermissionManage => 'Huquqlarni sozlash';
+
+  @override
+  String get permWorkerViewAll => 'Barcha ustalarni ko\'rish';
+
+  @override
+  String get permWorkerViewAssigned => 'O\'z ustalarini ko\'rish';
+
+  @override
+  String get permWorkerApprove => 'Arizalarni tasdiqlash';
+
+  @override
+  String get permWorkerUpdate => 'Usta kartasini o\'zgartirish';
+
+  @override
+  String get permWorkerAssignManager => 'Menejer tayinlash';
+
+  @override
+  String get permCollateralView => 'Garovni ko\'rish';
+
+  @override
+  String get permCollateralManage => 'Garovni qabul qilish va qaytarish';
+
+  @override
+  String get permAssignmentViewAll => 'Barcha topshiriqlarni ko\'rish';
+
+  @override
+  String get permAssignmentViewAssigned => 'O\'z ustalari topshiriqlari';
+
+  @override
+  String get permAssignmentCreate => 'Ish berish';
+
+  @override
+  String get permAssignmentAccept => 'Ishni qabul qilish';
+
+  @override
+  String get permFinanceViewAll => 'Barcha hisob-kitoblar';
+
+  @override
+  String get permFinanceViewAssigned => 'O\'z ustalari hisob-kitobi';
+
+  @override
+  String get permCashPayout => 'Naqd to\'lash';
+
+  @override
+  String get permProfitView => 'Foydani ko\'rish';
+
+  @override
+  String get permCatalogView => 'Katalogni ko\'rish';
+
+  @override
+  String get permCatalogManage => 'Katalogni o\'zgartirish';
+
+  @override
+  String get permInventoryView => 'Omborni ko\'rish';
+
+  @override
+  String get permInventoryManage => 'Kirim va to\'plamlar';
+
+  @override
+  String get permMapViewAll => 'Xarita: hammasi';
+
+  @override
+  String get permMapViewAssigned => 'Xarita: o\'z ustalari';
+
+  @override
+  String get permLiveLocationViewAll => 'Geolokatsiya: hammasi';
+
+  @override
+  String get permLiveLocationViewAssigned => 'Geolokatsiya: o\'z ustalari';
+
+  @override
+  String get permPayRateManage => '9 m narxini o\'zgartirish';
+
+  @override
+  String get permSettingsManage => 'Kompaniya sozlamalari';
+
+  @override
+  String get permAuditView => 'Amallar jurnalini ko\'rish';
+
+  @override
+  String get auditUserCreate => 'Yaratildi';
+
+  @override
+  String get auditUserUpdate => 'Ma’lumotlar o‘zgartirildi';
+
+  @override
+  String get auditUserDeactivate => 'O‘chirildi';
+
+  @override
+  String get auditUserReactivate => 'Tiklandi';
+
+  @override
+  String get auditUserRoleChange => 'Rol o‘zgartirildi';
+
+  @override
+  String get auditUserPermissionChange => 'Huquqlar o‘zgartirildi';
+
+  @override
+  String get auditUserPasswordReset => 'Yangi parol berildi';
 }

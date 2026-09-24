@@ -21,6 +21,7 @@ import '../features/settings/pay_rate_screen.dart';
 import '../features/team/audit_screen.dart';
 import '../features/team/locations_screen.dart';
 import '../features/team/team_screen.dart';
+import '../features/team/user_detail_screen.dart';
 import '../features/work/assignment_detail_screen.dart';
 import '../features/workers/admin_workers_screen.dart';
 import '../features/workers/worker_detail_screen.dart';
@@ -65,7 +66,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const AdminCatalogScreen(),
         routes: [GoRoute(path: ':id', builder: (_, s) => AdminCatalogDetailScreen(itemId: s.pathParameters['id']!))],
       ),
-      GoRoute(path: '/admin/team', builder: (_, _) => const TeamScreen()),
+      GoRoute(
+        path: '/admin/team',
+        builder: (_, _) => const TeamScreen(),
+        routes: [GoRoute(path: ':id', builder: (_, s) => UserDetailScreen(userId: s.pathParameters['id']!))],
+      ),
       GoRoute(
         path: '/admin/profile',
         builder: (_, _) => const ProfileScreen(),

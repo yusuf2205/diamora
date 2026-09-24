@@ -32,10 +32,11 @@ class ConnectionBanner extends ConsumerWidget {
 }
 
 class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.icon, required this.title, this.hint});
+  const EmptyState({super.key, required this.icon, required this.title, this.hint, this.action});
   final IconData icon;
   final String title;
   final String? hint;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -46,6 +47,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
             if (hint != null) ...[const SizedBox(height: 6), Text(hint!, textAlign: TextAlign.center)],
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ]),
         ),
       );

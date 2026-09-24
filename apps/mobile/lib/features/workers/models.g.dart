@@ -74,6 +74,7 @@ _Worker _$WorkerFromJson(Map<String, dynamic> json) => _Worker(
   locationReceivedAt: json['locationReceivedAt'] as String?,
   balance: json['balance'] as String? ?? '0',
   managerName: _managerName(json, 'managerName') as String?,
+  managerId: _managerId(json, 'managerId') as String?,
   createdAt: json['createdAt'] as String?,
   updatedAt: json['updatedAt'] as String?,
   collateral: json['collateral'] == null
@@ -101,6 +102,7 @@ Map<String, dynamic> _$WorkerToJson(_Worker instance) => <String, dynamic>{
   'locationReceivedAt': instance.locationReceivedAt,
   'balance': instance.balance,
   'managerName': instance.managerName,
+  'managerId': instance.managerId,
   'createdAt': instance.createdAt,
   'updatedAt': instance.updatedAt,
   'collateral': instance.collateral,

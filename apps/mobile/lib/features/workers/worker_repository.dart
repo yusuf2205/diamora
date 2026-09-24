@@ -76,6 +76,20 @@ class WorkerRepository {
     return Worker.fromJson(json);
   }
 
+  /// ACTIVE / PAUSED / ARCHIVED. Archiving signs her out and blocks new work; restoring (ARCHIVED -> ACTIVE) re-enables login.
+  Future<Worker> setStatus(String id, String status) async {
+    final json = await _api.patchJson('/workers/$id', body: {'status': status});
+    await _upsert([json]);
+    return Worker.fromJson(json);
+  }
+
+  /// null = no manager. The server moves every scope (lists, map, QR, realtime) with it.
+  Future<Worker> assignManager(String id, String? managerId) async {
+    final json = await _api.postJson('/workers/$id/manager', idempotencyKey: _uuid.v4(), body: {'managerId': managerId});
+    await _upsert([json]);
+    return Worker.fromJson(json);
+  }
+
   Future<void> receiveCollateral(String collateralId, {int? estimatedValue, String? storageLocation, String? note}) =>
       _api.postJson('/collaterals/$collateralId/receive', idempotencyKey: _uuid.v4(), body: {
         if (estimatedValue != null) 'estimatedValue': estimatedValue.toString(),

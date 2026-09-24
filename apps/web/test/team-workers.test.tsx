@@ -23,7 +23,7 @@ describe('users page (Команда, M2 §21): roles are shown, not just names'
     expect(await screen.findByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('Главный администратор')).toBeInTheDocument(); // roleLabel(SUPER_ADMIN)
     expect(screen.getByText('Manager One')).toBeInTheDocument();
-    expect(screen.getByText('Менеджер')).toBeInTheDocument(); // roleLabel(MANAGER)
+    expect(screen.getByRole('cell', { name: 'Менеджер' })).toBeInTheDocument(); // roleLabel(MANAGER), not the column header
   });
 
   it('a viewer without USER_VIEW_ALL is refused, never a partial table', async () => {

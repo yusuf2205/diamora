@@ -40,6 +40,7 @@ abstract class Collateral with _$Collateral {
 }
 
 Object? _managerName(Map<dynamic, dynamic> json, String key) => json[key] ?? (json['manager'] as Map?)?['fullName'];
+Object? _managerId(Map<dynamic, dynamic> json, String key) => json[key] ?? (json['manager'] as Map?)?['id'];
 
 /// One class for list rows and the detail screen (detail adds `collaterals` and `notes`).
 @freezed
@@ -58,6 +59,7 @@ abstract class Worker with _$Worker {
     String? locationReceivedAt,
     @Default('0') String balance,
     @JsonKey(readValue: _managerName) String? managerName, // API sends `manager: {id, fullName}` or null
+    @JsonKey(readValue: _managerId) String? managerId,
     String? createdAt,
     String? updatedAt,
     Collateral? collateral, // newest collateral (list rows)

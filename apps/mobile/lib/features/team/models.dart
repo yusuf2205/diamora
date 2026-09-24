@@ -1,22 +1,66 @@
 class TeamUser {
   const TeamUser({
     required this.id, required this.phone, required this.fullName, required this.role, required this.status,
-    this.online = false, this.permissions = const [],
+    this.online = false, this.permissions = const [], this.lastSeenAt, this.lastLoginAt, this.createdAt, this.workerId, this.managerName,
   });
   final String id;
   final String phone;
   final String fullName;
-  final String role; // SUPER_ADMIN | ADMIN | MANAGER
+  final String role; // SUPER_ADMIN | ADMIN | MANAGER | WORKER
   final String status; // ACTIVE | SUSPENDED
   final bool online;
   final List<String> permissions;
+  final DateTime? lastSeenAt;
+  final DateTime? lastLoginAt;
+  final DateTime? createdAt;
+  final String? workerId; // set for WORKER accounts: her card lives at /admin/workers/:workerId
+  final String? managerName;
   bool get isActive => status == 'ACTIVE';
+  bool get isWorker => role == 'WORKER';
+  /// The best "last seen" we know: presence heartbeat, else the last sign-in.
+  DateTime? get seenAt => lastSeenAt ?? lastLoginAt;
 
   factory TeamUser.fromJson(Map<String, dynamic> j) => TeamUser(
         id: j['id'] as String, phone: j['phone'] as String, fullName: j['fullName'] as String, role: j['role'] as String,
         status: j['status'] as String, online: j['online'] as bool? ?? false,
         permissions: ((j['permissions'] as List?) ?? const []).cast<String>(),
+        lastSeenAt: DateTime.tryParse(j['lastSeenAt'] as String? ?? ''), lastLoginAt: DateTime.tryParse(j['lastLoginAt'] as String? ?? ''),
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? ''), workerId: j['workerId'] as String?, managerName: j['managerName'] as String?,
       );
+}
+
+/// One user's card: the user plus how their permissions are made up (role defaults vs. per-user overrides).
+class UserDetail {
+  const UserDetail({required this.user, required this.defaults, required this.effective});
+  final TeamUser user;
+  final List<String> defaults;
+  final List<String> effective;
+  factory UserDetail.fromJson(Map<String, dynamic> j) {
+    final pd = (j['permissionDetail'] as Map?) ?? const {};
+    return UserDetail(
+      user: TeamUser.fromJson(j),
+      defaults: ((pd['defaults'] as List?) ?? const []).cast<String>(),
+      effective: ((pd['effective'] as List?) ?? const []).cast<String>(),
+    );
+  }
+}
+
+/// What may be granted to each adjustable role (`GET /permissions`) - the server re-checks every save anyway.
+class PermissionCatalog {
+  const PermissionCatalog({required this.all, required this.grantable, required this.roleDefaults});
+  final List<String> all;
+  final Map<String, List<String>> grantable;
+  final Map<String, List<String>> roleDefaults;
+  /// Everything that makes sense to show as a switch for this role: its defaults plus what can be added.
+  List<String> editableFor(String role) {
+    final set = {...?roleDefaults[role], ...?grantable[role]};
+    return all.where(set.contains).toList();
+  }
+
+  factory PermissionCatalog.fromJson(Map<String, dynamic> j) {
+    Map<String, List<String>> m(Object? v) => ((v as Map?) ?? const {}).map((k, v) => MapEntry(k as String, (v as List).cast<String>()));
+    return PermissionCatalog(all: (j['permissions'] as List).cast<String>(), grantable: m(j['grantable']), roleDefaults: m(j['roleDefaults']));
+  }
 }
 
 class ManagerSummary {

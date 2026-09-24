@@ -2059,6 +2059,546 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Отменено'**
   String get statusCancelled;
+
+  /// No description provided for @teamSearch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя или телефон'**
+  String get teamSearch;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все'**
+  String get filterAll;
+
+  /// No description provided for @filterActive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Активные'**
+  String get filterActive;
+
+  /// No description provided for @filterDisabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключённые'**
+  String get filterDisabled;
+
+  /// No description provided for @lastSeenLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Был(а) в сети'**
+  String get lastSeenLabel;
+
+  /// No description provided for @createdLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создан(а)'**
+  String get createdLabel;
+
+  /// No description provided for @neverSeen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё не входил(а)'**
+  String get neverSeen;
+
+  /// No description provided for @changeRole.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить роль'**
+  String get changeRole;
+
+  /// No description provided for @changeRoleHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'После смены роли пользователь выйдет со всех устройств и войдёт заново уже с новыми правами.'**
+  String get changeRoleHint;
+
+  /// No description provided for @roleSuperAdminHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всё, включая роли и права'**
+  String get roleSuperAdminHint;
+
+  /// No description provided for @roleAdminHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерицы, склад, выплаты, каталог'**
+  String get roleAdminHint;
+
+  /// No description provided for @roleManagerHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Только свои мастерицы'**
+  String get roleManagerHint;
+
+  /// No description provided for @permissionsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Права доступа'**
+  String get permissionsTitle;
+
+  /// No description provided for @permissionsAllSuper.
+  ///
+  /// In ru, this message translates to:
+  /// **'У главного администратора есть все права. Их нельзя ограничить.'**
+  String get permissionsAllSuper;
+
+  /// No description provided for @permissionsSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Права сохранены'**
+  String get permissionsSaved;
+
+  /// No description provided for @permissionsDefault.
+  ///
+  /// In ru, this message translates to:
+  /// **'по умолчанию для роли'**
+  String get permissionsDefault;
+
+  /// No description provided for @permissionsCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'{on} из {total}'**
+  String permissionsCount(int on, int total);
+
+  /// No description provided for @deactivateUser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключить пользователя'**
+  String get deactivateUser;
+
+  /// No description provided for @deactivateConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключить {name}? Вход будет запрещён сразу на всех устройствах. Вся история сохранится.'**
+  String deactivateConfirm(String name);
+
+  /// No description provided for @restoreUser.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановить'**
+  String get restoreUser;
+
+  /// No description provided for @userDeactivated.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь отключён'**
+  String get userDeactivated;
+
+  /// No description provided for @userRestored.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователь восстановлен'**
+  String get userRestored;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдать новый пароль'**
+  String get resetPassword;
+
+  /// No description provided for @resetPasswordConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Старый пароль перестанет работать, пользователь выйдет со всех устройств.'**
+  String get resetPasswordConfirm;
+
+  /// No description provided for @tempPasswordTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Временный пароль'**
+  String get tempPasswordTitle;
+
+  /// No description provided for @tempPasswordHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передайте пароль сотруднику лично. Он показывается только один раз.'**
+  String get tempPasswordHint;
+
+  /// No description provided for @copy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копировать'**
+  String get copy;
+
+  /// No description provided for @copied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скопировано'**
+  String get copied;
+
+  /// No description provided for @editDetails.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить данные'**
+  String get editDetails;
+
+  /// No description provided for @activeImmediately.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сразу активен'**
+  String get activeImmediately;
+
+  /// No description provided for @workersOfManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерицы менеджера'**
+  String get workersOfManager;
+
+  /// No description provided for @changeManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить менеджера'**
+  String get changeManager;
+
+  /// No description provided for @managerChanged.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менеджер изменён'**
+  String get managerChanged;
+
+  /// No description provided for @archiveWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Архивировать мастерицу'**
+  String get archiveWorker;
+
+  /// No description provided for @archiveConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица не сможет войти и не получит новую работу. История, выплаты и залог сохранятся.'**
+  String get archiveConfirm;
+
+  /// No description provided for @workerArchived.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица в архиве'**
+  String get workerArchived;
+
+  /// No description provided for @restoreWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановить мастерицу'**
+  String get restoreWorker;
+
+  /// No description provided for @workerRestored.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица восстановлена'**
+  String get workerRestored;
+
+  /// No description provided for @workersViaTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерицы регистрируются сами через Telegram-бота — здесь добавляются только сотрудники.'**
+  String get workersViaTelegram;
+
+  /// No description provided for @usersEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Никого не найдено'**
+  String get usersEmpty;
+
+  /// No description provided for @youLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'это вы'**
+  String get youLabel;
+
+  /// No description provided for @permGroupUsers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пользователи'**
+  String get permGroupUsers;
+
+  /// No description provided for @permGroupWorkers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерицы'**
+  String get permGroupWorkers;
+
+  /// No description provided for @permGroupCollateral.
+  ///
+  /// In ru, this message translates to:
+  /// **'Залог'**
+  String get permGroupCollateral;
+
+  /// No description provided for @permGroupAssignments.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задания'**
+  String get permGroupAssignments;
+
+  /// No description provided for @permGroupFinance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплаты и деньги'**
+  String get permGroupFinance;
+
+  /// No description provided for @permGroupCatalog.
+  ///
+  /// In ru, this message translates to:
+  /// **'Каталог'**
+  String get permGroupCatalog;
+
+  /// No description provided for @permGroupInventory.
+  ///
+  /// In ru, this message translates to:
+  /// **'Склад'**
+  String get permGroupInventory;
+
+  /// No description provided for @permGroupMap.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта'**
+  String get permGroupMap;
+
+  /// No description provided for @permGroupSettings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки'**
+  String get permGroupSettings;
+
+  /// No description provided for @permGroupAudit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Журнал действий'**
+  String get permGroupAudit;
+
+  /// No description provided for @permUserViewAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть сотрудников'**
+  String get permUserViewAll;
+
+  /// No description provided for @permUserCreate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавлять сотрудников'**
+  String get permUserCreate;
+
+  /// No description provided for @permUserUpdate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменять данные сотрудников'**
+  String get permUserUpdate;
+
+  /// No description provided for @permUserDeactivate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключать сотрудников'**
+  String get permUserDeactivate;
+
+  /// No description provided for @permRoleAssign.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менять роли'**
+  String get permRoleAssign;
+
+  /// No description provided for @permPermissionManage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настраивать права'**
+  String get permPermissionManage;
+
+  /// No description provided for @permWorkerViewAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть всех мастериц'**
+  String get permWorkerViewAll;
+
+  /// No description provided for @permWorkerViewAssigned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть своих мастериц'**
+  String get permWorkerViewAssigned;
+
+  /// No description provided for @permWorkerApprove.
+  ///
+  /// In ru, this message translates to:
+  /// **'Одобрять заявки'**
+  String get permWorkerApprove;
+
+  /// No description provided for @permWorkerUpdate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменять карточку мастерицы'**
+  String get permWorkerUpdate;
+
+  /// No description provided for @permWorkerAssignManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначать менеджера'**
+  String get permWorkerAssignManager;
+
+  /// No description provided for @permCollateralView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть залог'**
+  String get permCollateralView;
+
+  /// No description provided for @permCollateralManage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принимать и возвращать залог'**
+  String get permCollateralManage;
+
+  /// No description provided for @permAssignmentViewAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть все задания'**
+  String get permAssignmentViewAll;
+
+  /// No description provided for @permAssignmentViewAssigned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть задания своих мастериц'**
+  String get permAssignmentViewAssigned;
+
+  /// No description provided for @permAssignmentCreate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдавать работу'**
+  String get permAssignmentCreate;
+
+  /// No description provided for @permAssignmentAccept.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принимать работу'**
+  String get permAssignmentAccept;
+
+  /// No description provided for @permFinanceViewAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть все начисления'**
+  String get permFinanceViewAll;
+
+  /// No description provided for @permFinanceViewAssigned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть начисления своих мастериц'**
+  String get permFinanceViewAssigned;
+
+  /// No description provided for @permCashPayout.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплачивать наличными'**
+  String get permCashPayout;
+
+  /// No description provided for @permProfitView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть прибыль'**
+  String get permProfitView;
+
+  /// No description provided for @permCatalogView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть каталог'**
+  String get permCatalogView;
+
+  /// No description provided for @permCatalogManage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменять каталог'**
+  String get permCatalogManage;
+
+  /// No description provided for @permInventoryView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть склад'**
+  String get permInventoryView;
+
+  /// No description provided for @permInventoryManage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приход и комплекты'**
+  String get permInventoryManage;
+
+  /// No description provided for @permMapViewAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта: все'**
+  String get permMapViewAll;
+
+  /// No description provided for @permMapViewAssigned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта: свои мастерицы'**
+  String get permMapViewAssigned;
+
+  /// No description provided for @permLiveLocationViewAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Геолокация: все'**
+  String get permLiveLocationViewAll;
+
+  /// No description provided for @permLiveLocationViewAssigned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Геолокация: свои мастерицы'**
+  String get permLiveLocationViewAssigned;
+
+  /// No description provided for @permPayRateManage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менять цену за 9 м'**
+  String get permPayRateManage;
+
+  /// No description provided for @permSettingsManage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки компании'**
+  String get permSettingsManage;
+
+  /// No description provided for @permAuditView.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеть журнал действий'**
+  String get permAuditView;
+
+  /// No description provided for @auditUserCreate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создан(а)'**
+  String get auditUserCreate;
+
+  /// No description provided for @auditUserUpdate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменены данные'**
+  String get auditUserUpdate;
+
+  /// No description provided for @auditUserDeactivate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключён(а)'**
+  String get auditUserDeactivate;
+
+  /// No description provided for @auditUserReactivate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановлен(а)'**
+  String get auditUserReactivate;
+
+  /// No description provided for @auditUserRoleChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменена роль'**
+  String get auditUserRoleChange;
+
+  /// No description provided for @auditUserPermissionChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменены права'**
+  String get auditUserPermissionChange;
+
+  /// No description provided for @auditUserPasswordReset.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдан новый пароль'**
+  String get auditUserPasswordReset;
 }
 
 class _AppLocalizationsDelegate

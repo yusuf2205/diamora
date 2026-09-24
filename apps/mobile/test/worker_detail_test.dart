@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yusmus_mobile/core/db/app_database.dart';
 import 'package:yusmus_mobile/core/providers.dart';
 import 'package:yusmus_mobile/core/storage/token_store.dart';
+import 'package:yusmus_mobile/features/auth/auth_controller.dart';
+import 'package:yusmus_mobile/features/auth/models.dart';
 import 'package:yusmus_mobile/features/workers/worker_detail_screen.dart';
 import 'package:yusmus_mobile/features/workers/worker_history_screen.dart';
 import 'package:yusmus_mobile/l10n/app_localizations.dart';
@@ -25,7 +27,7 @@ void main() {
   late MockApi api;
   setUp(() => api = MockApi());
 
-  Future<AppDatabase> pump(WidgetTester tester) async {
+  Future<AppDatabase> pump(WidgetTester tester, {List<String> perms = const []}) async {
     tester.view.physicalSize = const Size(1200, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -36,6 +38,7 @@ void main() {
       overrides: [
         apiClientProvider.overrideWithValue(api), appDatabaseProvider.overrideWithValue(db),
         sharedPrefsProvider.overrideWithValue(prefs), tokenStoreProvider.overrideWithValue(MemoryTokenStore()),
+        authControllerProvider.overrideWith(() => _FixedAuth(Session(id: 'me', fullName: 'Owner', phone: '+998901112233', role: 'SUPER_ADMIN', permissions: perms))),
       ],
       child: MaterialApp(
         locale: const Locale('ru'),
@@ -116,4 +119,73 @@ void main() {
     expect(find.textContaining(RegExp(r'-30\s000')), findsOneWidget);
     await dispose(tester, db);
   });
+
+  testWidgets('«Сменить менеджера»: pick another manager in a sheet, the server call carries exactly that id', (tester) async {
+    stubCommon();
+    when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.getJson('/managers')).thenAnswer((_) async => {
+          'items': [
+            {'id': 'm1', 'phone': '+998901', 'fullName': 'Дилноза Менеджер', 'role': 'MANAGER', 'status': 'ACTIVE', 'stats': {'workers': 4}},
+            {'id': 'm2', 'phone': '+998902', 'fullName': 'Гульнора Новая', 'role': 'MANAGER', 'status': 'ACTIVE', 'stats': {'workers': 1}},
+            {'id': 'm3', 'phone': '+998903', 'fullName': 'Отключённый Менеджер', 'role': 'MANAGER', 'status': 'SUSPENDED', 'stats': {'workers': 0}},
+          ],
+        });
+    when(() => api.postJson('/workers/w1/manager', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body'))).thenAnswer((_) async => {
+          ...workerListItem, 'id': 'w1', 'status': 'ACTIVE', 'manager': {'id': 'm2', 'fullName': 'Гульнора Новая'},
+        });
+    final db = await pump(tester, perms: ['WORKER_ASSIGN_MANAGER']);
+
+    await tester.tap(find.text('Сменить менеджера'));
+    await tester.pumpAndSettle();
+    expect(find.text('Отключённый Менеджер'), findsNothing); // a disabled manager cannot take workers
+    await tester.tap(find.text('Гульнора Новая'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Сохранить'));
+    await tester.pumpAndSettle();
+    verify(() => api.postJson('/workers/w1/manager', idempotencyKey: any(named: 'idempotencyKey'), body: {'managerId': 'm2'})).called(1);
+    expect(find.text('Менеджер изменён'), findsOneWidget);
+    await dispose(tester, db);
+  });
+
+  testWidgets('without WORKER_ASSIGN_MANAGER / WORKER_UPDATE there is no «Сменить менеджера» and no «Архивировать»', (tester) async {
+    stubCommon();
+    when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    final db = await pump(tester);
+    expect(find.text('Сменить менеджера'), findsNothing);
+    expect(find.text('Архивировать мастерицу'), findsNothing);
+    await dispose(tester, db);
+  });
+
+  testWidgets('«Архивировать мастерицу» asks first (history stays) and sends ARCHIVED; an archived one offers «Восстановить»', (tester) async {
+    stubCommon();
+    when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.patchJson('/workers/w1', body: any(named: 'body'))).thenAnswer((_) async => {...workerListItem, 'id': 'w1', 'status': 'ARCHIVED'});
+    final db = await pump(tester, perms: ['WORKER_UPDATE']);
+
+    await tester.tap(find.text('Архивировать мастерицу'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('История, выплаты и залог сохранятся'), findsOneWidget);
+    verifyNever(() => api.patchJson(any(), body: any(named: 'body')));
+    await tester.tap(find.text('Подтвердить'));
+    await tester.pumpAndSettle();
+    verify(() => api.patchJson('/workers/w1', body: {'status': 'ARCHIVED'})).called(1);
+    await dispose(tester, db);
+
+    when(() => api.getJson('/workers/w1')).thenAnswer((_) async => {...workerListItem, 'id': 'w1', 'status': 'ARCHIVED', 'collaterals': <Object>[]});
+    when(() => api.patchJson('/workers/w1', body: any(named: 'body'))).thenAnswer((_) async => {...workerListItem, 'id': 'w1', 'status': 'ACTIVE'});
+    final db2 = await pump(tester, perms: ['WORKER_UPDATE']);
+    expect(find.text('Архивировать мастерицу'), findsNothing);
+    await tester.tap(find.text('Восстановить мастерицу'));
+    await tester.pumpAndSettle();
+    verify(() => api.patchJson('/workers/w1', body: {'status': 'ACTIVE'})).called(1);
+    expect(find.text('Мастерица восстановлена'), findsOneWidget);
+    await dispose(tester, db2);
+  });
+}
+
+class _FixedAuth extends AuthController {
+  _FixedAuth(this._s);
+  final Session _s;
+  @override
+  Future<Session?> build() async => _s;
 }

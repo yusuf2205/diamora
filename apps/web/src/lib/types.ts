@@ -9,6 +9,18 @@ export interface Me {
   permissions: string[];
 }
 
+export interface UserDetail extends TeamUser {
+  permissionDetail: { role: Me['role']; defaults: string[]; effective: string[]; granted: string[]; revoked: string[] };
+}
+
+export interface PermissionCatalog {
+  permissions: string[];
+  roleDefaults: Record<string, string[]>;
+  grantable: Record<string, string[]>;
+}
+
+export interface AuditRow { id: string; action: string; entity: string; entityId: string | null; actorRole: string | null; createdAt: string }
+
 export function hasPerm(me: Me | null | undefined, ...perms: string[]): boolean {
   return !!me && perms.some((p) => me.permissions.includes(p));
 }
@@ -24,6 +36,8 @@ export interface TeamUser {
   lastSeenAt: string | null;
   workerId: string | null;
   permissions: string[];
+  createdAt?: string;
+  managerName?: string | null;
 }
 
 export interface ManagerSummary extends TeamUser {

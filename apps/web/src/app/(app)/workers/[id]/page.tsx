@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { assignmentStatusLabel, assignmentStatusTone, formatUzs, statusLabel } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
-import type { AssignmentSummary, Page, Worker, WorkerLedger } from '@/lib/types';
+import type { AssignmentSummary, ManagerSummary, Page, Worker, WorkerLedger } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { Badge, Button, Card, ErrorState, Input, Modal, StatCard } from '@/components/ui';
 import { PayoutDialog } from '../../assignments/[id]/page';
@@ -37,6 +37,7 @@ export default function WorkerDetailPage() {
 
       {w.status === 'PENDING_APPROVAL' && hasPerm(me, 'WORKER_APPROVE') && <ApprovalCard worker={w} />}
       {w.status === 'REJECTED' && w.rejectedReason && <Card><p className="text-sm text-muted">Причина отказа: {w.rejectedReason}</p></Card>}
+      {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
 
       {ledger.data && (
         <div className="grid grid-cols-3 gap-4">
@@ -137,6 +138,59 @@ function ApprovalCard({ worker: w }: { worker: Worker }) {
               <Button variant="ghost" onClick={() => setMode(null)}>Отмена</Button>
               <Button onClick={() => reject.mutate()} disabled={reason.trim().length < 3 || reject.isPending}>Отклонить</Button>
             </div>
+          </div>
+        </Modal>
+      )}
+    </Card>
+  );
+}
+
+/** «Менеджер» + «Архивировать / Восстановить». Reassigning moves her whole scope on the server (lists, map, QR,
+ * realtime) from the old manager to the new one; archiving keeps every record and only blocks login and new work. */
+function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
+  const { me } = useAuth();
+  const qc = useQueryClient();
+  const canManager = hasPerm(me, 'WORKER_ASSIGN_MANAGER');
+  const canStatus = hasPerm(me, 'WORKER_UPDATE');
+  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers'), enabled: canManager });
+  const [picked, setPicked] = useState<string>(w.manager?.id ?? '');
+  const [archiving, setArchiving] = useState(false);
+  const done = () => {
+    qc.invalidateQueries({ queryKey: ['worker', w.id] });
+    qc.invalidateQueries({ queryKey: ['workers'] });
+    qc.invalidateQueries({ queryKey: ['managers'] });
+  };
+  const assign = useMutation({ mutationFn: () => api.post(`/workers/${w.id}/manager`, { managerId: picked || null }, { idempotencyKey: crypto.randomUUID() }), onSuccess: done });
+  const status = useMutation({ mutationFn: (next: 'ARCHIVED' | 'ACTIVE') => api.patch(`/workers/${w.id}`, { status: next }), onSuccess: () => { setArchiving(false); done(); } });
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted">Менеджер:</span>
+          {canManager ? (
+            <>
+              <select aria-label="Менеджер" className="rounded-lg border border-border bg-background px-3 py-1.5" value={picked} onChange={(e) => setPicked(e.target.value)}>
+                <option value="">Без менеджера</option>
+                {managers.data?.items.filter((m) => m.status === 'ACTIVE' || m.id === w.manager?.id).map((m) => <option key={m.id} value={m.id}>{m.fullName} · {m.stats.workers}</option>)}
+              </select>
+              <Button variant="outline" disabled={picked === (w.manager?.id ?? '') || assign.isPending} onClick={() => assign.mutate()}>Сменить менеджера</Button>
+            </>
+          ) : (
+            <span>{w.manager?.fullName ?? 'Без менеджера'}</span>
+          )}
+        </div>
+        {canStatus && (w.status === 'ARCHIVED'
+          ? <Button disabled={status.isPending} onClick={() => status.mutate('ACTIVE')}>Восстановить мастерицу</Button>
+          : <Button variant="outline" onClick={() => setArchiving(true)}>Архивировать мастерицу</Button>)}
+      </div>
+      {(assign.isError || status.isError) && <ErrorState error={assign.error ?? status.error} />}
+      {archiving && (
+        <Modal title="Архивировать мастерицу" onClose={() => setArchiving(false)}>
+          <p className="text-sm">Мастерица не сможет войти и не получит новую работу. История, выплаты и залог сохранятся.</p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" onClick={() => setArchiving(false)}>Отмена</Button>
+            <Button className="bg-danger" disabled={status.isPending} onClick={() => status.mutate('ARCHIVED')}>Архивировать</Button>
           </div>
         </Modal>
       )}

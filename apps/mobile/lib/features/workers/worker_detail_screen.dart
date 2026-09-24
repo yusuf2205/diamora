@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
+import '../auth/auth_controller.dart';
 import '../../l10n/app_localizations.dart';
 import '../work/assignment_admin_repository.dart';
 import '../work/assignment_detail_screen.dart';
@@ -34,6 +35,7 @@ class WorkerDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(workerDetailProvider(workerId));
+    final canArchive = ref.watch(authControllerProvider).value?.has('WORKER_UPDATE') ?? false;
     return Scaffold(
       appBar: AppBar(
         title: Text(async.value?.fullName ?? l.workers),
@@ -80,6 +82,24 @@ class WorkerDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                 ],
                 if (w.notes != null && w.notes!.isNotEmpty) ...[Text(l.notes, style: Theme.of(context).textTheme.titleSmall), Text(w.notes!)],
+                if (canArchive && (w.status == 'ACTIVE' || w.status == 'PAUSED')) ...[
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error, minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
+                    icon: const Icon(Icons.archive_outlined),
+                    onPressed: () => _setStatus(context, ref, w, 'ARCHIVED'),
+                    label: Text(l.archiveWorker),
+                  ),
+                ],
+                if (canArchive && w.status == 'ARCHIVED') ...[
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
+                    icon: const Icon(Icons.unarchive_outlined),
+                    onPressed: () => _setStatus(context, ref, w, 'ACTIVE'),
+                    label: Text(l.restoreWorker),
+                  ),
+                ],
                 if (w.isPending) ...[
                   const SizedBox(height: 16),
                   FilledButton.icon(icon: const Icon(Icons.check), onPressed: () => _approve(context, ref, w), label: Text(l.approve)),
@@ -125,6 +145,32 @@ class WorkerDetailScreen extends ConsumerWidget {
       await ref.read(workerRepositoryProvider).reject(w.id, reason);
       ref.invalidate(workerDetailProvider(w.id));
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.rejectedDone)));
+    } catch (e) {
+      if (context.mounted) showError(context, e);
+    }
+  }
+
+  Future<void> _setStatus(BuildContext context, WidgetRef ref, Worker w, String status) async {
+    final l = AppLocalizations.of(context);
+    if (status == 'ARCHIVED') {
+      final scheme = Theme.of(context).colorScheme;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.archiveWorker),
+          content: Text(l.archiveConfirm),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+            FilledButton(style: FilledButton.styleFrom(backgroundColor: scheme.error, foregroundColor: scheme.onError), onPressed: () => Navigator.pop(ctx, true), child: Text(l.confirm)),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
+    }
+    try {
+      await ref.read(workerRepositoryProvider).setStatus(w.id, status);
+      ref.invalidate(workerDetailProvider(w.id));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'ARCHIVED' ? l.workerArchived : l.workerRestored)));
     } catch (e) {
       if (context.mounted) showError(context, e);
     }
@@ -194,6 +240,7 @@ class _Header extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final status = switch (worker.status) { 'PENDING_APPROVAL' => l.statusPending, 'ACTIVE' => l.statusActive, 'PAUSED' => l.statusPaused, 'REJECTED' => l.statusRejected, _ => l.statusArchived };
     final online = _liveFor(ref, worker.id)?.online ?? false;
+    final canChangeManager = ref.watch(authControllerProvider).value?.has('WORKER_ASSIGN_MANAGER') ?? false;
     return Row(children: [
       Stack(children: [
         CircleAvatar(radius: 32, backgroundColor: scheme.primaryContainer, child: Text(initials(worker.fullName), style: Theme.of(context).textTheme.titleLarge)),
@@ -211,7 +258,15 @@ class _Header extends ConsumerWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(worker.fullName, style: Theme.of(context).textTheme.titleLarge),
           Text('${worker.code} · $status · ${online ? l.onlineNow : l.offlineNow}', style: TextStyle(color: worker.isPending ? AppTokens.warn : scheme.outline)),
-          Text('${l.managerLabel}: ${worker.managerName ?? l.noManager}', style: TextStyle(color: scheme.outline)),
+          Row(children: [
+            Flexible(child: Text('${l.managerLabel}: ${worker.managerName ?? l.noManager}', style: TextStyle(color: scheme.outline))),
+            if (canChangeManager && !worker.isPending)
+              TextButton(
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                onPressed: () => showChangeManagerSheet(context, worker),
+                child: Text(l.changeManager),
+              ),
+          ]),
           if (worker.rejectedReason != null) Text(worker.rejectedReason!, style: TextStyle(color: scheme.error)),
         ]),
       ),
@@ -369,6 +424,90 @@ class _Contacts extends ConsumerWidget {
               ),
             ),
           ]),
+        ]),
+      ),
+    );
+  }
+}
+
+/// «Сменить менеджера»: pick one of the active managers (or none). The server moves her whole scope - the old manager's
+/// lists, map and QR lose her at once, the new one's gain her - and tells both over realtime.
+Future<void> showChangeManagerSheet(BuildContext context, Worker worker) => showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _ChangeManagerSheet(worker: worker),
+    );
+
+class _ChangeManagerSheet extends ConsumerStatefulWidget {
+  const _ChangeManagerSheet({required this.worker});
+  final Worker worker;
+  @override
+  ConsumerState<_ChangeManagerSheet> createState() => _ChangeManagerSheetState();
+}
+
+class _ChangeManagerSheetState extends ConsumerState<_ChangeManagerSheet> {
+  late String? _picked = widget.worker.managerId;
+  var _busy = false;
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _busy = true);
+    try {
+      await ref.read(workerRepositoryProvider).assignManager(widget.worker.id, _picked);
+      ref.invalidate(workerDetailProvider(widget.worker.id));
+      ref.invalidate(managersProvider);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(SnackBar(content: Text(l.managerChanged)));
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final managers = ref.watch(managersProvider);
+    final active = managers.value?.where((m) => m.user.isActive).toList();
+    Widget option(String? id, String title, String? subtitle) => ListTile(
+          enabled: !_busy,
+          onTap: () => setState(() => _picked = id),
+          leading: Icon(_picked == id ? Icons.radio_button_checked : Icons.radio_button_off, color: _picked == id ? Theme.of(context).colorScheme.primary : null),
+          title: Text(title),
+          subtitle: subtitle == null ? null : Text(subtitle),
+        );
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.changeManager, style: Theme.of(context).textTheme.titleLarge)),
+          const SizedBox(height: 8),
+          if (active == null)
+            managers.hasError
+                ? Padding(padding: const EdgeInsets.all(16), child: Text(errorText(context, managers.error!)))
+                : const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+          else
+            Flexible(
+              child: ListView(shrinkWrap: true, children: [
+                for (final m in active) option(m.user.id, m.user.fullName, l.teamAssignedWorkers(m.assignedWorkers)),
+                option(null, l.noManager, null),
+              ]),
+            ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: SizedBox(
+              height: AppTokens.buttonHeight,
+              child: FilledButton(
+                onPressed: _busy || _picked == widget.worker.managerId ? null : _save,
+                child: _busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l.save),
+              ),
+            ),
+          ),
         ]),
       ),
     );
