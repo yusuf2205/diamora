@@ -850,6 +850,138 @@ class AppLocalizationsRu extends AppLocalizations {
   String get workersDueEmpty => 'Все выплаты закрыты';
 
   @override
+  String get greetingMorning => 'Доброе утро';
+
+  @override
+  String get greetingDay => 'Добрый день';
+
+  @override
+  String get greetingEvening => 'Добрый вечер';
+
+  @override
+  String get dashProblems => 'Есть проблемы';
+
+  @override
+  String get dashAttention => 'Требует внимания';
+
+  @override
+  String get dashAllClear => 'Всё под контролем';
+
+  @override
+  String get dashToday => 'Сегодня';
+
+  @override
+  String get dashDueToday => 'Срок сегодня';
+
+  @override
+  String get dashDeliveredToday => 'Доставлено';
+
+  @override
+  String get dashPickedUpToday => 'Забрано';
+
+  @override
+  String get dashPaidToday => 'Выплачено';
+
+  @override
+  String get dashQuickActions => 'Быстрые действия';
+
+  @override
+  String get actionMap => 'Карта';
+
+  @override
+  String get actionStock => 'Склад';
+
+  @override
+  String get more => 'Ещё';
+
+  @override
+  String get managerLabel => 'Менеджер';
+
+  @override
+  String get noManager => 'Без менеджера';
+
+  @override
+  String get historyWork => 'Задания';
+
+  @override
+  String get historyMoney => 'Деньги';
+
+  @override
+  String get historyEmpty => 'Пока ничего не было';
+
+  @override
+  String attnOverdue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count просроченных работ',
+      few: '$count просроченные работы',
+      one: '$count просроченная работа',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String attnToDeliver(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count доставок',
+      few: '$count доставки',
+      one: '$count доставка',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String attnToPickup(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count работ готово',
+      few: '$count работы готовы',
+      one: '$count работа готова',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String attnAcceptance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count работ ждут приёмки',
+      few: '$count работы ждут приёмки',
+      one: '$count работа ждёт приёмки',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String attnRework(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count работ на доработке',
+      few: '$count работы на доработке',
+      one: '$count работа на доработке',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String attnWorkersDue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count мастериц ждут выплату',
+      few: '$count мастерицы ждут выплату',
+      one: '$count мастерица ждёт выплату',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get acceptanceTitle => 'Приёмка работы';
 
   @override

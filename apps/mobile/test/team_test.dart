@@ -16,6 +16,8 @@ void main() {
     final manager = Session.fromJson({'id': 'm1', 'fullName': 'Manager', 'phone': '+998907001122', 'role': 'MANAGER', 'permissions': <String>[]});
     await tester.pumpWidget(await appWith(manager, api));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Команда'));
     await tester.pumpAndSettle();
     expect(find.text('Недостаточно прав для просмотра команды'), findsOneWidget);
@@ -34,6 +36,8 @@ void main() {
     when(() => api.postJson('/users/a1/status', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body'))).thenAnswer((_) async => {});
     final superAdmin = Session.fromJson({'id': 'me', 'fullName': 'Owner', 'phone': '+998901112233', 'role': 'SUPER_ADMIN', 'permissions': ['USER_VIEW_ALL', 'USER_DEACTIVATE', 'USER_CREATE']});
     await tester.pumpWidget(await appWith(superAdmin, api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Команда'));
     await tester.pumpAndSettle();
@@ -59,6 +63,8 @@ void main() {
     when(() => api.patchJson('/users/a1', body: any(named: 'body'))).thenAnswer((_) async => {...manager1(), 'fullName': 'Manager Renamed', 'phone': '+998907009999'});
     await tester.pumpWidget(await appWith(superAdminWithFullRights(), api));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Команда'));
     await tester.pumpAndSettle();
 
@@ -82,6 +88,8 @@ void main() {
         .thenThrow(ApiException(code: 'CONFLICT', message: 'A user with this phone already exists', status: 409));
     await tester.pumpWidget(await appWith(superAdminWithFullRights(), api));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Команда'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Manager One'));
@@ -100,6 +108,8 @@ void main() {
     when(() => api.getJson('/users', query: any(named: 'query'))).thenAnswer((_) async => {'items': [manager1()]});
     when(() => api.putJson('/users/a1/role', body: any(named: 'body'))).thenAnswer((_) async => {...manager1(), 'role': 'ADMIN'});
     await tester.pumpWidget(await appWith(superAdminWithFullRights(), api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Команда'));
     await tester.pumpAndSettle();

@@ -13,6 +13,7 @@ import '../features/dashboard/staff_dashboard_screen.dart';
 import '../features/home/worker_home_screen.dart';
 import '../features/inventory/inventory_screen.dart';
 import '../features/map/map_screen.dart';
+import '../features/more/more_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/qr/qr_scanner_screen.dart';
 import '../features/settings/company_contact_screen.dart';
@@ -58,6 +59,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       GoRoute(path: '/admin/assignments/:id', builder: (_, s) => AssignmentDetailScreen(assignmentId: s.pathParameters['id']!)),
+      // opened from «Ещё» (full screen, back arrow) rather than taking a bottom-bar slot each (§11)
+      GoRoute(
+        path: '/admin/catalog',
+        builder: (_, _) => const AdminCatalogScreen(),
+        routes: [GoRoute(path: ':id', builder: (_, s) => AdminCatalogDetailScreen(itemId: s.pathParameters['id']!))],
+      ),
+      GoRoute(path: '/admin/team', builder: (_, _) => const TeamScreen()),
+      GoRoute(
+        path: '/admin/profile',
+        builder: (_, _) => const ProfileScreen(),
+        routes: [
+          GoRoute(path: 'pay-rate', builder: (_, _) => const PayRateScreen()),
+          GoRoute(path: 'locations', builder: (_, _) => const LocationsScreen()),
+          GoRoute(path: 'company-contact', builder: (_, _) => const CompanyContactScreen()),
+          GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
+        ],
+      ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => AdminShell(shell: shell),
         branches: [
@@ -69,28 +87,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               routes: [GoRoute(path: ':id', builder: (_, s) => WorkerDetailScreen(workerId: s.pathParameters['id']!))],
             ),
           ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/admin/catalog',
-              builder: (_, _) => const AdminCatalogScreen(),
-              routes: [GoRoute(path: ':id', builder: (_, s) => AdminCatalogDetailScreen(itemId: s.pathParameters['id']!))],
-            ),
-          ]),
-          StatefulShellBranch(routes: [GoRoute(path: '/admin/inventory', builder: (_, _) => const InventoryScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/admin/map', builder: (_, _) => const MapScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/admin/team', builder: (_, _) => const TeamScreen())]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/admin/profile',
-              builder: (_, _) => const ProfileScreen(),
-              routes: [
-                GoRoute(path: 'pay-rate', builder: (_, _) => const PayRateScreen()),
-                GoRoute(path: 'locations', builder: (_, _) => const LocationsScreen()),
-                GoRoute(path: 'company-contact', builder: (_, _) => const CompanyContactScreen()),
-                GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
-              ],
-            ),
-          ]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/inventory', builder: (_, _) => const InventoryScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/more', builder: (_, _) => const MoreScreen())]),
         ],
       ),
       StatefulShellRoute.indexedStack(

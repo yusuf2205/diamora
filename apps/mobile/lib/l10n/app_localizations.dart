@@ -1688,6 +1688,162 @@ abstract class AppLocalizations {
   /// **'Все выплаты закрыты'**
   String get workersDueEmpty;
 
+  /// No description provided for @greetingMorning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доброе утро'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingDay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добрый день'**
+  String get greetingDay;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добрый вечер'**
+  String get greetingEvening;
+
+  /// No description provided for @dashProblems.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть проблемы'**
+  String get dashProblems;
+
+  /// No description provided for @dashAttention.
+  ///
+  /// In ru, this message translates to:
+  /// **'Требует внимания'**
+  String get dashAttention;
+
+  /// No description provided for @dashAllClear.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всё под контролем'**
+  String get dashAllClear;
+
+  /// No description provided for @dashToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get dashToday;
+
+  /// No description provided for @dashDueToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Срок сегодня'**
+  String get dashDueToday;
+
+  /// No description provided for @dashDeliveredToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доставлено'**
+  String get dashDeliveredToday;
+
+  /// No description provided for @dashPickedUpToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрано'**
+  String get dashPickedUpToday;
+
+  /// No description provided for @dashPaidToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплачено'**
+  String get dashPaidToday;
+
+  /// No description provided for @dashQuickActions.
+  ///
+  /// In ru, this message translates to:
+  /// **'Быстрые действия'**
+  String get dashQuickActions;
+
+  /// No description provided for @actionMap.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта'**
+  String get actionMap;
+
+  /// No description provided for @actionStock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Склад'**
+  String get actionStock;
+
+  /// No description provided for @more.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё'**
+  String get more;
+
+  /// No description provided for @managerLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менеджер'**
+  String get managerLabel;
+
+  /// No description provided for @noManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без менеджера'**
+  String get noManager;
+
+  /// No description provided for @historyWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задания'**
+  String get historyWork;
+
+  /// No description provided for @historyMoney.
+  ///
+  /// In ru, this message translates to:
+  /// **'Деньги'**
+  String get historyMoney;
+
+  /// No description provided for @historyEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока ничего не было'**
+  String get historyEmpty;
+
+  /// No description provided for @attnOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} просроченная работа} few{{count} просроченные работы} other{{count} просроченных работ}}'**
+  String attnOverdue(int count);
+
+  /// No description provided for @attnToDeliver.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} доставка} few{{count} доставки} other{{count} доставок}}'**
+  String attnToDeliver(int count);
+
+  /// No description provided for @attnToPickup.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} работа готова} few{{count} работы готовы} other{{count} работ готово}}'**
+  String attnToPickup(int count);
+
+  /// No description provided for @attnAcceptance.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} работа ждёт приёмки} few{{count} работы ждут приёмки} other{{count} работ ждут приёмки}}'**
+  String attnAcceptance(int count);
+
+  /// No description provided for @attnRework.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} работа на доработке} few{{count} работы на доработке} other{{count} работ на доработке}}'**
+  String attnRework(int count);
+
+  /// No description provided for @attnWorkersDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} мастерица ждёт выплату} few{{count} мастерицы ждут выплату} other{{count} мастериц ждут выплату}}'**
+  String attnWorkersDue(int count);
+
   /// No description provided for @acceptanceTitle.
   ///
   /// In ru, this message translates to:

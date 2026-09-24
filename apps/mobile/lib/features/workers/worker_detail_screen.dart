@@ -13,9 +13,17 @@ import '../work/assignment_detail_screen.dart';
 import '../work/assignment_models.dart';
 import '../work/cash_payout_sheet.dart';
 import '../work/create_assignment_screen.dart';
+import '../map/map_screen.dart' show freshnessLabel;
+import '../team/models.dart';
+import '../team/team_repository.dart';
 import 'collateral_card.dart';
 import 'models.dart';
+import 'worker_history_screen.dart';
 import 'workers_providers.dart';
+
+/// Her live position/presence from `GET /locations` (same scoped source as the map) - null when none is known.
+LiveLocationRow? _liveFor(WidgetRef ref, String workerId) =>
+    ref.watch(liveLocationsProvider).value?.where((r) => r.workerId == workerId).firstOrNull;
 
 /// ADMIN: full card of a worker. Approve/reject are server-confirmed operations (transaction -> COMMIT -> realtime).
 class WorkerDetailScreen extends ConsumerWidget {
@@ -33,6 +41,12 @@ class WorkerDetailScreen extends ConsumerWidget {
           IconButton(icon: const Icon(Icons.qr_code_scanner_outlined), tooltip: l.actionScanQr, onPressed: () => context.push('/admin/qr-scan')),
           if (async.value?.qrCode != null)
             IconButton(icon: const Icon(Icons.qr_code_2), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
+          if (async.value != null)
+            IconButton(
+              icon: const Icon(Icons.history),
+              tooltip: l.history,
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => WorkerHistoryScreen(workerId: workerId, name: async.value!.fullName))),
+            ),
         ],
       ),
       body: Column(children: [
@@ -170,22 +184,34 @@ class WorkerDetailScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({required this.worker});
   final Worker worker;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final status = switch (worker.status) { 'PENDING_APPROVAL' => l.statusPending, 'ACTIVE' => l.statusActive, 'PAUSED' => l.statusPaused, 'REJECTED' => l.statusRejected, _ => l.statusArchived };
+    final online = _liveFor(ref, worker.id)?.online ?? false;
     return Row(children: [
-      CircleAvatar(radius: 32, backgroundColor: scheme.primaryContainer, child: Text(initials(worker.fullName), style: Theme.of(context).textTheme.titleLarge)),
+      Stack(children: [
+        CircleAvatar(radius: 32, backgroundColor: scheme.primaryContainer, child: Text(initials(worker.fullName), style: Theme.of(context).textTheme.titleLarge)),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Container(
+            width: 16, height: 16,
+            decoration: BoxDecoration(color: online ? AppTokens.ok : scheme.outline, shape: BoxShape.circle, border: Border.all(color: scheme.surface, width: 2)),
+          ),
+        ),
+      ]),
       const SizedBox(width: 16),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(worker.fullName, style: Theme.of(context).textTheme.titleLarge),
-          Text('${worker.code} · $status', style: TextStyle(color: worker.isPending ? AppTokens.warn : scheme.outline)),
+          Text('${worker.code} · $status · ${online ? l.onlineNow : l.offlineNow}', style: TextStyle(color: worker.isPending ? AppTokens.warn : scheme.outline)),
+          Text('${l.managerLabel}: ${worker.managerName ?? l.noManager}', style: TextStyle(color: scheme.outline)),
           if (worker.rejectedReason != null) Text(worker.rejectedReason!, style: TextStyle(color: scheme.error)),
         ]),
       ),
@@ -203,15 +229,16 @@ class _CurrentWorkSection extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final assignments = ref.watch(assignmentListProvider(AssignmentListFilter(workerId: worker.id)));
     final active = assignments.value?.where((a) => a.status != 'COMPLETED' && a.status != 'CANCELLED').toList() ?? const <AssignmentSummary>[];
+    void open(String id) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: id)));
+    String m(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
-        if (active.isEmpty)
-          TextButton.icon(
-            icon: const Icon(Icons.add),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
-            label: Text(l.actionAssign),
-          ),
+        TextButton.icon(
+          icon: const Icon(Icons.add),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
+          label: Text(l.actionAssign),
+        ),
       ]),
       const SizedBox(height: 8),
       if (active.isEmpty)
@@ -219,11 +246,36 @@ class _CurrentWorkSection extends ConsumerWidget {
       else
         for (final a in active)
           Card(
-            child: ListTile(
-              title: Text('${a.productName} · ${a.colorName}'),
-              subtitle: Text(statusLabel(l, a.status)),
-              trailing: Text('${a.plannedMeters.toStringAsFixed(0)} м'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => open(a.id),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Expanded(child: Text('${a.productName} · ${a.colorName}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                    Text('${m(a.plannedMeters)} м'),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text(statusLabel(l, a.status), style: TextStyle(color: statusColor(Theme.of(context).colorScheme, a.status))),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(value: a.plannedMeters > 0 ? (a.reportedMeters / a.plannedMeters).clamp(0, 1) : 0, minHeight: 6, borderRadius: BorderRadius.circular(3)),
+                  const SizedBox(height: 6),
+                  Text([
+                    l.workDoneOf(m(a.reportedMeters), m(a.plannedMeters)),
+                    if (a.dueAt != null) '${l.workDueDate}: ${a.dueAt!.toLocal().day.toString().padLeft(2, '0')}.${a.dueAt!.toLocal().month.toString().padLeft(2, '0')}',
+                  ].join(' · ')),
+                  // the one thing to do right now for this assignment, one tap away (the action itself runs on its screen)
+                  if (a.status == 'READY_TO_DELIVER' || a.status == 'READY_FOR_PICKUP' || a.status == 'UNDER_REVIEW') ...[
+                    const SizedBox(height: 10),
+                    FilledButton.tonalIcon(
+                      onPressed: () => open(a.id),
+                      icon: Icon(switch (a.status) { 'READY_TO_DELIVER' => Icons.local_shipping_outlined, 'READY_FOR_PICKUP' => Icons.move_to_inbox_outlined, _ => Icons.fact_check_outlined }),
+                      label: Text(switch (a.status) { 'READY_TO_DELIVER' => l.deliveryDone, 'READY_FOR_PICKUP' => l.workPickedUp, _ => l.actionAccept }),
+                    ),
+                  ],
+                ]),
+              ),
             ),
           ),
     ]);
@@ -281,15 +333,19 @@ class _MoneyStat extends StatelessWidget {
   }
 }
 
-class _Contacts extends StatelessWidget {
+class _Contacts extends ConsumerWidget {
   const _Contacts({required this.worker});
   final Worker worker;
 
   Future<void> _open(Uri uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    // prefer her live position (with its age) over the one she shared at registration
+    final live = _liveFor(ref, worker.id);
+    final lat = live?.latitude ?? worker.latitude, lng = live?.longitude ?? worker.longitude;
+    final hasLocation = lat != null && lng != null;
     return Card(
       child: Padding(
         padding: AppTokens.cardPadding,
@@ -298,8 +354,8 @@ class _Contacts extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.place_outlined),
-            title: Text(worker.hasLocation ? '${worker.latitude!.toStringAsFixed(5)}, ${worker.longitude!.toStringAsFixed(5)}' : l.noLocation),
-            subtitle: Text(l.location),
+            title: Text(hasLocation ? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}' : l.noLocation),
+            subtitle: Text(live != null ? freshnessLabel(l, live) : l.location),
           ),
           Row(children: [
             Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.call), onPressed: () => _open(Uri.parse('tel:${worker.phone}')), label: Text(l.call))),
@@ -308,9 +364,7 @@ class _Contacts extends StatelessWidget {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.directions),
                 // Yandex Maps deep link (no API key needed); falls back to the web page
-                onPressed: worker.hasLocation
-                    ? () => _open(Uri.parse('https://yandex.uz/maps/?rtext=~${worker.latitude},${worker.longitude}&rtt=auto'))
-                    : null,
+                onPressed: hasLocation ? () => _open(Uri.parse('https://yandex.uz/maps/?rtext=~$lat,$lng&rtt=auto')) : null,
                 label: Text(l.route),
               ),
             ),

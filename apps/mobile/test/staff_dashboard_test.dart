@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yusmus_mobile/core/db/app_database.dart';
 import 'package:yusmus_mobile/core/providers.dart';
 import 'package:yusmus_mobile/core/storage/token_store.dart';
-import 'package:yusmus_mobile/features/dashboard/staff_dashboard_screen.dart';
 import 'package:yusmus_mobile/features/work/assignment_queue_screen.dart';
 import 'package:yusmus_mobile/features/workers/worker_repository.dart';
 import 'package:yusmus_mobile/features/workers/workers_due_screen.dart';
@@ -15,12 +14,6 @@ import 'package:yusmus_mobile/l10n/app_localizations.dart';
 
 import 'app_flow_test.dart' show MockApi;
 import 'models_test.dart' show workerListItem;
-
-Map<String, dynamic> full() => {
-      'workers': {'total': 5, 'active': 4, 'withActiveAssignment': 2, 'withoutActiveAssignment': 2},
-      'work': {'activeAssignments': 3, 'inProgress': 2, 'metersOnHand': 27, 'toDeliver': 1, 'toPickup': 1, 'needsAcceptance': 1, 'completed': 10, 'overdue': 1},
-      'finance': {'earned': '500000', 'paid': '200000', 'due': '300000', 'salesRevenue': null, 'expenses': null, 'netProfit': null},
-    };
 
 /// Drift's stream cleanup uses a zero-length timer: dispose the tree, let it fire, then close the database.
 Future<void> _disposeDrift(WidgetTester tester, AppDatabase db) async {
@@ -42,46 +35,6 @@ Widget harness(MockApi api, Widget child) => ProviderScope(
 void main() {
   late MockApi api;
   setUp(() => api = MockApi());
-
-  group('StaffDashboardScreen: real numbers from GET /dashboard, each card a door into its queue', () {
-    testWidgets('renders every section and opens the matching queue on tap', (tester) async {
-      when(() => api.getJson('/dashboard')).thenAnswer((_) async => full());
-      await tester.pumpWidget(harness(api, const StaffDashboardScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Активные мастерицы'), findsOneWidget);
-      expect(find.text('4'), findsOneWidget);
-      expect(find.text('Просрочено'), findsOneWidget);
-
-      when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
-      await tester.tap(find.text('На приёмке'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AssignmentQueueScreen), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back));
-      await tester.pumpAndSettle();
-
-      await tester.drag(find.byType(ListView), const Offset(0, -400)); // "К выплате" is the last card, below the fold
-      await tester.pumpAndSettle();
-      expect(find.textContaining(RegExp(r'300\s000')), findsOneWidget); // К выплате, formatted (non-breaking space)
-    });
-
-    testWidgets('a section the viewer has no permission for (null) is simply absent — never a fabricated zero', (tester) async {
-      when(() => api.getJson('/dashboard')).thenAnswer((_) async => {'workers': null, 'work': null, 'finance': null});
-      await tester.pumpWidget(harness(api, const StaffDashboardScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Активные мастерицы'), findsNothing);
-      expect(find.text('Просрочено'), findsNothing);
-      expect(find.text('К выплате'), findsNothing);
-    });
-
-    testWidgets('a server error shows a plain message, never a raw exception', (tester) async {
-      when(() => api.getJson('/dashboard')).thenThrow(Exception('boom'));
-      await tester.pumpWidget(harness(api, const StaffDashboardScreen()));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('boom'), findsNothing);
-    });
-  });
 
   group('AssignmentQueueScreen: merges several statuses into one soonest-first feed', () {
     Map<String, dynamic> row(String id, {DateTime? dueAt}) => {

@@ -93,6 +93,8 @@ void main() {
     final admin = Session.fromJson({'id': 'u1', 'fullName': 'Owner', 'phone': '+998901112233', 'role': 'ADMIN', 'permissions': ['PAY_RATE_MANAGE']});
     await tester.pumpWidget(await app(admin, api, events));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Профиль').last);
     await tester.pumpAndSettle();
     expect(find.descendant(of: find.byKey(const Key('payRateTile')), matching: find.text(sum('30000'))), findsOneWidget);

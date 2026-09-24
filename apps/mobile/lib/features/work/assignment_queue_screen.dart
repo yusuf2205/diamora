@@ -13,10 +13,12 @@ import 'assignment_models.dart';
 /// due date in the past - the statuses passed in already narrow "which kind of overdue" (e.g. delivered-but-not-
 /// finished vs. in-progress-but-not-finished), matching `StatsService.forWorkers()`'s own definition exactly.
 class AssignmentQueueScreen extends ConsumerWidget {
-  const AssignmentQueueScreen({super.key, required this.title, required this.statuses, this.overdueOnly = false});
+  const AssignmentQueueScreen({super.key, required this.title, required this.statuses, this.overdueOnly = false, this.dueTodayOnly = false});
   final String title;
   final List<String> statuses;
   final bool overdueOnly;
+  /// Only deadlines falling on today's calendar date (the device's local day, the same day the owner lives in).
+  final bool dueTodayOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,6 +35,11 @@ class AssignmentQueueScreen extends ConsumerWidget {
       final now = DateTime.now();
       final items = [for (final r in results) ...r.value ?? const <AssignmentSummary>[]]
         ..retainWhere((a) => !overdueOnly || (a.dueAt != null && a.dueAt!.isBefore(now)))
+        ..retainWhere((a) {
+          if (!dueTodayOnly) return true;
+          final d = a.dueAt?.toLocal();
+          return d != null && d.year == now.year && d.month == now.month && d.day == now.day;
+        })
         ..sort((a, b) {
           if (a.dueAt == null && b.dueAt == null) return 0;
           if (a.dueAt == null) return 1;

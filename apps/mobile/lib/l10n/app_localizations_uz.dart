@@ -853,6 +853,96 @@ class AppLocalizationsUz extends AppLocalizations {
   String get workersDueEmpty => 'Barcha toʻlovlar yopilgan';
 
   @override
+  String get greetingMorning => 'Xayrli tong';
+
+  @override
+  String get greetingDay => 'Xayrli kun';
+
+  @override
+  String get greetingEvening => 'Xayrli kech';
+
+  @override
+  String get dashProblems => 'Muammolar bor';
+
+  @override
+  String get dashAttention => 'Diqqat talab qiladi';
+
+  @override
+  String get dashAllClear => 'Hammasi nazoratda';
+
+  @override
+  String get dashToday => 'Bugun';
+
+  @override
+  String get dashDueToday => 'Muddati bugun';
+
+  @override
+  String get dashDeliveredToday => 'Yetkazildi';
+
+  @override
+  String get dashPickedUpToday => 'Olib ketildi';
+
+  @override
+  String get dashPaidToday => 'Toʻlandi';
+
+  @override
+  String get dashQuickActions => 'Tezkor amallar';
+
+  @override
+  String get actionMap => 'Xarita';
+
+  @override
+  String get actionStock => 'Ombor';
+
+  @override
+  String get more => 'Yana';
+
+  @override
+  String get managerLabel => 'Menejer';
+
+  @override
+  String get noManager => 'Menejersiz';
+
+  @override
+  String get historyWork => 'Ishlar';
+
+  @override
+  String get historyMoney => 'Pul';
+
+  @override
+  String get historyEmpty => 'Hozircha hech narsa yoʻq';
+
+  @override
+  String attnOverdue(int count) {
+    return '$count ta ish muddati oʻtgan';
+  }
+
+  @override
+  String attnToDeliver(int count) {
+    return '$count ta yetkazish';
+  }
+
+  @override
+  String attnToPickup(int count) {
+    return '$count ta ish tayyor';
+  }
+
+  @override
+  String attnAcceptance(int count) {
+    return '$count ta ish qabulni kutmoqda';
+  }
+
+  @override
+  String attnRework(int count) {
+    return '$count ta ish qayta ishlashda';
+  }
+
+  @override
+  String attnWorkersDue(int count) {
+    return '$count ta mastarica toʻlovni kutmoqda';
+  }
+
+  @override
   String get acceptanceTitle => 'Ishni qabul qilish';
 
   @override
