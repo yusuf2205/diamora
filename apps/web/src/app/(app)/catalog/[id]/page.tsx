@@ -9,6 +9,7 @@ import { statusLabel } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import type { CatalogItem, CatalogMedia } from '@/lib/types';
 import { Badge, Button, Card, ErrorState, Input, Select } from '@/components/ui';
+import { ColorsCard } from './colors-card';
 
 /** Catalog item detail + media (M2 §22, closes the "web upload" gap): create/edit/photo/video/publish/hide/new —
  * everything ADMIN already has in the mobile app, now also on the web. Files go to MinIO on the NAS through the SAME
@@ -88,6 +89,8 @@ export default function CatalogDetailPage() {
         )}
         {item.status !== 'PUBLISHED' && item.media.length === 0 && <p className="text-xs text-muted">Добавьте хотя бы одно фото, чтобы опубликовать.</p>}
       </Card>
+
+      <ColorsCard item={item} canManage={canManage} />
 
       <Card className="space-y-4">
         <h3 className="font-medium">Фото и видео</h3>
