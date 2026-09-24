@@ -24,9 +24,37 @@ export function initials(name: string): string {
   return parts.length === 1 ? parts[0][0].toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+const TZ = 'Asia/Tashkent'; // the business runs on Tashkent time, whatever the viewer's computer is set to
+function tashkent(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(d).map((p) => [p.type, p.value]));
+  return parts as Record<string, string>;
+}
+
+/** "24.09.2026, 19:53" in Tashkent time. */
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return iso.length >= 16 ? iso.slice(0, 16).replace('T', ' ') : iso;
+  const p = tashkent(iso);
+  return p ? `${p.day}.${p.month}.${p.year}, ${p.hour}:${p.minute}` : iso;
+}
+
+/** "24.09.2026" in Tashkent time. */
+export function formatDay(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const p = tashkent(iso);
+  return p ? `${p.day}.${p.month}.${p.year}` : iso;
+}
+
+/** "только что" / "5 мин назад" / "3 ч назад" / "24.09.2026" - how long ago, in plain words. */
+export function ago(iso: string | null | undefined, now = Date.now()): string {
+  if (!iso) return 'ещё не входил(а)';
+  const min = Math.floor((now - new Date(iso).getTime()) / 60_000);
+  if (min < 1) return 'только что';
+  if (min < 60) return `${min} мин назад`;
+  if (min < 24 * 60) return `${Math.floor(min / 60)} ч назад`;
+  return formatDay(iso);
 }
 
 const ROLE_LABELS: Record<string, string> = { SUPER_ADMIN: 'Главный администратор', ADMIN: 'Администратор', MANAGER: 'Менеджер', WORKER: 'Мастерица' };

@@ -1,16 +1,15 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import { formatDate, roleLabel } from '@/lib/format';
+import { ago, formatDate, formatDay, roleLabel } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import { AUDIT_USER_LABELS, PERMISSION_GROUPS, PERMISSION_LABELS } from '@/lib/permissions';
 import { hasPerm } from '@/lib/types';
 import type { AuditRow, Page, PermissionCatalog, UserDetail } from '@/lib/types';
-import { Badge, Button, Card, EmptyState, ErrorState, Modal } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Modal, PageHeader } from '@/components/ui';
 
 /** One staff user: facts, role, rights, disable/restore, new password, history. The server enforces every rule
  * (rank, "never yourself", "one SUPER_ADMIN always stays") - the page only hides what can't be done anyway. */
@@ -43,26 +42,26 @@ export default function UserDetailPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <Link href="/team" className="text-sm text-muted hover:underline">← Команда</Link>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{u.fullName}</h1>
-          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+      <PageHeader
+        back={{ href: '/team', label: 'Команда' }}
+        title={u.fullName}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-2">
             <Badge>{roleLabel(u.role)}</Badge>
             <Badge tone={u.status === 'ACTIVE' ? 'ok' : 'danger'}>{u.status === 'ACTIVE' ? 'Активен' : 'Отключён'}</Badge>
             {u.online ? <Badge tone="ok">в сети</Badge> : <span>не в сети</span>}
-          </p>
-        </div>
-        {canStatus && (u.status === 'ACTIVE'
-          ? <Button variant="outline" onClick={() => setConfirm({ title: 'Отключить пользователя', body: `Отключить ${u.fullName}? Вход будет запрещён сразу на всех устройствах. Вся история сохранится.`, danger: true, run: () => api.post(`/users/${u.id}/status`, { status: 'SUSPENDED' }, { idempotencyKey: crypto.randomUUID() }) })}>Отключить пользователя</Button>
-          : <Button onClick={() => run.mutate(() => api.post(`/users/${u.id}/status`, { status: 'ACTIVE' }, { idempotencyKey: crypto.randomUUID() }))}>Восстановить</Button>)}
-      </div>
+          </span>
+        }
+        actions={canStatus ? (u.status === 'ACTIVE'
+          ? <Button variant="outline" className="text-danger" onClick={() => setConfirm({ title: 'Отключить пользователя', body: `Отключить ${u.fullName}? Вход будет запрещён сразу на всех устройствах. Вся история сохранится.`, danger: true, run: () => api.post(`/users/${u.id}/status`, { status: 'SUSPENDED' }, { idempotencyKey: crypto.randomUUID() }) })}>Отключить пользователя</Button>
+          : <Button onClick={() => run.mutate(() => api.post(`/users/${u.id}/status`, { status: 'ACTIVE' }, { idempotencyKey: crypto.randomUUID() }))}>Восстановить</Button>) : undefined}
+      />
 
       <Card>
-        <dl className="grid grid-cols-2 gap-3 text-sm">
-          <dt className="text-muted">Телефон</dt><dd><a href={`tel:${u.phone}`} className="hover:underline">{u.phone}</a></dd>
-          <dt className="text-muted">Был(а) в сети</dt><dd>{u.online ? 'сейчас' : formatDate(u.lastSeenAt ?? u.lastLoginAt) === '—' ? 'ещё не входил(а)' : formatDate(u.lastSeenAt ?? u.lastLoginAt)}</dd>
-          <dt className="text-muted">Создан(а)</dt><dd>{u.createdAt ? u.createdAt.slice(0, 10) : '—'}</dd>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt className="text-muted">Телефон</dt><dd className="text-right"><a href={`tel:${u.phone}`} className="text-primary hover:underline">{u.phone}</a></dd>
+          <dt className="text-muted">Был(а) в сети</dt><dd className="text-right">{u.online ? 'сейчас' : ago(u.lastSeenAt ?? u.lastLoginAt)}</dd>
+          <dt className="text-muted">Создан(а)</dt><dd className="text-right">{formatDay(u.createdAt)}</dd>
         </dl>
       </Card>
 
@@ -118,9 +117,9 @@ export default function UserDetailPage() {
         <Modal title={confirm.title} onClose={() => setConfirm(null)}>
           <p className="text-sm">{confirm.body}</p>
           {run.isError && <ErrorState error={run.error} />}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex gap-2 pt-4 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
             <Button variant="ghost" onClick={() => setConfirm(null)}>Отмена</Button>
-            <Button className={confirm.danger ? 'bg-danger' : ''} disabled={run.isPending} onClick={() => run.mutate(confirm.run)}>Подтвердить</Button>
+            <Button variant={confirm.danger ? 'danger' : 'primary'} disabled={run.isPending} onClick={() => run.mutate(confirm.run)}>Подтвердить</Button>
           </div>
         </Modal>
       )}

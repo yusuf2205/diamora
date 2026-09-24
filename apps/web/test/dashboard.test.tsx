@@ -115,9 +115,10 @@ describe('admin dashboard (§31): every card is real data, and either links to i
     mockFetch({
       '/auth/me': SUPER_ADMIN, '/dashboard': fullDashboard(),
       '/workers': { items: [], nextCursor: null }, '/admin/catalog': { items: [], nextCursor: null }, '/admin/kits': { items: [] },
+      '/settings/pay-rate': { ratePerKit: '30000', kitMeters: 9, updatedAt: '2026-01-01T00:00:00Z' },
     });
     renderWithProviders(<DashboardPage />);
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Выдать работу' }));
+    await userEvent.setup().click(await screen.findByRole('button', { name: '+ Выдать работу' }));
     expect(await screen.findByRole('heading', { name: 'Выдать работу' })).toBeInTheDocument();
   });
 });

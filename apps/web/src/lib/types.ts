@@ -95,9 +95,10 @@ export interface Dashboard {
   workers: { total: number; active: number; withActiveAssignment: number; withoutActiveAssignment: number } | null;
   users: { superAdmins: number; admins: number; managers: number; online: number } | null;
   catalog: { published: number; draft: number } | null;
-  work: { activeAssignments: number; inProgress: number; metersOnHand: number; toDeliver: number; toPickup: number; needsAcceptance: number; completed: number; overdue: number } | null;
-  finance: { earned: string; paid: string; due: string; salesRevenue: string | null; expenses: string | null; netProfit: string | null } | null;
+  work: { activeAssignments: number; inProgress: number; metersOnHand: number; toDeliver: number; toPickup: number; needsAcceptance: number; completed: number; overdue: number; reworkRequired?: number } | null;
+  finance: { earned: string; paid: string; due: string; salesRevenue: string | null; expenses: string | null; netProfit: string | null; workersDue?: number } | null;
   materials: { lowStock: number; outOfStock: number } | null;
+  today?: { dueToday: number | null; deliveredToday: number | null; pickedUpToday: number | null; paidToday: string | null };
 }
 
 export interface Page<T> { items: T[]; nextCursor?: string | null }
@@ -107,7 +108,7 @@ export type AssignmentStatus =
   | 'DRAFT' | 'READY_TO_DELIVER' | 'DELIVERED' | 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'PICKED_UP' | 'UNDER_REVIEW'
   | 'PARTIALLY_ACCEPTED' | 'ACCEPTED' | 'REWORK_REQUIRED' | 'COMPLETED' | 'CANCELLED';
 
-export interface AssignmentMaterialLine { materialId: string; quantity: number }
+export interface AssignmentMaterialLine { materialId: string; quantity: number; name?: string | null; unit?: string | null }
 export interface AssignmentStatusEvent { from: AssignmentStatus | null; to: AssignmentStatus; actor: string; comment: string | null; changedAt: string }
 export interface AssignmentDelivery { id: string; code: string; type: 'DELIVERY_TO_WORKER' | 'PICKUP_FROM_WORKER'; status: 'PENDING' | 'COMPLETED' | 'CANCELLED'; completedAt: string | null }
 

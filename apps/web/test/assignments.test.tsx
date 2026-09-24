@@ -51,6 +51,7 @@ describe('create assignment (M3 §16): the server computes the material kit and 
     '/workers': { items: [{ id: 'w1', code: 'W-0001', fullName: 'Малика Каримова', phone: '+998901234567', secondaryPhone: null, status: 'ACTIVE', latitude: null, longitude: null, locationReceivedAt: null, balance: '0', manager: null, collateral: null, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' }], nextCursor: null },
     '/admin/catalog': { items: [{ id: 'p1', code: 'PRD-1', name: 'Комплект «Роза»', description: null, status: 'PUBLISHED', availability: 'AVAILABLE', isNew: false, sortOrder: 0, media: [], variants: [{ id: 'v1', label: 'Классика', active: true, color: { id: 'col1', name: 'Розовое золото', hex: '#E8B4B8' } }] }], nextCursor: null },
     '/admin/kits': { items: [{ id: 'k1', name: 'Комплект 9м', variantId: null, ribbonMeters: 9, baseMeters: 9, active: true, items: [{ materialId: 'm1', materialName: 'Атлас 1000ток', unit: 'METER', requiredQuantity: 9 }] }] },
+    '/settings/pay-rate': { ratePerKit: '30000', kitMeters: 9, updatedAt: '2026-01-01T00:00:00Z' },
   };
 
   it('picking worker/model/colour/volume and submitting sends exactly the resolved ids', async () => {
@@ -64,6 +65,12 @@ describe('create assignment (M3 §16): the server computes the material kit and 
     await user.selectOptions(screen.getByDisplayValue('Выберите модель'), 'p1');
     await user.selectOptions(await screen.findByDisplayValue('Выберите цвет'), 'v1');
     await user.click(screen.getByText('18 м'));
+    await user.click(screen.getByRole('button', { name: 'Далее' }));
+    // the summary shows what leaves the stock (kit × 2) and the pay at today's rate before anything is sent
+    expect(await screen.findByText('Проверьте перед выдачей')).toBeInTheDocument();
+    expect(screen.getByText('18 м')).toBeInTheDocument();
+    expect(screen.getByText('60 000 сум')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([u, i]) => String(u).includes('/admin/assignments') && (i as RequestInit | undefined)?.method === 'POST')).toBe(false);
     await user.click(screen.getByRole('button', { name: 'Выдать работу' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/assignments/a1'));
@@ -84,9 +91,10 @@ describe('create assignment (M3 §16): the server computes the material kit and 
     await user.selectOptions(screen.getByDisplayValue('Выберите мастерицу'), 'w1');
     await user.selectOptions(screen.getByDisplayValue('Выберите модель'), 'p1');
     await user.selectOptions(await screen.findByDisplayValue('Выберите цвет'), 'v1');
-    await user.click(screen.getByRole('button', { name: 'Выдать работу' }));
+    await user.click(screen.getByRole('button', { name: 'Далее' }));
+    await user.click(await screen.findByRole('button', { name: 'Выдать работу' }));
 
-    expect(await screen.findByText('Не хватает материала: Атлас 1000ток')).toBeInTheDocument();
+    expect(await screen.findByText('На складе не хватает: Атлас 1000ток')).toBeInTheDocument();
     expect(screen.queryByText('INSUFFICIENT_STOCK')).not.toBeInTheDocument();
   });
 });
@@ -172,7 +180,7 @@ describe('cash payout dialog (M3 §21): presets, confirmation, and a friendly ov
     expect(JSON.parse((call[1] as RequestInit).body as string)).toEqual({ amount: '100000' });
   });
 
-  it('over the balance: the server refuses, the manager sees a plain reason, not the raw sentence', async () => {
+  it('over the balance: blocked on the spot with a plain reason; nothing is sent', async () => {
     signIn(ME);
     mockFetch({
       '/auth/me': ME,
@@ -181,12 +189,10 @@ describe('cash payout dialog (M3 §21): presets, confirmation, and a friendly ov
     });
     renderWithProviders(<PayoutDialog workerId="w1" onClose={() => {}} />);
     const user = userEvent.setup();
-    const input = await screen.findByPlaceholderText('Сумма');
+    const input = await screen.findByLabelText('Сумма');
     await user.type(input, '999000');
-    await user.click(screen.getByRole('button', { name: 'Выплатить' }));
-    await user.click(screen.getByRole('button', { name: 'Выплатить' }));
-
-    expect(await screen.findByText('Сумма больше, чем причитается мастерице')).toBeInTheDocument();
+    expect(await screen.findByText(/Больше, чем причитается: максимум 100 000 сум/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Выплатить' })).toBeDisabled();
     expect(screen.queryByText(/use forced:true/)).not.toBeInTheDocument();
   });
 });

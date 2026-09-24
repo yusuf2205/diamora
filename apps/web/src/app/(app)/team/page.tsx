@@ -1,14 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { hasPerm } from '@/lib/types';
-import { formatDate, roleLabel } from '@/lib/format';
+import { ago, formatDay, initials, roleLabel } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import type { Page, TeamUser } from '@/lib/types';
-import { Badge, Button, EmptyState, ErrorState, Input, Modal, Select, Table, Td, Th } from '@/components/ui';
+import { Badge, Button, Chips, DataList, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 
 const FILTERS = [
   { key: 'all', label: 'Все', query: {} },
@@ -24,9 +23,8 @@ const FILTERS = [
  * A staff row opens the user card (role, rights, disable/restore); a worker row opens her worker card. */
 export default function TeamPage() {
   const { me } = useAuth();
-  const router = useRouter();
   const [creating, setCreating] = useState(false);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('all');
+  const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   useEffect(() => {
@@ -38,53 +36,59 @@ export default function TeamPage() {
 
   if (!hasPerm(me, 'USER_VIEW_ALL')) return <EmptyState title="Недостаточно прав для просмотра команды" />;
 
-  const open = (u: TeamUser) => router.push(u.role === 'WORKER' && u.workerId ? `/workers/${u.workerId}` : `/team/${u.id}`);
+  const seen = (u: TeamUser) => (u.online ? <Badge tone="ok">в сети</Badge> : <span className="text-muted">{ago(u.lastSeenAt ?? u.lastLoginAt)}</span>);
+  const href = (u: TeamUser) => (u.role === 'WORKER' && u.workerId ? `/workers/${u.workerId}` : `/team/${u.id}`);
+  const status = (u: TeamUser) => <Badge tone={u.status === 'ACTIVE' ? 'ok' : 'danger'}>{u.status === 'ACTIVE' ? 'Активен' : 'Отключён'}</Badge>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Команда</h1>
-          <p className="text-sm text-muted">Сотрудники и мастерицы. Мастерицы регистрируются сами в Telegram.</p>
-        </div>
-        {hasPerm(me, 'USER_CREATE') && <Button onClick={() => setCreating(true)}>+ Добавить пользователя</Button>}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input className="max-w-xs" placeholder="Имя или телефон" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Поиск" />
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-full border px-3 py-1 text-sm ${filter === f.key ? 'border-primary bg-primary text-white' : 'border-border hover:bg-border/30'}`}
-          >
-            {f.label}
-          </button>
-        ))}
+    <div className="space-y-4 sm:space-y-6">
+      <PageHeader
+        title="Команда"
+        subtitle="Сотрудники и мастерицы. Мастерицы регистрируются сами в Telegram."
+        actions={hasPerm(me, 'USER_CREATE') ? <Button onClick={() => setCreating(true)}>+ Добавить пользователя</Button> : undefined}
+      />
+      <div className="space-y-3">
+        <Input type="search" className="md:max-w-sm" placeholder="Имя или телефон" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Поиск" />
+        <Chips options={FILTERS.map((f) => ({ value: f.key, label: f.label }))} value={filter} onChange={setFilter} label="Фильтр" />
       </div>
       {error && <ErrorState error={error} />}
-      {isLoading && <p className="text-muted">Загрузка…</p>}
+      {isLoading && <ListSkeleton />}
       {data && data.items.length === 0 && <EmptyState title="Никого не найдено" />}
       {data && data.items.length > 0 && (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Имя</Th><Th>Телефон</Th><Th>Роль</Th><Th>Менеджер</Th><Th>В сети</Th><Th>Создан</Th><Th>Статус</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.map((u) => (
-              <tr key={u.id} className="cursor-pointer hover:bg-border/20" onClick={() => open(u)}>
-                <Td className="font-medium">{u.fullName}{u.id === me?.id && <span className="text-muted"> · это вы</span>}</Td>
-                <Td>{u.phone}</Td>
-                <Td>{roleLabel(u.role)}</Td>
-                <Td>{u.role === 'WORKER' ? (u.managerName ?? <span className="text-muted">Без менеджера</span>) : ''}</Td>
-                <Td>{u.online ? <Badge tone="ok">в сети</Badge> : <span className="text-muted">{u.lastSeenAt ?? u.lastLoginAt ? formatDate(u.lastSeenAt ?? u.lastLoginAt) : '—'}</span>}</Td>
-                <Td className="text-muted">{u.createdAt ? u.createdAt.slice(0, 10) : '—'}</Td>
-                <Td><Badge tone={u.status === 'ACTIVE' ? 'ok' : 'danger'}>{u.status === 'ACTIVE' ? 'Активен' : 'Отключён'}</Badge></Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <DataList
+          rows={data.items}
+          rowKey={(u) => u.id}
+          href={href}
+          columns={[
+            { header: 'Имя', cell: (u) => <span className="font-medium">{u.fullName}{u.id === me?.id && <span className="font-normal text-muted"> · это вы</span>}</span> },
+            { header: 'Телефон', cell: (u) => <span className="whitespace-nowrap">{u.phone}</span> },
+            { header: 'Роль', cell: (u) => roleLabel(u.role) },
+            { header: 'Менеджер', cell: (u) => (u.role === 'WORKER' ? (u.managerName ?? <span className="text-muted">Без менеджера</span>) : '') },
+            { header: 'В сети', cell: seen },
+            { header: 'Создан', cell: (u) => <span className="whitespace-nowrap text-muted">{formatDay(u.createdAt)}</span> },
+            { header: 'Статус', cell: status },
+          ]}
+          card={(u) => (
+            <div className="flex items-start gap-3">
+              <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                {initials(u.fullName)}
+                <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${u.online ? 'bg-ok' : 'bg-border'}`} />
+              </span>
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium leading-snug">{u.fullName}{u.id === me?.id && <span className="font-normal text-muted"> · это вы</span>}</p>
+                  {u.status !== 'ACTIVE' && status(u)}
+                </div>
+                <p className="text-sm text-muted">{u.phone}</p>
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-foreground/70">{roleLabel(u.role)}</span>
+                  {u.role === 'WORKER' ? ` · ${u.managerName ? `менеджер ${u.managerName}` : 'без менеджера'}` : ''}
+                  {` · ${u.online ? 'в сети' : ago(u.lastSeenAt ?? u.lastLoginAt)}`}
+                </p>
+              </div>
+            </div>
+          )}
+        />
       )}
       {creating && <CreateUserDialog onClose={() => setCreating(false)} />}
     </div>
@@ -129,17 +133,19 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Новый пользователь" onClose={onClose}>
       <div className="space-y-3">
-        <Input placeholder="ФИО" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
-        <Input placeholder="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <Select value={role} onChange={(e) => setRole(e.target.value as typeof role)} aria-label="Роль">
-          {roles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
-        </Select>
+        <Field label="ФИО" htmlFor="nu-name"><Input id="nu-name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus /></Field>
+        <Field label="Телефон" htmlFor="nu-phone"><Input id="nu-phone" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+        <Field label="Роль" htmlFor="nu-role">
+          <Select id="nu-role" value={role} onChange={(e) => setRole(e.target.value as typeof role)} aria-label="Роль">
+            {roles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+          </Select>
+        </Field>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Сразу активен
         </label>
         <p className="text-xs text-muted">Мастерицы здесь не создаются — они регистрируются через Telegram-бота.</p>
         {create.isError && <ErrorState error={create.error} />}
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex gap-2 pt-2 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
           <Button variant="ghost" onClick={onClose}>Отмена</Button>
           <Button onClick={() => create.mutate()} disabled={fullName.trim().length < 2 || phone.replace(/\D/g, '').length < 9 || create.isPending}>Создать</Button>
         </div>

@@ -5,77 +5,123 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import { assignmentStatusLabel, assignmentStatusTone, formatUzs, statusLabel } from '@/lib/format';
+import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, statusLabel } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import type { AssignmentSummary, ManagerSummary, Page, Worker, WorkerLedger } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
-import { Badge, Button, Card, ErrorState, Input, Modal, StatCard } from '@/components/ui';
+import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
 import { PayoutDialog } from '../../assignments/[id]/page';
+import { CreateAssignmentDialog } from '../../assignments/page';
 
 /** Мастерица: profile, earnings/payout, and her assignments — the same numbers the worker sees on her own phone (§13). */
 export default function WorkerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { me } = useAuth();
   const [payingOut, setPayingOut] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const worker = useQuery<Worker>({ queryKey: ['worker', id], queryFn: () => api.get<Worker>(`/workers/${id}`) });
   const ledger = useQuery<WorkerLedger>({ queryKey: ['ledger', id], queryFn: () => api.get<WorkerLedger>(`/admin/workers/${id}/ledger`), enabled: hasPerm(me, 'FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED') });
-  const assignments = useQuery<Page<AssignmentSummary>>({ queryKey: ['assignments', 'worker', id], queryFn: () => api.get<Page<AssignmentSummary>>('/admin/assignments', { workerId: id, limit: 50 }) });
+  const assignments = useQuery<Page<AssignmentSummary>>({ queryKey: ['assignments', 'worker', id], queryFn: () => api.get<Page<AssignmentSummary>>('/admin/assignments', { workerId: id, limit: 100 }) });
 
-  if (worker.isLoading) return <p className="text-muted">Загрузка…</p>;
-  if (worker.error || !worker.data) return <ErrorState error={worker.error} />;
+  if (worker.isLoading) return <ListSkeleton rows={4} />;
+  if (worker.error || !worker.data) return <ErrorState error={worker.error} onRetry={() => worker.refetch()} />;
   const w = worker.data;
+  const active = (assignments.data?.items ?? []).filter((a) => !['COMPLETED', 'CANCELLED'].includes(a.status));
+  const done = (assignments.data?.items ?? []).filter((a) => ['COMPLETED', 'CANCELLED'].includes(a.status));
+  const canPay = !!ledger.data && hasPerm(me, 'CASH_PAYOUT') && ledger.data.balance !== '0';
+  const canAssign = w.status === 'ACTIVE' && hasPerm(me, 'ASSIGNMENT_CREATE');
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{w.fullName} <span className="text-muted">· {w.code}</span></h1>
-          <p className="text-sm text-muted">{w.phone} · <Badge tone={w.status === 'ACTIVE' ? 'ok' : 'default'}>{statusLabel(w.status)}</Badge></p>
-        </div>
-        {ledger.data && hasPerm(me, 'CASH_PAYOUT') && <Button onClick={() => setPayingOut(true)}>Выплатить наличными</Button>}
-      </div>
+    <div className="max-w-3xl space-y-4 sm:space-y-6">
+      <PageHeader
+        back={{ href: '/workers', label: 'Мастерицы' }}
+        title={w.fullName}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{w.code}</span>
+            <a href={`tel:${w.phone}`} className="text-primary hover:underline">{w.phone}</a>
+            <Badge tone={w.status === 'ACTIVE' ? 'ok' : w.status === 'PENDING_APPROVAL' ? 'warn' : 'default'}>{statusLabel(w.status)}</Badge>
+          </span>
+        }
+        actions={(canAssign || canPay) ? (
+          <>
+            {canAssign && <Button onClick={() => setAssigning(true)}>+ Выдать работу</Button>}
+            {canPay && <Button variant="outline" onClick={() => setPayingOut(true)}>Выплатить</Button>}
+          </>
+        ) : undefined}
+      />
 
       {w.status === 'PENDING_APPROVAL' && hasPerm(me, 'WORKER_APPROVE') && <ApprovalCard worker={w} />}
       {w.status === 'REJECTED' && w.rejectedReason && <Card><p className="text-sm text-muted">Причина отказа: {w.rejectedReason}</p></Card>}
-      {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
 
-      {ledger.data && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          <StatCard label="К получению" value={formatUzs(ledger.data.balance)} />
-          <StatCard label="Заработано" value={formatUzs(ledger.data.earned)} />
-          <StatCard label="Выплачено" value={formatUzs(ledger.data.paid)} />
-        </div>
-      )}
-
-      {ledger.data && ledger.data.history.length > 0 && (
-        <Card>
-          <h2 className="mb-3 text-sm font-medium text-muted">История</h2>
-          <div className="space-y-2 text-sm">
-            {ledger.data.history.map((e) => (
-              <div key={e.id} className="flex items-center justify-between border-b border-border pb-2 last:border-0">
-                <span>{e.type === 'PAYOUT_CASH' ? 'Выплатить наличными' : 'Начисление'}</span>
-                <span className="text-muted">{e.createdAt.slice(0, 10)}</span>
-                <span className={`font-medium ${e.amount.startsWith('-') ? 'text-danger' : 'text-ok'}`}>{e.amount.startsWith('-') ? '' : '+'}{formatUzs(e.amount)}</span>
-              </div>
-            ))}
-          </div>
+      {ledger.data && w.status !== 'PENDING_APPROVAL' && (
+        <Card className="grid grid-cols-3 divide-x divide-border p-0 sm:p-0">
+          {([['К получению', ledger.data.balance, 'text-primary'], ['Заработано', ledger.data.earned, ''], ['Выплачено', ledger.data.paid, '']] as const).map(([k, v, c]) => (
+            <div key={k} className="px-3 py-3 sm:px-5 sm:py-4">
+              <p className="text-xs text-muted">{k}</p>
+              <p className={`mt-0.5 text-sm font-semibold tabular-nums sm:text-xl ${c}`}>{formatUzs(v)}</p>
+            </div>
+          ))}
         </Card>
       )}
 
+      {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
+
       <Card>
-        <h2 className="mb-3 text-sm font-medium text-muted">Задания</h2>
-        {assignments.data && assignments.data.items.length === 0 && <p className="text-muted">Заданий пока нет.</p>}
-        <div className="space-y-2 text-sm">
-          {assignments.data?.items.map((a) => (
-            <Link key={a.id} href={`/assignments/${a.id}`} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 hover:bg-border/20">
-              <span>{a.product?.name ?? '—'} · {a.color?.name ?? '—'} · {a.plannedMeters} м</span>
-              <Badge tone={assignmentStatusTone(a.status)}>{assignmentStatusLabel(a.status)}</Badge>
+        <h2 className="mb-3 text-sm font-semibold">Текущая работа</h2>
+        {assignments.isLoading && <ListSkeleton rows={2} />}
+        {assignments.data && active.length === 0 && <p className="text-sm text-muted">Сейчас нет активной работы.</p>}
+        <div className="space-y-2">
+          {active.map((a) => (
+            <Link key={a.id} href={`/assignments/${a.id}`} className="block rounded-lg border border-border p-3 transition hover:bg-border/20">
+              <div className="flex items-start justify-between gap-3">
+                <span className="min-w-0 text-sm font-medium">{a.product?.name ?? '—'} · {a.color?.name ?? '—'}</span>
+                <Badge tone={assignmentStatusTone(a.status)}>{assignmentStatusLabel(a.status)}</Badge>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${a.plannedMeters > 0 ? Math.min(100, (a.reportedMeters / a.plannedMeters) * 100) : 0}%` }} />
+              </div>
+              <p className="mt-1.5 text-xs text-muted">Готово {a.reportedMeters} из {a.plannedMeters} м{a.dueAt ? ` · срок ${formatDay(a.dueAt)}` : ''}</p>
             </Link>
           ))}
         </div>
       </Card>
 
+      {ledger.data && ledger.data.history.length > 0 && (
+        <Card>
+          <h2 className="mb-2 text-sm font-semibold">Деньги</h2>
+          <ul className="divide-y divide-border text-sm">
+            {ledger.data.history.map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0">
+                  <span className="block">{e.type === 'PAYOUT_CASH' ? 'Выплата наличными' : 'Начисление за работу'}</span>
+                  <span className="block text-xs text-muted">{formatDate(e.createdAt)}</span>
+                </span>
+                <span className={`shrink-0 font-semibold tabular-nums ${e.amount.startsWith('-') ? 'text-danger' : 'text-ok'}`}>{e.amount.startsWith('-') ? '' : '+'}{formatUzs(e.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {done.length > 0 && (
+        <Card>
+          <h2 className="mb-2 text-sm font-semibold">Завершённые</h2>
+          <ul className="divide-y divide-border text-sm">
+            {done.map((a) => (
+              <li key={a.id}>
+                <Link href={`/assignments/${a.id}`} className="flex items-center justify-between gap-3 py-2 hover:text-primary">
+                  <span className="min-w-0">{a.product?.name ?? '—'} · {a.color?.name ?? '—'} · {a.plannedMeters} м</span>
+                  <Badge tone={assignmentStatusTone(a.status)}>{assignmentStatusLabel(a.status)}</Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {payingOut && <PayoutDialog workerId={w.id} onClose={() => setPayingOut(false)} />}
+      {assigning && <CreateAssignmentDialog workerId={w.id} onClose={() => setAssigning(false)} />}
     </div>
   );
 }
@@ -170,7 +216,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
           <span className="text-muted">Менеджер:</span>
           {canManager ? (
             <>
-              <select aria-label="Менеджер" className="rounded-lg border border-border bg-background px-3 py-1.5" value={picked} onChange={(e) => setPicked(e.target.value)}>
+              <select aria-label="Менеджер" className="min-h-10 w-full rounded-lg border border-border bg-card px-3 py-1.5 sm:w-auto" value={picked} onChange={(e) => setPicked(e.target.value)}>
                 <option value="">Без менеджера</option>
                 {managers.data?.items.filter((m) => m.status === 'ACTIVE' || m.id === w.manager?.id).map((m) => <option key={m.id} value={m.id}>{m.fullName} · {m.stats.workers}</option>)}
               </select>
@@ -190,7 +236,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
           <p className="text-sm">Мастерица не сможет войти и не получит новую работу. История, выплаты и залог сохранятся.</p>
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setArchiving(false)}>Отмена</Button>
-            <Button className="bg-danger" disabled={status.isPending} onClick={() => status.mutate('ARCHIVED')}>Архивировать</Button>
+            <Button variant="danger" disabled={status.isPending} onClick={() => status.mutate('ARCHIVED')}>Архивировать</Button>
           </div>
         </Modal>
       )}

@@ -108,7 +108,7 @@ function YandexMapView({ items, onSelect }: { items: LiveLocation[]; onSelect: (
   return (
     <>
       <Script src={`https://api-maps.yandex.ru/2.1/?apikey=${JS_KEY}&lang=ru_RU`} strategy="afterInteractive" onLoad={() => setReady(true)} />
-      <div ref={containerRef} className="h-[600px] w-full overflow-hidden rounded-lg border border-border" />
+      <div ref={containerRef} className="h-[60vh] min-h-[320px] w-full overflow-hidden rounded-xl border border-border md:h-[600px]" />
     </>
   );
 }
