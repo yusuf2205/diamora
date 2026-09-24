@@ -33,7 +33,7 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Каталог работ</h1>
           <p className="text-sm text-muted">«Наши работы» в приложении мастериц — без цены, только фото и описание.</p>
@@ -58,7 +58,7 @@ export default function CatalogPage() {
                 </div>
                 <div className="space-y-2 p-3 pb-0">
                   <p className="truncate font-medium">{item.name}</p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <Badge tone={STATUS_TONE[item.status]}>{statusLabel(item.status)}</Badge>
                     {item.isNew && <Badge tone="warn">Новинка</Badge>}
                   </div>

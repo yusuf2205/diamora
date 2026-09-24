@@ -27,7 +27,7 @@ export default function WorkerDetailPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{w.fullName} <span className="text-muted">· {w.code}</span></h1>
           <p className="text-sm text-muted">{w.phone} · <Badge tone={w.status === 'ACTIVE' ? 'ok' : 'default'}>{statusLabel(w.status)}</Badge></p>
@@ -40,7 +40,7 @@ export default function WorkerDetailPage() {
       {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
 
       {ledger.data && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           <StatCard label="К получению" value={formatUzs(ledger.data.balance)} />
           <StatCard label="Заработано" value={formatUzs(ledger.data.earned)} />
           <StatCard label="Выплачено" value={formatUzs(ledger.data.paid)} />

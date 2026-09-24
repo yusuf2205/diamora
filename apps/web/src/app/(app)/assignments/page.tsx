@@ -31,7 +31,7 @@ export default function AssignmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Задания</h1>
           <p className="text-sm text-muted">Выдача работы, доставка, забор, приёмка, выплата — всё через тот же API, что и в приложении.</p>

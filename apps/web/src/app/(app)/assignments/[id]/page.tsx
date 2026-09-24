@@ -32,7 +32,7 @@ export default function AssignmentDetailPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{a.product?.name ?? 'Задание'}{a.variant?.label ? ` · ${a.variant.label}` : ''}</h1>
           <p className="text-sm text-muted">{a.color?.name} · {a.plannedMeters} м · <Link href={`/workers/${a.worker.id}`} className="underline">{a.worker.fullName}</Link> · {a.worker.phone}</p>

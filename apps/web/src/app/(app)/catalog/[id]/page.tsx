@@ -48,7 +48,7 @@ export default function CatalogDetailPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button onClick={() => router.push('/catalog')} className="text-sm text-muted hover:text-foreground">← Каталог</button>
         <div className="flex items-center gap-2">
           <Badge tone={item.status === 'PUBLISHED' ? 'ok' : item.status === 'DRAFT' ? 'warn' : 'default'}>{statusLabel(item.status)}</Badge>
