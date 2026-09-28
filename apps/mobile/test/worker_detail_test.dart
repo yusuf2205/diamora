@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yusmus_mobile/core/db/app_database.dart';
+import 'package:yusmus_mobile/core/network/api_exception.dart';
 import 'package:yusmus_mobile/core/providers.dart';
 import 'package:yusmus_mobile/core/storage/token_store.dart';
 import 'package:yusmus_mobile/features/auth/auth_controller.dart';
@@ -180,6 +181,42 @@ void main() {
     verify(() => api.patchJson('/workers/w1', body: {'status': 'ACTIVE'})).called(1);
     expect(find.text('Мастерица восстановлена'), findsOneWidget);
     await dispose(tester, db2);
+  });
+
+  testWidgets('«Удалить мастерицу»: only with WORKER_DELETE; confirm -> DELETE, never before the confirm', (tester) async {
+    stubCommon();
+    when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.deleteJson('/workers/w1')).thenAnswer((_) async => {'ok': true});
+    final db = await pump(tester, perms: ['WORKER_DELETE', 'WORKER_UPDATE']);
+    await tester.scrollUntilVisible(find.text('Удалить мастерицу'), 200);
+    await tester.tap(find.text('Удалить мастерицу'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('будет удалена навсегда'), findsOneWidget);
+    verifyNever(() => api.deleteJson(any()));
+    await tester.tap(find.text('Удалить навсегда'));
+    await tester.pumpAndSettle();
+    verify(() => api.deleteJson('/workers/w1')).called(1);
+    await dispose(tester, db);
+  });
+
+  testWidgets('delete refused (HAS_HISTORY): a plain explanation and «Архивировать» instead; no delete button without the right', (tester) async {
+    stubCommon();
+    when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.deleteJson('/workers/w1')).thenThrow(ApiException(code: 'HAS_HISTORY', message: 'raw', status: 409));
+    var db = await pump(tester, perms: ['WORKER_DELETE', 'WORKER_UPDATE']);
+    await tester.scrollUntilVisible(find.text('Удалить мастерицу'), 200);
+    await tester.tap(find.text('Удалить мастерицу'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Удалить навсегда'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Удалить нельзя'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Архивировать мастерицу'), findsOneWidget);
+    expect(find.textContaining('HAS_HISTORY'), findsNothing);
+    await dispose(tester, db);
+
+    db = await pump(tester, perms: ['WORKER_UPDATE']);
+    expect(find.text('Удалить мастерицу'), findsNothing);
+    await dispose(tester, db);
   });
 }
 

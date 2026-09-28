@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 import '../work/deliveries_screen.dart';
+import 'add_worker_sheet.dart';
 import 'models.dart';
 import 'workers_providers.dart';
 
@@ -32,7 +34,15 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final canInvite = ref.watch(authControllerProvider).value?.has('WORKER_APPROVE') ?? false;
     return Scaffold(
+      floatingActionButton: canInvite
+          ? FloatingActionButton.extended(
+              onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, useSafeArea: true, builder: (_) => const AddWorkerSheet()),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: Text(l.addWorker),
+            )
+          : null,
       appBar: AppBar(
         title: Text(l.workers),
         actions: [
@@ -47,6 +57,7 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
       ),
       body: Column(children: [
         const ConnectionBanner(),
+        if (canInvite) const PendingInvitesCard(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: SearchBar(hintText: l.search, leading: const Icon(Icons.search_rounded), onChanged: (v) => setState(() => _query = v), elevation: const WidgetStatePropertyAll(0)),

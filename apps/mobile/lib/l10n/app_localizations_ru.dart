@@ -1600,4 +1600,66 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get workRemaining => 'Осталось';
+
+  @override
+  String get addWorker => 'Добавить';
+
+  @override
+  String get addWorkerTitle => 'Добавить мастерицу';
+
+  @override
+  String get addWorkerHint =>
+      'Мы дадим ссылку. Мастерица открывает её в Telegram — и сразу в команде, без анкеты и без одобрения.';
+
+  @override
+  String get addWorkerGetLink => 'Получить ссылку';
+
+  @override
+  String get addWorkerFullName => 'Фамилия и имя';
+
+  @override
+  String get addWorkerManager => 'Менеджер';
+
+  @override
+  String get addWorkerNoManager => 'Без менеджера';
+
+  @override
+  String get addWorkerLinkReady =>
+      'Покажите QR мастерице — она наведёт камеру телефона. Или отправьте ссылку. Ссылка действует 7 дней и открывается один раз.';
+
+  @override
+  String get addWorkerSendTelegram => 'Отправить в Telegram';
+
+  @override
+  String get addWorkerCopy => 'Скопировать ссылку';
+
+  @override
+  String get addWorkerCopied => 'Ссылка скопирована';
+
+  @override
+  String get invitesPending => 'Приглашены — ещё не открыли ссылку';
+
+  @override
+  String get inviteCancel => 'Отменить';
+
+  @override
+  String get deleteWorker => 'Удалить мастерицу';
+
+  @override
+  String deleteWorkerConfirm(String name) {
+    return '$name будет удалена навсегда вместе со входом в приложение. Это нельзя отменить.';
+  }
+
+  @override
+  String get deleteWorkerForever => 'Удалить навсегда';
+
+  @override
+  String get deleteWorkerBlocked =>
+      'Удалить нельзя: у мастерицы уже есть работа, деньги или принятый залог — эти записи нужны для отчётов и выплат. Её можно архивировать: она не сможет войти, а история сохранится.';
+
+  @override
+  String get deleteWorkerDone => 'Мастерица удалена';
+
+  @override
+  String get permWorkerDelete => 'Удалять мастериц';
 }

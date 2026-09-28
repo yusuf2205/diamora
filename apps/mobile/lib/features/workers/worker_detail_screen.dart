@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
@@ -36,6 +37,7 @@ class WorkerDetailScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final async = ref.watch(workerDetailProvider(workerId));
     final canArchive = ref.watch(authControllerProvider).value?.has('WORKER_UPDATE') ?? false;
+    final canDelete = ref.watch(authControllerProvider).value?.has('WORKER_DELETE') ?? false;
     return Scaffold(
       appBar: AppBar(
         title: Text(async.value?.fullName ?? l.workers),
@@ -106,12 +108,62 @@ class WorkerDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   OutlinedButton.icon(icon: const Icon(Icons.close_rounded), onPressed: () => _reject(context, ref, w), label: Text(l.reject)),
                 ],
+                if (canDelete) ...[
+                  const SizedBox(height: 24),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+                    icon: const Icon(Icons.delete_forever_rounded),
+                    onPressed: () => _delete(context, ref, w, canArchive),
+                    label: Text(l.deleteWorker),
+                  ),
+                ],
               ]),
             ),
           ),
         ),
       ]),
     );
+  }
+
+  /// «Удалить мастерицу»: confirm first; if she already has work/money/received collateral the server refuses and we
+  /// explain why in words and offer the archive instead.
+  Future<void> _delete(BuildContext context, WidgetRef ref, Worker w, bool canArchive) async {
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.deleteWorker),
+        content: Text(l.deleteWorkerConfirm(w.fullName)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error), onPressed: () => Navigator.pop(ctx, true), child: Text(l.deleteWorkerForever)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      await ref.read(workerRepositoryProvider).delete(w.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.deleteWorkerDone)));
+      Navigator.of(context).maybePop();
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      if (e.code != 'HAS_HISTORY') return showError(context, e);
+      final archive = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.deleteWorker),
+          content: Text(l.deleteWorkerBlocked),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+            if (canArchive && w.status != 'ARCHIVED') FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.archiveWorker)),
+          ],
+        ),
+      );
+      if (archive == true && context.mounted) await _setStatus(context, ref, w, 'ARCHIVED');
+    }
   }
 
   Future<void> _approve(BuildContext context, WidgetRef ref, Worker w) async {

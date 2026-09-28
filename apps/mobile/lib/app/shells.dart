@@ -37,8 +37,9 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ref.listen(realtimeEventsProvider, (_, next) {
       final e = next.value;
       if (e == null) return;
+      if (e.type == 'worker.deleted' && e.data['workerId'] is String) ref.read(workerRepositoryProvider).removeLocal(e.data['workerId'] as String);
       if (e.type.startsWith('worker.') || e.type.startsWith('collateral.')) _sync();
-      if (e.type == 'worker.created') {
+      if (e.type == 'worker.created' && e.data['status'] == 'PENDING_APPROVAL') {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(l.newRegistration('${e.data['fullName'] ?? ''}')), action: SnackBarAction(label: l.tabPending, onPressed: () => widget.shell.goBranch(1))));

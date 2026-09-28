@@ -37,11 +37,16 @@ class WorkerRepository {
     final since = full ? null : _prefs.getString(_lastSyncKey);
     final startedAt = DateTime.now().toUtc();
     String? cursor;
+    final seen = <String>{};
     do {
       final page = await _api.getJson('/workers', query: {'limit': 100, 'updatedSince': ?since, 'cursor': ?cursor});
-      await _upsert((page['items'] as List).cast<Map<String, dynamic>>());
+      final items = (page['items'] as List).cast<Map<String, dynamic>>();
+      seen.addAll(items.map((j) => j['id'] as String));
+      await _upsert(items);
       cursor = page['nextCursor'] as String?;
     } while (cursor != null);
+    // a FULL sync is the complete truth: anything cached that the server no longer returns was deleted
+    if (since == null) await (_db.delete(_db.cachedWorkers)..where((t) => t.id.isNotIn(seen))).go();
     await _prefs.setString(_lastSyncKey, startedAt.toIso8601String());
   }
 
@@ -96,6 +101,15 @@ class WorkerRepository {
         if (storageLocation != null && storageLocation.trim().isNotEmpty) 'storageLocation': storageLocation.trim(),
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
       });
+
+  /// «Удалить мастерицу»: erased on the server (refused with HAS_HISTORY when she has work/money/received collateral).
+  Future<void> delete(String id) async {
+    await _api.deleteJson('/workers/$id');
+    await removeLocal(id);
+  }
+
+  /// A worker erased elsewhere (realtime `worker.deleted`): a delta sync cannot see deletions, so drop her here.
+  Future<void> removeLocal(String id) => (_db.delete(_db.cachedWorkers)..where((t) => t.id.equals(id))).go();
 
   /// The cache is wiped on logout: the next user of this phone must never see the previous user's data.
   Future<void> clear() async {

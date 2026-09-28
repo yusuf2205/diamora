@@ -21,6 +21,7 @@ String permissionLabel(AppLocalizations l, String p) => switch (p) {
       'WORKER_APPROVE' => l.permWorkerApprove,
       'WORKER_UPDATE' => l.permWorkerUpdate,
       'WORKER_ASSIGN_MANAGER' => l.permWorkerAssignManager,
+      'WORKER_DELETE' => l.permWorkerDelete,
       'COLLATERAL_VIEW' => l.permCollateralView,
       'COLLATERAL_MANAGE' => l.permCollateralManage,
       'ASSIGNMENT_VIEW_ALL' => l.permAssignmentViewAll,
@@ -48,7 +49,7 @@ String permissionLabel(AppLocalizations l, String p) => switch (p) {
 /// Groups in the order an owner thinks about the business, each with an icon.
 List<(String, IconData, List<String>)> _groups(AppLocalizations l) => [
       (l.permGroupUsers, Icons.manage_accounts_rounded, ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE']),
-      (l.permGroupWorkers, Icons.groups_2_rounded, ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER']),
+      (l.permGroupWorkers, Icons.groups_2_rounded, ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER', 'WORKER_DELETE']),
       (l.permGroupCollateral, Icons.lock_outline_rounded, ['COLLATERAL_VIEW', 'COLLATERAL_MANAGE']),
       (l.permGroupAssignments, Icons.assignment_rounded, ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT']),
       (l.permGroupFinance, Icons.payments_rounded, ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'CASH_PAYOUT', 'PROFIT_VIEW']),

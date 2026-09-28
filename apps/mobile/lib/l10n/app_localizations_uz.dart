@@ -1559,4 +1559,66 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get workRemaining => 'Qoldi';
+
+  @override
+  String get addWorker => 'Qo\'shish';
+
+  @override
+  String get addWorkerTitle => 'Usta qo\'shish';
+
+  @override
+  String get addWorkerHint =>
+      'Biz havola beramiz. Usta uni Telegramda ochadi — va darhol jamoada, anketasiz va tasdiqsiz.';
+
+  @override
+  String get addWorkerGetLink => 'Havola olish';
+
+  @override
+  String get addWorkerFullName => 'Familiya va ism';
+
+  @override
+  String get addWorkerManager => 'Menejer';
+
+  @override
+  String get addWorkerNoManager => 'Menejersiz';
+
+  @override
+  String get addWorkerLinkReady =>
+      'QR-ni ustaga ko\'rsating — u telefon kamerasini qaratadi. Yoki havolani yuboring. Havola 7 kun amal qiladi va bir marta ochiladi.';
+
+  @override
+  String get addWorkerSendTelegram => 'Telegramda yuborish';
+
+  @override
+  String get addWorkerCopy => 'Havolani nusxalash';
+
+  @override
+  String get addWorkerCopied => 'Havola nusxalandi';
+
+  @override
+  String get invitesPending => 'Taklif qilingan — havolani hali ochmagan';
+
+  @override
+  String get inviteCancel => 'Bekor qilish';
+
+  @override
+  String get deleteWorker => 'Ustani o\'chirish';
+
+  @override
+  String deleteWorkerConfirm(String name) {
+    return '$name ilovaga kirish bilan birga butunlay o\'chiriladi. Buni qaytarib bo\'lmaydi.';
+  }
+
+  @override
+  String get deleteWorkerForever => 'Butunlay o\'chirish';
+
+  @override
+  String get deleteWorkerBlocked =>
+      'O\'chirib bo\'lmaydi: ustada ish, pul yoki qabul qilingan garov bor — bu yozuvlar hisobot va to\'lovlar uchun kerak. Uni arxivlash mumkin: u kira olmaydi, tarix saqlanadi.';
+
+  @override
+  String get deleteWorkerDone => 'Usta o\'chirildi';
+
+  @override
+  String get permWorkerDelete => 'Ustalarni o\'chirish';
 }

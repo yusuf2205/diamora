@@ -3013,6 +3013,120 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Осталось'**
   String get workRemaining;
+
+  /// No description provided for @addWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить'**
+  String get addWorker;
+
+  /// No description provided for @addWorkerTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить мастерицу'**
+  String get addWorkerTitle;
+
+  /// No description provided for @addWorkerHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мы дадим ссылку. Мастерица открывает её в Telegram — и сразу в команде, без анкеты и без одобрения.'**
+  String get addWorkerHint;
+
+  /// No description provided for @addWorkerGetLink.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получить ссылку'**
+  String get addWorkerGetLink;
+
+  /// No description provided for @addWorkerFullName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фамилия и имя'**
+  String get addWorkerFullName;
+
+  /// No description provided for @addWorkerManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менеджер'**
+  String get addWorkerManager;
+
+  /// No description provided for @addWorkerNoManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без менеджера'**
+  String get addWorkerNoManager;
+
+  /// No description provided for @addWorkerLinkReady.
+  ///
+  /// In ru, this message translates to:
+  /// **'Покажите QR мастерице — она наведёт камеру телефона. Или отправьте ссылку. Ссылка действует 7 дней и открывается один раз.'**
+  String get addWorkerLinkReady;
+
+  /// No description provided for @addWorkerSendTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить в Telegram'**
+  String get addWorkerSendTelegram;
+
+  /// No description provided for @addWorkerCopy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скопировать ссылку'**
+  String get addWorkerCopy;
+
+  /// No description provided for @addWorkerCopied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ссылка скопирована'**
+  String get addWorkerCopied;
+
+  /// No description provided for @invitesPending.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приглашены — ещё не открыли ссылку'**
+  String get invitesPending;
+
+  /// No description provided for @inviteCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get inviteCancel;
+
+  /// No description provided for @deleteWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить мастерицу'**
+  String get deleteWorker;
+
+  /// No description provided for @deleteWorkerConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} будет удалена навсегда вместе со входом в приложение. Это нельзя отменить.'**
+  String deleteWorkerConfirm(String name);
+
+  /// No description provided for @deleteWorkerForever.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить навсегда'**
+  String get deleteWorkerForever;
+
+  /// No description provided for @deleteWorkerBlocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить нельзя: у мастерицы уже есть работа, деньги или принятый залог — эти записи нужны для отчётов и выплат. Её можно архивировать: она не сможет войти, а история сохранится.'**
+  String get deleteWorkerBlocked;
+
+  /// No description provided for @deleteWorkerDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица удалена'**
+  String get deleteWorkerDone;
+
+  /// No description provided for @permWorkerDelete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалять мастериц'**
+  String get permWorkerDelete;
 }
 
 class _AppLocalizationsDelegate
