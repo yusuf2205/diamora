@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { hasPerm } from '@/lib/types';
 import { earningFor, metersToCm } from '@diamoraa/shared';
 import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, handoffProblemLabel } from '@/lib/format';
 import type { AssignmentDetail, AssignmentHandoff, HandoffTimelineEntry, PayRate } from '@/lib/types';
@@ -18,6 +20,9 @@ export default function AssignmentDetailPage() {
   const qc = useQueryClient();
   const [accepting, setAccepting] = useState(false);
   const [payingOut, setPayingOut] = useState(false);
+  const [controlling, setControlling] = useState<'due' | 'cancel' | null>(null);
+  const { me } = useAuth();
+  const canControl = hasPerm(me, 'ASSIGNMENT_CREATE');
   const { data: a, error, isLoading } = useQuery<AssignmentDetail>({ queryKey: ['assignment', id], queryFn: () => api.get<AssignmentDetail>(`/admin/assignments/${id}`) });
 
   // Phase 5: staff only STARTS the handoff; the worker confirms receipt in her own app, then this page updates live
@@ -80,6 +85,16 @@ export default function AssignmentDetailPage() {
         </dl>
         {a.notes && <p className="mt-3 rounded-lg bg-border/30 p-3 text-sm">{a.notes}</p>}
       </Card>
+
+      {canControl && !['COMPLETED', 'CANCELLED', 'ACCEPTED'].includes(a.status) && (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setControlling('due')}>Изменить срок</Button>
+          {['DRAFT', 'READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP'].includes(a.status) && (
+            <Button variant="outline" className="text-danger" onClick={() => setControlling('cancel')}>Отменить работу</Button>
+          )}
+        </div>
+      )}
+      {controlling && <ControlDialog assignment={a} kind={controlling} onClose={() => setControlling(null)} />}
 
       {a.handoff && <HandoffCard handoff={a.handoff} workerName={a.worker.fullName} timeline={a.handoffTimeline ?? []} />}
 
@@ -162,6 +177,41 @@ export function HandoffCard({ handoff: h, workerName, timeline }: { handoff: Ass
       )}
       {h.status === 'CONFIRMED' && <p className="mt-2 text-xs text-muted">Передачу начал(а): {h.staff.fullName}{h.hasLocation ? ' · место получения сохранено' : ''}</p>}
     </Card>
+  );
+}
+
+/** «Изменить срок» / «Отменить работу» (materials back to the shelf, or written off). */
+function ControlDialog({ assignment: a, kind, onClose }: { assignment: AssignmentDetail; kind: 'due' | 'cancel'; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [due, setDue] = useState(a.dueAt ? a.dueAt.slice(0, 10) : '');
+  const [reason, setReason] = useState('');
+  const [returned, setReturned] = useState(true);
+  const m = useMutation({
+    mutationFn: () => kind === 'due'
+      ? api.patch(`/admin/assignments/${a.id}`, { dueAt: due ? new Date(`${due}T18:00:00`).toISOString() : null })
+      : api.post(`/admin/assignments/${a.id}/cancel`, { reason: reason.trim(), materialsReturned: returned }, { idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assignment', a.id] }); onClose(); },
+  });
+  return (
+    <Modal title={kind === 'due' ? 'Изменить срок' : 'Отменить работу'} onClose={onClose}>
+      <div className="space-y-3">
+        {kind === 'due' ? (
+          <Input type="date" aria-label="Срок" value={due} onChange={(e) => setDue(e.target.value)} />
+        ) : (
+          <>
+            <Input placeholder="Причина" aria-label="Причина" value={reason} onChange={(e) => setReason(e.target.value)} />
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={returned} onChange={(e) => setReturned(e.target.checked)} /> Материалы вернулись на склад</label>
+          </>
+        )}
+        {m.isError && <ErrorState error={m.error} />}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="ghost" onClick={onClose}>Закрыть</Button>
+          <Button variant={kind === 'cancel' ? 'danger' : 'primary'} disabled={m.isPending || (kind === 'cancel' && reason.trim().length < 2)} onClick={() => m.mutate()}>
+            {kind === 'due' ? 'Сохранить' : 'Отменить работу'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

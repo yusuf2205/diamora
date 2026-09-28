@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { ago, formatDate, formatDay, roleLabel } from '@/lib/format';
@@ -16,6 +16,7 @@ import { Badge, Button, Card, EmptyState, ErrorState, Input, Modal, PageHeader }
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { me } = useAuth();
+  const router = useRouter();
   const qc = useQueryClient();
   const user = useQuery<UserDetail>({ queryKey: ['user', id], queryFn: () => api.get<UserDetail>(`/users/${id}`) });
   const audit = useQuery<Page<AuditRow>>({ queryKey: ['audit', id], queryFn: () => api.get<Page<AuditRow>>('/audit', { entityId: id, limit: 50 }), enabled: hasPerm(me, 'AUDIT_VIEW') });
@@ -57,6 +58,15 @@ export default function UserDetailPage() {
           ? <Button variant="outline" className="text-danger" onClick={() => setConfirm({ title: 'Отключить пользователя', body: `Отключить ${u.fullName}? Вход будет запрещён сразу на всех устройствах. Вся история сохранится.`, danger: true, run: () => api.post(`/users/${u.id}/status`, { status: 'SUSPENDED' }, { idempotencyKey: crypto.randomUUID() }) })}>Отключить пользователя</Button>
           : <Button onClick={() => run.mutate(() => api.post(`/users/${u.id}/status`, { status: 'ACTIVE' }, { idempotencyKey: crypto.randomUUID() }))}>Восстановить</Button>) : undefined}
       />
+      {me?.role === 'SUPER_ADMIN' && !isMe && u.role !== 'WORKER' && (
+        <div>
+          <Button variant="ghost" className="text-danger" onClick={() => setConfirm({
+            title: 'Удалить сотрудника', danger: true,
+            body: `${u.fullName} будет удалён(а) навсегда. Если за сотрудником есть история (работы, выплаты, склад), удалить нельзя — тогда его можно отключить.`,
+            run: async () => { await api.delete(`/users/${u.id}`); router.push('/team'); },
+          })}>Удалить сотрудника</Button>
+        </div>
+      )}
 
       <Card>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

@@ -1,3 +1,4 @@
+import '../auth/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -21,6 +22,7 @@ class AssignmentDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(assignmentDetailProvider(assignmentId));
+    final canControl = ref.watch(authControllerProvider).value?.has('ASSIGNMENT_CREATE') ?? false;
     // Phase 5.9: the moment she confirms in her app, the staff member standing next to her sees it here
     ref.listen(realtimeEventsProvider, (_, next) {
       final e = next.value;
@@ -33,7 +35,17 @@ class AssignmentDetailScreen extends ConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(msg), backgroundColor: e.type == 'handoff.confirmed' ? Colors.green.shade700 : Theme.of(context).colorScheme.error));
     });
     return Scaffold(
-      appBar: AppBar(title: Text(l.assignmentDetailTitle)),
+      appBar: AppBar(title: Text(l.assignmentDetailTitle), actions: [
+        if (async.value != null && canControl && !const ['COMPLETED', 'CANCELLED', 'ACCEPTED'].contains(async.value!.status))
+          PopupMenuButton<String>(
+            onSelected: (v) => v == 'due' ? _changeDue(context, ref, async.value!) : _cancel(context, ref, async.value!),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'due', child: ListTile(leading: const Icon(Icons.event_rounded), title: Text(l.assignChangeDue), contentPadding: EdgeInsets.zero)),
+              if (const ['DRAFT', 'READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP'].contains(async.value!.status))
+                PopupMenuItem(value: 'cancel', child: ListTile(leading: Icon(Icons.cancel_rounded, color: Theme.of(context).colorScheme.error), title: Text(l.assignCancel), contentPadding: EdgeInsets.zero)),
+            ],
+          ),
+      ]),
       body: async.when(
         loading: () => const SkeletonList(count: 4),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
@@ -58,6 +70,52 @@ class AssignmentDetailScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: async.maybeWhen(data: (a) => _ActionBar(a: a), orElse: () => null),
     );
+  }
+}
+
+Future<void> _changeDue(BuildContext context, WidgetRef ref, AssignmentDetail a) async {
+  final now = DateTime.now();
+  final picked = await showDatePicker(context: context, initialDate: a.dueAt?.toLocal() ?? now, firstDate: now.subtract(const Duration(days: 1)), lastDate: now.add(const Duration(days: 365)));
+  if (picked == null || !context.mounted) return;
+  try {
+    await ref.read(assignmentAdminRepositoryProvider).setDue(a.id, DateTime(picked.year, picked.month, picked.day, 18));
+    ref.invalidate(assignmentDetailProvider(a.id));
+  } catch (e) {
+    if (context.mounted) showError(context, e);
+  }
+}
+
+Future<void> _cancel(BuildContext context, WidgetRef ref, AssignmentDetail a) async {
+  final l = AppLocalizations.of(context);
+  final reason = TextEditingController();
+  var returned = true;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, set) => AlertDialog(
+        title: Text(l.assignCancel),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: reason, autofocus: true, maxLength: 500, decoration: InputDecoration(labelText: l.assignCancelReason)),
+          SwitchListTile(contentPadding: EdgeInsets.zero, value: returned, onChanged: (v) => set(() => returned = v), title: Text(l.assignCancelReturned)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error), onPressed: () => Navigator.pop(ctx, reason.text.trim().length >= 2), child: Text(l.assignCancel)),
+        ],
+      ),
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  try {
+    await ref.read(assignmentAdminRepositoryProvider).cancel(a.id, reason: reason.text.trim(), materialsReturned: returned);
+    ref.invalidate(assignmentDetailProvider(a.id));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.assignCancelled)));
+    }
+  } catch (e) {
+    if (context.mounted) showError(context, e);
   }
 }
 

@@ -613,5 +613,15 @@
   "qaScan": "QR",
   "qaMap": "Карта",
   "qaStock": "Склад",
-  "qaPay": "Выплата"
+  "qaPay": "Выплата",
+  "assignCancel": "Отменить работу",
+  "assignCancelReason": "Причина",
+  "assignCancelReturned": "Материалы вернулись на склад",
+  "assignCancelled": "Работа отменена",
+  "assignChangeDue": "Изменить срок",
+  "userDelete": "Удалить сотрудника",
+  "userDeleteConfirm": "{name} будет удалён(а) навсегда.",
+  "@userDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "userDeleteBlocked": "Удалить нельзя: за сотрудником есть история (работы, выплаты, склад). Его можно отключить.",
+  "userDeleted": "Сотрудник удалён"
 }

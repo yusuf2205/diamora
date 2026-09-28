@@ -3475,6 +3475,60 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выплата'**
   String get qaPay;
+
+  /// No description provided for @assignCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить работу'**
+  String get assignCancel;
+
+  /// No description provided for @assignCancelReason.
+  ///
+  /// In ru, this message translates to:
+  /// **'Причина'**
+  String get assignCancelReason;
+
+  /// No description provided for @assignCancelReturned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы вернулись на склад'**
+  String get assignCancelReturned;
+
+  /// No description provided for @assignCancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа отменена'**
+  String get assignCancelled;
+
+  /// No description provided for @assignChangeDue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить срок'**
+  String get assignChangeDue;
+
+  /// No description provided for @userDelete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить сотрудника'**
+  String get userDelete;
+
+  /// No description provided for @userDeleteConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} будет удалён(а) навсегда.'**
+  String userDeleteConfirm(String name);
+
+  /// No description provided for @userDeleteBlocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить нельзя: за сотрудником есть история (работы, выплаты, склад). Его можно отключить.'**
+  String get userDeleteBlocked;
+
+  /// No description provided for @userDeleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сотрудник удалён'**
+  String get userDeleted;
 }
 
 class _AppLocalizationsDelegate

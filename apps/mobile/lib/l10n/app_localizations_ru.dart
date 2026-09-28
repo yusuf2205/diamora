@@ -1848,4 +1848,34 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get qaPay => 'Выплата';
+
+  @override
+  String get assignCancel => 'Отменить работу';
+
+  @override
+  String get assignCancelReason => 'Причина';
+
+  @override
+  String get assignCancelReturned => 'Материалы вернулись на склад';
+
+  @override
+  String get assignCancelled => 'Работа отменена';
+
+  @override
+  String get assignChangeDue => 'Изменить срок';
+
+  @override
+  String get userDelete => 'Удалить сотрудника';
+
+  @override
+  String userDeleteConfirm(String name) {
+    return '$name будет удалён(а) навсегда.';
+  }
+
+  @override
+  String get userDeleteBlocked =>
+      'Удалить нельзя: за сотрудником есть история (работы, выплаты, склад). Его можно отключить.';
+
+  @override
+  String get userDeleted => 'Сотрудник удалён';
 }

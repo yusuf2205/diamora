@@ -1807,4 +1807,34 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get qaPay => 'To\'lov';
+
+  @override
+  String get assignCancel => 'Ishni bekor qilish';
+
+  @override
+  String get assignCancelReason => 'Sabab';
+
+  @override
+  String get assignCancelReturned => 'Materiallar omborga qaytdi';
+
+  @override
+  String get assignCancelled => 'Ish bekor qilindi';
+
+  @override
+  String get assignChangeDue => 'Muddatni o\'zgartirish';
+
+  @override
+  String get userDelete => 'Xodimni o\'chirish';
+
+  @override
+  String userDeleteConfirm(String name) {
+    return '$name butunlay o\'chiriladi.';
+  }
+
+  @override
+  String get userDeleteBlocked =>
+      'O\'chirib bo\'lmaydi: xodimda tarix bor (ishlar, to\'lovlar, ombor). Uni o\'chirib qo\'yish mumkin.';
+
+  @override
+  String get userDeleted => 'Xodim o\'chirildi';
 }

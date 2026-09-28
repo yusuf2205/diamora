@@ -1,12 +1,12 @@
-import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type {
   AssignmentHandoff, AssignmentStatus, Delivery, QualityResult, StockMovement, WorkAssignment, WorkAssignmentMaterial, WorkAssignmentStatusHistory, WorkProgress,
 } from '@diamoraa/database';
 import {
-  HANDOFF_TTL_MINUTES, acceptanceSchema, completeDeliverySchema, completePickupSchema, createAssignmentSchema, earningFor,
+  HANDOFF_TTL_MINUTES, acceptanceSchema, cancelAssignmentSchema, completeDeliverySchema, completePickupSchema, createAssignmentSchema, earningFor,
   handoffConfirmSchema, handoffProblemSchema, handoffScanSchema, listAssignmentsSchema, metersToCm, parseQrCode,
-  readyForPickupSchema, reportProgressSchema,
+  readyForPickupSchema, reportProgressSchema, updateAssignmentSchema,
 } from '@diamoraa/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -375,7 +375,7 @@ export class AssignmentsService {
       const moves: StockMovement[] = [];
       for (const row of held) {
         const q = row._sum.workerDelta;
-        if (!q || !q.isPositive()) continue;
+        if (!q || !q.gt(0)) continue;
         moves.push(await this.stock.recordMovement(tx, actor, {
           type: 'CONSUMPTION', materialId: row.materialId, quantity: q.toFixed(3), warehouseDelta: '0', workerDelta: `-${q.toFixed(3)}`,
           workerId: a.workerId, assignmentId, groupId, comment: `Задание ${a.code}: работа сдана`,
@@ -439,6 +439,62 @@ export class AssignmentsService {
       const balance = await this.ledger.summary(actor, a.workerId);
       await this.events.publish('worker.balance_updated', { workerId: a.workerId, balance: balance.balance, earned: balance.earned, paid: balance.paid, managerId: a.worker.assignedManagerId });
     }
+    return this.get(actor, assignmentId);
+  }
+
+  // ---- full control over any work (Perm ASSIGNMENT_CREATE; SUPER_ADMIN has it) ------------------------------------------
+  /** «Отменить работу»: never deletes history; stock is put right (back to the shelf, or written off) in the same transaction. */
+  async cancel(actor: AuthUser, assignmentId: string, input: z.output<typeof cancelAssignmentSchema>) {
+    const a = await this.load(assignmentId);
+    assertWorkerInScope(actor, 'ASSIGNMENT', a.worker);
+    const out = await this.prisma.$transaction(async (tx) => {
+      if (!(await lockRow(tx, 'work_assignments', assignmentId))) throw notFound('Assignment');
+      const fresh = await tx.workAssignment.findUniqueOrThrow({ where: { id: assignmentId } });
+      if (!['DRAFT', 'READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP'].includes(fresh.status)) {
+        throw invariant(`Cannot cancel from status ${fresh.status} (accepted work has money attached)`);
+      }
+      const groupId = randomUUID();
+      const moves: StockMovement[] = [];
+      const atWorker = await tx.stockMovement.groupBy({ by: ['materialId'], where: { assignmentId, workerId: a.workerId }, _sum: { workerDelta: true } });
+      for (const m of a.materials) {
+        const q = m.quantity;
+        const held = atWorker.find((x) => x.materialId === m.materialId)?._sum.workerDelta;
+        const withWorker = held && held.gt(0) ? held : null; // decimal.js isPositive() is true for 0
+        const comment = `Задание ${a.code} отменено: ${input.reason}`;
+        if (withWorker) {
+          moves.push(await this.stock.recordMovement(tx, actor, input.materialsReturned
+            ? { type: 'RETURN_FROM_WORKER', materialId: m.materialId, quantity: withWorker.toFixed(3), warehouseDelta: withWorker.toFixed(3), workerDelta: `-${withWorker.toFixed(3)}`, workerId: a.workerId, assignmentId, groupId, comment }
+            : { type: 'WRITE_OFF', materialId: m.materialId, quantity: withWorker.toFixed(3), warehouseDelta: '0', workerDelta: `-${withWorker.toFixed(3)}`, workerId: a.workerId, assignmentId, groupId, comment }));
+        } else if (fresh.status === 'READY_TO_DELIVER' || fresh.status === 'DRAFT') {
+          // still the prepared kit in our hands: back on the shelf (or written off if it is spoiled)
+          if (input.materialsReturned) {
+            moves.push(await this.stock.recordMovement(tx, actor, { type: 'ADJUSTMENT_IN', materialId: m.materialId, quantity: q.toFixed(3), warehouseDelta: q.toFixed(3), assignmentId, groupId, comment }));
+          }
+        }
+      }
+      await tx.delivery.updateMany({ where: { assignmentId, status: 'PENDING' }, data: { status: 'CANCELLED' } });
+      await tx.assignmentHandoff.updateMany({ where: { assignmentId, status: 'AWAITING_WORKER' }, data: { status: 'EXPIRED', resolvedAt: new Date() } });
+      await tx.qrEntity.updateMany({ where: { assignmentId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await this.transition(tx, assignmentId, fresh.status, 'CANCELLED', actor, `Отменено: ${input.reason}`);
+      await tx.workAssignment.update({ where: { id: assignmentId }, data: { status: 'CANCELLED' } });
+      await this.audit.record({ action: 'assignment.cancel', entity: 'WorkAssignment', entityId: assignmentId, before: { status: fresh.status }, after: { status: 'CANCELLED', reason: input.reason, materialsReturned: input.materialsReturned } }, tx);
+      return { moves, from: fresh.status };
+    });
+    for (const m of out.moves) await this.stock.publish(m);
+    await this.events.publish('assignment.status_changed', { assignmentId, workerId: a.workerId, from: out.from, to: 'CANCELLED', managerId: a.worker.assignedManagerId });
+    return this.get(actor, assignmentId);
+  }
+
+  /** «Изменить срок / комментарий». */
+  async update(actor: AuthUser, assignmentId: string, input: z.output<typeof updateAssignmentSchema>) {
+    const a = await this.load(assignmentId);
+    assertWorkerInScope(actor, 'ASSIGNMENT', a.worker);
+    if (['COMPLETED', 'CANCELLED'].includes(a.status)) throw invariant(`Cannot change a ${a.status} assignment`);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.workAssignment.update({ where: { id: assignmentId }, data: { dueAt: input.dueAt, notes: input.notes } });
+      await this.audit.record({ action: 'assignment.update', entity: 'WorkAssignment', entityId: assignmentId, before: { dueAt: a.dueAt?.toISOString() ?? null, notes: a.notes }, after: { dueAt: input.dueAt === undefined ? undefined : input.dueAt?.toISOString() ?? null, notes: input.notes } }, tx);
+    });
+    await this.events.publish('assignment.updated', { assignmentId, workerId: a.workerId, managerId: a.worker.assignedManagerId });
     return this.get(actor, assignmentId);
   }
 
@@ -535,6 +591,16 @@ export class AssignmentsController {
   @Perm('ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED') @Post('admin/assignments/:id/pickup') @HttpCode(200) @ApiZodBody(completePickupSchema)
   pickup(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(completePickupSchema) b: z.output<typeof completePickupSchema>) {
     return this.assignments.completePickup(u, id, b);
+  }
+
+  @Perm('ASSIGNMENT_CREATE') @Post('admin/assignments/:id/cancel') @HttpCode(200) @ApiZodBody(cancelAssignmentSchema)
+  cancel(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(cancelAssignmentSchema) b: z.output<typeof cancelAssignmentSchema>) {
+    return this.assignments.cancel(u, id, b);
+  }
+
+  @Perm('ASSIGNMENT_CREATE') @Patch('admin/assignments/:id') @ApiZodBody(updateAssignmentSchema)
+  update(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(updateAssignmentSchema) b: z.output<typeof updateAssignmentSchema>) {
+    return this.assignments.update(u, id, b);
   }
 
   @Perm('ASSIGNMENT_ACCEPT') @Post('admin/assignments/:id/accept') @HttpCode(200) @ApiZodBody(acceptanceSchema)

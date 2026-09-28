@@ -54,6 +54,7 @@ class _Body extends ConsumerWidget {
     final canRole = (me?.has('ROLE_ASSIGN') ?? false) && !isMe;
     final canPerms = (me?.has('PERMISSION_MANAGE') ?? false) && !isMe && (u.role == 'ADMIN' || u.role == 'MANAGER');
     final canStatus = (me?.has('USER_DEACTIVATE') ?? false) && !isMe;
+    final canDelete = me?.role == 'SUPER_ADMIN' && !isMe && u.role != 'WORKER';
     final canEdit = me?.has('USER_UPDATE') ?? false;
     final canHistory = me?.has('AUDIT_VIEW') ?? false;
     final isSuper = me?.isSuperAdmin ?? false;
@@ -119,6 +120,15 @@ class _Body extends ConsumerWidget {
           if (canHistory) _ActionTile(icon: Icons.history_rounded, title: l.history, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _UserHistoryScreen(user: u)))),
         ]),
       ),
+      if (canDelete) ...[
+        const SizedBox(height: 16),
+        TextButton.icon(
+          style: TextButton.styleFrom(foregroundColor: scheme.error),
+          icon: const Icon(Icons.delete_forever_rounded),
+          onPressed: () => _delete(context, ref, u),
+          label: Text(l.userDelete),
+        ),
+      ],
       if (canStatus) ...[
         const SizedBox(height: 16),
         u.isActive
@@ -174,6 +184,29 @@ class _Body extends ConsumerWidget {
     final ok = await _confirm(context, l.teamConfirmRoleChange(teamRoleLabel(l, u.role), teamRoleLabel(l, picked)), l.changeRoleHint);
     if (!ok || !context.mounted) return;
     await _run(context, ref, u, () => ref.read(teamRepositoryProvider).changeRole(u.id, picked), l.teamRoleChanged);
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, TeamUser u) async {
+    final l = AppLocalizations.of(context);
+    if (!await _confirm(context, l.userDelete, l.userDeleteConfirm(u.fullName), danger: true)) return;
+    try {
+      await ref.read(teamRepositoryProvider).deleteUser(u.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l.userDeleted)));
+      Navigator.of(context).maybePop();
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      if (e.code == 'HAS_HISTORY') {
+        await showDialog<void>(context: context, builder: (ctx) => AlertDialog(
+          title: Text(l.userDelete), content: Text(l.userDeleteBlocked),
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.confirm))],
+        ));
+      } else {
+        showError(context, e);
+      }
+    }
   }
 
   Future<void> _setActive(BuildContext context, WidgetRef ref, TeamUser u, bool active) async {

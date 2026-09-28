@@ -241,6 +241,17 @@ export const listNotificationsSchema = z.object({
 });
 export const markNotificationsReadSchema = z.object({ ids: z.array(idSchema).max(200).optional(), all: z.boolean().optional() });
 
+// ---- control over any work: cancel (materials back to stock or written off), change deadline / comment ----------------
+export const cancelAssignmentSchema = z.object({
+  reason: z.string().trim().min(2).max(500),
+  /** true = the materials physically came back to the warehouse; false = they are used up / lost (written off) */
+  materialsReturned: z.boolean().default(true),
+});
+export const updateAssignmentSchema = z.object({
+  dueAt: z.coerce.date().nullable().optional(),
+  notes: z.string().trim().max(1000).nullable().optional(),
+}).refine((v) => v.dueAt !== undefined || v.notes !== undefined, 'Nothing to change');
+
 // ---- «Заказать работу»: a worker asks for work from the catalog; staff prepares it or declines --------------------------
 export const createJobRequestSchema = z.object({
   productVariantId: idSchema,

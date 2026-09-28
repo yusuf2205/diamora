@@ -33,6 +33,13 @@ class AssignmentAdminRepository {
 
   /// Phase 5 step 1: staff at the worker's door starts the handoff; nothing moves until SHE confirms in her app.
   Future<AssignmentDetail> startHandoff(String id) async => AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/handoff', idempotencyKey: _uuid.v4()));
+  /// «Отменить работу»: materials back to the shelf (returned) or written off.
+  Future<AssignmentDetail> cancel(String id, {required String reason, required bool materialsReturned}) async =>
+      AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/cancel', idempotencyKey: _uuid.v4(), body: {'reason': reason, 'materialsReturned': materialsReturned}));
+
+  Future<AssignmentDetail> setDue(String id, DateTime? due) async =>
+      AssignmentDetail.fromJson(await _api.patchJson('/admin/assignments/$id', body: {'dueAt': due?.toUtc().toIso8601String()}));
+
   Future<AssignmentDetail> pickup(String id) async => AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/pickup', idempotencyKey: _uuid.v4()));
 
   Future<AssignmentDetail> accept(String id, {required String broughtMeters, required String acceptedMeters, String? defectiveMeters, String? reworkMeters, String? comment}) async =>

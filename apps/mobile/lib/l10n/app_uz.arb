@@ -593,5 +593,14 @@
   "qaScan": "QR",
   "qaMap": "Xarita",
   "qaStock": "Ombor",
-  "qaPay": "To'lov"
+  "qaPay": "To'lov",
+  "assignCancel": "Ishni bekor qilish",
+  "assignCancelReason": "Sabab",
+  "assignCancelReturned": "Materiallar omborga qaytdi",
+  "assignCancelled": "Ish bekor qilindi",
+  "assignChangeDue": "Muddatni o'zgartirish",
+  "userDelete": "Xodimni o'chirish",
+  "userDeleteConfirm": "{name} butunlay o'chiriladi.",
+  "userDeleteBlocked": "O'chirib bo'lmaydi: xodimda tarix bor (ishlar, to'lovlar, ombor). Uni o'chirib qo'yish mumkin.",
+  "userDeleted": "Xodim o'chirildi"
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma, User, UserPermission } from '@diamoraa/database';
 import {
@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { PasswordService, SessionAuthService } from '../auth/auth-core';
 import { AuthService } from '../auth/auth.service';
-import { ApiZodBody, CurrentUser, Perm } from '../common/decorators';
-import { conflict, forbidden, invariant, notFound, validationFailed } from '../common/errors';
+import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';
+import { AppError, conflict, forbidden, invariant, notFound, validationFailed } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
@@ -244,6 +244,33 @@ export class UsersService {
   }
   /** Serialises everything that can change the set of active super admins. */
   private lockSuperAdmins(tx: Tx) { return tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('diamoraa:super_admins'))`; }
+  /** «Удалить сотрудника» (SUPER_ADMIN): only an account nothing in the books points to; otherwise «Деактивировать». */
+  async remove(actor: AuthUser, id: string) {
+    if (id === actor.id) throw forbidden('You cannot delete yourself');
+    const u = await this.load(this.prisma, id);
+    if (u.role === 'WORKER') throw invariant('Workers are deleted from «Мастерицы»');
+    const refs = await Promise.all([
+      this.prisma.workAssignment.count({ where: { createdById: id } }), this.prisma.stockMovement.count({ where: { performedById: id } }),
+      this.prisma.delivery.count({ where: { OR: [{ createdById: id }, { completedById: id }] } }), this.prisma.qualityInspection.count({ where: { inspectorId: id } }),
+      this.prisma.workerLedgerTransaction.count({ where: { createdById: id } }), this.prisma.cashPayment.count({ where: { paidById: id } }),
+      this.prisma.assignmentHandoff.count({ where: { staffUserId: id } }), this.prisma.workerJobRequest.count({ where: { decidedById: id } }),
+      this.prisma.workerProfile.count({ where: { approvedById: id } }),
+    ]);
+    if (refs.some((n) => n > 0)) throw new AppError('HAS_HISTORY', 'This person has history; deactivate instead', 409);
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockSuperAdmins(tx);
+      await this.assertNotLastSuperAdmin(tx, u);
+      await tx.workerProfile.updateMany({ where: { assignedManagerId: id }, data: { assignedManagerId: null } });
+      await tx.userSession.deleteMany({ where: { userId: id } });
+      await tx.idempotencyKey.deleteMany({ where: { userId: id } });
+      await tx.notification.deleteMany({ where: { userId: id } });
+      await tx.user.delete({ where: { id } });
+      await this.audit.record({ action: 'user.delete', entity: 'User', entityId: id, before: { fullName: u.fullName, phone: u.phone, role: u.role } }, tx);
+    });
+    await this.events.publish('user.updated', { userId: id });
+    return { ok: true };
+  }
+
   private async assertNotLastSuperAdmin(tx: Tx, target: User) {
     if (target.role !== 'SUPER_ADMIN' || target.status !== 'ACTIVE') return;
     const others = await tx.user.count({ where: { role: 'SUPER_ADMIN', status: 'ACTIVE', id: { not: target.id } } });
@@ -286,6 +313,9 @@ export class UsersController {
 
   @Perm('USER_UPDATE') @Patch('users/:id') @ApiZodBody(updateUserSchema)
   update(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(updateUserSchema) b: z.output<typeof updateUserSchema>) { return this.users.update(u, id, b); }
+
+  @Roles('SUPER_ADMIN') @Delete('users/:id') @HttpCode(200)
+  remove(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.users.remove(u, id); }
 
   @Perm('USER_DEACTIVATE') @Post('users/:id/status') @HttpCode(200) @ApiZodBody(setUserStatusSchema)
   status(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(setUserStatusSchema) b: z.output<typeof setUserStatusSchema>) { return this.users.setStatus(u, id, b); }

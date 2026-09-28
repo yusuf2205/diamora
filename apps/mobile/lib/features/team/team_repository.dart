@@ -44,6 +44,9 @@ class TeamRepository {
   Future<Map<String, Object?>> createUser({required String phone, required String fullName, required String role, required String password}) =>
       _api.postJson('/users', idempotencyKey: _uuid.v4(), body: {'phone': phone, 'fullName': fullName, 'role': role, 'password': password});
 
+  /// «Удалить сотрудника» (SUPER_ADMIN): refused with HAS_HISTORY when the books point to them.
+  Future<void> deleteUser(String userId) => _api.deleteJson('/users/$userId');
+
   Future<void> setStatus(String userId, bool active) => _api.postJson('/users/$userId/status', idempotencyKey: _uuid.v4(), body: {'status': active ? 'ACTIVE' : 'SUSPENDED'});
 
   Future<TeamUser> updateUser(String userId, {required String fullName, required String phone}) async =>
