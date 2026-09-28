@@ -1,6 +1,6 @@
 import { Controller, Get, Injectable, Module, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Material, StockMovement, StockMovementType } from '@yusmus/database';
+import { Prisma, type Material, type StockMovement, type StockMovementType } from '@yusmus/database';
 import { listStockMovementsSchema, stockAdjustSchema, stockReceiptSchema, stockWriteOffSchema } from '@yusmus/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -105,6 +105,14 @@ export class StockService {
       },
     });
     await tx.stockBalance.update({ where: { materialId: input.materialId }, data: { quantity: next } });
+    if (input.workerId && input.workerDelta && Number(input.workerDelta) !== 0) {
+      // materials at the worker's home: same row-lock + non-negative rule as the warehouse (belt; the CHECK is the suspenders)
+      await tx.$executeRaw`INSERT INTO worker_material_balances ("workerId", "materialId", quantity, "updatedAt") VALUES (${input.workerId}::uuid, ${input.materialId}::uuid, 0, now()) ON CONFLICT DO NOTHING`;
+      const [held] = await tx.$queryRaw<{ quantity: string }[]>`SELECT quantity::text FROM worker_material_balances WHERE "workerId" = ${input.workerId}::uuid AND "materialId" = ${input.materialId}::uuid FOR UPDATE`;
+      const nextHeld = new Prisma.Decimal(held.quantity).plus(input.workerDelta);
+      if (nextHeld.isNegative()) throw insufficientStock(`The worker holds only ${held.quantity}`, { materialId: input.materialId, available: held.quantity });
+      await tx.workerMaterialBalance.update({ where: { workerId_materialId: { workerId: input.workerId, materialId: input.materialId } }, data: { quantity: nextHeld } });
+    }
     await this.audit.record({ action: 'stock.movement', entity: 'Material', entityId: input.materialId, after: { type: input.type, quantity: input.quantity, warehouseDelta: input.warehouseDelta } }, tx);
     return movement;
   }

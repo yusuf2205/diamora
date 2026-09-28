@@ -1,17 +1,18 @@
 import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type {
-  AssignmentStatus, Delivery, QualityResult, StockMovement, WorkAssignment, WorkAssignmentMaterial, WorkAssignmentStatusHistory, WorkProgress,
+  AssignmentHandoff, AssignmentStatus, Delivery, QualityResult, StockMovement, WorkAssignment, WorkAssignmentMaterial, WorkAssignmentStatusHistory, WorkProgress,
 } from '@yusmus/database';
 import {
-  acceptanceSchema, completeDeliverySchema, completePickupSchema, createAssignmentSchema, listAssignmentsSchema,
-  metersToCm, readyForPickupSchema, reportProgressSchema,
+  HANDOFF_TTL_MINUTES, acceptanceSchema, completeDeliverySchema, completePickupSchema, createAssignmentSchema, earningFor,
+  handoffConfirmSchema, handoffProblemSchema, handoffScanSchema, listAssignmentsSchema, metersToCm, parseQrCode,
+  readyForPickupSchema, reportProgressSchema,
 } from '@yusmus/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';
-import { forbidden, invariant, notFound } from '../common/errors';
+import { AppError, forbidden, invariant, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { assertWorkerInScope, workerScope } from '../common/scope';
 import { generateQrCode, lockRow, nextCode, type Tx } from '../common/sequence';
@@ -20,6 +21,7 @@ import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { LedgerModule, LedgerService } from '../ledger/ledger.service';
 import { PrismaService } from '../prisma/prisma.module';
+import { PayRateModule, PayRateService } from '../settings/pay-rate.service';
 import { StockModule, StockService } from '../stock/stock.service';
 
 type AssignmentFull = WorkAssignment & {
@@ -32,7 +34,12 @@ type AssignmentFull = WorkAssignment & {
   productVariant: { id: string; label: string | null };
   color: { id: string; name: string; hex: string | null };
   qrEntities: { code: string }[];
+  handoffs: (AssignmentHandoff & { staffUser: { id: string; fullName: string; role: string } })[];
 };
+
+const foreignKit = () => new AppError('FOREIGN_KIT', 'This kit is meant for another worker', 403);
+const handoffNotStarted = () => new AppError('HANDOFF_NOT_STARTED', 'Staff has not started the handoff yet', 409);
+const handoffExpired = () => new AppError('HANDOFF_EXPIRED', 'The handoff has expired, staff must scan again', 409);
 
 /**
  * M3: the full work-order lifecycle (§5-14). WorkAssignment/Delivery/WorkProgress/QualityInspection/QrEntity.ASSIGNMENT
@@ -44,7 +51,7 @@ type AssignmentFull = WorkAssignment & {
 export class AssignmentsService {
   constructor(
     private readonly prisma: PrismaService, private readonly stock: StockService, private readonly audit: AuditService,
-    private readonly events: EventBus, private readonly ledger: LedgerService,
+    private readonly events: EventBus, private readonly ledger: LedgerService, private readonly payRate: PayRateService,
   ) {}
 
   // ---- create (§6): one atomic transaction — validate, deduct stock, snapshot materials, QR, delivery, or full rollback ----
@@ -80,8 +87,9 @@ export class AssignmentsService {
       for (const item of kit.items) {
         const needed = item.requiredQuantity.times(input.kitCount).toFixed(3);
         movements.push(await this.stock.recordMovement(tx, actor, {
-          type: 'ISSUE_TO_WORKER', materialId: item.materialId, quantity: needed, warehouseDelta: `-${needed}`,
-          workerId: worker.id, assignmentId: assignment.id, groupId, comment: `Задание ${code}`,
+          // prepared = taken off the shelf into this work's kit; custody moves to the worker only when SHE confirms (Phase 5)
+          type: 'ISSUE_TO_KIT', materialId: item.materialId, quantity: needed, warehouseDelta: `-${needed}`,
+          workerId: worker.id, assignmentId: assignment.id, groupId, comment: `Задание ${code}: подготовлено`,
         }));
         await tx.workAssignmentMaterial.create({ data: { assignmentId: assignment.id, materialId: item.materialId, quantity: needed } });
       }
@@ -89,7 +97,7 @@ export class AssignmentsService {
       const qrCode = generateQrCode();
       await tx.qrEntity.create({ data: { code: qrCode, type: 'ASSIGNMENT', assignmentId: assignment.id, workerId: worker.id } });
 
-      await this.transition(tx, assignment.id, null, 'READY_TO_DELIVER', actor, 'Задание создано, материалы выданы со склада');
+      await this.transition(tx, assignment.id, null, 'READY_TO_DELIVER', actor, 'Работа подготовлена, ожидает получения мастерицей');
       await tx.workAssignment.update({ where: { id: assignment.id }, data: { status: 'READY_TO_DELIVER' } });
 
       const deliveryCode = await nextCode(tx, 'delivery_code', 'D-', 5);
@@ -124,13 +132,14 @@ export class AssignmentsService {
       orderBy: { createdAt: 'desc' }, take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
     const items = rows.slice(0, q.limit);
-    return { items: items.map((a) => this.dto(a)), nextCursor: rows.length > q.limit ? items[items.length - 1].id : null };
+    const rate = await this.rate();
+    return { items: items.map((a) => this.dto(a, rate)), nextCursor: rows.length > q.limit ? items[items.length - 1].id : null };
   }
 
   async get(actor: AuthUser, id: string) {
     const a = await this.load(id);
     assertWorkerInScope(actor, 'ASSIGNMENT', a.worker);
-    return this.dto(a);
+    return this.dto(a, await this.rate());
   }
 
   /** The worker's own current (not-yet-completed) work, for her home screen (§8). `{}` (never `null`) when idle: the
@@ -140,27 +149,154 @@ export class AssignmentsService {
       where: { workerId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
       include: this.includeFull(), orderBy: { createdAt: 'desc' },
     });
-    return a ? this.dto(a) : {};
+    return a ? this.dto(a, await this.rate()) : {};
   }
 
-  // ---- delivery (§9): staff marks "Доставлено" -> DELIVERED then straight to IN_PROGRESS -------------------------------
-  async completeDelivery(actor: AuthUser, assignmentId: string, _input: z.output<typeof completeDeliverySchema>) {
+  // ---- two-sided QR handoff (Phase 5) ------------------------------------------------------------------------------------
+  // 1) staff scans the assignment QR at the worker's door and taps «Начать передачу» -> AWAITING_WORKER (nothing moves yet)
+  // 2) the worker scans the SAME QR in her app -> sees exactly what she gets
+  // 3) she taps «Подтвердить получение» -> ONE transaction: custody to her, delivery closed, IN_PROGRESS
+  //    or «Есть проблема» -> PROBLEM, nothing moves, staff is told in realtime and may scan again.
+  // `POST /admin/assignments/:id/deliver` (old apps) is an alias of step 1: it can no longer finish a delivery on its own.
+  async startHandoff(actor: AuthUser, assignmentId: string, _input?: z.output<typeof completeDeliverySchema>) {
     const a = await this.load(assignmentId);
     assertWorkerInScope(actor, 'ASSIGNMENT', a.worker);
-    if (a.status !== 'READY_TO_DELIVER') throw invariant(`Cannot deliver from status ${a.status}`);
-    const delivery = a.deliveries.find((d) => d.type === 'DELIVERY_TO_WORKER' && d.status === 'PENDING');
-    if (!delivery) throw notFound('Pending delivery');
+    const qr = await this.prisma.qrEntity.findFirst({ where: { assignmentId, type: 'ASSIGNMENT', revokedAt: null }, orderBy: { createdAt: 'desc' } });
+    if (!qr) throw notFound('QR code');
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.delivery.update({ where: { id: delivery.id }, data: { status: 'COMPLETED', completedAt: new Date(), completedById: actor.id } });
-      await this.transition(tx, assignmentId, 'READY_TO_DELIVER', 'DELIVERED', actor, 'Материалы доставлены мастерице');
-      await this.transition(tx, assignmentId, 'DELIVERED', 'IN_PROGRESS', actor, 'Работа начата');
-      await tx.workAssignment.update({ where: { id: assignmentId }, data: { status: 'IN_PROGRESS' } });
-      await this.audit.record({ action: 'delivery.complete', entity: 'Delivery', entityId: delivery.id, after: { assignmentId } }, tx);
+    const { handoff, created } = await this.prisma.$transaction(async (tx) => {
+      if (!(await lockRow(tx, 'work_assignments', assignmentId))) throw notFound('Assignment');
+      const fresh = await tx.workAssignment.findUniqueOrThrow({ where: { id: assignmentId } });
+      if (fresh.status !== 'READY_TO_DELIVER') throw invariant(`Cannot hand over from status ${fresh.status}`);
+      const worker = await tx.workerProfile.findUniqueOrThrow({ where: { id: fresh.workerId } });
+      if (worker.status !== 'ACTIVE') throw invariant('Worker is not active');
+      const open = await tx.assignmentHandoff.findFirst({ where: { assignmentId, status: 'AWAITING_WORKER' } });
+      if (open && open.expiresAt > new Date()) return { handoff: open, created: false }; // a repeated scan is the same handoff
+      if (open) await tx.assignmentHandoff.update({ where: { id: open.id }, data: { status: 'EXPIRED', resolvedAt: new Date() } });
+      const h = await tx.assignmentHandoff.create({
+        data: {
+          assignmentId, workerId: fresh.workerId, staffUserId: actor.id, qrEntityId: qr.id, kitCount: fresh.kitCount, meters: fresh.plannedMeters,
+          expiresAt: new Date(Date.now() + HANDOFF_TTL_MINUTES * 60_000),
+        },
+      });
+      await this.audit.record({ action: 'handoff.started', entity: 'WorkAssignment', entityId: assignmentId, after: { handoffId: h.id, staffUserId: actor.id, qrEntityId: qr.id } }, tx);
+      return { handoff: h, created: true };
     });
-    await this.events.publish('delivery.completed', { deliveryId: delivery.id, workerId: a.workerId, type: 'DELIVERY_TO_WORKER', assignmentId, managerId: a.worker.assignedManagerId });
-    await this.events.publish('assignment.status_changed', { assignmentId, workerId: a.workerId, from: 'READY_TO_DELIVER', to: 'IN_PROGRESS', managerId: a.worker.assignedManagerId });
+    if (created) {
+      await this.events.publish('handoff.started', { handoffId: handoff.id, assignmentId, workerId: a.workerId, staffUserId: actor.id, managerId: a.worker.assignedManagerId });
+    }
     return this.get(actor, assignmentId);
+  }
+
+  /** Worker scanned a QR with her own app. Returns the receipt to review - never data about a foreign worker's kit. */
+  async scanHandoff(workerId: string, input: z.output<typeof handoffScanSchema>) {
+    const code = parseQrCode(input.code);
+    if (!code) throw notFound('QR code');
+    const qr = await this.prisma.qrEntity.findUnique({ where: { code } });
+    if (!qr || qr.revokedAt || qr.type !== 'ASSIGNMENT' || !qr.assignmentId) throw notFound('QR code');
+    if (qr.workerId !== workerId) throw foreignKit();
+    const worker = await this.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
+    if (worker.status !== 'ACTIVE') throw forbidden('Worker is not active');
+
+    const a = await this.load(qr.assignmentId);
+    if (a.workerId !== workerId) throw foreignKit();
+    if (a.status === 'CANCELLED') throw invariant('This work was cancelled');
+    const confirmed = a.handoffs.find((h) => h.status === 'CONFIRMED');
+    if (confirmed) return { handoffId: confirmed.id, state: 'CONFIRMED' as const, assignment: this.dto(a, await this.rate()) };
+    if (a.status !== 'READY_TO_DELIVER') throw invariant(`Cannot receive from status ${a.status}`);
+    const open = a.handoffs.find((h) => h.status === 'AWAITING_WORKER');
+    if (!open) throw handoffNotStarted();
+    if (open.expiresAt <= new Date()) throw handoffExpired();
+
+    if (!open.workerScannedAt) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.assignmentHandoff.update({ where: { id: open.id }, data: { workerScannedAt: new Date() } });
+        await this.audit.record({ action: 'handoff.worker_scanned', entity: 'WorkAssignment', entityId: a.id, after: { handoffId: open.id } }, tx);
+      });
+      await this.events.publish('handoff.scanned', { handoffId: open.id, assignmentId: a.id, workerId, staffUserId: open.staffUserId, managerId: a.worker.assignedManagerId });
+    }
+    return { handoffId: open.id, state: 'AWAITING_WORKER' as const, assignment: await this.getOwn(workerId, a.id) };
+  }
+
+  /** «Подтвердить получение»: the ONLY place where material custody moves to the worker. Replay / double-tap safe. */
+  async confirmHandoff(workerActor: AuthUser, handoffId: string, input: z.output<typeof handoffConfirmSchema>) {
+    const workerId = workerActor.workerId;
+    if (!workerId) throw forbidden();
+    const h0 = await this.prisma.assignmentHandoff.findUnique({ where: { id: handoffId } });
+    if (!h0 || h0.workerId !== workerId) throw notFound('Handoff');
+
+    const out = await this.prisma.$transaction(async (tx) => {
+      // the assignment row lock serialises concurrent confirms: the second one waits, then sees CONFIRMED and replays
+      if (!(await lockRow(tx, 'work_assignments', h0.assignmentId))) throw notFound('Assignment');
+      const h = await tx.assignmentHandoff.findUniqueOrThrow({ where: { id: handoffId } });
+      if (h.status === 'CONFIRMED') return { replay: true, movements: [] as StockMovement[], deliveryId: null as string | null };
+      if (h.status !== 'AWAITING_WORKER') throw invariant(`Handoff is ${h.status}`);
+      if (h.expiresAt <= new Date()) throw handoffExpired();
+      const a = await tx.workAssignment.findUniqueOrThrow({ where: { id: h.assignmentId }, include: { materials: { include: { material: true } }, deliveries: true } });
+      if (a.workerId !== workerId) throw notFound('Handoff');
+      if (a.status !== 'READY_TO_DELIVER') throw invariant(`Cannot receive from status ${a.status}`);
+      const worker = await tx.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
+      if (worker.status !== 'ACTIVE') throw forbidden('Worker is not active');
+      const qr = await tx.qrEntity.findUnique({ where: { id: h.qrEntityId } });
+      if (!qr || qr.revokedAt) throw notFound('QR code');
+
+      const groupId = randomUUID();
+      const movements: StockMovement[] = [];
+      for (const m of a.materials) {
+        const q = m.quantity.toFixed(3);
+        movements.push(await this.stock.recordMovement(tx, workerActor, {
+          type: 'ISSUE_TO_WORKER', materialId: m.materialId, quantity: q, warehouseDelta: '0', workerDelta: q,
+          workerId, assignmentId: a.id, groupId, comment: `Задание ${a.code}: мастерица подтвердила получение`,
+        }));
+      }
+      const now = new Date();
+      const snapshot = a.materials.map((m) => ({ materialId: m.materialId, name: m.material.name, unit: m.material.unit, quantity: m.quantity.toString() }));
+      await tx.assignmentHandoff.update({
+        where: { id: h.id },
+        data: {
+          status: 'CONFIRMED', workerScannedAt: h.workerScannedAt ?? now, workerAcceptedAt: now, resolvedAt: now, materialSnapshot: snapshot,
+          latitude: input.latitude, longitude: input.longitude, accuracyM: input.accuracyM,
+        },
+      });
+      const delivery = a.deliveries.find((d) => d.type === 'DELIVERY_TO_WORKER' && d.status === 'PENDING');
+      if (delivery) await tx.delivery.update({ where: { id: delivery.id }, data: { status: 'COMPLETED', completedAt: now, completedById: h.staffUserId } });
+      await this.transition(tx, a.id, 'READY_TO_DELIVER', 'DELIVERED', workerActor, 'Мастерица подтвердила получение');
+      await this.transition(tx, a.id, 'DELIVERED', 'IN_PROGRESS', workerActor, 'Работа начата');
+      await tx.workAssignment.update({ where: { id: a.id }, data: { status: 'IN_PROGRESS', issuedAt: now } });
+      await this.audit.record({
+        action: 'handoff.confirmed', entity: 'WorkAssignment', entityId: a.id,
+        after: { handoffId: h.id, staffUserId: h.staffUserId, kitCount: a.kitCount, meters: a.plannedMeters.toString(), materials: snapshot, hasLocation: input.latitude != null },
+      }, tx);
+      return { replay: false, movements, deliveryId: delivery?.id ?? null };
+    });
+
+    const a = await this.load(h0.assignmentId);
+    if (!out.replay) {
+      for (const m of out.movements) await this.stock.publish(m);
+      const managerId = a.worker.assignedManagerId;
+      await this.events.publish('handoff.confirmed', { handoffId, assignmentId: a.id, workerId, staffUserId: h0.staffUserId, managerId });
+      if (out.deliveryId) await this.events.publish('delivery.completed', { deliveryId: out.deliveryId, workerId, type: 'DELIVERY_TO_WORKER', assignmentId: a.id, managerId });
+      await this.events.publish('assignment.status_changed', { assignmentId: a.id, workerId, from: 'READY_TO_DELIVER', to: 'IN_PROGRESS', managerId });
+    }
+    return this.dto(a, await this.rate());
+  }
+
+  /** «Есть проблема»: nothing moves, the work stays waiting, staff sees why in realtime and can scan again. */
+  async reportHandoffProblem(workerId: string, handoffId: string, input: z.output<typeof handoffProblemSchema>) {
+    const h0 = await this.prisma.assignmentHandoff.findUnique({ where: { id: handoffId } });
+    if (!h0 || h0.workerId !== workerId) throw notFound('Handoff');
+    await this.prisma.$transaction(async (tx) => {
+      if (!(await lockRow(tx, 'work_assignments', h0.assignmentId))) throw notFound('Assignment');
+      const h = await tx.assignmentHandoff.findUniqueOrThrow({ where: { id: handoffId } });
+      if (h.status !== 'AWAITING_WORKER') throw invariant(`Handoff is ${h.status}`);
+      await tx.assignmentHandoff.update({
+        where: { id: h.id }, data: { status: 'PROBLEM', problemReason: input.reason, problemComment: input.comment, workerScannedAt: h.workerScannedAt ?? new Date(), resolvedAt: new Date() },
+      });
+      await this.audit.record({ action: 'handoff.problem', entity: 'WorkAssignment', entityId: h.assignmentId, after: { handoffId: h.id, reason: input.reason, comment: input.comment ?? null } }, tx);
+    });
+    const a = await this.load(h0.assignmentId);
+    await this.events.publish('handoff.problem', { handoffId, assignmentId: a.id, workerId, staffUserId: h0.staffUserId, reason: input.reason, managerId: a.worker.assignedManagerId });
+    return this.dto(a, await this.rate());
   }
 
   // ---- worker progress (§10, §27): 0 <= reportedMeters <= plannedMeters, immutable history, idempotent by clientId -----
@@ -218,13 +354,27 @@ export class AssignmentsService {
     const delivery = a.deliveries.find((d) => d.type === 'PICKUP_FROM_WORKER' && d.status === 'PENDING');
     if (!delivery) throw notFound('Pending pickup');
 
-    await this.prisma.$transaction(async (tx) => {
+    const consumed = await this.prisma.$transaction(async (tx) => {
       await tx.delivery.update({ where: { id: delivery.id }, data: { status: 'COMPLETED', completedAt: new Date(), completedById: actor.id } });
       await tx.workAssignment.update({ where: { id: assignmentId }, data: { status: 'UNDER_REVIEW', deliveredMeters: a.reportedMeters } });
+      // custody: the materials she held for THIS work turned into the finished work she handed back
+      const held = await tx.stockMovement.groupBy({ by: ['materialId'], where: { assignmentId, workerId: a.workerId }, _sum: { workerDelta: true } });
+      const groupId = randomUUID();
+      const moves: StockMovement[] = [];
+      for (const row of held) {
+        const q = row._sum.workerDelta;
+        if (!q || !q.isPositive()) continue;
+        moves.push(await this.stock.recordMovement(tx, actor, {
+          type: 'CONSUMPTION', materialId: row.materialId, quantity: q.toFixed(3), warehouseDelta: '0', workerDelta: `-${q.toFixed(3)}`,
+          workerId: a.workerId, assignmentId, groupId, comment: `Задание ${a.code}: работа сдана`,
+        }));
+      }
       await this.transition(tx, assignmentId, 'READY_FOR_PICKUP', 'PICKED_UP', actor, 'Забрано у мастерицы');
       await this.transition(tx, assignmentId, 'PICKED_UP', 'UNDER_REVIEW', actor, 'Ожидает приёмки');
       await this.audit.record({ action: 'delivery.pickup', entity: 'Delivery', entityId: delivery.id, after: { assignmentId, handledBy: actor.id } }, tx);
+      return moves;
     });
+    for (const m of consumed) await this.stock.publish(m);
     await this.events.publish('delivery.completed', { deliveryId: delivery.id, workerId: a.workerId, type: 'PICKUP_FROM_WORKER', assignmentId, managerId: a.worker.assignedManagerId });
     await this.events.publish('assignment.status_changed', { assignmentId, workerId: a.workerId, from: 'READY_FOR_PICKUP', to: 'UNDER_REVIEW', managerId: a.worker.assignedManagerId });
     return this.get(actor, assignmentId);
@@ -295,26 +445,46 @@ export class AssignmentsService {
       worker: { select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true } },
       productModel: { select: { id: true, name: true } }, productVariant: { select: { id: true, label: true } }, color: { select: { id: true, name: true, hex: true } },
       qrEntities: { where: { type: 'ASSIGNMENT' as const, revokedAt: null }, orderBy: { createdAt: 'desc' as const }, take: 1, select: { code: true } },
+      handoffs: { orderBy: { startedAt: 'desc' as const }, take: 10, include: { staffUser: { select: { id: true, fullName: true, role: true } } } },
     };
   }
   /** A worker reading her OWN assignment: no staff permission/scope check applies, self-ownership was already verified. */
   private async getOwn(workerId: string, id: string) {
     const a = await this.load(id);
     if (a.workerId !== workerId) throw notFound('Assignment');
-    return this.dto(a);
+    return this.dto(a, await this.rate());
   }
+  private async rate() { return (await this.payRate.current()).ratePerKit; }
   private async load(id: string): Promise<AssignmentFull> {
     const a = await this.prisma.workAssignment.findUnique({ where: { id }, include: this.includeFull() });
     if (!a) throw notFound('Assignment');
     return a as AssignmentFull;
   }
-  private dto(a: AssignmentFull) {
+  private dto(a: AssignmentFull, ratePerKit: bigint) {
+    const h = a.handoffs[0];
     return {
       id: a.id, code: a.code, status: a.status, kitCount: a.kitCount, plannedMeters: num(a.plannedMeters),
       reportedMeters: num(a.reportedMeters), deliveredMeters: num(a.deliveredMeters), acceptedMeters: num(a.acceptedMeters),
       defectiveMeters: num(a.defectiveMeters), calculatedPayment: money(a.calculatedPayment), settledRatePerKit: money(a.settledRatePerKit),
       dueAt: a.dueAt?.toISOString() ?? null, notes: a.notes, issuedAt: a.issuedAt?.toISOString() ?? null,
       qrCode: a.qrEntities[0]?.code ?? null,
+      /** what she will earn if everything is accepted: the settled amount once accepted, else the CURRENT global rate (D-027) */
+      expectedPayment: a.settledRatePerKit != null ? money(a.calculatedPayment) : money(earningFor(ratePerKit, metersToCm(a.plannedMeters.toString()))),
+      /** the latest QR handoff (Phase 5); null until staff scans */
+      handoff: h ? {
+        id: h.id, status: h.status, startedAt: h.startedAt.toISOString(), expiresAt: h.expiresAt.toISOString(),
+        expired: h.status === 'AWAITING_WORKER' && h.expiresAt <= new Date(),
+        staff: h.staffUser, workerScannedAt: h.workerScannedAt?.toISOString() ?? null, workerAcceptedAt: h.workerAcceptedAt?.toISOString() ?? null,
+        problemReason: h.problemReason, problemComment: h.problemComment, materialSnapshot: h.materialSnapshot ?? null,
+        hasLocation: h.latitude != null,
+      } : null,
+      /** human timeline of the handoff, oldest first; clients translate `kind` */
+      handoffTimeline: [...a.handoffs].reverse().flatMap((x) => [
+        { kind: 'HANDOFF_STARTED', at: x.startedAt.toISOString(), by: x.staffUser.fullName },
+        ...(x.workerScannedAt ? [{ kind: 'WORKER_SCANNED', at: x.workerScannedAt.toISOString(), by: a.worker.fullName }] : []),
+        ...(x.status === 'CONFIRMED' && x.workerAcceptedAt ? [{ kind: 'WORKER_CONFIRMED', at: x.workerAcceptedAt.toISOString(), by: a.worker.fullName }] : []),
+        ...(x.status === 'PROBLEM' && x.resolvedAt ? [{ kind: 'WORKER_PROBLEM', at: x.resolvedAt.toISOString(), by: a.worker.fullName, reason: x.problemReason }] : []),
+      ]),
       worker: a.worker, product: a.productModel, variant: a.productVariant, color: a.color,
       materials: a.materials.map((m) => ({ materialId: m.materialId, quantity: num(m.quantity), name: m.material?.name ?? null, unit: m.material?.unit ?? null })),
       statusHistory: a.statusHistory.map((h) => ({ from: h.fromStatus, to: h.toStatus, actor: h.actor, comment: h.comment, changedAt: h.changedAt.toISOString() })),
@@ -342,7 +512,12 @@ export class AssignmentsController {
 
   @Perm('ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED') @Post('admin/assignments/:id/deliver') @HttpCode(200) @ApiZodBody(completeDeliverySchema)
   deliver(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(completeDeliverySchema) b: z.output<typeof completeDeliverySchema>) {
-    return this.assignments.completeDelivery(u, id, b);
+    return this.assignments.startHandoff(u, id, b); // old apps: «Доставлено» now only STARTS the two-sided handoff
+  }
+
+  @Perm('ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED') @Post('admin/assignments/:id/handoff') @HttpCode(200)
+  handoff(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.assignments.startHandoff(u, id);
   }
 
   @Perm('ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED') @Post('admin/assignments/:id/pickup') @HttpCode(200) @ApiZodBody(completePickupSchema)
@@ -362,6 +537,24 @@ export class AssignmentsController {
     return this.assignments.currentForWorker(u.workerId);
   }
 
+  @Roles('WORKER') @Post('work/handoff/scan') @HttpCode(200) @ApiZodBody(handoffScanSchema)
+  handoffScan(@CurrentUser() u: AuthUser, @ZodBody(handoffScanSchema) b: z.output<typeof handoffScanSchema>) {
+    if (!u.workerId) throw forbidden();
+    return this.assignments.scanHandoff(u.workerId, b);
+  }
+
+  @Roles('WORKER') @Post('work/handoff/:id/confirm') @HttpCode(200) @ApiZodBody(handoffConfirmSchema)
+  handoffConfirm(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(handoffConfirmSchema) b: z.output<typeof handoffConfirmSchema>) {
+    if (!u.workerId) throw forbidden();
+    return this.assignments.confirmHandoff(u, id, b);
+  }
+
+  @Roles('WORKER') @Post('work/handoff/:id/problem') @HttpCode(200) @ApiZodBody(handoffProblemSchema)
+  handoffProblem(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(handoffProblemSchema) b: z.output<typeof handoffProblemSchema>) {
+    if (!u.workerId) throw forbidden();
+    return this.assignments.reportHandoffProblem(u.workerId, id, b);
+  }
+
   @Roles('WORKER') @Post('work/:id/progress') @HttpCode(200) @ApiZodBody(reportProgressSchema)
   progress(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(reportProgressSchema) b: z.output<typeof reportProgressSchema>) {
     if (!u.workerId) throw forbidden();
@@ -375,5 +568,5 @@ export class AssignmentsController {
   }
 }
 
-@Module({ imports: [StockModule, LedgerModule], controllers: [AssignmentsController], providers: [AssignmentsService], exports: [AssignmentsService] })
+@Module({ imports: [StockModule, LedgerModule, PayRateModule], controllers: [AssignmentsController], providers: [AssignmentsService], exports: [AssignmentsService] })
 export class AssignmentsModule {}

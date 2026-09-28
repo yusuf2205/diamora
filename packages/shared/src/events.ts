@@ -45,6 +45,11 @@ export interface EventMap {
   'delivery.created': { deliveryId: string; workerId: string; type: string; assignmentId: string | null } & WithManager;
   'delivery.completed': { deliveryId: string; workerId: string; type: string; assignmentId: string | null } & WithManager;
   'quality.completed': { assignmentId: string; workerId: string; result: string; acceptedMeters: number } & WithManager;
+  /** two-sided QR handoff (Phase 5): staff started -> worker scanned -> worker confirmed (custody moved) | worker reported a problem */
+  'handoff.started': { handoffId: string; assignmentId: string; workerId: string; staffUserId: string } & WithManager;
+  'handoff.scanned': { handoffId: string; assignmentId: string; workerId: string; staffUserId: string } & WithManager;
+  'handoff.confirmed': { handoffId: string; assignmentId: string; workerId: string; staffUserId: string } & WithManager;
+  'handoff.problem': { handoffId: string; assignmentId: string; workerId: string; staffUserId: string; reason: string } & WithManager;
   // money
   /** The global price of a 9 m kit changed: everybody's screens must refresh (D-027). */
   'pay_rate.changed': { ratePerKit: string; previousRatePerKit: string | null; changedAt: string };
@@ -117,6 +122,10 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'delivery.created': w('ASSIGNMENT'),
   'delivery.completed': w('ASSIGNMENT'),
   'quality.completed': w('ASSIGNMENT'),
+  'handoff.started': w('ASSIGNMENT'),
+  'handoff.scanned': w('ASSIGNMENT'),
+  'handoff.confirmed': w('ASSIGNMENT'),
+  'handoff.problem': w('ASSIGNMENT'),
   'pay_rate.changed': { staff: true, allWorkers: true },
   'earning.created': w('FINANCE'),
   'cash_payment.created': w('FINANCE'),

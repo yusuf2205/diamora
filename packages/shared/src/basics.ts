@@ -146,6 +146,11 @@ export const ERROR_CODES = [
   'INVARIANT_VIOLATION',
   'INSUFFICIENT_STOCK',
   'INSUFFICIENT_BALANCE',
+  /** a worker scanned a kit QR meant for another worker - no data about it is returned */
+  'FOREIGN_KIT',
+  /** the worker scanned before the staff member started the handoff */
+  'HANDOFF_NOT_STARTED',
+  'HANDOFF_EXPIRED',
   'IDEMPOTENCY_CONFLICT',
   'RATE_LIMITED',
   'FILE_REJECTED',
@@ -169,6 +174,12 @@ export function locationFreshness(ageSeconds: number): LocationFreshness {
   if (ageSeconds < LOCATION_RECENT_SECONDS) return 'RECENT';
   return 'STALE';
 }
+
+// ---- two-sided QR handoff (Phase 5) ---------------------------------------------------------------------------------
+/** A handoff started by staff waits this long for the worker's confirmation; after that staff simply scans again. */
+export const HANDOFF_TTL_MINUTES = 120;
+export const HANDOFF_PROBLEM_REASONS = ['SHORTAGE', 'WRONG_COLOR', 'WRONG_MODEL', 'WRONG_METERS', 'DAMAGED', 'OTHER'] as const;
+export type HandoffProblemReason = (typeof HANDOFF_PROBLEM_REASONS)[number];
 
 // ---- QR (D-012): opaque code only -----------------------------------------------------------------------------------
 export const QR_PREFIX = 'YQ1.';

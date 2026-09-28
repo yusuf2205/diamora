@@ -109,6 +109,14 @@ enum DeliveryStatus {
   CANCELLED
 }
 
+/// Two-sided QR handoff: staff scans first (AWAITING_WORKER), the worker scans the same QR and personally confirms.
+enum HandoffStatus {
+  AWAITING_WORKER
+  CONFIRMED
+  PROBLEM
+  EXPIRED
+}
+
 enum QualityResult {
   ACCEPTED
   PARTIALLY_ACCEPTED
@@ -150,27 +158,28 @@ enum NotificationStatus {
 // ------------------------------------------------------------------------------------------------ access
 
 model User {
-  id           String     @id @default(uuid(7)) @db.Uuid
-  phone        String     @unique
-  fullName     String
-  role         Role
-  status       UserStatus @default(ACTIVE)
+  id             String     @id @default(uuid(7)) @db.Uuid
+  phone          String     @unique
+  fullName       String
+  role           Role
+  status         UserStatus @default(ACTIVE)
   /// argon2id; null for WORKER (workers sign in with a one-time code sent by the Telegram bot)
-  passwordHash String?
-  lastLoginAt  DateTime?  @db.Timestamptz(3)
+  passwordHash   String?
+  lastLoginAt    DateTime?  @db.Timestamptz(3)
   /// last time the app was seen online (WebSocket heartbeat); presence itself is live, this is the fallback
-  lastSeenAt   DateTime?  @db.Timestamptz(3)
+  lastSeenAt     DateTime?  @db.Timestamptz(3)
   /// SUPER_ADMIN decides: a hidden person's position is shown to nobody but SUPER_ADMIN (the phone keeps reporting it)
-  locationHidden Boolean  @default(false)
-  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+  locationHidden Boolean    @default(false)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
 
-  sessions       UserSession[]
-  workerProfile  WorkerProfile?
+  sessions        UserSession[]
+  workerProfile   WorkerProfile?
   /// workers assigned to this user when role = MANAGER
-  managedWorkers WorkerProfile[]   @relation("ManagerWorkers")
-  permissions    UserPermission[]
-  liveLocation   UserLiveLocation?
+  managedWorkers  WorkerProfile[]     @relation("ManagerWorkers")
+  handoffsStarted AssignmentHandoff[] @relation("HandoffStaff")
+  permissions     UserPermission[]
+  liveLocation    UserLiveLocation?
 
   @@index([role, status])
   @@map("users")
@@ -574,6 +583,7 @@ model Material {
   kitItems            MaterialKitTemplateItem[]
   assignmentMaterials WorkAssignmentMaterial[]
   deliveryItems       DeliveryItem[]
+  workerBalances      WorkerMaterialBalance[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "materials_name_trgm")
   @@map("materials")
@@ -687,6 +697,7 @@ model WorkAssignment {
   deliveries    Delivery[]
   qrEntities    QrEntity[]
   ledger        WorkerLedgerTransaction[]
+  handoffs      AssignmentHandoff[]
 
   @@index([workerId, status])
   @@index([status])
@@ -794,6 +805,53 @@ model DeliveryItem {
 
   @@index([deliveryId])
   @@map("delivery_items")
+}
+
+/// The fact of receipt (Phase 5): who started the handoff, when the worker scanned and confirmed, what exactly she got.
+/// Material custody moves to the worker ONLY in the transaction that sets status=CONFIRMED. At most one AWAITING_WORKER and
+/// one CONFIRMED row per assignment (partial unique indexes in the migration) - a replay or a double-tap can never
+/// create a second receipt.
+model AssignmentHandoff {
+  id               String         @id @default(uuid(7)) @db.Uuid
+  assignmentId     String         @db.Uuid
+  assignment       WorkAssignment @relation(fields: [assignmentId], references: [id])
+  workerId         String         @db.Uuid
+  staffUserId      String         @db.Uuid
+  staffUser        User           @relation("HandoffStaff", fields: [staffUserId], references: [id])
+  qrEntityId       String         @db.Uuid
+  status           HandoffStatus  @default(AWAITING_WORKER)
+  startedAt        DateTime       @default(now()) @db.Timestamptz(3)
+  expiresAt        DateTime       @db.Timestamptz(3)
+  workerScannedAt  DateTime?      @db.Timestamptz(3)
+  workerAcceptedAt DateTime?      @db.Timestamptz(3)
+  /// [{materialId, name, unit, quantity}] exactly as confirmed by the worker
+  materialSnapshot Json?
+  meters           Decimal        @db.Decimal(10, 2)
+  kitCount         Int
+  latitude         Float?
+  longitude        Float?
+  accuracyM        Float?
+  /// SHORTAGE | WRONG_COLOR | WRONG_MODEL | WRONG_METERS | DAMAGED | OTHER
+  problemReason    String?
+  problemComment   String?
+  resolvedAt       DateTime?      @db.Timestamptz(3)
+
+  @@index([assignmentId, startedAt])
+  @@index([workerId])
+  @@map("assignment_handoffs")
+}
+
+/// Materials physically at a worker's home: materialised Σ StockMovement.workerDelta, kept in the same transaction as the
+/// movement (like StockBalance for the warehouse). CHECK (quantity >= 0).
+model WorkerMaterialBalance {
+  workerId   String   @db.Uuid
+  materialId String   @db.Uuid
+  material   Material @relation(fields: [materialId], references: [id])
+  quantity   Decimal  @default(0) @db.Decimal(14, 3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@id([workerId, materialId])
+  @@map("worker_material_balances")
 }
 
 model QualityInspection {

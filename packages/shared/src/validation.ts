@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  CATALOG_AVAILABILITY, CATALOG_STATUSES, COLLATERAL_STATUSES, MATERIAL_UNITS, MAX_PAY_RATE_UZS, MEDIA_KINDS, STOCK_MOVEMENT_TYPES,
+  CATALOG_AVAILABILITY, CATALOG_STATUSES, COLLATERAL_STATUSES, HANDOFF_PROBLEM_REASONS, MATERIAL_UNITS, MAX_PAY_RATE_UZS, MEDIA_KINDS, STOCK_MOVEMENT_TYPES,
   WORKER_STATUSES, normalizePhone, parseUzs,
 } from './basics';
 import { PERMISSIONS } from './permissions';
@@ -264,6 +264,18 @@ export const listAssignmentsSchema = paginationSchema.extend({
 });
 
 export const completeDeliverySchema = z.object({ comment: z.string().trim().max(500).optional() });
+
+// ---- two-sided QR handoff (Phase 5) ---------------------------------------------------------------------------------
+export const handoffScanSchema = z.object({ code: z.string().trim().min(1).max(64) });
+export const handoffConfirmSchema = z.object({
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  accuracyM: z.number().nonnegative().max(100000).optional(),
+});
+export const handoffProblemSchema = z.object({
+  reason: z.enum(HANDOFF_PROBLEM_REASONS),
+  comment: z.string().trim().max(500).optional(),
+});
 
 // ---- money: cash payout (M3 §15) ---------------------------------------------------------------------------------------
 export const cashPayoutSchema = z.object({

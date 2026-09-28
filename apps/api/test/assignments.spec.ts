@@ -1,4 +1,4 @@
-import { approveAndLoginWorker, client, registerViaBot, staffActor, superAdminActor, TestApp, createTestApp } from './support/app';
+import { approveAndLoginWorker, client, handOver, registerViaBot, staffActor, superAdminActor, TestApp, createTestApp } from './support/app';
 
 /** Shared fixture: one active worker, one 9 m kit template (2 kinds of material so quantities aren't trivially equal),
  * one catalog model+variant+color, all created by a SUPER_ADMIN. Every test gets its own worker (never reused) so stock
@@ -83,12 +83,12 @@ describe('M3 work assignments (§5-16): create -> deliver -> progress -> pickup 
     void created;
   });
 
-  it('full lifecycle: deliver -> progress -> ready -> pickup -> accept (full) -> earning -> COMPLETED', async () => {
+  it('full lifecycle: QR handoff -> progress -> ready -> pickup -> accept (full) -> earning -> COMPLETED', async () => {
     const f = await setup(t);
     const created = await f.admin.api.post('/v1/admin/assignments', createBody(f, 1)).expect(201);
     const id = created.body.id;
 
-    const delivered = await f.admin.api.post(`/v1/admin/assignments/${id}/deliver`, {}).expect(200);
+    const delivered = await handOver(f.admin.api, f.workerApi, id);
     expect(delivered.body.status).toBe('IN_PROGRESS');
 
     const progress = await f.workerApi.post(`/v1/work/${id}/progress`, { reportedMeters: '5' }).expect(200);
@@ -122,7 +122,7 @@ describe('M3 work assignments (§5-16): create -> deliver -> progress -> pickup 
     const f = await setup(t);
     const created = await f.admin.api.post('/v1/admin/assignments', createBody(f, 1)).expect(201);
     const id = created.body.id;
-    await f.admin.api.post(`/v1/admin/assignments/${id}/deliver`, {}).expect(200);
+    await handOver(f.admin.api, f.workerApi, id);
     await f.workerApi.post(`/v1/work/${id}/ready`, { readyMeters: '9' }).expect(200);
     await f.admin.api.post(`/v1/admin/assignments/${id}/pickup`, {}).expect(200);
 
@@ -140,7 +140,7 @@ describe('M3 work assignments (§5-16): create -> deliver -> progress -> pickup 
     const f = await setup(t);
     const created = await f.admin.api.post('/v1/admin/assignments', createBody(f, 1)).expect(201);
     const id = created.body.id;
-    await f.admin.api.post(`/v1/admin/assignments/${id}/deliver`, {}).expect(200);
+    await handOver(f.admin.api, f.workerApi, id);
     await f.workerApi.post(`/v1/work/${id}/ready`, { readyMeters: '9' }).expect(200);
     await f.admin.api.post(`/v1/admin/assignments/${id}/pickup`, {}).expect(200);
     await f.admin.api.post(`/v1/admin/assignments/${id}/accept`, { broughtMeters: '9', acceptedMeters: '9' }).expect(200);

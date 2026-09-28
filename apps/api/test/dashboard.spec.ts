@@ -1,4 +1,4 @@
-import { approveAndLoginWorker, createTestApp, registerViaBot, staffActor, superAdminActor, TestApp } from './support/app';
+import { approveAndLoginWorker, createTestApp, handOver, registerViaBot, staffActor, superAdminActor, TestApp } from './support/app';
 
 describe('dashboard (§31): real numbers only from tables that exist today, honest nulls for M6 finance', () => {
   let t: TestApp;
@@ -63,7 +63,7 @@ describe('dashboard (§31): real numbers only from tables that exist today, hone
     const admin = await superAdminActor(t);
     const manager = await staffActor(t, 'MANAGER'); // scoped to exactly one worker -> numbers are isolated from other tests
     const reg = await registerViaBot(t);
-    const { workerId } = await approveAndLoginWorker(t, admin.api, reg.phone);
+    const { workerId, api: workerApi } = await approveAndLoginWorker(t, admin.api, reg.phone);
     await admin.api.post(`/v1/workers/${workerId}/manager`, { managerId: manager.user.id }).expect(201);
 
     const tape = await admin.api.post('/v1/admin/materials', { name: `DashTape ${reg.tgId}`, unit: 'METER', minStock: '0' }).expect(201);
@@ -87,7 +87,7 @@ describe('dashboard (§31): real numbers only from tables that exist today, hone
     const created = await admin.api.post('/v1/admin/assignments', {
       workerId, productModelId: item.body.id, productVariantId: variant.id, colorId: color.body.id, materialKitTemplateId: kit.body.id, kitCount: 1, dueAt,
     }).expect(201);
-    await admin.api.post(`/v1/admin/assignments/${created.body.id}/deliver`, {}).expect(200);
+    await handOver(admin.api, workerApi, created.body.id);
 
     const after = (await manager.api.get('/v1/dashboard').expect(200)).body;
     expect(after.today.dueToday).toBe(1);

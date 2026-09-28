@@ -166,3 +166,11 @@ export async function telegramLoginTicket(t: TestApp, telegramUserId: bigint, ch
   const ticket = new URL(reply.telegramHandoffUrl).searchParams.get('t')!;
   return { startToken, ticket, deepLink: sessionRes.body.deepLink as string };
 }
+
+/** The two-sided QR handoff (Phase 5) as it happens at the worker's door: staff scans the assignment QR and starts the
+ * handoff, the worker scans the SAME QR with her app and personally confirms. Returns the confirm response. */
+export async function handOver(staff: ReturnType<typeof client>, worker: ReturnType<typeof client>, assignmentId: string) {
+  const started = await staff.post(`/v1/admin/assignments/${assignmentId}/handoff`, {}).expect(200);
+  const scan = await worker.post('/v1/work/handoff/scan', { code: started.body.qrCode }).expect(200);
+  return worker.post(`/v1/work/handoff/${scan.body.handoffId}/confirm`, {}).expect(200);
+}
