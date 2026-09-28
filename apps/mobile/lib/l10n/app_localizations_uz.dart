@@ -1684,4 +1684,27 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get updateAllowInstall =>
       'Diamoraa uchun o\'rnatishga ruxsat bering va yana bosing';
+
+  @override
+  String get ageNow => 'hozir';
+
+  @override
+  String ageMinutes(int minutes) {
+    return '$minutes daqiqa oldin';
+  }
+
+  @override
+  String ageHours(int hours, int minutes) {
+    return '$hours soat $minutes daqiqa oldin';
+  }
+
+  @override
+  String get qrRecognized => 'QR aniqlandi';
+
+  @override
+  String get handoffStartedToast =>
+      'Topshirish boshlandi — usta shu QR-ni skanerlasin';
+
+  @override
+  String get qrPrint => 'QR-ni chop etish';
 }

@@ -28,9 +28,9 @@ class _Server implements HttpClientAdapter {
 }
 
 class _Platform implements UpdaterPlatform {
-  _Platform(this.dir, {this.versionCode = 2016, this.allowed = true});
+  _Platform(this.dir, {this.allowed = true});
   final String dir;
-  final int versionCode;
+  final int versionCode = 2016;
   bool allowed;
   String? installed;
   var openedSettings = false;

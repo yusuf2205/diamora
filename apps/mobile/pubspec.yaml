@@ -1,7 +1,7 @@
-﻿name: diamoraa_mobile
+name: diamoraa_mobile
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0-rc.17+17
+version: 1.0.0-rc.18+18
 
 environment:
   sdk: ^3.13.3
@@ -26,7 +26,9 @@ dependencies:
   intl: ^0.20.3
   json_annotation: ^4.12.0
   mobile_scanner: ^7.4.2
+  pdf: ^3.13.1
   permission_handler: ^12.0.1
+  printing: ^5.15.1
   qr_flutter: ^4.1.0
   shared_preferences: ^2.5.5
   socket_io_client: ^3.1.6

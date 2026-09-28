@@ -78,30 +78,44 @@ class WorkerQuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Row(children: [
-      Expanded(
-        child: SizedBox(
-          height: 56,
-          child: FilledButton.icon(
-            onPressed: () => context.go('/worker/catalog'),
-            icon: const Icon(Icons.auto_awesome_rounded),
-            label: Text(l.chooseWork, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-        ),
-      ),
+      Expanded(child: _Tile(icon: Icons.auto_awesome_rounded, label: l.chooseWork, color: scheme.primary, onColor: scheme.onPrimary,
+          onTap: () => context.go('/worker/catalog'))),
       const SizedBox(width: 10),
-      Expanded(
-        child: SizedBox(
-          height: 56,
-          child: FilledButton.tonalIcon(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ReceiveScanScreen())),
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            label: Text(l.workScanQr, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-        ),
-      ),
+      Expanded(child: _Tile(icon: Icons.qr_code_scanner_rounded, label: l.workScanQr, color: scheme.secondaryContainer, onColor: scheme.onSecondaryContainer,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ReceiveScanScreen())))),
     ]);
   }
+}
+
+class _Tile extends StatelessWidget {
+  const _Tile({required this.icon, required this.label, required this.color, required this.onColor, required this.onTap});
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color onColor;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Material(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: SizedBox(
+            height: 96,
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(icon, size: 30, color: onColor),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(label, textAlign: TextAlign.center, maxLines: 2, style: TextStyle(color: onColor, fontWeight: FontWeight.w800, fontSize: 15, height: 1.15)),
+              ),
+            ]),
+          ),
+        ),
+      );
 }
 
 /// Her latest request, if it still matters: waiting (with «Отменить заявку») or just declined (with the reason).
@@ -308,10 +322,12 @@ class JobRequestsScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Row(children: [
                             Expanded(
-                              child: FilledButton(
-                                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
+                              child: FitButton(
+                                kind: FitKind.filled,
+                                height: AppTokens.buttonHeight,
+                                icon: Icons.add_task_rounded,
+                                label: l.actionAssign,
                                 onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(request: r))),
-                                child: Text(l.actionAssign, maxLines: 1, overflow: TextOverflow.ellipsis),
                               ),
                             ),
                             const SizedBox(width: 8),

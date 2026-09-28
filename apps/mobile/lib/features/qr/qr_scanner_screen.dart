@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -33,6 +34,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     if (_busy || capture.barcodes.isEmpty) return;
     final raw = capture.barcodes.first.rawValue;
     if (raw == null) return;
+    // instant, unmistakable feedback that the camera READ the code: a buzz, a click, a green «QR распознан»
+    HapticFeedback.mediumImpact();
+    SystemSound.play(SystemSoundType.click);
     setState(() => _busy = true);
     final l = AppLocalizations.of(context);
     try {
@@ -41,6 +45,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       switch (classifyQr(res)) {
         case QrOutcomeType.worker:
           final workerId = (res['worker'] as Map)['id'] as String;
+          _ok('${l.qrWorkerFound}: ${(res['worker'] as Map)['fullName'] ?? ''}');
           context.pop();
           context.push('/admin/workers/$workerId');
           return; // screen is gone; no need to reset _busy
@@ -61,6 +66,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   void _snack(String text) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(text), backgroundColor: Theme.of(context).colorScheme.error));
+
+  /// success is green, never the red of an error
+  void _ok(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Row(children: [const Icon(Icons.check_circle_rounded, color: Colors.white), const SizedBox(width: 10), Expanded(child: Text(text))]), backgroundColor: Colors.green.shade700));
 
   Future<void> _showKit(AppLocalizations l, Map<String, dynamic> kit) {
     final items = (kit['items'] as List).cast<Map<String, dynamic>>();
@@ -134,6 +144,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                             if (ctx.mounted) Navigator.of(ctx).pop();
                             if (!mounted) return;
                             // the waiting screen: she scans the same QR, this screen turns green when she confirms
+                            _ok(l.handoffStartedToast);
                             context.pop();
                             context.push('/admin/assignments/${a['id']}');
                           } on ApiException catch (e) {
@@ -151,7 +162,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                           try {
                             await ref.read(assignmentAdminRepositoryProvider).pickup(a['id'] as String);
                             if (ctx.mounted) Navigator.of(ctx).pop();
-                            if (mounted) _snack(l.workPickedUp);
+                            if (mounted) _ok(l.workPickedUp);
                           } on ApiException catch (e) {
                             setSheetState(() => busy = false);
                             if (ctx.mounted) _snack(e.message);
@@ -188,7 +199,27 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
             child: Padding(padding: const EdgeInsets.all(12), child: Text(l.qrScanHint, textAlign: TextAlign.center)),
           ),
         ),
-        if (_busy) const Positioned.fill(child: ColoredBox(color: Colors.black38, child: Center(child: CircularProgressIndicator()))),
+        if (_busy)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black45,
+              child: Center(
+                child: Card(
+                  color: Colors.green.shade700,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
+                      const SizedBox(width: 10),
+                      Text(l.qrRecognized, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                      const SizedBox(width: 12),
+                      const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+          ),
       ]),
     );
   }

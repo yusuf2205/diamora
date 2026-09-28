@@ -572,5 +572,13 @@
   "updateReady": "Новая версия {version} готова",
   "@updateReady": {"placeholders": {"version": {"type": "String"}}},
   "updateInstall": "Установить",
-  "updateAllowInstall": "Разрешите установку для Diamoraa и нажмите ещё раз"
+  "updateAllowInstall": "Разрешите установку для Diamoraa и нажмите ещё раз",
+  "ageNow": "сейчас",
+  "ageMinutes": "{minutes} мин назад",
+  "@ageMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "ageHours": "{hours} ч {minutes} мин назад",
+  "@ageHours": {"placeholders": {"hours": {"type": "int"}, "minutes": {"type": "int"}}},
+  "qrRecognized": "QR распознан",
+  "handoffStartedToast": "Передача начата — пусть мастерица отсканирует этот QR",
+  "qrPrint": "Печать QR"
 }

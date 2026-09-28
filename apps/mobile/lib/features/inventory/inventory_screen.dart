@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/qr_print.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
@@ -323,7 +324,9 @@ class _KitsTab extends ConsumerWidget {
               QrImageView(data: result.qrCode, size: 200),
               const SizedBox(height: 8),
               SelectableText(result.qrCode, style: Theme.of(ctx).textTheme.bodySmall),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: PrintQrButton(code: result.qrCode, title: result.kitTemplateName, lines: ['× ${result.count} = ${result.totalMeters} м'])),
+              const SizedBox(height: 8),
               SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.confirm))),
             ]),
           ),

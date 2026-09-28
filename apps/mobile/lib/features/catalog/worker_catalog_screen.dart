@@ -153,10 +153,10 @@ class CatalogItemDetailScreen extends ConsumerWidget {
               contact.maybeWhen(
                 data: (c) => Row(children: [
                   if ((c.phone ?? '').isNotEmpty)
-                    Expanded(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse('tel:${c.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.catalogCall))),
+                    Expanded(child: FitButton(icon: Icons.call_rounded, label: l.catalogCall, onPressed: () => launchUrl(Uri.parse('tel:${c.phone}')))),
                   if ((c.phone ?? '').isNotEmpty && (c.telegramUrl ?? '').isNotEmpty) const SizedBox(width: 12),
                   if ((c.telegramUrl ?? '').isNotEmpty)
-                    Expanded(child: FilledButton.icon(onPressed: () => _openTelegram(c.telegramUrl!), icon: const Icon(Icons.send_rounded), label: Text(l.catalogTelegram))),
+                    Expanded(child: FitButton(kind: FitKind.filled, icon: Icons.send_rounded, label: l.catalogTelegram, onPressed: () => _openTelegram(c.telegramUrl!))),
                 ]),
                 orElse: () => const SizedBox.shrink(),
               ),

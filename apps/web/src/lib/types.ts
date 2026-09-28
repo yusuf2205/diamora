@@ -48,6 +48,8 @@ export interface ManagerSummary extends TeamUser {
 export interface Worker {
   id: string;
   code: string;
+  /** her personal QR (detail only) */
+  qrCode?: string | null;
   fullName: string;
   phone: string;
   secondaryPhone: string | null;

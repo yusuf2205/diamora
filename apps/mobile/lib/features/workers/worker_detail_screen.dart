@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/qr_print.dart';
 import '../../core/ui/widgets.dart';
 import '../auth/auth_controller.dart';
 import '../../l10n/app_localizations.dart';
@@ -253,6 +254,8 @@ class WorkerDetailScreen extends ConsumerWidget {
               QrImageView(data: code, size: 220),
               const SizedBox(height: 8),
               SelectableText(code, style: Theme.of(ctx).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: PrintQrButton(code: code, title: l.workerQrTitle)),
             ]),
           ),
         ),
@@ -341,10 +344,11 @@ class _CurrentWorkSection extends ConsumerWidget {
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Expanded(child: Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium)),
         Flexible(
-          child: TextButton.icon(
-            icon: const Icon(Icons.add_rounded),
+          child: FitButton(
+            kind: FitKind.text,
+            icon: Icons.add_rounded,
+            label: l.actionAssign,
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
-            label: Text(l.actionAssign, overflow: TextOverflow.ellipsis),
           ),
         ),
       ]),
@@ -466,14 +470,14 @@ class _Contacts extends ConsumerWidget {
             subtitle: Text(live != null ? freshnessLabel(l, live) : l.location),
           ),
           Row(children: [
-            Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.call_rounded), onPressed: () => _open(Uri.parse('tel:${worker.phone}')), label: Text(l.call))),
+            Expanded(child: FitButton(icon: Icons.call_rounded, label: l.call, onPressed: () => _open(Uri.parse('tel:${worker.phone}')))),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.directions_rounded),
+              child: FitButton(
+                icon: Icons.directions_rounded,
+                label: l.route,
                 // Yandex Maps deep link (no API key needed); falls back to the web page
                 onPressed: hasLocation ? () => _open(Uri.parse('https://yandex.uz/maps/?rtext=~$lat,$lng&rtt=auto')) : null,
-                label: Text(l.route),
               ),
             ),
           ]),

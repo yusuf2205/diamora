@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -54,6 +55,8 @@ class _ReceiveScanScreenState extends ConsumerState<ReceiveScanScreen> {
 
   Future<void> onCode(String code) async {
     if (_busy) return;
+    HapticFeedback.mediumImpact();
+    SystemSound.play(SystemSoundType.click);
     setState(() { _busy = true; _error = null; });
     final l = AppLocalizations.of(context);
     try {
@@ -102,7 +105,25 @@ class _ReceiveScanScreenState extends ConsumerState<ReceiveScanScreen> {
             ),
           ),
         ),
-        if (_busy) const Positioned.fill(child: ColoredBox(color: Colors.black38, child: Center(child: CircularProgressIndicator()))),
+        if (_busy)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black45,
+              child: Center(
+                child: Card(
+                  color: Colors.green.shade700,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
+                      const SizedBox(width: 10),
+                      Text(AppLocalizations.of(context).qrRecognized, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+          ),
       ]),
     );
   }

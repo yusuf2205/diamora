@@ -3241,6 +3241,42 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Разрешите установку для Diamoraa и нажмите ещё раз'**
   String get updateAllowInstall;
+
+  /// No description provided for @ageNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'сейчас'**
+  String get ageNow;
+
+  /// No description provided for @ageMinutes.
+  ///
+  /// In ru, this message translates to:
+  /// **'{minutes} мин назад'**
+  String ageMinutes(int minutes);
+
+  /// No description provided for @ageHours.
+  ///
+  /// In ru, this message translates to:
+  /// **'{hours} ч {minutes} мин назад'**
+  String ageHours(int hours, int minutes);
+
+  /// No description provided for @qrRecognized.
+  ///
+  /// In ru, this message translates to:
+  /// **'QR распознан'**
+  String get qrRecognized;
+
+  /// No description provided for @handoffStartedToast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передача начата — пусть мастерица отсканирует этот QR'**
+  String get handoffStartedToast;
+
+  /// No description provided for @qrPrint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Печать QR'**
+  String get qrPrint;
 }
 
 class _AppLocalizationsDelegate

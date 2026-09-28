@@ -11,6 +11,7 @@ import type { AssignmentSummary, ManagerSummary, Page, Worker, WorkerLedger } fr
 import { useAuth } from '@/lib/auth';
 import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
 import { PayoutDialog } from '../../assignments/[id]/page';
+import { QrCard } from '@/components/qr';
 import { CreateAssignmentDialog } from '../../assignments/page';
 
 /** Мастерица: profile, earnings/payout, and her assignments — the same numbers the worker sees on her own phone (§13). */
@@ -66,6 +67,7 @@ export default function WorkerDetailPage() {
       )}
 
       {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
+      {w.qrCode && <QrCard heading="Личный QR мастерицы" code={w.qrCode} title={w.fullName} lines={[`${w.code} · ${w.phone}`]} />}
 
       <Card>
         <h2 className="mb-3 text-sm font-semibold">Текущая работа</h2>

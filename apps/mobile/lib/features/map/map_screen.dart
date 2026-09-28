@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yandex_maps_mapkit_lite/image.dart' as ymk;
 import 'package:yandex_maps_mapkit_lite/mapkit.dart' as ymk;
 import 'package:yandex_maps_mapkit_lite/yandex_map.dart';
+import 'package:yandex_maps_mapkit_lite/mapkit_factory.dart' show mapkit;
 
 import '../../core/config.dart';
 import '../../core/theme/app_theme.dart';
@@ -36,14 +37,15 @@ Color markerColor(LiveLocationRow row, ColorScheme scheme) {
 String freshnessLabel(AppLocalizations l, LiveLocationRow row) => positionAgeLabel(l, row.freshness, row.ageSeconds);
 
 /// "сейчас" / "обновлено 12 мин назад" / "обновлено 4 ч 51 мин назад" / "от 24.09.2026, 17:05".
-String positionAgeLabel(AppLocalizations l, LocationFreshness freshness, int ageSeconds, {DateTime? now}) {
-  if (freshness == LocationFreshness.live) return l.locationJustNow;
+String positionAgeLabel(AppLocalizations l, LocationFreshness freshness, int ageSeconds, {DateTime? now, bool compact = false}) {
+  if (freshness == LocationFreshness.live) return compact ? l.ageNow : l.locationJustNow;
   final minutes = ageSeconds ~/ 60;
-  if (minutes < 60) return l.locationRecentMinutes(minutes < 1 ? 1 : minutes);
-  if (minutes < 24 * 60) return l.locationUpdatedHours(minutes ~/ 60, minutes % 60);
+  if (minutes < 60) return compact ? l.ageMinutes(minutes < 1 ? 1 : minutes) : l.locationRecentMinutes(minutes < 1 ? 1 : minutes);
+  if (minutes < 24 * 60) return compact ? l.ageHours(minutes ~/ 60, minutes % 60) : l.locationUpdatedHours(minutes ~/ 60, minutes % 60);
   final at = (now ?? DateTime.now()).subtract(Duration(seconds: ageSeconds));
   String two(int v) => v.toString().padLeft(2, '0');
-  return l.locationUpdatedOn('${two(at.day)}.${two(at.month)}.${at.year}, ${two(at.hour)}:${two(at.minute)}');
+  final date = '${two(at.day)}.${two(at.month)}.${at.year}, ${two(at.hour)}:${two(at.minute)}';
+  return compact ? date : l.locationUpdatedOn(date);
 }
 
 /// SUPER_ADMIN / ADMIN / MANAGER live map (M2 §14-16, D-026). Data is `GET /v1/locations` — already scoped server-side
@@ -62,6 +64,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final _placemarks = <ymk.PlacemarkMapObject, LiveLocationRow>{};
   final _markerImages = <String, Future<ymk.ImageProvider>>{};
   bool _centered = false;
+  AppLifecycleListener? _life;
+
+  // MapKit draws only its empty grid ("squares") until it is STARTED: onStart while the map is on screen, onStop when
+  // it leaves or the app goes to the background (Yandex MapKit lifecycle contract).
+  @override
+  void initState() {
+    super.initState();
+    if (AppConfig.yandexMapKitKey.isEmpty) return;
+    mapkit.onStart();
+    _life = AppLifecycleListener(onShow: mapkit.onStart, onHide: mapkit.onStop);
+  }
+
+  @override
+  void dispose() {
+    _life?.dispose();
+    if (AppConfig.yandexMapKitKey.isNotEmpty) mapkit.onStop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

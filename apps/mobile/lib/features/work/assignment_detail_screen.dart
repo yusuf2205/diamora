@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../core/ui/qr_print.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'acceptance_screen.dart';
@@ -46,7 +47,7 @@ class AssignmentDetailScreen extends ConsumerWidget {
             if (a.status == 'READY_TO_DELIVER' && a.handoff != null) ...[_HandoffBlock(a: a), const SizedBox(height: 16)],
             _ProgressBlock(a: a),
             const SizedBox(height: 20),
-            if (a.qrCode != null) _QrBlock(code: a.qrCode!),
+            if (a.qrCode != null) _QrBlock(a: a),
             const SizedBox(height: 20),
             if (a.materials.isNotEmpty) _MaterialsBlock(a: a),
             const SizedBox(height: 20),
@@ -127,8 +128,9 @@ class _ProgressBlock extends StatelessWidget {
 }
 
 class _QrBlock extends StatelessWidget {
-  const _QrBlock({required this.code});
-  final String code;
+  const _QrBlock({required this.a});
+  final AssignmentDetail a;
+  String get code => a.qrCode!;
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -139,6 +141,9 @@ class _QrBlock extends StatelessWidget {
           Text(l.assignmentQr, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 12),
           QrImageView(data: code, size: 180),
+          const SizedBox(height: 12),
+          // the label goes on the kit: staff and worker both scan THIS code at the handoff
+          PrintQrButton(code: code, title: '${a.productName} · ${a.colorName}', lines: [a.workerName, '${a.plannedMeters.toStringAsFixed(0)} м · ${a.code}']),
         ]),
       ),
     );

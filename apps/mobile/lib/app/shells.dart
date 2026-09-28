@@ -56,7 +56,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: widget.shell.currentIndex,
         onDestinationSelected: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        labelBehavior: MediaQuery.sizeOf(context).width < 400 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           NavigationDestination(icon: const Icon(Icons.dashboard_rounded), selectedIcon: const Icon(Icons.dashboard_rounded), label: l.dashboardTab),
           NavigationDestination(icon: const Icon(Icons.groups_rounded), selectedIcon: const Icon(Icons.groups_rounded), label: l.workers),

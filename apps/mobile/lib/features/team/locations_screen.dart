@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -47,16 +48,32 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     // LIVE / RECENT / STALE (M2 §17): a RECENT or STALE point is never worded as if it were happening right now.
-    final age = positionAgeLabel(l, row.freshness, row.ageSeconds);
+    final age = positionAgeLabel(l, row.freshness, row.ageSeconds, compact: true);
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final dot = switch (row.freshness) { LocationFreshness.live => AppTokens.ok, LocationFreshness.recent => Colors.orange, _ => scheme.outline };
+    // no ListTile: its fixed leading/trailing columns squeezed long names into broken words on 320 dp phones
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: row.stale ? Theme.of(context).colorScheme.surfaceContainerHighest : AppTokens.ok.withValues(alpha: 0.15),
-          child: Icon(Icons.place_rounded, color: row.stale ? null : AppTokens.ok),
-        ),
-        title: Text(row.fullName),
-        subtitle: Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}${row.online ? ' · ${l.onlineNow}' : ''} · ${row.latitude.toStringAsFixed(4)}, ${row.longitude.toStringAsFixed(4)}'),
-        trailing: Text(age, style: TextStyle(color: row.stale ? Theme.of(context).colorScheme.error : null)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+        child: Row(children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(row.fullName, style: text.titleMedium),
+              const SizedBox(height: 2),
+              Text([teamRoleLabel(l, row.role), if (row.workerCode != null) row.workerCode!].join(' · '), style: text.bodySmall),
+              const SizedBox(height: 2),
+              Text(age, style: text.bodyMedium?.copyWith(color: row.stale ? scheme.error : null, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+          IconButton(
+            tooltip: l.route,
+            icon: const Icon(Icons.directions_rounded),
+            onPressed: () => launchUrl(Uri.parse('https://yandex.uz/maps/?rtext=~${row.latitude},${row.longitude}&rtt=auto'), mode: LaunchMode.externalApplication),
+          ),
+        ]),
       ),
     );
   }

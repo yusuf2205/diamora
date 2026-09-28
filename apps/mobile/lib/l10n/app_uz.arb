@@ -554,5 +554,11 @@
   "jobRequestRejectReason": "Sabab (usta ko'radi)",
   "updateReady": "Yangi versiya {version} tayyor",
   "updateInstall": "O'rnatish",
-  "updateAllowInstall": "Diamoraa uchun o'rnatishga ruxsat bering va yana bosing"
+  "updateAllowInstall": "Diamoraa uchun o'rnatishga ruxsat bering va yana bosing",
+  "ageNow": "hozir",
+  "ageMinutes": "{minutes} daqiqa oldin",
+  "ageHours": "{hours} soat {minutes} daqiqa oldin",
+  "qrRecognized": "QR aniqlandi",
+  "handoffStartedToast": "Topshirish boshlandi — usta shu QR-ni skanerlasin",
+  "qrPrint": "QR-ni chop etish"
 }

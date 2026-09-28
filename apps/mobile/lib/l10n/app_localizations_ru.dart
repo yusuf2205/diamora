@@ -1725,4 +1725,27 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get updateAllowInstall =>
       'Разрешите установку для Diamoraa и нажмите ещё раз';
+
+  @override
+  String get ageNow => 'сейчас';
+
+  @override
+  String ageMinutes(int minutes) {
+    return '$minutes мин назад';
+  }
+
+  @override
+  String ageHours(int hours, int minutes) {
+    return '$hours ч $minutes мин назад';
+  }
+
+  @override
+  String get qrRecognized => 'QR распознан';
+
+  @override
+  String get handoffStartedToast =>
+      'Передача начата — пусть мастерица отсканирует этот QR';
+
+  @override
+  String get qrPrint => 'Печать QR';
 }

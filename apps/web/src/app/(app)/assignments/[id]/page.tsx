@@ -9,6 +9,7 @@ import { earningFor, metersToCm } from '@diamoraa/shared';
 import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, handoffProblemLabel } from '@/lib/format';
 import type { AssignmentDetail, AssignmentHandoff, HandoffTimelineEntry, PayRate } from '@/lib/types';
 import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
+import { QrCard } from '@/components/qr';
 
 /** One operational screen per assignment, exactly like the mobile app: human status, history, and ONE contextual
  * action for whatever the status actually allows right now — never a generic "edit" form (§28). */
@@ -88,6 +89,10 @@ export default function AssignmentDetailPage() {
           {action.hint && <p className="mb-2 hidden text-sm text-muted sm:block">{action.hint}</p>}
           <Button className="w-full sm:w-auto" onClick={action.run} disabled={action.pending}>{action.pending ? 'Сохраняем…' : action.label}</Button>
         </div>
+      )}
+
+      {a.qrCode && a.status !== 'COMPLETED' && a.status !== 'CANCELLED' && (
+        <QrCard heading="QR задания" code={a.qrCode} title={`${a.product?.name ?? ''} · ${a.color?.name ?? ''}`} lines={[a.worker.fullName, `${a.plannedMeters} м · ${a.code}`]} />
       )}
 
       {a.materials.length > 0 && (
