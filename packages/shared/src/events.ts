@@ -23,6 +23,8 @@ export interface EventMap {
   'worker.rejected': { workerId: string } & WithManager;
   'worker.updated': { workerId: string; status: string } & WithManager;
   'worker.manager_changed': { workerId: string; managerId: string | null; previousManagerId: string | null };
+  /** erased for good (only possible without any work/money history) */
+  'worker.deleted': { workerId: string } & WithManager;
   'worker.location.updated': { workerId: string; latitude: number; longitude: number; receivedAt: string } & WithManager;
   'collateral.created': { collateralId: string; workerId: string; type: string; status: string } & WithManager;
   'collateral.updated': { collateralId: string; workerId: string; type: string; status: string } & WithManager;
@@ -102,6 +104,7 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'worker.rejected': w('WORKER'),
   'worker.updated': w('WORKER'),
   'worker.manager_changed': { cat: 'WORKER' },
+  'worker.deleted': w('WORKER', false),
   'worker.location.updated': { cat: 'LOCATION' },
   'collateral.created': w('COLLATERAL', false),
   'collateral.updated': w('COLLATERAL'),

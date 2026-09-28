@@ -1,10 +1,10 @@
 import {
-  Controller, Get, Injectable, Module, Param, ParseUUIDPipe, Patch, Post,
+  Controller, Delete, Get, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { CollateralPhoto, WorkerCollateral, WorkerProfile } from '@yusmus/database';
 import {
-  WORKER_MACHINE, approveWorkerSchema, assertTransition, assignManagerSchema, listWorkersSchema, rejectWorkerSchema, updateWorkerSchema,
+  WORKER_MACHINE, approveWorkerSchema, assertTransition, assignManagerSchema, createWorkerInviteSchema, listWorkersSchema, rejectWorkerSchema, updateWorkerSchema,
   COLLATERAL_MACHINE, type CollateralStatus, type WorkerStatus,
 } from '@yusmus/shared';
 import { z } from 'zod';
@@ -12,9 +12,10 @@ import { appDownloadUrl } from '../registration/texts';
 import { AuditService } from '../audit/audit.service';
 import { AuthService } from '../auth/auth.service';
 import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';
-import { conflict, invariant, notFound } from '../common/errors';
+import { AppError, conflict, invariant, notFound } from '../common/errors';
+import { ENV, type Env } from '../config/env';
 import type { AuthUser } from '../common/request-context';
-import { generateQrCode, lockRow } from '../common/sequence';
+import { generateQrCode, lockRow, newOpaqueToken, sha256 } from '../common/sequence';
 import { money, num } from '../common/serialize';
 import { assertWorkerInScope, workerScope } from '../common/scope';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
@@ -22,6 +23,9 @@ import { EventBus } from '../events/event-bus';
 import { FilesService } from '../files/files.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.module';
+
+/** An invitation link stays valid a week; after that staff simply creates a new one. */
+const INVITE_TTL_DAYS = 7;
 
 type WorkerWithCollateral = WorkerProfile & { collaterals: (WorkerCollateral & { photos: CollateralPhoto[] })[] };
 
@@ -34,6 +38,7 @@ export class WorkersService {
   constructor(
     private readonly prisma: PrismaService, private readonly files: FilesService, private readonly audit: AuditService,
     private readonly events: EventBus, private readonly notifications: NotificationsService, private readonly auth: AuthService,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   // ---- staff reads -------------------------------------------------------------------------------------------------
@@ -169,6 +174,97 @@ export class WorkersService {
     return this.get(actor, id);
   }
 
+  // ---- «Добавить мастерицу»: an invitation link; she opens it in Telegram and is active at once ------------------------
+  async createInvite(actor: AuthUser, input: z.output<typeof createWorkerInviteSchema>) {
+    if (await this.prisma.workerProfile.findUnique({ where: { phone: input.phone }, select: { id: true } })) throw conflict('A worker with this phone already exists');
+    if (await this.prisma.user.findUnique({ where: { phone: input.phone }, select: { id: true } })) throw conflict('This phone number already has a login');
+    if (input.managerId) {
+      const m = await this.prisma.user.findUnique({ where: { id: input.managerId }, select: { role: true, status: true } });
+      if (!m || m.role !== 'MANAGER' || m.status !== 'ACTIVE') throw invariant('managerId must be an active user with role MANAGER');
+    }
+    const token = newOpaqueToken();
+    const now = new Date();
+    const invite = await this.prisma.$transaction(async (tx) => {
+      // one live link per phone: a new one replaces the old (a resent link never leaves two valid ones)
+      await tx.workerInvitation.updateMany({ where: { phone: input.phone, usedAt: null, revokedAt: null }, data: { revokedAt: now } });
+      const row = await tx.workerInvitation.create({
+        data: { tokenHash: sha256(token), fullName: input.fullName, phone: input.phone, managerId: input.managerId ?? null, createdById: actor.id, expiresAt: new Date(now.getTime() + INVITE_TTL_DAYS * 86_400_000) },
+      });
+      await this.audit.record({ action: 'worker.invite', entity: 'WorkerInvitation', entityId: row.id, after: { fullName: input.fullName, phone: input.phone, managerId: input.managerId ?? null } }, tx);
+      return row;
+    });
+    return { ...this.inviteDto(invite), url: `https://t.me/${this.env.TELEGRAM_BOT_USERNAME}?start=inv_${token}` };
+  }
+
+  async listInvites() {
+    const rows = await this.prisma.workerInvitation.findMany({ where: { usedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' }, take: 100 });
+    return { items: rows.map((r) => this.inviteDto(r)) };
+  }
+
+  async revokeInvite(id: string) {
+    const row = await this.prisma.workerInvitation.findUnique({ where: { id } });
+    if (!row) throw notFound('Invitation');
+    if (!row.usedAt && !row.revokedAt) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.workerInvitation.update({ where: { id }, data: { revokedAt: new Date() } });
+        await this.audit.record({ action: 'worker.invite_revoke', entity: 'WorkerInvitation', entityId: id, before: { fullName: row.fullName, phone: row.phone } }, tx);
+      });
+    }
+    return { ok: true };
+  }
+
+  // ---- «Удалить мастерицу»: a full erase, ONLY when there is nothing the business must keep ----------------------------
+  async remove(actor: AuthUser, id: string) {
+    const w = await this.load(id);
+    assertWorkerInScope(actor, 'WORKER', w);
+    const [assignments, ledger, payments, jobRequests, deliveries, movements] = await Promise.all([
+      this.prisma.workAssignment.count({ where: { workerId: id } }), this.prisma.workerLedgerTransaction.count({ where: { workerId: id } }),
+      this.prisma.cashPayment.count({ where: { workerId: id } }), this.prisma.workerJobRequest.count({ where: { workerId: id } }),
+      this.prisma.delivery.count({ where: { workerId: id } }), this.prisma.stockMovement.count({ where: { workerId: id } }),
+    ]);
+    const reasons = [
+      ...(assignments + jobRequests + deliveries + movements > 0 ? ['WORK'] : []),
+      ...(ledger + payments > 0 || w.balance !== 0n ? ['MONEY'] : []),
+      ...(w.collaterals.some((c) => c.status !== 'PENDING') ? ['COLLATERAL'] : []),
+    ];
+    if (reasons.length) throw new AppError('HAS_HISTORY', 'This worker has history; archive her instead', 409, { reasons });
+
+    await this.prisma.$transaction(async (tx) => {
+      if (!(await lockRow(tx, 'worker_profiles', id))) throw notFound('Worker');
+      // the ONE place the declared-collateral trail may be deleted (see migration 20260928160000_worker_invite_delete)
+      await tx.$executeRawUnsafe(`SET LOCAL yusmus.worker_purge = 'on'`);
+      const collateralIds = w.collaterals.map((c) => c.id);
+      await tx.collateralPhoto.deleteMany({ where: { collateralId: { in: collateralIds } } });
+      await tx.collateralHistory.deleteMany({ where: { collateralId: { in: collateralIds } } });
+      await tx.workerCollateral.deleteMany({ where: { workerId: id } });
+      await tx.workerLocation.deleteMany({ where: { workerId: id } });
+      await tx.qrEntity.deleteMany({ where: { workerId: id } });
+      await tx.loginCode.deleteMany({ where: { workerId: id } });
+      await tx.telegramHandoffTicket.deleteMany({ where: { OR: [{ workerId: id }, { telegramUserId: w.telegramUserId }] } });
+      await tx.telegramLoginSession.deleteMany({ where: { telegramUserId: w.telegramUserId } });
+      await tx.registrationDraft.deleteMany({ where: { telegramUserId: w.telegramUserId } });
+      await tx.notification.deleteMany({ where: { workerId: id } });
+      await tx.workerMaterialBalance.deleteMany({ where: { workerId: id } });
+      await tx.workerInvitation.updateMany({ where: { workerId: id }, data: { workerId: null } });
+      await tx.workerProfile.delete({ where: { id } });
+      if (w.userId) {
+        await tx.userSession.deleteMany({ where: { userId: w.userId } });
+        await tx.idempotencyKey.deleteMany({ where: { userId: w.userId } });
+        await tx.user.delete({ where: { id: w.userId } });
+      }
+      await this.audit.record({
+        action: 'worker.delete', entity: 'WorkerProfile', entityId: id,
+        before: { code: w.code, fullName: w.fullName, phone: w.phone, status: w.status, managerId: w.assignedManagerId },
+      }, tx);
+    });
+    await this.events.publish('worker.deleted', { workerId: id, managerId: w.assignedManagerId });
+    return { ok: true };
+  }
+
+  private inviteDto(r: { id: string; fullName: string; phone: string; managerId: string | null; createdAt: Date; expiresAt: Date }) {
+    return { id: r.id, fullName: r.fullName, phone: r.phone, managerId: r.managerId, createdAt: r.createdAt.toISOString(), expiresAt: r.expiresAt.toISOString() };
+  }
+
   // ---- internals -----------------------------------------------------------------------------------------------------------
   private async load(id: string): Promise<WorkerWithCollateral & { assignedManager?: { id: string; fullName: string } | null }> {
     const w = await this.prisma.workerProfile.findUnique({
@@ -212,6 +308,15 @@ export class WorkersController {
   @Roles('WORKER') @Get('me')
   me(@CurrentUser() u: AuthUser) { return this.workers.me(u); }
 
+  @Perm('WORKER_APPROVE') @Get('invitations')
+  invites() { return this.workers.listInvites(); }
+
+  @Perm('WORKER_APPROVE') @Post('invitations') @ApiZodBody(createWorkerInviteSchema)
+  invite(@CurrentUser() u: AuthUser, @ZodBody(createWorkerInviteSchema) b: z.output<typeof createWorkerInviteSchema>) { return this.workers.createInvite(u, b); }
+
+  @Perm('WORKER_APPROVE') @Delete('invitations/:id') @HttpCode(200)
+  revokeInvite(@Param('id', new ParseUUIDPipe()) id: string) { return this.workers.revokeInvite(id); }
+
   @Perm('WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED') @Get(':id')
   get(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.workers.get(u, id); }
 
@@ -223,6 +328,9 @@ export class WorkersController {
 
   @Perm('WORKER_APPROVE') @Post(':id/reject') @ApiZodBody(rejectWorkerSchema)
   reject(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(rejectWorkerSchema) b: z.output<typeof rejectWorkerSchema>) { return this.workers.reject(u, id, b); }
+
+  @Perm('WORKER_DELETE') @Delete(':id') @HttpCode(200)
+  remove(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.workers.remove(u, id); }
 
   @Perm('WORKER_ASSIGN_MANAGER') @Post(':id/manager') @ApiZodBody(assignManagerSchema)
   assignManager(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(assignManagerSchema) b: z.output<typeof assignManagerSchema>) { return this.workers.assignManager(u, id, b); }

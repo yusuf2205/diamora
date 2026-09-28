@@ -2,9 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, statusLabel } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import type { AssignmentSummary, ManagerSummary, Page, Worker, WorkerLedger } from '@/lib/types';
@@ -198,6 +198,14 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
   const qc = useQueryClient();
   const canManager = hasPerm(me, 'WORKER_ASSIGN_MANAGER');
   const canStatus = hasPerm(me, 'WORKER_UPDATE');
+  const canDelete = hasPerm(me, 'WORKER_DELETE');
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/workers/${w.id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['workers'] }); router.push('/workers'); },
+  });
+  const removeBlocked = remove.error instanceof ApiError && remove.error.code === 'HAS_HISTORY';
   const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers'), enabled: canManager });
   const [picked, setPicked] = useState<string>(w.manager?.id ?? '');
   const [archiving, setArchiving] = useState(false);
@@ -234,6 +242,34 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
           ? <Button disabled={status.isPending} onClick={() => status.mutate('ACTIVE')}>Восстановить мастерицу</Button>
           : <Button variant="outline" onClick={() => setArchiving(true)}>Архивировать мастерицу</Button>)}
       </div>
+      {canDelete && (
+        <div className="mt-4 border-t border-border pt-4">
+          <Button variant="danger" onClick={() => { remove.reset(); setDeleting(true); }}>Удалить мастерицу</Button>
+        </div>
+      )}
+      {deleting && (
+        <Modal title="Удалить мастерицу" onClose={() => setDeleting(false)}>
+          {removeBlocked ? (
+            <>
+              <p className="text-sm">Удалить нельзя: у мастерицы уже есть работа, деньги или принятый залог — эти записи нужны для отчётов и выплат.</p>
+              <p className="mt-2 text-sm text-muted">Её можно архивировать: она не сможет войти и не получит работу, а история сохранится.</p>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="ghost" onClick={() => setDeleting(false)}>Закрыть</Button>
+                {canStatus && w.status !== 'ARCHIVED' && <Button onClick={() => { setDeleting(false); setArchiving(true); }}>Архивировать</Button>}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm"><span className="font-semibold">{w.fullName}</span> будет удалена навсегда вместе со входом в приложение. Это нельзя отменить.</p>
+              {remove.isError && <div className="mt-2"><ErrorState error={remove.error} /></div>}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="ghost" onClick={() => setDeleting(false)}>Отмена</Button>
+                <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>{remove.isPending ? 'Удаляем…' : 'Удалить навсегда'}</Button>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
       {saved && <p className="mt-2 text-sm text-ok" role="status">✓ Менеджер изменён</p>}
       {(assign.isError || status.isError) && <ErrorState error={assign.error ?? status.error} />}
       {archiving && (

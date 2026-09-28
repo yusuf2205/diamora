@@ -841,6 +841,25 @@ model AssignmentHandoff {
   @@map("assignment_handoffs")
 }
 
+/// «Добавить мастерицу»: staff enters name + phone, gets a Telegram link `t.me/<bot>?start=inv_<token>`. When she opens
+/// it, the bot creates her ACTIVE profile at once (no questionnaire, no approval). Only the sha256 of the token is stored.
+model WorkerInvitation {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  tokenHash   String    @unique
+  fullName    String
+  phone       String
+  managerId   String?   @db.Uuid
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt   DateTime  @db.Timestamptz(3)
+  usedAt      DateTime? @db.Timestamptz(3)
+  workerId    String?   @db.Uuid
+  revokedAt   DateTime? @db.Timestamptz(3)
+
+  @@index([phone])
+  @@map("worker_invitations")
+}
+
 /// Materials physically at a worker's home: materialised Σ StockMovement.workerDelta, kept in the same transaction as the
 /// movement (like StockBalance for the warehouse). CHECK (quantity >= 0).
 model WorkerMaterialBalance {

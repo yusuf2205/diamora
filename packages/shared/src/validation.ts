@@ -265,6 +265,13 @@ export const listAssignmentsSchema = paginationSchema.extend({
 
 export const completeDeliverySchema = z.object({ comment: z.string().trim().max(500).optional() });
 
+// ---- worker invitation: staff adds a worker, she opens the Telegram link and is active at once ------------------------
+export const createWorkerInviteSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  phone: phoneSchema,
+  managerId: idSchema.nullable().optional(),
+});
+
 // ---- two-sided QR handoff (Phase 5) ---------------------------------------------------------------------------------
 export const handoffScanSchema = z.object({ code: z.string().trim().min(1).max(64) });
 export const handoffConfirmSchema = z.object({

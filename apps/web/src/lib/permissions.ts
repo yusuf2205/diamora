@@ -12,6 +12,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   WORKER_APPROVE: 'Одобрять заявки',
   WORKER_UPDATE: 'Изменять карточку мастерицы',
   WORKER_ASSIGN_MANAGER: 'Назначать менеджера',
+  WORKER_DELETE: 'Удалять мастериц',
   COLLATERAL_VIEW: 'Видеть залог',
   COLLATERAL_MANAGE: 'Принимать и возвращать залог',
   ASSIGNMENT_VIEW_ALL: 'Видеть все задания',
@@ -37,7 +38,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
 
 export const PERMISSION_GROUPS: { title: string; perms: string[] }[] = [
   { title: 'Пользователи', perms: ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE'] },
-  { title: 'Мастерицы', perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER'] },
+  { title: 'Мастерицы', perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER', 'WORKER_DELETE'] },
   { title: 'Залог', perms: ['COLLATERAL_VIEW', 'COLLATERAL_MANAGE'] },
   { title: 'Задания', perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT'] },
   { title: 'Выплаты и деньги', perms: ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'CASH_PAYOUT', 'PROFIT_VIEW'] },
@@ -70,6 +71,10 @@ export const AUDIT_LABELS: Record<string, string> = {
   'auth.refresh_reuse_detected': 'Подозрительный повторный вход — сессия закрыта',
   'worker.register': 'Новая заявка мастерицы',
   'worker.approve': 'Мастерица одобрена',
+  'worker.invite': 'Приглашение мастерице',
+  'worker.invite_revoke': 'Приглашение отменено',
+  'worker.invite_accepted': 'Мастерица пришла по приглашению',
+  'worker.delete': 'Мастерица удалена',
   'worker.reject': 'Заявка отклонена',
   'worker.update': 'Изменена карточка мастерицы',
   'worker.assign_manager': 'Сменён менеджер',

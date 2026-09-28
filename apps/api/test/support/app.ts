@@ -144,10 +144,10 @@ export async function jpeg(color = { r: 200, g: 30, b: 30 }, w = 64, h = 48): Pr
  * RegistrationService directly — same shortcut `registerViaBot` already takes for the Telegram transport itself,
  * see BotContext below) and exchanges the resulting ticket through the real endpoint.
  */
-export async function approveAndLoginWorker(t: TestApp, admin: ReturnType<typeof client>, phone: string) {
+export async function approveAndLoginWorker(t: TestApp, admin: ReturnType<typeof client>, phone: string, collateralReceived = true) {
   const list = await admin.get(`/v1/workers?q=${phone.slice(-7)}`).expect(200);
   const workerId: string = list.body.items[0].id;
-  await admin.post(`/v1/workers/${workerId}/approve`, { collateralReceived: true }).expect(201);
+  await admin.post(`/v1/workers/${workerId}/approve`, { collateralReceived }).expect(201);
   const worker = await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
   const { ticket } = await telegramLoginTicket(t, worker.telegramUserId, worker.telegramChatId);
   const res = await request(t.app.getHttpServer()).post('/v1/auth/telegram/exchange').send({ ticket, device: device() });
@@ -169,7 +169,7 @@ export async function telegramLoginTicket(t: TestApp, telegramUserId: bigint, ch
 
 /** The two-sided QR handoff (Phase 5) as it happens at the worker's door: staff scans the assignment QR and starts the
  * handoff, the worker scans the SAME QR with her app and personally confirms. Returns the confirm response. */
-export async function handOver(staff: ReturnType<typeof client>, worker: ReturnType<typeof client>, assignmentId: string) {
+export async function handOver(staff: ReturnType<typeof client>, worker: ReturnType<typeof client>, assignmentId: string): Promise<request.Response> {
   const started = await staff.post(`/v1/admin/assignments/${assignmentId}/handoff`, {}).expect(200);
   const scan = await worker.post('/v1/work/handoff/scan', { code: started.body.qrCode }).expect(200);
   return worker.post(`/v1/work/handoff/${scan.body.handoffId}/confirm`, {}).expect(200);

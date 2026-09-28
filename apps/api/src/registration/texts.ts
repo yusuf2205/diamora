@@ -12,7 +12,9 @@ export type BotPrompt =
   | 'STATUS_ACTIVE'
   | 'STATUS_REJECTED'
   | 'STATUS_PAUSED'
-  | 'LOCATION_UPDATED';
+  | 'LOCATION_UPDATED'
+  | 'INVITE_ACCEPTED'
+  | 'INVITE_INVALID';
 export type BotError = RegError | 'PHONE_TAKEN' | 'PHOTO_FAILED';
 
 export interface RegSummary {
@@ -32,6 +34,8 @@ export interface BotReply {
   summary?: RegSummary;
   photoCount?: number;
   rejectedReason?: string | null;
+  /** INVITE_ACCEPTED: her name, to greet her */
+  fullName?: string;
   /** WORKER Telegram-only login (§): set only when this Telegram user has a linked app login session — never present
    * for an organic bot conversation. Renders as ONE inline URL button, replacing whatever keyboard the prompt would
    * otherwise show, so confirming (or just reading a status) and opening Diamoraa is a single tap. */
@@ -166,5 +170,14 @@ export function render(r: BotReply): Rendered {
       return ask(`К сожалению, заявка отклонена.${r.rejectedReason ? `\nПричина: ${r.rejectedReason}` : ''}`);
     case 'LOCATION_UPDATED':
       return ask('Геолокация обновлена ✅');
+    case 'INVITE_ACCEPTED':
+      return ask(
+        `Добро пожаловать${r.fullName ? `, ${r.fullName}` : ''}! 🎉 Вы в команде Diamoraa.\n\n` +
+          `1️⃣ Скачайте приложение: ${appDownloadUrl()}\n2️⃣ Откройте его и нажмите «Войти через Telegram».\n\n` +
+          'Чтобы мы знали, куда привозить материалы, отправьте геолокацию кнопкой ниже 👇',
+        kb([{ text: BTN.location, requestLocation: true }]),
+      );
+    case 'INVITE_INVALID':
+      return ask('Эта ссылка-приглашение уже не действует. Попросите у администратора новую — или отправьте /start, чтобы оставить заявку.');
   }
 }

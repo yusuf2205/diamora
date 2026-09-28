@@ -151,6 +151,8 @@ export const ERROR_CODES = [
   /** the worker scanned before the staff member started the handoff */
   'HANDOFF_NOT_STARTED',
   'HANDOFF_EXPIRED',
+  /** a worker with work, money, stock or a received collateral cannot be erased - archive her instead */
+  'HAS_HISTORY',
   'IDEMPOTENCY_CONFLICT',
   'RATE_LIMITED',
   'FILE_REJECTED',

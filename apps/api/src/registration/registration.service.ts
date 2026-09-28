@@ -7,7 +7,7 @@ import { ENV, Env } from '../config/env';
 import { EventBus } from '../events/events.module';
 import { FilesService } from '../files/files.service';
 import { PrismaService } from '../prisma/prisma.module';
-import { newOpaqueToken, nextCode, sha256, type Tx } from '../common/sequence';
+import { generateQrCode, newOpaqueToken, nextCode, sha256, type Tx } from '../common/sequence';
 import { money } from '../common/serialize';
 import type { BotError, BotPrompt, BotReply, RegSummary } from './texts';
 
@@ -61,6 +61,7 @@ export class RegistrationService {
     if (worker) return this.existingWorker(tx, ctx, worker, input, after);
 
     const startPayload = input.kind === 'command' && input.command === 'start' ? input.payload : undefined;
+    if (startPayload?.startsWith('inv_')) return this.acceptInvite(tx, ctx, startPayload.slice(4), after);
     if (startPayload) await this.linkTelegramSession(tx, ctx, startPayload); // side effect only: never changes the questionnaire itself
 
     let draft = await tx.registrationDraft.findUnique({ where: { telegramUserId: ctx.telegramUserId } });
@@ -113,6 +114,29 @@ export class RegistrationService {
 
     await tx.registrationDraft.update({ where: { telegramUserId: ctx.telegramUserId }, data: { state: r.state as unknown as Prisma.InputJsonValue, photoFileIds: photoIds } });
     return this.replyFor(r.state);
+  }
+
+  /** «Добавить мастерицу»: staff already knows her — no questions, no approval. She is ACTIVE the moment she opens the link. */
+  private async acceptInvite(tx: Tx, ctx: BotContext, token: string, after: Array<() => Promise<void>>): Promise<BotReply> {
+    const inv = await tx.workerInvitation.findUnique({ where: { tokenHash: sha256(token) } });
+    if (!inv || inv.usedAt || inv.revokedAt || inv.expiresAt <= new Date()) return { prompt: 'INVITE_INVALID' };
+    const taken = (await tx.workerProfile.findUnique({ where: { phone: inv.phone }, select: { id: true } })) ?? (await tx.user.findUnique({ where: { phone: inv.phone }, select: { id: true } }));
+    if (taken) return { prompt: 'INVITE_INVALID' };
+    const now = new Date();
+    const user = await tx.user.create({ data: { phone: inv.phone, fullName: inv.fullName, role: 'WORKER' } });
+    const worker = await tx.workerProfile.create({
+      data: {
+        telegramUserId: ctx.telegramUserId, telegramChatId: ctx.chatId, code: await nextCode(tx, 'worker', 'W-', 4), fullName: inv.fullName, phone: inv.phone,
+        status: 'ACTIVE', userId: user.id, approvedAt: now, approvedById: inv.createdById, assignedManagerId: inv.managerId,
+      },
+    });
+    await tx.qrEntity.create({ data: { code: generateQrCode(), type: 'WORKER', workerId: worker.id } });
+    await tx.workerInvitation.update({ where: { id: inv.id }, data: { usedAt: now, workerId: worker.id } });
+    await tx.registrationDraft.deleteMany({ where: { telegramUserId: ctx.telegramUserId } });
+    await this.audit.record({ action: 'worker.invite_accepted', entity: 'WorkerProfile', entityId: worker.id, actorId: null, actorRole: 'WORKER', after: { code: worker.code, fullName: worker.fullName, phone: worker.phone, invitationId: inv.id } }, tx);
+    after.push(() => this.events.publish('worker.created', { workerId: worker.id, code: worker.code, fullName: worker.fullName, status: worker.status, managerId: inv.managerId }));
+    after.push(() => this.events.publish('worker.approved', { workerId: worker.id, managerId: inv.managerId }));
+    return { prompt: 'INVITE_ACCEPTED', fullName: worker.fullName };
   }
 
   // ---- WORKER Telegram-only login: app-initiated session <-> this Telegram identity, then a one-time handoff ticket ----
