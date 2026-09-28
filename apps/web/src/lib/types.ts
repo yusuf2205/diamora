@@ -82,7 +82,7 @@ export interface CatalogItem {
 export interface PayRate { ratePerKit: string; kitMeters: number; updatedAt: string }
 export interface PayRateChange { id: string; ratePerKit: string; previousRatePerKit: string | null; changedBy: string | null; note: string | null; createdAt: string }
 export interface CompanyContact { phone: string | null; telegramUsername: string | null; telegramUrl: string | null; updatedAt: string }
-export interface AuditEntry { id: string; action: string; entity: string; entityId: string | null; actorId: string | null; actorRole: string | null; before: unknown; after: unknown; requestId: string | null; createdAt: string }
+export interface AuditEntry { id: string; action: string; entity: string; entityId: string | null; actorId: string | null; actorRole: string | null; actorName?: string | null; targetName?: string | null; before: unknown; after: unknown; ip?: string | null; device?: string | null; requestId: string | null; createdAt: string }
 export interface LiveLocation {
   userId: string; role: Me['role']; fullName: string; phone: string | null; online: boolean;
   worker: { id: string; code: string; phone: string; managerId: string | null } | null;

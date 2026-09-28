@@ -281,6 +281,8 @@ services:
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ${DATA_ROOT}/caddy/data:/data
+      # the Android app for workers (diamoraa.uz/download), uploaded by infra/scripts/publish-apk.sh
+      - ${DATA_ROOT}/downloads:/srv/downloads:ro
       - ${DATA_ROOT}/caddy/config:/config
     networks: [edge]
     mem_limit: ${CADDY_MEM_LIMIT:-128m}

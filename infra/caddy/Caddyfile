@@ -48,6 +48,25 @@
 		}
 	}
 
+	# the worker app itself: diamoraa.uz/download = the current APK (most phones, arm64), /download/<file> = any other
+	# published build (e.g. the one for old 32-bit phones). Files are put there by infra/scripts/publish-apk.sh.
+	@apk path /download /download/
+	handle @apk {
+		root * /srv/downloads
+		rewrite * /diamoraa.apk
+		header Content-Type "application/vnd.android.package-archive"
+		header Content-Disposition "attachment; filename=\"Diamoraa.apk\""
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle_path /download/* {
+		root * /srv/downloads
+		@apkfile path *.apk
+		header @apkfile Content-Type "application/vnd.android.package-archive"
+		header Cache-Control "no-cache"
+		file_server
+	}
+
 	# everything else is the web application (tables, reports, settings)
 	handle {
 		reverse_proxy web:3000 {

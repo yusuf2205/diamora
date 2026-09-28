@@ -7,19 +7,20 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
+import { ClipboardList, Gem, LayoutDashboard, LogOut, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 
-const NAV: { href: string; label: string; perms?: string[] }[] = [
-  { href: '/dashboard', label: 'Обзор' },
-  { href: '/workers', label: 'Мастерицы', perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
-  { href: '/assignments', label: 'Задания', perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
-  { href: '/catalog', label: 'Каталог', perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
-  { href: '/inventory', label: 'Склад', perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
-  { href: '/map', label: 'Карта', perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },
-  { href: '/team', label: 'Команда', perms: ['USER_VIEW_ALL'] },
-  { href: '/managers', label: 'Менеджеры', perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
-  { href: '/settings', label: 'Настройки', perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },
-  { href: '/audit', label: 'Журнал', perms: ['AUDIT_VIEW'] },
+const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
+  { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
+  { href: '/workers', label: 'Мастерицы', icon: Sparkles, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
+  { href: '/assignments', label: 'Задания', icon: ClipboardList, perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
+  { href: '/catalog', label: 'Каталог', icon: Gem, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
+  { href: '/inventory', label: 'Склад', icon: Package, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
+  { href: '/map', label: 'Карта', icon: MapPin, perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },
+  { href: '/team', label: 'Команда', icon: Users, perms: ['USER_VIEW_ALL'] },
+  { href: '/managers', label: 'Менеджеры', icon: UserCog, perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
+  { href: '/settings', label: 'Настройки', icon: Settings, perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },
+  { href: '/audit', label: 'Журнал', icon: ScrollText, perms: ['AUDIT_VIEW'] },
 ];
 
 /** Everything under (app) requires a signed-in STAFF session (D-028) - the server enforces the rest per page. */
@@ -57,7 +58,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen lg:flex lg:h-screen lg:overflow-hidden">
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
-        <button aria-label="Меню" onClick={() => setMenuOpen(true)} className="-ml-1 rounded-lg p-2 text-xl leading-none hover:bg-border/50">☰</button>
+        <button aria-label="Меню" onClick={() => setMenuOpen(true)} className="-ml-1 rounded-lg p-2 hover:bg-border/50"><Menu size={22} aria-hidden /></button>
         <p className="truncate text-base font-semibold">{current}</p>
       </header>
       {menuOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMenuOpen(false)} />}
@@ -76,8 +77,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Link
               key={n.href}
               href={n.href}
-              className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition ${pathname.startsWith(n.href) ? 'bg-primary text-white' : 'text-foreground hover:bg-border/50'}`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${pathname.startsWith(n.href) ? 'bg-primary text-white shadow-sm' : 'text-foreground hover:bg-border/50'}`}
             >
+              <n.icon size={18} strokeWidth={1.8} aria-hidden />
               {n.label}
             </Link>
           ))}
@@ -90,7 +92,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <p className="truncate text-xs text-muted">{roleLabel(me.role)}</p>
             </div>
           </Link>
-          <button onClick={() => logout()} className="mt-3 w-full rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-border/50">Выйти</button>
+          <button onClick={() => logout()} className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-border/50"><LogOut size={16} aria-hidden />Выйти</button>
         </div>
       </aside>
       <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 lg:h-screen lg:overflow-y-auto lg:px-8 lg:py-8">{children}</main>
