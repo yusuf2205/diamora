@@ -45,7 +45,7 @@ export default function DashboardPage() {
         subtitle={me ? roleLabel(me.role) : undefined}
         actions={(canCreateAssignment || canSeeAssignments || canSeeWorkers) ? (
           <>
-            {canCreateAssignment && <Button onClick={() => setCreating(true)}>+ Выдать работу</Button>}
+            {canCreateAssignment && <Button onClick={() => setCreating(true)}>+ Подготовить работу</Button>}
             {canSeeAssignments && !phone && <Button variant="outline" onClick={() => router.push('/assignments')}>Задания</Button>}
             {canSeeWorkers && !phone && <Button variant="outline" onClick={() => router.push('/workers')}>Мастерицы</Button>}
           </>
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           <h2 className="mb-3 text-sm font-medium text-muted">Сегодня</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {data.today.dueToday !== null && <StatCard label="Срок сегодня" value={data.today.dueToday} />}
-            {data.today.deliveredToday !== null && <StatCard label="Доставлено" value={data.today.deliveredToday} />}
+            {data.today.deliveredToday !== null && <StatCard label="Получено мастерицами" value={data.today.deliveredToday} />}
             {data.today.pickedUpToday !== null && <StatCard label="Забрано" value={data.today.pickedUpToday} />}
             {data.today.paidToday !== null && <StatCard label="Выплачено" value={formatUzs(data.today.paidToday)} />}
           </div>

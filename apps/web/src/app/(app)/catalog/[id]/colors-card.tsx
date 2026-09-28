@@ -9,7 +9,7 @@ import { Button, Card, ErrorState, Field, Input, Select } from '@/components/ui'
 interface Color { id: string; name: string; hex: string | null; isActive: boolean }
 
 /** «Цвета» of a model: the colours a worker can be given this model in. A model with no colour cannot be issued —
- * «Выдать работу» needs one. Pick an existing colour or type a new name (created on the spot, then attached). */
+ * «Подготовить работу» needs one. Pick an existing colour or type a new name (created on the spot, then attached). */
 export function ColorsCard({ item, canManage }: { item: CatalogItem; canManage: boolean }) {
   const qc = useQueryClient();
   const colors = useQuery<{ items: Color[] }>({ queryKey: ['colors'], queryFn: () => api.get<{ items: Color[] }>('/admin/colors'), enabled: canManage });

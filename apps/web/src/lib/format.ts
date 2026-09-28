@@ -72,12 +72,19 @@ export const statusLabel = (status: string) => STATUS_LABELS[status] ?? status;
 
 // M3 work-order statuses — human labels only, the raw enum never reaches the screen (same wording as the mobile app).
 const ASSIGNMENT_STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'Готовится', READY_TO_DELIVER: 'Готово к доставке', DELIVERED: 'Доставлено', IN_PROGRESS: 'В работе',
+  DRAFT: 'Готовится', READY_TO_DELIVER: 'Ожидает получения', DELIVERED: 'Получено мастерицей', IN_PROGRESS: 'В работе',
   READY_FOR_PICKUP: 'Готово к забору', PICKED_UP: 'Забрано', UNDER_REVIEW: 'На проверке',
   PARTIALLY_ACCEPTED: 'Принято частично', ACCEPTED: 'Принято', REWORK_REQUIRED: 'Нужна доработка',
   COMPLETED: 'Завершено', CANCELLED: 'Отменено',
 };
 export const assignmentStatusLabel = (status: string) => ASSIGNMENT_STATUS_LABELS[status] ?? status;
+
+// two-sided QR handoff (Phase 5): the reasons a worker can give instead of confirming
+const HANDOFF_PROBLEM_LABELS: Record<string, string> = {
+  SHORTAGE: 'Не хватает материала', WRONG_COLOR: 'Неправильный цвет', WRONG_MODEL: 'Неправильная модель',
+  WRONG_METERS: 'Неправильный метраж', DAMAGED: 'Повреждение', OTHER: 'Другое',
+};
+export const handoffProblemLabel = (reason: string | null | undefined) => HANDOFF_PROBLEM_LABELS[reason ?? ''] ?? 'Другое';
 
 const ASSIGNMENT_STATUS_TONE: Record<string, 'default' | 'ok' | 'danger' | 'warn'> = {
   DRAFT: 'default', READY_TO_DELIVER: 'warn', DELIVERED: 'warn', IN_PROGRESS: 'default', READY_FOR_PICKUP: 'warn',

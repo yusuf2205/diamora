@@ -37,7 +37,7 @@ export default function AssignmentsPage() {
       <PageHeader
         title="Задания"
         subtitle="Выдача работы, доставка, забор, приёмка и выплата."
-        actions={<Button onClick={() => setCreating(true)}>+ Выдать работу</Button>}
+        actions={<Button onClick={() => setCreating(true)}>+ Подготовить работу</Button>}
       />
       <Chips options={STATUS_FILTERS} value={status as (typeof STATUS_FILTERS)[number]['value']} onChange={setStatus} label="Статус" />
       {error && <ErrorState error={error} onRetry={() => refetch()} />}
@@ -79,7 +79,7 @@ export default function AssignmentsPage() {
   );
 }
 
-/** «Выдать работу»: pick worker → model → colour → volume → deadline, see the full summary (materials that will leave the
+/** «Подготовить работу»: pick worker → model → colour → volume → deadline, see the full summary (materials that will leave the
  * stock, estimated pay at today's rate), confirm. The server re-checks stock and computes the real payment. */
 export function CreateAssignmentDialog({ onClose, workerId: presetWorker }: { onClose: () => void; workerId?: string }) {
   const router = useRouter();
@@ -155,14 +155,14 @@ export function CreateAssignmentDialog({ onClose, workerId: presetWorker }: { on
         {create.isError && !insufficientMaterial && <div className="mt-3"><ErrorState error={create.error} /></div>}
         <div className="mt-4 flex gap-2 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
           <Button variant="outline" onClick={() => setReviewing(false)}>Назад</Button>
-          <Button onClick={() => { setInsufficientMaterial(null); create.mutate(); }} disabled={create.isPending || !kit}>{create.isPending ? 'Выдаём…' : 'Выдать работу'}</Button>
+          <Button onClick={() => { setInsufficientMaterial(null); create.mutate(); }} disabled={create.isPending || !kit}>{create.isPending ? 'Готовим…' : 'Подготовить работу'}</Button>
         </div>
       </Modal>
     );
   }
 
   return (
-    <Modal title="Выдать работу" onClose={onClose}>
+    <Modal title="Подготовить работу" onClose={onClose}>
       <div className="space-y-3">
         <Field label="Мастерица" htmlFor="as-worker">
           <Select id="as-worker" value={workerId} onChange={(e) => setWorkerId(e.target.value)}>

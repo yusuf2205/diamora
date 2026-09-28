@@ -107,10 +107,10 @@ describe('admin dashboard (§31): every card is real data, and either links to i
     expect(screen.queryByText('Каталог', { selector: 'h2' })).not.toBeInTheDocument();
     expect(screen.queryByText('Материалы', { selector: 'h2' })).not.toBeInTheDocument();
     // no ASSIGNMENT_CREATE: the quick action must not be offered
-    expect(screen.queryByRole('button', { name: 'Выдать работу' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Подготовить работу' })).not.toBeInTheDocument();
   });
 
-  it('"Выдать работу" opens the real create dialog for a user who may create assignments', async () => {
+  it('"Подготовить работу" opens the real create dialog for a user who may create assignments', async () => {
     signIn(SUPER_ADMIN);
     mockFetch({
       '/auth/me': SUPER_ADMIN, '/dashboard': fullDashboard(),
@@ -118,7 +118,7 @@ describe('admin dashboard (§31): every card is real data, and either links to i
       '/settings/pay-rate': { ratePerKit: '30000', kitMeters: 9, updatedAt: '2026-01-01T00:00:00Z' },
     });
     renderWithProviders(<DashboardPage />);
-    await userEvent.setup().click(await screen.findByRole('button', { name: '+ Выдать работу' }));
-    expect(await screen.findByRole('heading', { name: 'Выдать работу' })).toBeInTheDocument();
+    await userEvent.setup().click(await screen.findByRole('button', { name: '+ Подготовить работу' }));
+    expect(await screen.findByRole('heading', { name: 'Подготовить работу' })).toBeInTheDocument();
   });
 });

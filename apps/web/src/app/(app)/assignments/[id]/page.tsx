@@ -6,8 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { earningFor, metersToCm } from '@yusmus/shared';
-import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs } from '@/lib/format';
-import type { AssignmentDetail, PayRate } from '@/lib/types';
+import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, handoffProblemLabel } from '@/lib/format';
+import type { AssignmentDetail, AssignmentHandoff, HandoffTimelineEntry, PayRate } from '@/lib/types';
 import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
 
 /** One operational screen per assignment, exactly like the mobile app: human status, history, and ONE contextual
@@ -19,8 +19,9 @@ export default function AssignmentDetailPage() {
   const [payingOut, setPayingOut] = useState(false);
   const { data: a, error, isLoading } = useQuery<AssignmentDetail>({ queryKey: ['assignment', id], queryFn: () => api.get<AssignmentDetail>(`/admin/assignments/${id}`) });
 
+  // Phase 5: staff only STARTS the handoff; the worker confirms receipt in her own app, then this page updates live
   const deliver = useMutation({
-    mutationFn: () => api.post(`/admin/assignments/${id}/deliver`, undefined, { idempotencyKey: crypto.randomUUID() }),
+    mutationFn: () => api.post(`/admin/assignments/${id}/handoff`, undefined, { idempotencyKey: crypto.randomUUID() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['assignment', id] }),
   });
   const pickup = useMutation({
@@ -34,7 +35,14 @@ export default function AssignmentDetailPage() {
   const pct = a.plannedMeters > 0 ? Math.min(100, (a.reportedMeters / a.plannedMeters) * 100) : 0;
   const unit = (u?: string | null) => (u === 'METER' ? 'м' : u === 'GRAM' ? 'г' : 'шт');
   const action = (() => {
-    if (a.status === 'READY_TO_DELIVER') return { label: 'Доставлено', hint: 'Отметьте, когда материалы переданы мастерице', run: () => deliver.mutate(), pending: deliver.isPending, err: deliver.error };
+    if (a.status === 'READY_TO_DELIVER') {
+      if (a.handoff?.status === 'AWAITING_WORKER' && !a.handoff.expired) return null; // she is confirming: nothing to press
+      return {
+        label: a.handoff ? 'Начать передачу снова' : 'Начать передачу',
+        hint: 'Вы у мастерицы: после этого она сама отсканирует QR и подтвердит получение. Материалы перейдут к ней только после её подтверждения.',
+        run: () => deliver.mutate(), pending: deliver.isPending, err: deliver.error,
+      };
+    }
     if (a.status === 'READY_FOR_PICKUP') return { label: 'Забрал', hint: 'Отметьте, когда забрали готовую работу', run: () => pickup.mutate(), pending: pickup.isPending, err: pickup.error };
     if (a.status === 'UNDER_REVIEW') return { label: 'Принять работу', hint: 'Проверьте работу и укажите, сколько принято', run: () => setAccepting(true), pending: false, err: null };
     if (a.status === 'ACCEPTED' || a.status === 'PARTIALLY_ACCEPTED' || a.status === 'COMPLETED') return { label: 'Выплатить наличными', hint: null, run: () => setPayingOut(true), pending: false, err: null };
@@ -65,11 +73,14 @@ export default function AssignmentDetailPage() {
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <dt className="text-muted">Срок</dt><dd className="text-right">{a.dueAt ? formatDay(a.dueAt) : 'без срока'}</dd>
           <dt className="text-muted">Комплектов</dt><dd className="text-right">{a.kitCount} × 9 м</dd>
+          {a.expectedPayment && a.acceptedMeters === 0 && <><dt className="text-muted">Ожидаемая оплата</dt><dd className="text-right">{formatUzs(a.expectedPayment)}</dd></>}
           {a.calculatedPayment && a.acceptedMeters > 0 && <><dt className="text-muted">Начислено</dt><dd className="text-right font-semibold text-ok">{formatUzs(a.calculatedPayment)}</dd></>}
           {a.acceptedMeters > 0 && <><dt className="text-muted">Принято</dt><dd className="text-right">{a.acceptedMeters} м{a.defectiveMeters > 0 ? ` · брак ${a.defectiveMeters} м` : ''}</dd></>}
         </dl>
         {a.notes && <p className="mt-3 rounded-lg bg-border/30 p-3 text-sm">{a.notes}</p>}
       </Card>
+
+      {a.handoff && <HandoffCard handoff={a.handoff} workerName={a.worker.fullName} timeline={a.handoffTimeline ?? []} />}
 
       {action && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0">
@@ -81,7 +92,7 @@ export default function AssignmentDetailPage() {
 
       {a.materials.length > 0 && (
         <Card>
-          <h2 className="mb-2 text-sm font-semibold">Материалы</h2>
+          <h2 className="mb-2 text-sm font-semibold">{a.status === 'READY_TO_DELIVER' || a.status === 'DRAFT' ? 'Подготовленные материалы' : 'Материалы у мастерицы'}</h2>
           <ul className="divide-y divide-border text-sm">
             {a.materials.map((m) => (
               <li key={m.materialId} className="flex justify-between gap-3 py-2"><span>{m.name ?? 'Материал'}</span><span className="shrink-0 tabular-nums text-muted">{m.quantity} {unit(m.unit)}</span></li>
@@ -107,6 +118,45 @@ export default function AssignmentDetailPage() {
       {accepting && <AcceptDialog assignment={a} onClose={() => setAccepting(false)} />}
       {payingOut && <PayoutDialog workerId={a.worker.id} onClose={() => setPayingOut(false)} />}
     </div>
+  );
+}
+
+/** Phase 5.9/5.10: who started the handoff, when the worker scanned and confirmed (the fact of receipt), or her problem. */
+export function HandoffCard({ handoff: h, workerName, timeline }: { handoff: AssignmentHandoff; workerName: string; timeline: HandoffTimelineEntry[] }) {
+  const state = h.status === 'CONFIRMED'
+    ? { tone: 'bg-ok/10 text-ok', title: `${workerName} получила комплект`, hint: h.workerAcceptedAt ? formatDate(h.workerAcceptedAt) : null }
+    : h.status === 'PROBLEM'
+      ? { tone: 'bg-danger/10 text-danger', title: 'Мастерица сообщила о проблеме', hint: [handoffProblemLabel(h.problemReason), h.problemComment].filter(Boolean).join(' · ') }
+      : h.status === 'EXPIRED' || h.expired
+        ? { tone: 'bg-danger/10 text-danger', title: 'Время передачи истекло', hint: 'Начните передачу снова' }
+        : h.workerScannedAt
+          ? { tone: 'bg-primary/10 text-primary', title: 'Мастерица отсканировала QR и проверяет комплект', hint: null }
+          : { tone: 'bg-primary/10 text-primary', title: 'Ожидаем подтверждения мастерицы', hint: 'Попросите мастерицу открыть приложение и отсканировать QR комплекта' };
+  const line = (e: HandoffTimelineEntry) =>
+    e.kind === 'HANDOFF_STARTED' ? `Передачу начал(а): ${e.by ?? ''}`
+      : e.kind === 'WORKER_SCANNED' ? 'Мастерица отсканировала QR'
+        : e.kind === 'WORKER_CONFIRMED' ? 'Мастерица подтвердила получение'
+          : `Мастерица сообщила о проблеме: ${handoffProblemLabel(e.reason)}`;
+  return (
+    <Card>
+      <h2 className="mb-2 text-sm font-semibold">Передача мастерице</h2>
+      <div className={`rounded-lg p-3 ${state.tone}`}>
+        <p className="font-semibold">{state.title}</p>
+        {state.hint && <p className="text-sm opacity-90">{state.hint}</p>}
+      </div>
+      {timeline.length > 0 && (
+        <ol className="mt-3 space-y-2 text-sm">
+          {timeline.map((e, i) => (
+            <li key={i} className="relative pl-5">
+              <span className={`absolute left-0 top-1.5 h-2 w-2 rounded-full ${e.kind === 'WORKER_PROBLEM' ? 'bg-danger' : 'bg-primary'}`} />
+              <p>{line(e)}</p>
+              <p className="text-xs text-muted">{formatDate(e.at)}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+      {h.status === 'CONFIRMED' && <p className="mt-2 text-xs text-muted">Передачу начал(а): {h.staff.fullName}{h.hasLocation ? ' · место получения сохранено' : ''}</p>}
+    </Card>
   );
 }
 

@@ -45,7 +45,7 @@ export default function WorkerDetailPage() {
         }
         actions={(canAssign || canPay) ? (
           <>
-            {canAssign && <Button onClick={() => setAssigning(true)}>+ Выдать работу</Button>}
+            {canAssign && <Button onClick={() => setAssigning(true)}>+ Подготовить работу</Button>}
             {canPay && <Button variant="outline" onClick={() => setPayingOut(true)}>Выплатить</Button>}
           </>
         ) : undefined}

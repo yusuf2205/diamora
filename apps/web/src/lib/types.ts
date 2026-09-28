@@ -125,7 +125,19 @@ export interface AssignmentDetail extends AssignmentSummary {
   calculatedPayment: string | null; notes: string | null; qrCode: string | null;
   variant: { label: string | null } | null;
   materials: AssignmentMaterialLine[]; statusHistory: AssignmentStatusEvent[]; deliveries: AssignmentDelivery[];
+  expectedPayment?: string | null;
+  /** latest two-sided QR handoff (Phase 5): staff starts, the worker scans the same QR and confirms in her app */
+  handoff?: AssignmentHandoff | null;
+  handoffTimeline?: HandoffTimelineEntry[];
 }
+
+export interface AssignmentHandoff {
+  id: string; status: 'AWAITING_WORKER' | 'CONFIRMED' | 'PROBLEM' | 'EXPIRED'; startedAt: string; expiresAt: string; expired: boolean;
+  staff: { id: string; fullName: string; role: string };
+  workerScannedAt: string | null; workerAcceptedAt: string | null;
+  problemReason: string | null; problemComment: string | null; hasLocation: boolean;
+}
+export interface HandoffTimelineEntry { kind: 'HANDOFF_STARTED' | 'WORKER_SCANNED' | 'WORKER_CONFIRMED' | 'WORKER_PROBLEM'; at: string; by?: string; reason?: string | null }
 
 export interface KitTemplateItem { materialId: string; materialName: string; unit: string; requiredQuantity: number }
 export interface KitTemplate { id: string; name: string; variantId: string | null; ribbonMeters: number; baseMeters: number; active: boolean; items: KitTemplateItem[] }

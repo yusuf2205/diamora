@@ -33,7 +33,7 @@ describe('assignments list (M3 §28): same statuses and wording as the mobile ap
     renderWithProviders(<AssignmentsPage />);
     expect(await screen.findByText('Малика Каримова')).toBeInTheDocument();
     expect(screen.getByText('Комплект «Роза»')).toBeInTheDocument();
-    expect(screen.getByText('Готово к доставке')).toBeInTheDocument();
+    expect(screen.getByText('Ожидает получения')).toBeInTheDocument();
     expect(screen.queryByText('READY_TO_DELIVER')).not.toBeInTheDocument();
   });
 
@@ -71,7 +71,7 @@ describe('create assignment (M3 §16): the server computes the material kit and 
     expect(screen.getByText('18 м')).toBeInTheDocument();
     expect(screen.getByText('60 000 сум')).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([u, i]) => String(u).includes('/admin/assignments') && (i as RequestInit | undefined)?.method === 'POST')).toBe(false);
-    await user.click(screen.getByRole('button', { name: 'Выдать работу' }));
+    await user.click(screen.getByRole('button', { name: 'Подготовить работу' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/assignments/a1'));
     const call = fetchMock.mock.calls.find(([u]) => String(u).includes('/admin/assignments') && !String(u).includes('workerId'));
@@ -92,7 +92,7 @@ describe('create assignment (M3 §16): the server computes the material kit and 
     await user.selectOptions(screen.getByDisplayValue('Выберите модель'), 'p1');
     await user.selectOptions(await screen.findByDisplayValue('Выберите цвет'), 'v1');
     await user.click(screen.getByRole('button', { name: 'Далее' }));
-    await user.click(await screen.findByRole('button', { name: 'Выдать работу' }));
+    await user.click(await screen.findByRole('button', { name: 'Подготовить работу' }));
 
     expect(await screen.findByText('На складе не хватает: Атлас 1000ток')).toBeInTheDocument();
     expect(screen.queryByText('INSUFFICIENT_STOCK')).not.toBeInTheDocument();
@@ -100,14 +100,67 @@ describe('create assignment (M3 §16): the server computes the material kit and 
 });
 
 describe('assignment detail (M3 §17): exactly one contextual action per status', () => {
-  it('READY_TO_DELIVER shows only "Доставлено"; confirming calls the deliver endpoint', async () => {
+  it('READY_TO_DELIVER shows only "Начать передачу" (never "Доставлено"); it calls the handoff endpoint', async () => {
     signIn(ME);
     const fetchMock = mockFetch({ '/auth/me': ME, '/admin/assignments/a1': assignmentDetail({ status: 'READY_TO_DELIVER' }) });
     renderWithProviders(<AssignmentDetailPage />);
-    const btn = await screen.findByRole('button', { name: 'Доставлено' });
+    const btn = await screen.findByRole('button', { name: 'Начать передачу' });
+    expect(screen.queryByRole('button', { name: 'Доставлено' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Забрал' })).not.toBeInTheDocument();
+    expect(screen.getByText('Ожидает получения')).toBeInTheDocument();
     await userEvent.click(btn);
-    await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/admin/assignments/a1/deliver'))).toBe(true));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/admin/assignments/a1/handoff'))).toBe(true));
+  });
+
+  const handoff = (over: object = {}) => ({
+    id: 'h1', status: 'AWAITING_WORKER', startedAt: '2026-09-28T09:00:00.000Z', expiresAt: '2026-09-28T11:00:00.000Z', expired: false,
+    staff: { id: 's1', fullName: 'Менеджер Азиза', role: 'MANAGER' }, workerScannedAt: null, workerAcceptedAt: null,
+    problemReason: null, problemComment: null, hasLocation: false, ...over,
+  });
+
+  it('handoff started: «Ожидаем подтверждения мастерицы», who started it, and NO button to press meanwhile', async () => {
+    signIn(ME);
+    mockFetch({
+      '/auth/me': ME,
+      '/admin/assignments/a1': assignmentDetail({
+        status: 'READY_TO_DELIVER', handoff: handoff(),
+        handoffTimeline: [{ kind: 'HANDOFF_STARTED', at: '2026-09-28T09:00:00.000Z', by: 'Менеджер Азиза' }],
+      }),
+    });
+    renderWithProviders(<AssignmentDetailPage />);
+    expect(await screen.findByText('Ожидаем подтверждения мастерицы')).toBeInTheDocument();
+    expect(screen.getByText('Передачу начал(а): Менеджер Азиза')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Начать передачу/ })).not.toBeInTheDocument();
+  });
+
+  it('worker confirmed: the fact of receipt — who got it, when, who handed over — and a human timeline, no raw enums', async () => {
+    signIn(ME);
+    mockFetch({
+      '/auth/me': ME,
+      '/admin/assignments/a1': assignmentDetail({
+        status: 'IN_PROGRESS',
+        handoff: handoff({ status: 'CONFIRMED', workerScannedAt: '2026-09-28T09:01:00.000Z', workerAcceptedAt: '2026-09-28T09:02:00.000Z', hasLocation: true }),
+        handoffTimeline: [
+          { kind: 'HANDOFF_STARTED', at: '2026-09-28T09:00:00.000Z', by: 'Менеджер Азиза' },
+          { kind: 'WORKER_SCANNED', at: '2026-09-28T09:01:00.000Z', by: 'W' },
+          { kind: 'WORKER_CONFIRMED', at: '2026-09-28T09:02:00.000Z', by: 'W' },
+        ],
+      }),
+    });
+    renderWithProviders(<AssignmentDetailPage />);
+    expect(await screen.findByText(/получила комплект$/)).toBeInTheDocument();
+    expect(screen.getByText('Мастерица подтвердила получение')).toBeInTheDocument();
+    expect(screen.getByText(/место получения сохранено/)).toBeInTheDocument();
+    expect(screen.queryByText(/WORKER_|AWAITING|CONFIRMED/)).not.toBeInTheDocument();
+  });
+
+  it('worker reported a problem: the reason in words and «Начать передачу снова»', async () => {
+    signIn(ME);
+    mockFetch({ '/auth/me': ME, '/admin/assignments/a1': assignmentDetail({ status: 'READY_TO_DELIVER', handoff: handoff({ status: 'PROBLEM', problemReason: 'SHORTAGE', problemComment: 'нет бисера' }) }) });
+    renderWithProviders(<AssignmentDetailPage />);
+    expect(await screen.findByText('Мастерица сообщила о проблеме')).toBeInTheDocument();
+    expect(screen.getByText('Не хватает материала · нет бисера')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Начать передачу снова' })).toBeInTheDocument();
   });
 
   it('READY_FOR_PICKUP shows only "Забрал"', async () => {

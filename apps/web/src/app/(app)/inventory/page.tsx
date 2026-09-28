@@ -20,7 +20,7 @@ const UNITS: { value: string; label: string; short: string }[] = [
 ];
 const unit = (u: string) => UNITS.find((x) => x.value === u)?.short ?? u;
 
-/** «Склад»: what is in stock, a receipt when a delivery arrives, and the 9 m kit recipes «Выдать работу» takes
+/** «Склад»: what is in stock, a receipt when a delivery arrives, and the 9 m kit recipes «Подготовить работу» takes
  * materials by. The server keeps the balances (movements are append-only); nothing here edits a number directly. */
 export default function InventoryPage() {
   const { me } = useAuth();
