@@ -1,5 +1,7 @@
 # Diamoraa — home production on our own NAS
 
+**What was built / Что сделано:** [docs/PROJECT.en.md](docs/PROJECT.en.md) · [docs/PROJECT.ru.md](docs/PROJECT.ru.md)
+
 Replaces the notebook with a mobile-first system: **Telegram registration → SUPER_ADMIN/ADMIN/MANAGER app + WORKER app (Flutter) + a web control panel (Next.js) → NestJS on the NAS**, realtime, QR, Yandex Maps, cash-only payments, profit. All data lives on the NAS (PostgreSQL, MinIO, Redis); Telegram and Yandex are transport/tiles only.
 
 Docs: [ARCHITECTURE](docs/ARCHITECTURE.md) · [DECISIONS](docs/DECISIONS.md) · [RBAC](docs/RBAC.md) · [CATALOG](docs/CATALOG.md) · [LIVE-LOCATION](docs/LIVE-LOCATION.md) · [BUSINESS-RULES](docs/BUSINESS-RULES.md) · [DATABASE](docs/DATABASE.md) · [API](docs/API.md) · [REALTIME](docs/REALTIME.md) · [TELEGRAM-BOT](docs/TELEGRAM-BOT.md) · [YANDEX-MAPS](docs/YANDEX-MAPS.md) · [QR](docs/QR.md) · [FINANCE](docs/FINANCE.md) · [NAS-DEPLOYMENT](docs/NAS-DEPLOYMENT.md) · [BACKUP](docs/BACKUP.md) · [DISASTER-RECOVERY](docs/DISASTER-RECOVERY.md) · [MVP-ROADMAP](docs/MVP-ROADMAP.md)

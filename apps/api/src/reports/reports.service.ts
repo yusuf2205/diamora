@@ -52,23 +52,26 @@ export class ReportsService {
     const workers = await this.prisma.workerProfile.findMany({ where: { ...scope, status: { not: 'REJECTED' } }, select: { id: true, code: true, fullName: true } });
     const ids = workers.map((w) => w.id);
     const [issued, inspections, ledger, overdue] = await Promise.all([
-      this.prisma.workAssignment.findMany({ where: { workerId: { in: ids }, createdAt: { gte: from, lt: to } }, select: { workerId: true, plannedMeters: true } }),
+      // aggregated in PostgreSQL, not loaded row by row: stays fast with thousands of workers
+      this.prisma.workAssignment.groupBy({ by: ['workerId'], where: { workerId: { in: ids }, createdAt: { gte: from, lt: to } }, _count: { _all: true }, _sum: { plannedMeters: true } }),
       this.prisma.qualityInspection.findMany({ where: { assignment: { workerId: { in: ids } }, inspectedAt: { gte: from, lt: to } }, select: { acceptedMeters: true, defectiveMeters: true, assignment: { select: { workerId: true } } } }),
-      this.prisma.workerLedgerTransaction.findMany({ where: { workerId: { in: ids }, createdAt: { gte: from, lt: to }, type: { in: ['EARNING', 'PAYOUT_CASH'] } }, select: { workerId: true, type: true, amount: true } }),
-      this.prisma.workAssignment.findMany({ where: { workerId: { in: ids }, status: { in: ['READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS'] }, dueAt: { lt: new Date() } }, select: { workerId: true } }),
+      this.prisma.workerLedgerTransaction.groupBy({ by: ['workerId', 'type'], where: { workerId: { in: ids }, createdAt: { gte: from, lt: to }, type: { in: ['EARNING', 'PAYOUT_CASH'] } }, _sum: { amount: true } }),
+      this.prisma.workAssignment.groupBy({ by: ['workerId'], where: { workerId: { in: ids }, status: { in: ['READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS'] }, dueAt: { lt: new Date() } }, _count: { _all: true } }),
     ]);
-    const rows = workers.map((w) => {
-      const iss = issued.filter((a) => a.workerId === w.id);
-      const ins = inspections.filter((i) => i.assignment.workerId === w.id);
-      const led = ledger.filter((l) => l.workerId === w.id);
-      const earned = led.filter((l) => l.type === 'EARNING').reduce((s, l) => s + l.amount, 0n);
-      const paid = -led.filter((l) => l.type === 'PAYOUT_CASH').reduce((s, l) => s + l.amount, 0n);
-      return {
-        worker: w, issuedCount: iss.length, issuedMeters: iss.reduce((s, a) => s + Number(a.plannedMeters), 0),
-        acceptedMeters: ins.reduce((s, i) => s + Number(i.acceptedMeters), 0), defectiveMeters: ins.reduce((s, i) => s + Number(i.defectiveMeters), 0),
-        earned, paid, overdue: overdue.filter((o) => o.workerId === w.id).length,
-      };
-    }).filter((r) => r.issuedCount || r.acceptedMeters || r.earned || r.paid || r.overdue)
+    const iss = new Map(issued.map((g) => [g.workerId, g]));
+    const due = new Map(overdue.map((g) => [g.workerId, g._count._all]));
+    const acc = new Map<string, { a: number; d: number }>();
+    for (const i of inspections) {
+      const x = acc.get(i.assignment.workerId) ?? { a: 0, d: 0 };
+      x.a += Number(i.acceptedMeters); x.d += Number(i.defectiveMeters);
+      acc.set(i.assignment.workerId, x);
+    }
+    const sumOf = (workerId: string, type: 'EARNING' | 'PAYOUT_CASH') => ledger.find((l) => l.workerId === workerId && l.type === type)?._sum.amount ?? 0n;
+    const rows = workers.map((w) => ({
+      worker: w, issuedCount: iss.get(w.id)?._count._all ?? 0, issuedMeters: Number(iss.get(w.id)?._sum.plannedMeters ?? 0),
+      acceptedMeters: acc.get(w.id)?.a ?? 0, defectiveMeters: acc.get(w.id)?.d ?? 0,
+      earned: sumOf(w.id, 'EARNING'), paid: -sumOf(w.id, 'PAYOUT_CASH'), overdue: due.get(w.id) ?? 0,
+    })).filter((r) => r.issuedCount || r.acceptedMeters || r.earned || r.paid || r.overdue)
       .sort((a, b) => b.acceptedMeters - a.acceptedMeters || a.worker.fullName.localeCompare(b.worker.fullName));
 
     const total = rows.reduce((t, r) => ({

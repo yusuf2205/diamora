@@ -28,6 +28,8 @@ export class MaintenanceService {
       sessions: (await this.prisma.userSession.deleteMany({ where: { OR: [{ expiresAt: { lt: ago(30) } }, { revokedAt: { lt: ago(60) } }] } })).count,
       drafts: (await this.prisma.registrationDraft.deleteMany({ where: { updatedAt: { lt: ago(30) } } })).count,
       sentNotifications: (await this.prisma.notification.deleteMany({ where: { status: 'SENT', sentAt: { lt: ago(90) } } })).count,
+      // the position trail grows with every heartbeat of every phone: 90 days is plenty (the current point lives on the profile)
+      locationTrail: (await this.prisma.workerLocation.deleteMany({ where: { receivedAt: { lt: ago(90) } } })).count,
     };
     this.log.log(`cleanup: ${JSON.stringify(r)}`);
     return r;

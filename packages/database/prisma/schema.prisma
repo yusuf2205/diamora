@@ -704,6 +704,7 @@ model WorkAssignment {
   @@index([workerId, status])
   @@index([status])
   @@index([dueAt])
+  @@index([createdAt])
   @@map("work_assignments")
 }
 
@@ -894,6 +895,7 @@ model QualityInspection {
   inspectedAt     DateTime       @default(now()) @db.Timestamptz(3)
 
   @@index([assignmentId])
+  @@index([inspectedAt])
   @@map("quality_inspections")
 }
 
@@ -942,6 +944,7 @@ model WorkerLedgerTransaction {
   createdAt      DateTime        @default(now()) @db.Timestamptz(3)
 
   @@index([workerId, createdAt])
+  @@index([type, createdAt])
   @@map("worker_ledger_transactions")
 }
 
@@ -1055,6 +1058,7 @@ model Notification {
   @@index([status, nextAttemptAt])
   @@index([workerId, createdAt])
   @@index([userId, createdAt])
+  @@index([userId, readAt])
   @@map("notifications")
 }
 
