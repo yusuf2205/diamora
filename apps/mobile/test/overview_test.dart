@@ -57,7 +57,7 @@ void main() {
     when(() => api.getJson('/dashboard')).thenAnswer((_) async => dash());
     await pump(tester, staff('SUPER_ADMIN', permissions: ['ASSIGNMENT_CREATE', 'CASH_PAYOUT']));
 
-    expect(find.text('Юсуф'), findsOneWidget);
+    expect(find.textContaining('Юсуф'), findsOneWidget);
     expect(find.text('Главный администратор'), findsOneWidget);
     expect(find.text('Активные мастерицы'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
@@ -69,8 +69,10 @@ void main() {
     expect(find.text('2 мастерицы ждут выплату'), findsOneWidget);
     expect(find.text('Срок сегодня'), findsOneWidget);
     expect(find.textContaining(RegExp(r'60\s000')), findsOneWidget); // выплачено сегодня
-    expect(find.text('Подготовить работу'), findsOneWidget);
-    expect(find.text('Выплатить наличными'), findsOneWidget);
+    // quick actions: one-word labels, the full name is the tooltip
+    expect(find.text('Работа'), findsOneWidget);
+    expect(find.byTooltip('Подготовить работу'), findsOneWidget);
+    expect(find.text('Выплата'), findsOneWidget);
   });
 
   testWidgets('MANAGER without finance/payout rights: her role, no money card, no payout action (the server already scopes her numbers)', (tester) async {
@@ -79,8 +81,8 @@ void main() {
 
     expect(find.text('Менеджер'), findsOneWidget);
     expect(find.text('К выплате'), findsNothing);
-    expect(find.text('Выплатить наличными'), findsNothing);
-    expect(find.text('Подготовить работу'), findsNothing); // no ASSIGNMENT_CREATE
+    expect(find.text('Выплата'), findsNothing);
+    expect(find.text('Работа'), findsNothing); // no ASSIGNMENT_CREATE
     expect(find.text('В работе'), findsOneWidget);
   });
 

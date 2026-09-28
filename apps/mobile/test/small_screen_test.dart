@@ -60,7 +60,7 @@ void main() {
     });
     await tester.pumpWidget(await appWith(owner, api));
     await tester.pumpAndSettle();
-    expect(find.text('Юсуф'), findsOneWidget); // Обзор greets her
+    expect(find.textContaining('Юсуф'), findsOneWidget); // Обзор greets her
 
     await tester.tap(find.text('Мастерицы'));
     await tester.pumpAndSettle();
