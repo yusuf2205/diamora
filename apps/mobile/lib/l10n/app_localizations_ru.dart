@@ -1982,4 +1982,149 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get collateralReturnedToast => 'Залог возвращён';
+
+  @override
+  String get mapFilterAll => 'Все';
+
+  @override
+  String get mapFilterToDeliver => 'Ждут доставку';
+
+  @override
+  String get mapFilterToPickup => 'Готово к забору';
+
+  @override
+  String get mapFilterOverdue => 'Просрочено';
+
+  @override
+  String get mapFilterAllManagers => 'Все менеджеры';
+
+  @override
+  String get mapAtHome =>
+      'Дома — адрес при регистрации (телефон сейчас не передаёт геопозицию)';
+
+  @override
+  String get ratingTitle => 'Рейтинг мастериц';
+
+  @override
+  String get ratingThreeMonths => '3 месяца';
+
+  @override
+  String get ratingHalfYear => 'Полгода';
+
+  @override
+  String ratingLine(String meters, String defect, int late, int total) {
+    return '$meters м · брак $defect% · опоздала $late из $total';
+  }
+
+  @override
+  String get ratingHowScored =>
+      'Балл из 100: 40% — объём (≈54 м в месяц = максимум), 35% — без брака, 25% — вовремя.';
+
+  @override
+  String get profitTitle => 'Прибыль';
+
+  @override
+  String get profitAdd => 'Продажа или расход';
+
+  @override
+  String get profitSale => 'Продажа';
+
+  @override
+  String get profitExpense => 'Расход';
+
+  @override
+  String get profitSales => 'Продажи';
+
+  @override
+  String get profitLabor => 'Мастерицам';
+
+  @override
+  String get profitMaterials => 'Материалы';
+
+  @override
+  String get profitExpenses => 'Расходы';
+
+  @override
+  String get profitCustomer => 'Покупатель (необязательно)';
+
+  @override
+  String get profitNoPriceHint =>
+      '* У части материалов не указана цена закупки — они не посчитаны. Укажите цену в веб-панели на складе.';
+
+  @override
+  String get profitDeleteConfirm =>
+      'Удалить эту запись? Прибыль за месяц пересчитается.';
+
+  @override
+  String get expenseFuel => 'Бензин / доставка';
+
+  @override
+  String get expensePackaging => 'Упаковка';
+
+  @override
+  String get expenseOther => 'Другое';
+
+  @override
+  String get stockValueTitle => 'Стоимость склада (по цене закупки)';
+
+  @override
+  String stockValueSplit(String shelf, String homes) {
+    return 'на складе $shelf · у мастериц $homes';
+  }
+
+  @override
+  String stockValueNoPrice(String names) {
+    return 'Без цены: $names';
+  }
+
+  @override
+  String get systemTitle => 'Состояние системы';
+
+  @override
+  String get systemServer => 'Сервер';
+
+  @override
+  String get systemDatabase => 'База данных';
+
+  @override
+  String systemUptime(int hours) {
+    return 'работает $hours ч';
+  }
+
+  @override
+  String get systemOk => 'в порядке';
+
+  @override
+  String get systemDown => 'не отвечает';
+
+  @override
+  String get systemBackups => 'Резервные копии';
+
+  @override
+  String get systemBackupsHidden =>
+      'Сервер не видит папку с отметками резервных копий.';
+
+  @override
+  String get systemBackupFailed => 'ошибка';
+
+  @override
+  String get systemBackupLate => 'давно не было';
+
+  @override
+  String get backupDaily => 'База данных (каждый день)';
+
+  @override
+  String get backupWeekly => 'Полная копия базы (раз в неделю)';
+
+  @override
+  String get backupFiles => 'Фото и файлы';
+
+  @override
+  String get backupConfig => 'Настройки';
+
+  @override
+  String get backupVerify => 'Проверка восстановления';
+
+  @override
+  String get backupRestore => 'Восстановление';
 }

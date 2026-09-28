@@ -37,4 +37,30 @@ void main() {
       expect(freshnessLabel(l, row(role: 'WORKER', freshness: LocationFreshness.stale, ageSeconds: 1200)), l.locationStaleMinutes(20));
     });
   });
+
+  group('map filters: what is waiting at her place, whose manager', () {
+    LiveLocationRow w({bool deliver = false, bool pickup = false, bool overdue = false, String? manager}) => LiveLocationRow(
+          userId: 'u', role: 'WORKER', fullName: 'Нигора', latitude: 41, longitude: 69, ageSeconds: 0, stale: false,
+          toDeliver: deliver, toPickup: pickup, overdue: overdue, managerId: manager,
+        );
+    test('each filter keeps only its rows; «Все» keeps everyone; manager narrows further', () {
+      final rows = [w(deliver: true, manager: 'm1'), w(pickup: true, manager: 'm2'), w(overdue: true, manager: 'm1'), w()];
+      expect(rows.where((r) => mapRowMatches(r, MapWorkFilter.any, null)).length, 4);
+      expect(rows.where((r) => mapRowMatches(r, MapWorkFilter.toDeliver, null)).length, 1);
+      expect(rows.where((r) => mapRowMatches(r, MapWorkFilter.toPickup, null)).length, 1);
+      expect(rows.where((r) => mapRowMatches(r, MapWorkFilter.overdue, 'm1')).length, 1);
+      expect(rows.where((r) => mapRowMatches(r, MapWorkFilter.any, 'm1')).length, 2);
+    });
+    test('what is waiting wins the colour: overdue red over ready green over deliver blue', () {
+      expect(markerColor(w(deliver: true, pickup: true, overdue: true), scheme), workOverdueColor);
+      expect(markerColor(w(deliver: true, pickup: true), scheme), workPickupColor);
+      expect(markerColor(w(deliver: true), scheme), workDeliverColor);
+    });
+    test('a home point (no live position) parses from `homes[]` with its work flags', () {
+      final r = LiveLocationRow.home({'worker': {'id': 'w1', 'code': 'W-1', 'fullName': 'Нигора', 'phone': '+998', 'managerId': 'm1'}, 'latitude': 41.3, 'longitude': 69.2, 'work': {'toDeliver': true, 'toPickup': false, 'overdue': false}});
+      expect(r.isHome, isTrue);
+      expect(r.toDeliver, isTrue);
+      expect(r.workerId, 'w1');
+    });
+  });
 }

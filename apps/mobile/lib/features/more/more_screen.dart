@@ -15,13 +15,17 @@ class MoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final perms = ref.watch(authControllerProvider).value?.permissions ?? const <String>[];
+    final isSuper = ref.watch(authControllerProvider).value?.isSuperAdmin ?? false;
     final items = <(IconData, String, String)>[
       (Icons.qr_code_scanner_rounded, l.qrScan, '/admin/qr-scan'),
       (Icons.auto_awesome_rounded, l.catalog, '/admin/catalog'),
       (Icons.badge_rounded, l.team, '/admin/team'),
       if (perms.contains('COLLATERAL_VIEW')) (Icons.lock_rounded, l.collateralsTitle, '/admin/collaterals'),
+      if (perms.contains('WORKER_VIEW_ALL') || perms.contains('WORKER_VIEW_ASSIGNED')) (Icons.emoji_events_rounded, l.ratingTitle, '/admin/rating'),
+      if (perms.contains('PROFIT_VIEW')) (Icons.trending_up_rounded, l.profitTitle, '/admin/finance'),
       if (perms.contains('FINANCE_VIEW_ALL') || perms.contains('FINANCE_VIEW_ASSIGNED') || perms.contains('PROFIT_VIEW')) (Icons.bar_chart_rounded, l.reportsTitle, '/admin/reports'),
       if (canOpenSettings(perms)) (Icons.settings_rounded, l.settingsTitle, '/admin/settings'),
+      if (isSuper || perms.contains('SETTINGS_MANAGE')) (Icons.monitor_heart_rounded, l.systemTitle, '/admin/system'),
       (Icons.person_outline_rounded, l.profile, '/admin/profile'),
     ];
     return Scaffold(

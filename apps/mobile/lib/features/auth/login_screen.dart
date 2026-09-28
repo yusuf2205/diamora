@@ -7,6 +7,7 @@ import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
+import '../profile/locale_controller.dart';
 
 enum _Step { phone, password }
 
@@ -108,6 +109,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const LanguagePicker(),
+                const SizedBox(height: 20),
                 Icon(Icons.diamond_rounded, size: 56, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
                 Text(l.appTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),

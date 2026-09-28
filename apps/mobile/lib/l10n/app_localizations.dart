@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_en.dart';
 import 'app_localizations_ru.dart';
 import 'app_localizations_uz.dart';
 
@@ -94,6 +95,7 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
     Locale('ru'),
     Locale('uz'),
   ];
@@ -3703,6 +3705,270 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Залог возвращён'**
   String get collateralReturnedToast;
+
+  /// No description provided for @mapFilterAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все'**
+  String get mapFilterAll;
+
+  /// No description provided for @mapFilterToDeliver.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждут доставку'**
+  String get mapFilterToDeliver;
+
+  /// No description provided for @mapFilterToPickup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово к забору'**
+  String get mapFilterToPickup;
+
+  /// No description provided for @mapFilterOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просрочено'**
+  String get mapFilterOverdue;
+
+  /// No description provided for @mapFilterAllManagers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все менеджеры'**
+  String get mapFilterAllManagers;
+
+  /// No description provided for @mapAtHome.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дома — адрес при регистрации (телефон сейчас не передаёт геопозицию)'**
+  String get mapAtHome;
+
+  /// No description provided for @ratingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Рейтинг мастериц'**
+  String get ratingTitle;
+
+  /// No description provided for @ratingThreeMonths.
+  ///
+  /// In ru, this message translates to:
+  /// **'3 месяца'**
+  String get ratingThreeMonths;
+
+  /// No description provided for @ratingHalfYear.
+  ///
+  /// In ru, this message translates to:
+  /// **'Полгода'**
+  String get ratingHalfYear;
+
+  /// No description provided for @ratingLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'{meters} м · брак {defect}% · опоздала {late} из {total}'**
+  String ratingLine(String meters, String defect, int late, int total);
+
+  /// No description provided for @ratingHowScored.
+  ///
+  /// In ru, this message translates to:
+  /// **'Балл из 100: 40% — объём (≈54 м в месяц = максимум), 35% — без брака, 25% — вовремя.'**
+  String get ratingHowScored;
+
+  /// No description provided for @profitTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прибыль'**
+  String get profitTitle;
+
+  /// No description provided for @profitAdd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продажа или расход'**
+  String get profitAdd;
+
+  /// No description provided for @profitSale.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продажа'**
+  String get profitSale;
+
+  /// No description provided for @profitExpense.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расход'**
+  String get profitExpense;
+
+  /// No description provided for @profitSales.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продажи'**
+  String get profitSales;
+
+  /// No description provided for @profitLabor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерицам'**
+  String get profitLabor;
+
+  /// No description provided for @profitMaterials.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы'**
+  String get profitMaterials;
+
+  /// No description provided for @profitExpenses.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расходы'**
+  String get profitExpenses;
+
+  /// No description provided for @profitCustomer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Покупатель (необязательно)'**
+  String get profitCustomer;
+
+  /// No description provided for @profitNoPriceHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'* У части материалов не указана цена закупки — они не посчитаны. Укажите цену в веб-панели на складе.'**
+  String get profitNoPriceHint;
+
+  /// No description provided for @profitDeleteConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить эту запись? Прибыль за месяц пересчитается.'**
+  String get profitDeleteConfirm;
+
+  /// No description provided for @expenseFuel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бензин / доставка'**
+  String get expenseFuel;
+
+  /// No description provided for @expensePackaging.
+  ///
+  /// In ru, this message translates to:
+  /// **'Упаковка'**
+  String get expensePackaging;
+
+  /// No description provided for @expenseOther.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другое'**
+  String get expenseOther;
+
+  /// No description provided for @stockValueTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стоимость склада (по цене закупки)'**
+  String get stockValueTitle;
+
+  /// No description provided for @stockValueSplit.
+  ///
+  /// In ru, this message translates to:
+  /// **'на складе {shelf} · у мастериц {homes}'**
+  String stockValueSplit(String shelf, String homes);
+
+  /// No description provided for @stockValueNoPrice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без цены: {names}'**
+  String stockValueNoPrice(String names);
+
+  /// No description provided for @systemTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Состояние системы'**
+  String get systemTitle;
+
+  /// No description provided for @systemServer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервер'**
+  String get systemServer;
+
+  /// No description provided for @systemDatabase.
+  ///
+  /// In ru, this message translates to:
+  /// **'База данных'**
+  String get systemDatabase;
+
+  /// No description provided for @systemUptime.
+  ///
+  /// In ru, this message translates to:
+  /// **'работает {hours} ч'**
+  String systemUptime(int hours);
+
+  /// No description provided for @systemOk.
+  ///
+  /// In ru, this message translates to:
+  /// **'в порядке'**
+  String get systemOk;
+
+  /// No description provided for @systemDown.
+  ///
+  /// In ru, this message translates to:
+  /// **'не отвечает'**
+  String get systemDown;
+
+  /// No description provided for @systemBackups.
+  ///
+  /// In ru, this message translates to:
+  /// **'Резервные копии'**
+  String get systemBackups;
+
+  /// No description provided for @systemBackupsHidden.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервер не видит папку с отметками резервных копий.'**
+  String get systemBackupsHidden;
+
+  /// No description provided for @systemBackupFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'ошибка'**
+  String get systemBackupFailed;
+
+  /// No description provided for @systemBackupLate.
+  ///
+  /// In ru, this message translates to:
+  /// **'давно не было'**
+  String get systemBackupLate;
+
+  /// No description provided for @backupDaily.
+  ///
+  /// In ru, this message translates to:
+  /// **'База данных (каждый день)'**
+  String get backupDaily;
+
+  /// No description provided for @backupWeekly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Полная копия базы (раз в неделю)'**
+  String get backupWeekly;
+
+  /// No description provided for @backupFiles.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото и файлы'**
+  String get backupFiles;
+
+  /// No description provided for @backupConfig.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки'**
+  String get backupConfig;
+
+  /// No description provided for @backupVerify.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверка восстановления'**
+  String get backupVerify;
+
+  /// No description provided for @backupRestore.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановление'**
+  String get backupRestore;
 }
 
 class _AppLocalizationsDelegate
@@ -3716,7 +3982,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['ru', 'uz'].contains(locale.languageCode);
+      <String>['en', 'ru', 'uz'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -3725,6 +3991,8 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
     case 'ru':
       return AppLocalizationsRu();
     case 'uz':

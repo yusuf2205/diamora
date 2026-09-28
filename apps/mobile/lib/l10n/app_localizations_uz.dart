@@ -1941,4 +1941,149 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get collateralReturnedToast => 'Garov qaytarildi';
+
+  @override
+  String get mapFilterAll => 'Hammasi';
+
+  @override
+  String get mapFilterToDeliver => 'Yetkazish kerak';
+
+  @override
+  String get mapFilterToPickup => 'Olib ketishga tayyor';
+
+  @override
+  String get mapFilterOverdue => 'Muddati oʻtgan';
+
+  @override
+  String get mapFilterAllManagers => 'Barcha menejerlar';
+
+  @override
+  String get mapAtHome =>
+      'Uyda — roʻyxatdan oʻtgandagi manzil (telefon hozir joylashuvni yubormayapti)';
+
+  @override
+  String get ratingTitle => 'Ustalar reytingi';
+
+  @override
+  String get ratingThreeMonths => '3 oy';
+
+  @override
+  String get ratingHalfYear => 'Yarim yil';
+
+  @override
+  String ratingLine(String meters, String defect, int late, int total) {
+    return '$meters m · brak $defect% · kechikdi $late/$total';
+  }
+
+  @override
+  String get ratingHowScored =>
+      '100 balldan: 40% — hajm (oyiga ≈54 m = maksimum), 35% — braksiz, 25% — oʻz vaqtida.';
+
+  @override
+  String get profitTitle => 'Foyda';
+
+  @override
+  String get profitAdd => 'Sotuv yoki xarajat';
+
+  @override
+  String get profitSale => 'Sotuv';
+
+  @override
+  String get profitExpense => 'Xarajat';
+
+  @override
+  String get profitSales => 'Sotuvlar';
+
+  @override
+  String get profitLabor => 'Ustalarga';
+
+  @override
+  String get profitMaterials => 'Materiallar';
+
+  @override
+  String get profitExpenses => 'Xarajatlar';
+
+  @override
+  String get profitCustomer => 'Xaridor (ixtiyoriy)';
+
+  @override
+  String get profitNoPriceHint =>
+      '* Ayrim materiallarning xarid narxi koʻrsatilmagan — ular hisoblanmadi. Narxni veb-paneldagi omborda kiriting.';
+
+  @override
+  String get profitDeleteConfirm =>
+      'Bu yozuv oʻchirilsinmi? Oylik foyda qayta hisoblanadi.';
+
+  @override
+  String get expenseFuel => 'Benzin / yetkazish';
+
+  @override
+  String get expensePackaging => 'Qadoqlash';
+
+  @override
+  String get expenseOther => 'Boshqa';
+
+  @override
+  String get stockValueTitle => 'Ombor qiymati (xarid narxida)';
+
+  @override
+  String stockValueSplit(String shelf, String homes) {
+    return 'omborda $shelf · ustalarda $homes';
+  }
+
+  @override
+  String stockValueNoPrice(String names) {
+    return 'Narxsiz: $names';
+  }
+
+  @override
+  String get systemTitle => 'Tizim holati';
+
+  @override
+  String get systemServer => 'Server';
+
+  @override
+  String get systemDatabase => 'Maʼlumotlar bazasi';
+
+  @override
+  String systemUptime(int hours) {
+    return '$hours soat ishlayapti';
+  }
+
+  @override
+  String get systemOk => 'joyida';
+
+  @override
+  String get systemDown => 'javob bermayapti';
+
+  @override
+  String get systemBackups => 'Zaxira nusxalar';
+
+  @override
+  String get systemBackupsHidden =>
+      'Server zaxira belgilari papkasini koʻrmayapti.';
+
+  @override
+  String get systemBackupFailed => 'xato';
+
+  @override
+  String get systemBackupLate => 'ancha boʻlmadi';
+
+  @override
+  String get backupDaily => 'Baza (har kuni)';
+
+  @override
+  String get backupWeekly => 'Bazaning toʻliq nusxasi (haftada bir)';
+
+  @override
+  String get backupFiles => 'Rasmlar va fayllar';
+
+  @override
+  String get backupConfig => 'Sozlamalar';
+
+  @override
+  String get backupVerify => 'Tiklashni tekshirish';
+
+  @override
+  String get backupRestore => 'Tiklash';
 }

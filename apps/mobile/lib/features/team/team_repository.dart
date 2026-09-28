@@ -61,10 +61,14 @@ class TeamRepository {
 
   Future<List<AuditEntry>> audit() async => ((await _api.getJson('/audit', query: {'limit': 100}))['items'] as List).map((j) => AuditEntry.fromJson((j as Map).cast<String, dynamic>())).toList();
 
-  Future<List<LiveLocationRow>> locations() async => ((await _api.getJson('/locations'))['items'] as List)
-      .where((j) => (j as Map)['latitude'] != null)
-      .map((j) => LiveLocationRow.fromJson((j as Map).cast<String, dynamic>()))
-      .toList();
+  /// Live positions + workers' homes (no live position) — the map shows both, the team list only live ones.
+  Future<List<LiveLocationRow>> locations() async {
+    final j = await _api.getJson('/locations');
+    return [
+      ...(j['items'] as List).where((x) => (x as Map)['latitude'] != null).map((x) => LiveLocationRow.fromJson((x as Map).cast<String, dynamic>())),
+      ...((j['homes'] as List?) ?? const []).map((x) => LiveLocationRow.home((x as Map).cast<String, dynamic>())),
+    ];
+  }
 }
 
 final teamRepositoryProvider = Provider<TeamRepository>((ref) => TeamRepository(ref.watch(apiClientProvider)));

@@ -18,11 +18,17 @@ import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../team/models.dart';
-import '../team/team_repository.dart' show liveLocationsProvider;
+import '../auth/auth_controller.dart';
+import '../team/team_repository.dart' show liveLocationsProvider, managersProvider;
 import '../team/team_screen.dart' show teamRoleLabel;
 
-/// Marker colour: role first (who), freshness second (how current) — never a STALE point drawn as if it were live (M2 §14-17).
+/// What is waiting there wins (red overdue, green ready to collect, blue to deliver); otherwise role first (who),
+/// freshness second (how current) — never a STALE point drawn as if it were live (M2 §14-17).
 Color markerColor(LiveLocationRow row, ColorScheme scheme) {
+  if (row.overdue) return workOverdueColor;
+  if (row.toPickup) return workPickupColor;
+  if (row.toDeliver) return workDeliverColor;
+  if (row.isHome) return scheme.outline;
   if (row.freshness == LocationFreshness.stale) return scheme.outline;
   switch (row.role) {
     case 'SUPER_ADMIN':
@@ -33,6 +39,18 @@ Color markerColor(LiveLocationRow row, ColorScheme scheme) {
     default: // WORKER
       return row.freshness == LocationFreshness.live ? AppTokens.ok : scheme.secondary;
   }
+}
+
+const workOverdueColor = Color(0xFFDC2626);
+const workPickupColor = Color(0xFF16A34A);
+const workDeliverColor = Color(0xFF2563EB);
+
+/// Map filters: what is waiting at the worker's, and whose manager she is.
+enum MapWorkFilter { any, toDeliver, toPickup, overdue }
+
+bool mapRowMatches(LiveLocationRow r, MapWorkFilter work, String? managerId) {
+  final byWork = switch (work) { MapWorkFilter.any => true, MapWorkFilter.toDeliver => r.toDeliver, MapWorkFilter.toPickup => r.toPickup, MapWorkFilter.overdue => r.overdue };
+  return byWork && (managerId == null || r.managerId == managerId || r.userId == managerId);
 }
 
 String freshnessLabel(AppLocalizations l, LiveLocationRow row) => positionAgeLabel(l, row.freshness, row.ageSeconds);
@@ -66,6 +84,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final _markerImages = <String, Future<ymk.ImageProvider>>{};
   bool _centered = false;
   AppLifecycleListener? _life;
+  MapWorkFilter _work = MapWorkFilter.any;
+  String? _managerId;
+
+  List<LiveLocationRow> _visible(List<LiveLocationRow> rows) => rows.where((r) => mapRowMatches(r, _work, _managerId)).toList();
+  void _refilter() {
+    final rows = ref.read(liveLocationsProvider).value;
+    if (rows != null) _applyMarkers(_visible(rows));
+  }
 
   // MapKit draws only its empty grid ("squares") until it is STARTED: onStart while the map is on screen, onStop when
   // it leaves or the app goes to the background (Yandex MapKit lifecycle contract).
@@ -89,9 +115,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final l = AppLocalizations.of(context);
     ref.listen(liveLocationsProvider, (_, next) {
       final rows = next.value;
-      if (rows != null) _applyMarkers(rows);
+      if (rows != null) _applyMarkers(_visible(rows));
     });
     final async = ref.watch(liveLocationsProvider);
+    final me = ref.watch(authControllerProvider).value;
+    final managers = me?.role == 'MANAGER' ? const <ManagerSummary>[] : (ref.watch(managersProvider).value ?? const <ManagerSummary>[]);
+    final chips = <(MapWorkFilter, String, Color?)>[
+      (MapWorkFilter.any, l.mapFilterAll, null),
+      (MapWorkFilter.toDeliver, l.mapFilterToDeliver, workDeliverColor),
+      (MapWorkFilter.toPickup, l.mapFilterToPickup, workPickupColor),
+      (MapWorkFilter.overdue, l.mapFilterOverdue, workOverdueColor),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -102,6 +136,41 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ? EmptyState(icon: Icons.map_rounded, title: l.mapEmpty, hint: 'YANDEX_MAPKIT_KEY is not configured')
           : Stack(children: [
               YandexMap(onMapCreated: _onMapCreated),
+              Positioned(
+                top: 8, left: 0, right: 0,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(children: [
+                    for (final c in chips)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          key: Key('mapFilter-${c.$1.name}'),
+                          avatar: c.$3 == null ? null : CircleAvatar(backgroundColor: c.$3, radius: 6),
+                          label: Text(c.$2),
+                          selected: _work == c.$1,
+                          showCheckmark: false,
+                          onSelected: (_) => setState(() { _work = c.$1; _refilter(); }),
+                        ),
+                      ),
+                    if (managers.isNotEmpty)
+                      PopupMenuButton<String?>(
+                        key: const Key('mapFilterManager'),
+                        tooltip: l.managerLabel,
+                        onSelected: (v) => setState(() { _managerId = v == '' ? null : v; _refilter(); }),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(value: '', child: Text(l.mapFilterAllManagers)),
+                          for (final m in managers) PopupMenuItem(value: m.user.id, child: Text(m.user.fullName)),
+                        ],
+                        child: Chip(
+                          avatar: const Icon(Icons.person_rounded, size: 16),
+                          label: Text(_managerId == null ? l.mapFilterAllManagers : managers.where((m) => m.user.id == _managerId).map((m) => m.user.fullName).firstOrNull ?? l.managerLabel),
+                        ),
+                      ),
+                  ]),
+                ),
+              ),
               if (async.isLoading) const Positioned(top: 12, left: 0, right: 0, child: Center(child: LinearProgressIndicator())),
               if (async.hasValue && async.value!.isEmpty)
                 Positioned(bottom: 24, left: 24, right: 24, child: Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(l.mapEmpty)))),
@@ -112,7 +181,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _onMapCreated(ymk.MapWindow window) {
     _mapWindow = window;
     final rows = ref.read(liveLocationsProvider).value;
-    if (rows != null) _applyMarkers(rows);
+    if (rows != null) _applyMarkers(_visible(rows));
   }
 
   Future<void> _applyMarkers(List<LiveLocationRow> rows) async {
@@ -169,13 +238,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             Text(row.fullName, style: Theme.of(ctx).textTheme.titleMedium),
             Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}'),
             const SizedBox(height: 4),
-            Row(children: [
-              Icon(row.online ? Icons.circle_rounded : Icons.circle_rounded, size: 10, color: row.online ? AppTokens.ok : Theme.of(ctx).colorScheme.outline),
-              const SizedBox(width: 6),
-              Text(row.online ? l.onlineNow : l.offlineNow),
-              const SizedBox(width: 12),
-              Text(freshnessLabel(l, row), style: TextStyle(color: row.freshness == LocationFreshness.stale ? Theme.of(ctx).colorScheme.error : null)),
-            ]),
+            if (row.isHome)
+              Text(l.mapAtHome, style: TextStyle(color: Theme.of(ctx).colorScheme.outline))
+            else
+              Row(children: [
+                Icon(Icons.circle_rounded, size: 10, color: row.online ? AppTokens.ok : Theme.of(ctx).colorScheme.outline),
+                const SizedBox(width: 6),
+                Text(row.online ? l.onlineNow : l.offlineNow),
+                const SizedBox(width: 12),
+                Flexible(child: Text(freshnessLabel(l, row), style: TextStyle(color: row.freshness == LocationFreshness.stale ? Theme.of(ctx).colorScheme.error : null))),
+              ]),
+            if (row.toDeliver) Text('● ${l.mapFilterToDeliver}', style: const TextStyle(color: workDeliverColor, fontWeight: FontWeight.w600)),
+            if (row.toPickup) Text('● ${l.mapFilterToPickup}', style: const TextStyle(color: workPickupColor, fontWeight: FontWeight.w600)),
+            if (row.overdue) Text('● ${l.mapFilterOverdue}', style: const TextStyle(color: workOverdueColor, fontWeight: FontWeight.w600)),
             if (row.phone != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(row.phone!)),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [

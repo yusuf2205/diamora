@@ -72,6 +72,19 @@ void main() {
   });
 
   group('Login screen: WORKER auth is Telegram-only', () {
+    testWidgets('language on the sign-in screen: Uzbek / Russian / English switch the whole screen at once', (tester) async {
+      await tester.pumpWidget(await appWith(null, api));
+      await tester.pumpAndSettle();
+      expect(find.text('Войти через Telegram'), findsOneWidget); // Russian until chosen
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign in with Telegram'), findsOneWidget);
+      await tester.tap(find.text("O'zbek"));
+      await tester.pumpAndSettle();
+      expect(find.text('Войти через Telegram'), findsNothing);
+      expect(find.text('Sign in with Telegram'), findsNothing);
+    });
+
     testWidgets('the "Войти через Telegram" button is there from the start, no phone typed yet', (tester) async {
       await tester.pumpWidget(await appWith(null, api));
       await tester.pumpAndSettle();

@@ -111,7 +111,12 @@ class LiveLocationRow {
     required this.userId, required this.role, required this.fullName, this.workerId, this.workerCode, this.phone,
     this.managerId, required this.latitude, required this.longitude, required this.ageSeconds, required this.stale,
     this.freshness = LocationFreshness.stale, this.online = false,
+    this.toDeliver = false, this.toPickup = false, this.overdue = false, this.isHome = false,
   });
+  /// what is waiting at this worker's (map filters «ждут доставку» / «готово к забору» / «просрочено»)
+  final bool toDeliver, toPickup, overdue;
+  /// a worker whose phone does not share a live position, shown at the address she registered with
+  final bool isHome;
   final String userId;
   final String role;
   final String fullName;
@@ -132,5 +137,19 @@ class LiveLocationRow {
         latitude: (j['latitude'] as num).toDouble(), longitude: (j['longitude'] as num).toDouble(),
         ageSeconds: (j['ageSeconds'] as num).toInt(), stale: j['stale'] as bool? ?? false,
         freshness: _freshnessOf(j['freshness'] as String?, j['stale'] as bool? ?? false), online: j['online'] as bool? ?? false,
+        toDeliver: (j['work'] as Map?)?['toDeliver'] as bool? ?? false, toPickup: (j['work'] as Map?)?['toPickup'] as bool? ?? false,
+        overdue: (j['work'] as Map?)?['overdue'] as bool? ?? false,
       );
+
+  /// `homes[]` of GET /locations: a worker with no live position, at her registered address.
+  factory LiveLocationRow.home(Map<String, dynamic> j) {
+    final w = (j['worker'] as Map).cast<String, dynamic>();
+    final work = (j['work'] as Map?)?.cast<String, dynamic>() ?? const {};
+    return LiveLocationRow(
+      userId: 'home-${w['id']}', role: 'WORKER', fullName: w['fullName'] as String, workerId: w['id'] as String, workerCode: w['code'] as String?,
+      phone: w['phone'] as String?, managerId: w['managerId'] as String?, latitude: (j['latitude'] as num).toDouble(), longitude: (j['longitude'] as num).toDouble(),
+      ageSeconds: 0, stale: false, freshness: LocationFreshness.recent, isHome: true,
+      toDeliver: work['toDeliver'] as bool? ?? false, toPickup: work['toPickup'] as bool? ?? false, overdue: work['overdue'] as bool? ?? false,
+    );
+  }
 }

@@ -24,7 +24,10 @@ class LocationsScreen extends ConsumerWidget {
       body: rows.when(
         loading: () => const SkeletonList(count: 5),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
-        data: (list) => list.isEmpty
+        data: (all) {
+          // live positions only: workers shown at home (no live position) belong on the map, not in this list
+          final list = all.where((r) => !r.isHome).toList();
+          return list.isEmpty
             ? EmptyState(icon: Icons.location_searching_rounded, title: l.locationsEmpty)
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(liveLocationsProvider),
@@ -34,7 +37,8 @@ class LocationsScreen extends ConsumerWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (_, i) => _Row(row: list[i]),
                 ),
-              ),
+              );
+        },
       ),
     );
   }

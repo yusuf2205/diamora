@@ -20,7 +20,6 @@ class ProfileScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final me = ref.watch(authControllerProvider).value;
     final sessions = ref.watch(_sessionsProvider);
-    final locale = ref.watch(localeControllerProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l.profile)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
@@ -39,11 +38,7 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         Text(l.language, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
-        SegmentedButton<String>(
-          segments: const [ButtonSegment(value: 'ru', label: Text('Русский')), ButtonSegment(value: 'uz', label: Text("O'zbekcha"))],
-          selected: {locale.languageCode},
-          onSelectionChanged: (s) => ref.read(localeControllerProvider.notifier).set(s.first),
-        ),
+        const LanguagePicker(),
         const SizedBox(height: 20),
         Text(l.devices, style: Theme.of(context).textTheme.titleSmall),
         ...sessions.maybeWhen(
