@@ -1926,4 +1926,25 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get permInventoryDelete => 'Удалять материалы и комплекты';
+
+  @override
+  String get assignManagerTitle => 'Назначить менеджера';
+
+  @override
+  String get assignManagerSave => 'Назначить';
+
+  @override
+  String assignManagerDone(int count) {
+    return 'Готово: $count мастериц';
+  }
+
+  @override
+  String get assignWorkersToManager => 'Назначить мастериц';
+
+  @override
+  String get auditClear => 'Очистить журнал';
+
+  @override
+  String get auditClearConfirm =>
+      'Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия).';
 }

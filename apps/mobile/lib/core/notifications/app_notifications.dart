@@ -63,7 +63,7 @@ void Function(String link)? onNoticeTap;
 Future<void> initSystemNotifications() async {
   if (!_supported) return;
   await _plugin.initialize(
-    settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+    settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')),
     onDidReceiveNotificationResponse: (r) { final link = r.payload; if (link != null && link.isNotEmpty) onNoticeTap?.call(link); },
   );
   final launch = await _plugin.getNotificationAppLaunchDetails();
@@ -93,7 +93,7 @@ void noticesCallbackDispatcher() {
       final since = prefs.getString(_prefSince) ?? DateTime.now().subtract(const Duration(minutes: 20)).toUtc().toIso8601String();
       final j = await api.getJson('/me/notifications', query: {'since': since, 'limit': 20});
       final items = ((j['items'] as List?) ?? const []).map((x) => AppNotice.fromJson((x as Map).cast<String, dynamic>())).toList();
-      await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')));
+      await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')));
       for (final n in items.reversed.where((n) => !n.read)) {
         await showSystemNotice(id: n.id, title: n.title, body: n.body, link: n.link);
       }

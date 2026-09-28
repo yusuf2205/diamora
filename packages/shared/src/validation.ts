@@ -113,6 +113,8 @@ export const setPermissionsSchema = z.object({
   revoke: z.array(z.enum(PERMISSIONS)).max(64).default([]),
 });
 export const assignManagerSchema = z.object({ managerId: idSchema.nullable() });
+/** «Назначить менеджера» for many workers at once (null = «Без менеджера»). */
+export const assignManagerBulkSchema = z.object({ managerId: idSchema.nullable(), workerIds: z.array(idSchema).min(1).max(500) });
 
 // ---- catalog "Наши работы" (D-029) - informational only, never a price -----------------------------------------------------
 export const createCatalogItemSchema = z.object({

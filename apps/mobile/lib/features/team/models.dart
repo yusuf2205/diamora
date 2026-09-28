@@ -77,7 +77,7 @@ class ManagerSummary {
 }
 
 class AuditEntry {
-  const AuditEntry({required this.id, required this.action, required this.entity, this.entityId, this.actorId, this.actorRole, required this.createdAt});
+  const AuditEntry({required this.id, required this.action, required this.entity, this.entityId, this.actorId, this.actorRole, required this.createdAt, this.actorName, this.targetName});
   final String id;
   final String action;
   final String entity;
@@ -85,9 +85,13 @@ class AuditEntry {
   final String? actorId;
   final String? actorRole;
   final String createdAt;
+  /// who and what, in words (the server resolves the names)
+  final String? actorName;
+  final String? targetName;
   factory AuditEntry.fromJson(Map<String, dynamic> j) => AuditEntry(
         id: j['id'] as String, action: j['action'] as String, entity: j['entity'] as String, entityId: j['entityId'] as String?,
         actorId: j['actorId'] as String?, actorRole: j['actorRole'] as String?, createdAt: j['createdAt'] as String,
+        actorName: j['actorName'] as String?, targetName: j['targetName'] as String?,
       );
 }
 

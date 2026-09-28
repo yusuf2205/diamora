@@ -11,6 +11,7 @@ import 'models.dart';
 import 'permissions_screen.dart';
 import 'team_repository.dart';
 import 'team_screen.dart';
+import '../workers/assign_manager_screen.dart';
 
 /// Card of one STAFF user: who they are, whether they are around, what they may do - and the few actions on them.
 /// Every button is only a request: rank rules, "never yourself" and "one SUPER_ADMIN always stays" live on the server.
@@ -108,6 +109,12 @@ class _Body extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PermissionsScreen(userId: u.id, editable: canPerms))),
           ),
           if (canEdit) _ActionTile(icon: Icons.edit_rounded, title: l.editDetails, onTap: () => _edit(context, ref, u)),
+          if (u.role == 'MANAGER' && u.isActive && (me?.has('WORKER_ASSIGN_MANAGER') ?? false))
+            _ActionTile(
+              icon: Icons.group_add_rounded,
+              title: l.assignWorkersToManager,
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignManagerScreen(managerId: u.id))),
+            ),
           if ((me?.has('PASSWORD_SET') ?? false) && !isMe) _ActionTile(icon: Icons.password_rounded, title: l.setPassword, onTap: () => _setPassword(context, ref, u)),
           if (isSuper)
             SwitchListTile(

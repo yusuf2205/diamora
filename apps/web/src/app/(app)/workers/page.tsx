@@ -10,6 +10,7 @@ import { hasPerm } from '@/lib/types';
 import type { ManagerSummary, Page, Worker } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { Badge, Button, Card, Chips, DataList, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
+import { AssignManagerDialog } from '@/components/assign-manager-dialog';
 
 const STATUS_TONE: Record<Worker['status'], 'default' | 'ok' | 'danger' | 'warn'> = {
   PENDING_APPROVAL: 'warn', ACTIVE: 'ok', PAUSED: 'default', REJECTED: 'danger', ARCHIVED: 'default',
@@ -38,6 +39,8 @@ export default function WorkersPage() {
   const { me } = useAuth();
   const canInvite = hasPerm(me, 'WORKER_APPROVE');
   const [adding, setAdding] = useState(false);
+  const canAssign = hasPerm(me, 'WORKER_ASSIGN_MANAGER');
+  const [assigning, setAssigning] = useState(false);
   const { data, error, isLoading, refetch } = useQuery<Page<Worker>>({
     queryKey: ['workers', status, q],
     queryFn: () => api.get<Page<Worker>>('/workers', { status: status || undefined, q: q || undefined, limit: 100 }),
@@ -48,10 +51,16 @@ export default function WorkersPage() {
       <PageHeader
         title="Мастерицы"
         subtitle="Заявки, статус, менеджер и сколько кому выплатить."
-        actions={canInvite ? <Button onClick={() => setAdding(true)}>+ Добавить мастерицу</Button> : undefined}
+        actions={canInvite || canAssign ? (
+          <div className="flex flex-wrap gap-2">
+            {canAssign && <Button variant="outline" onClick={() => setAssigning(true)}>Назначить менеджера</Button>}
+            {canInvite && <Button onClick={() => setAdding(true)}>+ Добавить мастерицу</Button>}
+          </div>
+        ) : undefined}
       />
       {canInvite && <PendingInvites />}
       {adding && <AddWorkerDialog onClose={() => setAdding(false)} />}
+      {assigning && <AssignManagerDialog onClose={() => setAssigning(false)} />}
       <div className="space-y-3">
         <Input type="search" placeholder="Поиск: имя, телефон, код" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Поиск" className="md:max-w-sm" />
         <Chips options={FILTERS} value={status as (typeof FILTERS)[number]['value']} onChange={setStatus} label="Статус" />

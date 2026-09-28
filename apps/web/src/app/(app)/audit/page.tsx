@@ -6,7 +6,9 @@ import { api } from '@/lib/api';
 import { assignmentStatusLabel, formatDate, formatUzs, roleLabel, statusLabel } from '@/lib/format';
 import { AUDIT_ENTITY_LABELS, AUDIT_LABELS, PERMISSION_LABELS } from '@/lib/permissions';
 import type { AuditEntry, Page } from '@/lib/types';
-import { DataList, EmptyState, ErrorState, ListSkeleton, Modal, PageHeader } from '@/components/ui';
+import { Button, DataList, EmptyState, ErrorState, ListSkeleton, Modal, PageHeader } from '@/components/ui';
+import { ConfirmDelete } from '@/components/confirm-delete';
+import { useAuth } from '@/lib/auth';
 
 const action = (e: AuditEntry) => AUDIT_LABELS[e.action] ?? e.action;
 const entity = (e: AuditEntry) => AUDIT_ENTITY_LABELS[e.entity] ?? e.entity;
@@ -53,10 +55,21 @@ function changes(e: AuditEntry): { key: string; before: string; after: string }[
 export default function AuditPage() {
   const { data, error, isLoading, refetch } = useQuery<Page<AuditEntry>>({ queryKey: ['audit'], queryFn: () => api.get<Page<AuditEntry>>('/audit', { limit: 100 }) });
   const [open, setOpen] = useState<AuditEntry | null>(null);
+  const { me } = useAuth();
+  const [clearing, setClearing] = useState(false);
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Журнал действий" subtitle="Кто, что и когда изменил. Нажмите на строку, чтобы увидеть, что было и что стало." />
+      <PageHeader
+        title="Журнал действий"
+        subtitle="Кто, что и когда изменил. Нажмите на строку, чтобы увидеть, что было и что стало."
+        actions={me?.role === 'SUPER_ADMIN' ? <Button variant="outline" onClick={() => setClearing(true)}>Очистить журнал</Button> : undefined}
+      />
+      {clearing && (
+        <ConfirmDelete title="Очистить журнал" confirmLabel="Очистить" action={() => api.post('/audit/clear')} invalidate={[['audit']]} onClose={() => setClearing(false)}>
+          Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия).
+        </ConfirmDelete>
+      )}
       {error && <ErrorState error={error} onRetry={() => refetch()} />}
       {isLoading && <ListSkeleton rows={8} />}
       {data && data.items.length === 0 && <EmptyState title="Записей пока нет" />}

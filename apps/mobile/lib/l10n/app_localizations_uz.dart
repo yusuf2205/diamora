@@ -1885,4 +1885,25 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get permInventoryDelete => 'Material va toʻplamlarni oʻchirish';
+
+  @override
+  String get assignManagerTitle => 'Menejer biriktirish';
+
+  @override
+  String get assignManagerSave => 'Biriktirish';
+
+  @override
+  String assignManagerDone(int count) {
+    return 'Tayyor: $count usta';
+  }
+
+  @override
+  String get assignWorkersToManager => 'Ustalarni biriktirish';
+
+  @override
+  String get auditClear => 'Jurnalni tozalash';
+
+  @override
+  String get auditClearConfirm =>
+      'Jurnal boshidan boshlanadi — birinchi qatorda sizning ismingiz bilan «Jurnal tozalandi» boʻladi. Eski yozuvlar bu yerda koʻrinmaydi, lekin bazadan oʻchirilmaydi.';
 }

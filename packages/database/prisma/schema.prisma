@@ -1092,6 +1092,16 @@ model AuditLog {
 }
 
 /// Metadata of an object in MinIO; bytes never live in PostgreSQL.
+/// «Очистить журнал»: the journal shows only entries after the latest clear (the audit rows themselves are never deleted).
+model AuditClear {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  clearedById String   @db.Uuid
+  clearedAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([clearedAt])
+  @@map("audit_clears")
+}
+
 model FileAsset {
   id           String   @id @default(uuid(7)) @db.Uuid
   bucket       String

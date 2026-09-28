@@ -10,6 +10,7 @@ import { AUDIT_USER_LABELS, PERMISSION_GROUPS, PERMISSION_LABELS } from '@/lib/p
 import { hasPerm } from '@/lib/types';
 import type { AuditRow, Page, PermissionCatalog, UserDetail } from '@/lib/types';
 import { Badge, Button, Card, EmptyState, ErrorState, Input, Modal, PageHeader } from '@/components/ui';
+import { AssignManagerDialog } from '@/components/assign-manager-dialog';
 
 /** One staff user: facts, role, rights, disable/restore, new password, history. The server enforces every rule
  * (rank, "never yourself", "one SUPER_ADMIN always stays") - the page only hides what can't be done anyway. */
@@ -24,6 +25,7 @@ export default function UserDetailPage() {
   const [role, setRole] = useState<string | null>(null);
   const [chosen, setChosen] = useState('');
   const [passwordSet, setPasswordSet] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['user', id] });
@@ -67,6 +69,16 @@ export default function UserDetailPage() {
           })}>Удалить сотрудника</Button>
         </div>
       )}
+
+      {u.role === 'MANAGER' && u.status === 'ACTIVE' && hasPerm(me, 'WORKER_ASSIGN_MANAGER') && (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm">Какие мастерицы закреплены за этим менеджером</p>
+            <Button onClick={() => setAssigning(true)}>Назначить мастериц</Button>
+          </div>
+        </Card>
+      )}
+      {assigning && <AssignManagerDialog initialManagerId={u.id} onClose={() => setAssigning(false)} />}
 
       <Card>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

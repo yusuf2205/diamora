@@ -10,6 +10,7 @@ import '../work/deliveries_screen.dart';
 import 'add_worker_sheet.dart';
 import 'models.dart';
 import 'workers_providers.dart';
+import 'assign_manager_screen.dart';
 
 /// ADMIN: registrations waiting for a decision, active workers, everyone. New registrations appear in realtime.
 class AdminWorkersScreen extends ConsumerStatefulWidget {
@@ -51,6 +52,13 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
             tooltip: l.deliveryNeeded,
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DeliveriesScreen())),
           ),
+          if (ref.watch(authControllerProvider).value?.has('WORKER_ASSIGN_MANAGER') ?? false)
+            IconButton(
+              key: const Key('assignManagerOpen'),
+              icon: const Icon(Icons.manage_accounts_rounded),
+              tooltip: l.assignManagerTitle,
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AssignManagerScreen())),
+            ),
           IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan')),
         ],
         bottom: TabBar(controller: _tabs, tabs: [Tab(text: l.tabPending), Tab(text: l.tabActive), Tab(text: l.tabAll)]),

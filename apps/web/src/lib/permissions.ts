@@ -67,6 +67,9 @@ export const AUDIT_USER_LABELS: Record<string, string> = {
 export const AUDIT_LABELS: Record<string, string> = {
   ...AUDIT_USER_LABELS,
   'user.bootstrap': 'Создан первый администратор',
+  'audit.clear': 'Журнал очищен',
+  'material.delete': 'Удалён материал',
+  'kit_template.delete': 'Удалён комплект',
   'admin.bootstrap': 'Создан первый администратор',
   'user.promote_to_super_admin': 'Назначен главным администратором',
   'auth.login': 'Вход в систему',

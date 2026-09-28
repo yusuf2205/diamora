@@ -95,6 +95,12 @@ class WorkerRepository {
     return Worker.fromJson(json);
   }
 
+  /// «Назначить менеджера» for several workers at once (null = no manager); the list refreshes from the server.
+  Future<void> assignManagerBulk(List<String> workerIds, String? managerId) async {
+    await _api.postJson('/workers/manager-bulk', idempotencyKey: _uuid.v4(), body: {'managerId': managerId, 'workerIds': workerIds});
+    await refresh();
+  }
+
   Future<void> receiveCollateral(String collateralId, {int? estimatedValue, String? storageLocation, String? note}) =>
       _api.postJson('/collaterals/$collateralId/receive', idempotencyKey: _uuid.v4(), body: {
         if (estimatedValue != null) 'estimatedValue': estimatedValue.toString(),

@@ -639,5 +639,12 @@
   "kitDeleteConfirm": "Комплект «{name}» исчезнет со склада. Уже выданные работы останутся в истории. Это нельзя отменить.",
   "@kitDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
   "permCatalogDelete": "Удалять из каталога",
-  "permInventoryDelete": "Удалять материалы и комплекты"
+  "permInventoryDelete": "Удалять материалы и комплекты",
+  "assignManagerTitle": "Назначить менеджера",
+  "assignManagerSave": "Назначить",
+  "assignManagerDone": "Готово: {count} мастериц",
+  "@assignManagerDone": {"placeholders": {"count": {"type": "int"}}},
+  "assignWorkersToManager": "Назначить мастериц",
+  "auditClear": "Очистить журнал",
+  "auditClearConfirm": "Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия)."
 }

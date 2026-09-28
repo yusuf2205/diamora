@@ -5,8 +5,8 @@ import type { ReactNode } from 'react';
 import { Button, ErrorState, Modal } from '@/components/ui';
 
 /** The one «Удалить?» dialog of the panel: what will happen in plain words, a red button, the reason if the server refuses. */
-export function ConfirmDelete({ title, children, action, invalidate, onClose, onDone }: {
-  title: string; children: ReactNode; action: () => Promise<unknown>; invalidate: string[][]; onClose: () => void; onDone?: () => void;
+export function ConfirmDelete({ title, children, action, invalidate, onClose, onDone, confirmLabel = 'Удалить' }: {
+  title: string; confirmLabel?: string; children: ReactNode; action: () => Promise<unknown>; invalidate: string[][]; onClose: () => void; onDone?: () => void;
 }) {
   const qc = useQueryClient();
   const remove = useMutation({
@@ -19,7 +19,7 @@ export function ConfirmDelete({ title, children, action, invalidate, onClose, on
       {remove.isError && <div className="mt-2"><ErrorState error={remove.error} /></div>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="ghost" onClick={onClose}>Отмена</Button>
-        <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>{remove.isPending ? 'Удаляем…' : 'Удалить'}</Button>
+        <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>{remove.isPending ? 'Минуту…' : confirmLabel}</Button>
       </div>
     </Modal>
   );

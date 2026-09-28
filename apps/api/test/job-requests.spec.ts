@@ -56,7 +56,10 @@ describe('job requests («Заказать эту работу»)', () => {
     const rej = await f.admin.api.post(`/v1/admin/job-requests/${req.body.id}/reject`, { note: 'нет бисера' }).expect(200);
     expect(rej.body).toMatchObject({ status: 'REJECTED', decisionNote: 'нет бисера' });
     const wu = await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: f.workerId } });
-    expect(await t.prisma.notification.count({ where: { channel: 'APP', userId: wu.userId!, type: 'job_request.decided' } })).toBe(1); // in the app, not Telegram
+    // written by an after-publish hook (setImmediate): wait for it rather than racing it
+    const appNotices = async () => t.prisma.notification.count({ where: { channel: 'APP', userId: wu.userId!, type: 'job_request.decided' } });
+    for (let i = 0; i < 50 && (await appNotices()) === 0; i++) await new Promise((r) => setTimeout(r, 50));
+    expect(await appNotices()).toBe(1); // in the app, not Telegram
     expect(await t.prisma.notification.count({ where: { channel: 'TELEGRAM', workerId: f.workerId, type: 'job_request.rejected' } })).toBe(0);
     await f.admin.api.post(`/v1/admin/job-requests/${req.body.id}/reject`, {}).expect(409);
 

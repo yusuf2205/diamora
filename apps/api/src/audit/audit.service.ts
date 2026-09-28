@@ -1,10 +1,10 @@
-import { Controller, Get, Global, Injectable, Module } from '@nestjs/common';
+import { Controller, Get, Global, HttpCode, Injectable, Module, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@diamoraa/database';
 import { idSchema, paginationSchema } from '@diamoraa/shared';
 import { z } from 'zod';
-import { Perm } from '../common/decorators';
-import { RequestContext } from '../common/request-context';
+import { CurrentUser, Perm, Roles } from '../common/decorators';
+import { RequestContext, type AuthUser } from '../common/request-context';
 import { jsonSafe } from '../common/serialize';
 import { ZodQuery } from '../common/zod.pipe';
 import { PrismaService } from '../prisma/prisma.module';
@@ -46,15 +46,16 @@ const querySchema = paginationSchema.extend({ entity: z.string().max(60).optiona
 @ApiBearerAuth()
 @Controller('audit')
 export class AuditController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
 
   /** Fixed bug (M2 audit): was `@Roles('ADMIN')`, which silently excluded SUPER_ADMIN (D-028: SUPER_ADMIN always has every
    * permission, including AUDIT_VIEW, now in ADMIN_DEFAULTS too). MANAGER is never grantable this — audit is store-wide. */
   @Perm('AUDIT_VIEW')
   @Get()
   async list(@ZodQuery(querySchema) q: z.output<typeof querySchema>) {
+    const cleared = await this.prisma.auditClear.findFirst({ orderBy: { clearedAt: 'desc' }, select: { clearedAt: true } });
     const rows = await this.prisma.auditLog.findMany({
-      where: { entity: q.entity, entityId: q.entityId, action: q.action },
+      where: { entity: q.entity, entityId: q.entityId, action: q.action, ...(cleared ? { createdAt: { gte: cleared.clearedAt } } : {}) },
       orderBy: { id: 'desc' }, take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
     const items = rows.slice(0, q.limit);
@@ -72,7 +73,25 @@ export class AuditController {
         before: r.before, after: r.after, ip: r.ip, device: r.device, requestId: r.requestId, createdAt: r.createdAt.toISOString(),
       })),
       nextCursor: rows.length > q.limit ? items[items.length - 1].id : null,
+      clearedAt: cleared?.clearedAt.toISOString() ?? null,
     };
+  }
+
+  /**
+   * «Очистить журнал» (SUPER_ADMIN only). The screen starts empty from now on; the old rows are not deleted (the table is
+   * append-only by design, so nobody can quietly erase what was done) — they stay in the database and its backups.
+   * The clear itself is the first line of the new journal: who cleared it and when.
+   */
+  @Roles('SUPER_ADMIN')
+  @Post('clear')
+  @HttpCode(200)
+  async clear(@CurrentUser() u: AuthUser) {
+    const row = await this.prisma.$transaction(async (tx) => {
+      const c = await tx.auditClear.create({ data: { clearedById: u.id } });
+      await this.audit.record({ action: 'audit.clear', entity: 'User', entityId: u.id }, tx);
+      return c;
+    });
+    return { clearedAt: row.clearedAt.toISOString() };
   }
 
   /** id -> a human name for one entity type, in ONE query per type (unknown types simply get no name). */

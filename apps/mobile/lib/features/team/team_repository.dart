@@ -56,6 +56,9 @@ class TeamRepository {
 
   Future<List<ManagerSummary>> managers() async => ((await _api.getJson('/managers'))['items'] as List).map((j) => ManagerSummary.fromJson((j as Map).cast<String, dynamic>())).toList();
 
+  /// «Очистить журнал» (SUPER_ADMIN): the journal starts over; the rows are never deleted on the server.
+  Future<void> clearAudit() => _api.postJson('/audit/clear');
+
   Future<List<AuditEntry>> audit() async => ((await _api.getJson('/audit', query: {'limit': 100}))['items'] as List).map((j) => AuditEntry.fromJson((j as Map).cast<String, dynamic>())).toList();
 
   Future<List<LiveLocationRow>> locations() async => ((await _api.getJson('/locations'))['items'] as List)

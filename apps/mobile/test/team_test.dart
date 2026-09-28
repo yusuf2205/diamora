@@ -269,4 +269,63 @@ void main() {
     verify(() => api.postJson('/auth/change-password', body: {'currentPassword': 'old-one', 'newPassword': 'New-Pass-123'})).called(1);
     await tearDownDb(tester);
   });
+
+  Map<String, Object?> w(String id, String name, {Map<String, Object?>? manager}) => {
+        'id': id, 'code': 'W-$id', 'fullName': name, 'phone': '+99890000000$id', 'secondaryPhone': null, 'status': 'ACTIVE',
+        'latitude': null, 'longitude': null, 'locationReceivedAt': null, 'balance': '0', 'manager': manager, 'collateral': null,
+        'createdAt': '2026-09-21T10:00:00.000Z', 'updatedAt': '2026-09-21T10:00:00.000Z',
+      };
+
+  testWidgets('manager card -> «Назначить мастериц»: already-hers are ticked; save sends only the changed ones in one call', (tester) async {
+    stubList();
+    when(() => api.getJson('/workers', query: any(named: 'query'))).thenAnswer((_) async => {
+          'items': [w('1', 'Нигора', manager: {'id': 'a1', 'fullName': 'Manager One'}), w('2', 'Юлдуз')], 'nextCursor': null,
+        });
+    when(() => api.postJson('/workers/manager-bulk', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body'))).thenAnswer((_) async => {'changed': 1});
+    final owner = superAdmin().copyWith(permissions: [...superAdmin().permissions, 'WORKER_VIEW_ALL', 'WORKER_ASSIGN_MANAGER']);
+    await openTeam(tester, owner);
+    await tester.tap(find.text('Manager One'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Назначить мастериц'));
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<CheckboxListTile>(find.byKey(const Key('assign-1'))).value, isTrue);
+    expect(tester.widget<CheckboxListTile>(find.byKey(const Key('assign-2'))).value, isFalse);
+    await tester.tap(find.byKey(const Key('assign-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('assignManagerSave')));
+    await tester.pumpAndSettle();
+    verify(() => api.postJson('/workers/manager-bulk', idempotencyKey: any(named: 'idempotencyKey'), body: {'managerId': 'a1', 'workerIds': ['2']})).called(1);
+    await tearDownDb(tester);
+  });
+
+  testWidgets('journal in words; SUPER_ADMIN «Очистить журнал» asks first, then POST /audit/clear', (tester) async {
+    stubList();
+    when(() => api.getJson('/audit', query: any(named: 'query'))).thenAnswer((_) async => {
+          'items': [{'id': 'e1', 'action': 'worker.assign_manager', 'entity': 'WorkerProfile', 'entityId': 'w1', 'actorId': 'me', 'actorRole': 'SUPER_ADMIN', 'actorName': 'Owner', 'targetName': 'Нигора · W-0001', 'createdAt': '2026-09-29T10:00:00Z'}],
+          'nextCursor': null,
+        });
+    when(() => api.postJson('/audit/clear')).thenAnswer((_) async => {'clearedAt': '2026-09-29T11:00:00Z'});
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(await appWith(superAdmin(), api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ещё'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Настройки'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Журнал действий'));
+    await tester.pumpAndSettle();
+    expect(find.text('worker.assign_manager'), findsNothing); // never the raw code
+    expect(find.textContaining('Нигора · W-0001'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('auditClear')));
+    await tester.pumpAndSettle();
+    verifyNever(() => api.postJson('/audit/clear'));
+    await tester.tap(find.byKey(const Key('confirmDelete')));
+    await tester.pumpAndSettle();
+    verify(() => api.postJson('/audit/clear')).called(1);
+    await tearDownDb(tester);
+  });
 }

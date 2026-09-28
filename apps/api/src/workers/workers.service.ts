@@ -4,7 +4,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { CollateralPhoto, WorkerCollateral, WorkerProfile } from '@diamoraa/database';
 import {
-  WORKER_MACHINE, approveWorkerSchema, assertTransition, assignManagerSchema, createWorkerInviteSchema, listWorkersSchema, rejectWorkerSchema, updateWorkerSchema,
+  WORKER_MACHINE, approveWorkerSchema, assertTransition, assignManagerBulkSchema, assignManagerSchema, createWorkerInviteSchema, listWorkersSchema, rejectWorkerSchema, updateWorkerSchema,
   COLLATERAL_MACHINE, type CollateralStatus, type WorkerStatus,
 } from '@diamoraa/shared';
 import { z } from 'zod';
@@ -172,6 +172,30 @@ export class WorkersService {
     });
     await this.events.publish('worker.manager_changed', { workerId: id, managerId: input.managerId, previousManagerId: before.assignedManagerId });
     return this.get(actor, id);
+  }
+
+  /** «Назначить менеджера» for several workers at once: one transaction, one audit line per worker, one event each. */
+  async assignManagerBulk(actor: AuthUser, input: z.output<typeof assignManagerBulkSchema>) {
+    let managerName: string | null = null;
+    if (input.managerId) {
+      const m = await this.prisma.user.findUnique({ where: { id: input.managerId }, select: { role: true, fullName: true, status: true } });
+      if (!m || m.role !== 'MANAGER') throw invariant('managerId must be an active user with role MANAGER');
+      if (m.status !== 'ACTIVE') throw invariant('This manager is deactivated');
+      managerName = m.fullName;
+    }
+    const { where: scope } = workerScope(actor, 'WORKER');
+    const ids = [...new Set(input.workerIds)];
+    const workers = await this.prisma.workerProfile.findMany({ where: { ...scope, id: { in: ids }, deletedAt: null }, select: { id: true, assignedManagerId: true } });
+    if (workers.length !== ids.length) throw notFound('Worker');
+    const changed = workers.filter((w) => w.assignedManagerId !== input.managerId);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.workerProfile.updateMany({ where: { id: { in: changed.map((w) => w.id) } }, data: { assignedManagerId: input.managerId } });
+      for (const w of changed) {
+        await this.audit.record({ action: 'worker.assign_manager', entity: 'WorkerProfile', entityId: w.id, before: { managerId: w.assignedManagerId }, after: { managerId: input.managerId, managerName } }, tx);
+      }
+    });
+    for (const w of changed) await this.events.publish('worker.manager_changed', { workerId: w.id, managerId: input.managerId, previousManagerId: w.assignedManagerId });
+    return { changed: changed.length };
   }
 
   // ---- «Добавить мастерицу»: an invitation link; she opens it in Telegram and is active at once ------------------------
@@ -359,6 +383,9 @@ export class WorkersController {
 
   @Perm('WORKER_DELETE') @Delete(':id') @HttpCode(200)
   remove(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.workers.remove(u, id); }
+
+  @Perm('WORKER_ASSIGN_MANAGER') @Post('manager-bulk') @HttpCode(200) @ApiZodBody(assignManagerBulkSchema)
+  assignManagerBulk(@CurrentUser() u: AuthUser, @ZodBody(assignManagerBulkSchema) b: z.output<typeof assignManagerBulkSchema>) { return this.workers.assignManagerBulk(u, b); }
 
   @Perm('WORKER_ASSIGN_MANAGER') @Post(':id/manager') @ApiZodBody(assignManagerSchema)
   assignManager(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(assignManagerSchema) b: z.output<typeof assignManagerSchema>) { return this.workers.assignManager(u, id, b); }

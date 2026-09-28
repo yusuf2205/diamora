@@ -3601,6 +3601,42 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Удалять материалы и комплекты'**
   String get permInventoryDelete;
+
+  /// No description provided for @assignManagerTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначить менеджера'**
+  String get assignManagerTitle;
+
+  /// No description provided for @assignManagerSave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначить'**
+  String get assignManagerSave;
+
+  /// No description provided for @assignManagerDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово: {count} мастериц'**
+  String assignManagerDone(int count);
+
+  /// No description provided for @assignWorkersToManager.
+  ///
+  /// In ru, this message translates to:
+  /// **'Назначить мастериц'**
+  String get assignWorkersToManager;
+
+  /// No description provided for @auditClear.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить журнал'**
+  String get auditClear;
+
+  /// No description provided for @auditClearConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия).'**
+  String get auditClearConfirm;
 }
 
 class _AppLocalizationsDelegate

@@ -614,5 +614,11 @@
   "materialDeleteConfirm": "«{name}» ombordan yoʻqoladi. Qoldiq ({left}) hisobdan chiqariladi. Buni qaytarib boʻlmaydi.",
   "kitDeleteConfirm": "«{name}» toʻplami ombordan yoʻqoladi. Berilgan ishlar tarixda qoladi. Buni qaytarib boʻlmaydi.",
   "permCatalogDelete": "Katalogdan oʻchirish",
-  "permInventoryDelete": "Material va toʻplamlarni oʻchirish"
+  "permInventoryDelete": "Material va toʻplamlarni oʻchirish",
+  "assignManagerTitle": "Menejer biriktirish",
+  "assignManagerSave": "Biriktirish",
+  "assignManagerDone": "Tayyor: {count} usta",
+  "assignWorkersToManager": "Ustalarni biriktirish",
+  "auditClear": "Jurnalni tozalash",
+  "auditClearConfirm": "Jurnal boshidan boshlanadi — birinchi qatorda sizning ismingiz bilan «Jurnal tozalandi» boʻladi. Eski yozuvlar bu yerda koʻrinmaydi, lekin bazadan oʻchirilmaydi."
 }
