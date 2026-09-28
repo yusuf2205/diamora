@@ -96,6 +96,8 @@ enum JobRequestStatus {
   APPROVED
   REJECTED
   FULFILLED
+  /// the worker withdrew her own request before staff decided
+  CANCELLED
 }
 
 enum DeliveryType {
@@ -752,17 +754,21 @@ model WorkProgress {
 }
 
 model WorkerJobRequest {
-  id           String           @id @default(uuid(7)) @db.Uuid
-  workerId     String           @db.Uuid
-  worker       WorkerProfile    @relation(fields: [workerId], references: [id])
+  id               String           @id @default(uuid(7)) @db.Uuid
+  workerId         String           @db.Uuid
+  worker           WorkerProfile    @relation(fields: [workerId], references: [id])
   /// 1..3 kits = 9/18/27 m
-  kitCount     Int
-  note         String?
-  status       JobRequestStatus @default(PENDING)
-  decidedById  String?          @db.Uuid
-  decidedAt    DateTime?        @db.Timestamptz(3)
-  decisionNote String?
-  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  kitCount         Int
+  /// what she picked in the catalog («Заказать эту работу»); null = "any work"
+  productModelId   String?          @db.Uuid
+  productVariantId String?          @db.Uuid
+  colorId          String?          @db.Uuid
+  note             String?
+  status           JobRequestStatus @default(PENDING)
+  decidedById      String?          @db.Uuid
+  decidedAt        DateTime?        @db.Timestamptz(3)
+  decisionNote     String?
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
 
   assignment WorkAssignment?
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../work/job_requests.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -36,6 +37,7 @@ class StaffDashboardScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             _Header(session: session),
+            if (session?.has('ASSIGNMENT_VIEW_ALL') == true || session?.has('ASSIGNMENT_VIEW_ASSIGNED') == true) const JobRequestsBanner(),
             _Attention(d: d),
             _QuickActions(session: session),
             _Counters(d: d),

@@ -131,6 +131,14 @@ export interface AssignmentDetail extends AssignmentSummary {
   handoffTimeline?: HandoffTimelineEntry[];
 }
 
+/** «Заказать эту работу»: a worker's request from the catalog of her app */
+export interface JobRequest {
+  id: string; status: 'PENDING' | 'FULFILLED' | 'REJECTED' | 'CANCELLED'; kitCount: 1 | 2 | 3; meters: number; note: string | null; decisionNote: string | null;
+  createdAt: string; worker: { id: string; code: string; fullName: string; phone: string };
+  product: { id: string; name: string } | null; variant: { id: string; label: string | null } | null; color: { id: string; name: string; hex: string | null } | null;
+  assignmentId: string | null;
+}
+
 export interface AssignmentHandoff {
   id: string; status: 'AWAITING_WORKER' | 'CONFIRMED' | 'PROBLEM' | 'EXPIRED'; startedAt: string; expiresAt: string; expired: boolean;
   staff: { id: string; fullName: string; role: string };

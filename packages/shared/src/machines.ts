@@ -130,8 +130,11 @@ export const JOB_REQUEST_MACHINE: Machine<import('./basics').JobRequestStatus> =
   PENDING: [
     { to: 'APPROVED', actors: ['ADMIN'], label: 'Approve' },
     { to: 'REJECTED', actors: ['ADMIN'], label: 'Reject' },
+    { to: 'FULFILLED', actors: ['ADMIN'], label: 'Assignment prepared from the request' },
+    { to: 'CANCELLED', actors: ['WORKER'], label: 'Withdrawn by the worker' },
   ],
   APPROVED: [{ to: 'FULFILLED', actors: ['ADMIN', 'SYSTEM'], label: 'Assignment created' }],
   REJECTED: [],
   FULFILLED: [],
+  CANCELLED: [],
 };

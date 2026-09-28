@@ -72,6 +72,11 @@ export class AssignmentsService {
 
     const plannedMeters = num(kit.ribbonMeters)! * input.kitCount;
     const groupId = randomUUID();
+    if (input.jobRequestId) {
+      const jr = await this.prisma.workerJobRequest.findUnique({ where: { id: input.jobRequestId } });
+      if (!jr || jr.workerId !== worker.id) throw notFound('Job request');
+      if (jr.status !== 'PENDING') throw invariant(`Request is ${jr.status}`);
+    }
 
     const result = await this.prisma.$transaction(async (tx) => {
       const code = await nextCode(tx, 'assignment_code', 'A-', 5);
@@ -80,8 +85,14 @@ export class AssignmentsService {
           code, workerId: worker.id, productModelId: input.productModelId, productVariantId: input.productVariantId,
           colorId: input.colorId, materialKitTemplateId: kit.id, kitCount: input.kitCount, plannedMeters,
           dueAt: input.dueAt, notes: input.notes, createdById: actor.id, status: 'DRAFT', issuedAt: new Date(),
+          jobRequestId: input.jobRequestId ?? null,
         },
       });
+      if (input.jobRequestId) {
+        // her «Заказать эту работу» is answered by this very assignment (a second preparation cannot reuse it)
+        const done = await tx.workerJobRequest.updateMany({ where: { id: input.jobRequestId, status: 'PENDING' }, data: { status: 'FULFILLED', decidedById: actor.id, decidedAt: new Date() } });
+        if (done.count !== 1) throw invariant('Request was already handled');
+      }
 
       const movements: StockMovement[] = [];
       for (const item of kit.items) {
@@ -119,6 +130,7 @@ export class AssignmentsService {
 
     for (const m of result.movements) await this.stock.publish(m);
     await this.events.publish('assignment.created', { assignmentId: result.assignment.id, workerId: worker.id, managerId: result.managerId });
+    if (input.jobRequestId) await this.events.publish('job_request.decided', { requestId: input.jobRequestId, workerId: worker.id, status: 'FULFILLED', managerId: result.managerId });
     await this.events.publish('qr.created', { code: result.qrCode, type: 'ASSIGNMENT', workerId: worker.id });
     await this.events.publish('delivery.created', { deliveryId: result.deliveryId, workerId: worker.id, type: 'DELIVERY_TO_WORKER', assignmentId: result.assignment.id, managerId: result.managerId });
     return this.get(actor, result.assignment.id);

@@ -11,6 +11,7 @@ import type { Dashboard } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { Button, ErrorState, PageHeader, StatCard, StatCardSkeleton, useIsPhone } from '@/components/ui';
 import { CreateAssignmentDialog } from '../assignments/page';
+import { JobRequestsCard } from './job-requests';
 
 export default function DashboardPage() {
   const { me } = useAuth();
@@ -51,6 +52,8 @@ export default function DashboardPage() {
           </>
         ) : undefined}
       />
+
+      {canSeeAssignments && <JobRequestsCard canCreate={canCreateAssignment} />}
 
       {data && (data.work || data.finance) && (
         <section aria-label="Требует внимания" className="rounded-xl border border-border bg-card p-4 sm:p-5">

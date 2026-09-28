@@ -229,7 +229,18 @@ export const createAssignmentSchema = z.object({
   kitCount: kitCountSchema,
   dueAt: z.coerce.date().optional(),
   notes: z.string().trim().max(1000).optional(),
+  /** prepared from a worker's «Заказать эту работу»: the request becomes FULFILLED in the same transaction */
+  jobRequestId: idSchema.optional(),
 });
+
+// ---- «Заказать работу»: a worker asks for work from the catalog; staff prepares it or declines --------------------------
+export const createJobRequestSchema = z.object({
+  productVariantId: idSchema,
+  kitCount: kitCountSchema,
+  note: z.string().trim().max(500).optional(),
+});
+export const rejectJobRequestSchema = z.object({ note: z.string().trim().max(500).optional() });
+export const listJobRequestsSchema = z.object({ status: z.enum(['PENDING', 'FULFILLED', 'REJECTED', 'CANCELLED']).optional() });
 
 export const reportProgressSchema = z.object({
   reportedMeters: metersSchema,

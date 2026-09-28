@@ -136,6 +136,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Главная')); // the worker's default screen is now the catalog (§18)
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Оплата за 9 метров'), 200); // below her work + quick actions
     expect(find.text('Оплата за 9 метров'), findsOneWidget);
     expect(tester.widget<Text>(find.byKey(const Key('workerPayRate'))).data, sum('30000'));
 

@@ -551,5 +551,22 @@
   "deleteWorkerForever": "Удалить навсегда",
   "deleteWorkerBlocked": "Удалить нельзя: у мастерицы уже есть работа, деньги или принятый залог — эти записи нужны для отчётов и выплат. Её можно архивировать: она не сможет войти, а история сохранится.",
   "deleteWorkerDone": "Мастерица удалена",
-  "permWorkerDelete": "Удалять мастериц"
+  "permWorkerDelete": "Удалять мастериц",
+  "chooseWork": "Выбрать работу",
+  "orderWork": "Заказать эту работу",
+  "orderColor": "Цвет",
+  "orderVolume": "Сколько метров",
+  "orderNote": "Пожелание (необязательно)",
+  "orderSend": "Отправить заявку",
+  "orderSent": "Заявка отправлена! Менеджер подготовит работу.",
+  "orderAlreadyPending": "У вас уже есть заявка — дождитесь ответа или отмените её на главной.",
+  "myRequestPending": "Заявка отправлена",
+  "myRequestPendingHint": "Ждём ответа менеджера",
+  "myRequestRejected": "Заявка не принята",
+  "myRequestCancel": "Отменить заявку",
+  "jobRequestsTitle": "Заявки на работу",
+  "jobRequestsEmpty": "Новых заявок нет",
+  "jobRequestsCount": "Заявки на работу: {count}",
+  "@jobRequestsCount": {"placeholders": {"count": {"type": "int"}}},
+  "jobRequestRejectReason": "Причина (мастерица её увидит)"
 }

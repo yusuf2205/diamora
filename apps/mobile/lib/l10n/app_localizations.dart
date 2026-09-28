@@ -3127,6 +3127,102 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Удалять мастериц'**
   String get permWorkerDelete;
+
+  /// No description provided for @chooseWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать работу'**
+  String get chooseWork;
+
+  /// No description provided for @orderWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заказать эту работу'**
+  String get orderWork;
+
+  /// No description provided for @orderColor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цвет'**
+  String get orderColor;
+
+  /// No description provided for @orderVolume.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько метров'**
+  String get orderVolume;
+
+  /// No description provided for @orderNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожелание (необязательно)'**
+  String get orderNote;
+
+  /// No description provided for @orderSend.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить заявку'**
+  String get orderSend;
+
+  /// No description provided for @orderSent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявка отправлена! Менеджер подготовит работу.'**
+  String get orderSent;
+
+  /// No description provided for @orderAlreadyPending.
+  ///
+  /// In ru, this message translates to:
+  /// **'У вас уже есть заявка — дождитесь ответа или отмените её на главной.'**
+  String get orderAlreadyPending;
+
+  /// No description provided for @myRequestPending.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявка отправлена'**
+  String get myRequestPending;
+
+  /// No description provided for @myRequestPendingHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждём ответа менеджера'**
+  String get myRequestPendingHint;
+
+  /// No description provided for @myRequestRejected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявка не принята'**
+  String get myRequestRejected;
+
+  /// No description provided for @myRequestCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить заявку'**
+  String get myRequestCancel;
+
+  /// No description provided for @jobRequestsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявки на работу'**
+  String get jobRequestsTitle;
+
+  /// No description provided for @jobRequestsEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новых заявок нет'**
+  String get jobRequestsEmpty;
+
+  /// No description provided for @jobRequestsCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заявки на работу: {count}'**
+  String jobRequestsCount(int count);
+
+  /// No description provided for @jobRequestRejectReason.
+  ///
+  /// In ru, this message translates to:
+  /// **'Причина (мастерица её увидит)'**
+  String get jobRequestRejectReason;
 }
 
 class _AppLocalizationsDelegate

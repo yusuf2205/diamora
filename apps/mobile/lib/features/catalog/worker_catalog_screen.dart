@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../work/job_requests.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -128,6 +130,26 @@ class CatalogItemDetailScreen extends ConsumerWidget {
                 Text(i.description!, style: Theme.of(context).textTheme.bodyMedium),
               ],
               const SizedBox(height: 24),
+              if (i.availability != 'UNAVAILABLE' && i.variants.any((v) => v.active && v.color != null)) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.shopping_bag_rounded),
+                    label: Text(l.orderWork, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    onPressed: () async {
+                      final sent = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, useSafeArea: true, builder: (_) => OrderWorkSheet(item: i));
+                      if (sent == true && context.mounted) {
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(content: Text(l.orderSent)));
+                        context.go('/worker/home');
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               contact.maybeWhen(
                 data: (c) => Row(children: [
                   if ((c.phone ?? '').isNotEmpty)

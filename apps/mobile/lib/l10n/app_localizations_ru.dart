@@ -1662,4 +1662,55 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get permWorkerDelete => 'Удалять мастериц';
+
+  @override
+  String get chooseWork => 'Выбрать работу';
+
+  @override
+  String get orderWork => 'Заказать эту работу';
+
+  @override
+  String get orderColor => 'Цвет';
+
+  @override
+  String get orderVolume => 'Сколько метров';
+
+  @override
+  String get orderNote => 'Пожелание (необязательно)';
+
+  @override
+  String get orderSend => 'Отправить заявку';
+
+  @override
+  String get orderSent => 'Заявка отправлена! Менеджер подготовит работу.';
+
+  @override
+  String get orderAlreadyPending =>
+      'У вас уже есть заявка — дождитесь ответа или отмените её на главной.';
+
+  @override
+  String get myRequestPending => 'Заявка отправлена';
+
+  @override
+  String get myRequestPendingHint => 'Ждём ответа менеджера';
+
+  @override
+  String get myRequestRejected => 'Заявка не принята';
+
+  @override
+  String get myRequestCancel => 'Отменить заявку';
+
+  @override
+  String get jobRequestsTitle => 'Заявки на работу';
+
+  @override
+  String get jobRequestsEmpty => 'Новых заявок нет';
+
+  @override
+  String jobRequestsCount(int count) {
+    return 'Заявки на работу: $count';
+  }
+
+  @override
+  String get jobRequestRejectReason => 'Причина (мастерица её увидит)';
 }

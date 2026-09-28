@@ -1621,4 +1621,55 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get permWorkerDelete => 'Ustalarni o\'chirish';
+
+  @override
+  String get chooseWork => 'Ish tanlash';
+
+  @override
+  String get orderWork => 'Bu ishga buyurtma berish';
+
+  @override
+  String get orderColor => 'Rang';
+
+  @override
+  String get orderVolume => 'Necha metr';
+
+  @override
+  String get orderNote => 'Istak (ixtiyoriy)';
+
+  @override
+  String get orderSend => 'Arizani yuborish';
+
+  @override
+  String get orderSent => 'Ariza yuborildi! Menejer ishni tayyorlaydi.';
+
+  @override
+  String get orderAlreadyPending =>
+      'Sizda allaqachon ariza bor — javobni kuting yoki bosh sahifada bekor qiling.';
+
+  @override
+  String get myRequestPending => 'Ariza yuborildi';
+
+  @override
+  String get myRequestPendingHint => 'Menejer javobini kutyapmiz';
+
+  @override
+  String get myRequestRejected => 'Ariza qabul qilinmadi';
+
+  @override
+  String get myRequestCancel => 'Arizani bekor qilish';
+
+  @override
+  String get jobRequestsTitle => 'Ishga arizalar';
+
+  @override
+  String get jobRequestsEmpty => 'Yangi arizalar yo\'q';
+
+  @override
+  String jobRequestsCount(int count) {
+    return 'Ishga arizalar: $count';
+  }
+
+  @override
+  String get jobRequestRejectReason => 'Sabab (usta ko\'radi)';
 }

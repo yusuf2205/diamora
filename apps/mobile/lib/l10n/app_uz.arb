@@ -535,5 +535,21 @@
   "deleteWorkerForever": "Butunlay o'chirish",
   "deleteWorkerBlocked": "O'chirib bo'lmaydi: ustada ish, pul yoki qabul qilingan garov bor — bu yozuvlar hisobot va to'lovlar uchun kerak. Uni arxivlash mumkin: u kira olmaydi, tarix saqlanadi.",
   "deleteWorkerDone": "Usta o'chirildi",
-  "permWorkerDelete": "Ustalarni o'chirish"
+  "permWorkerDelete": "Ustalarni o'chirish",
+  "chooseWork": "Ish tanlash",
+  "orderWork": "Bu ishga buyurtma berish",
+  "orderColor": "Rang",
+  "orderVolume": "Necha metr",
+  "orderNote": "Istak (ixtiyoriy)",
+  "orderSend": "Arizani yuborish",
+  "orderSent": "Ariza yuborildi! Menejer ishni tayyorlaydi.",
+  "orderAlreadyPending": "Sizda allaqachon ariza bor — javobni kuting yoki bosh sahifada bekor qiling.",
+  "myRequestPending": "Ariza yuborildi",
+  "myRequestPendingHint": "Menejer javobini kutyapmiz",
+  "myRequestRejected": "Ariza qabul qilinmadi",
+  "myRequestCancel": "Arizani bekor qilish",
+  "jobRequestsTitle": "Ishga arizalar",
+  "jobRequestsEmpty": "Yangi arizalar yo'q",
+  "jobRequestsCount": "Ishga arizalar: {count}",
+  "jobRequestRejectReason": "Sabab (usta ko'radi)"
 }

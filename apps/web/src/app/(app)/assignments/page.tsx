@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { assignmentStatusLabel, assignmentStatusTone, formatDay, formatUzs } from '@/lib/format';
-import type { AssignmentDetail, AssignmentSummary, CatalogItem, CatalogVariant, KitTemplate, Page, PayRate, Worker } from '@/lib/types';
+import type { AssignmentDetail, AssignmentSummary, CatalogItem, CatalogVariant, KitTemplate, Page, PayRate, Worker, JobRequest } from '@/lib/types';
 import { Badge, Button, Chips, DataList, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 
 const STATUS_FILTERS = [
@@ -81,15 +81,16 @@ export default function AssignmentsPage() {
 
 /** «Подготовить работу»: pick worker → model → colour → volume → deadline, see the full summary (materials that will leave the
  * stock, estimated pay at today's rate), confirm. The server re-checks stock and computes the real payment. */
-export function CreateAssignmentDialog({ onClose, workerId: presetWorker }: { onClose: () => void; workerId?: string }) {
+export function CreateAssignmentDialog({ onClose, workerId: presetWorker, request }: { onClose: () => void; workerId?: string; request?: JobRequest }) {
   const router = useRouter();
   const qc = useQueryClient();
-  const [workerId, setWorkerId] = useState(presetWorker ?? '');
-  const [productId, setProductId] = useState('');
-  const [variantId, setVariantId] = useState('');
-  const [kitCount, setKitCount] = useState<1 | 2 | 3>(2);
+  // prepared from her «Заказать эту работу»: everything she chose is already filled in
+  const [workerId, setWorkerId] = useState(request?.worker.id ?? presetWorker ?? '');
+  const [productId, setProductId] = useState(request?.product?.id ?? '');
+  const [variantId, setVariantId] = useState(request?.variant?.id ?? '');
+  const [kitCount, setKitCount] = useState<1 | 2 | 3>(request?.kitCount ?? 2);
   const [dueAt, setDueAt] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(request?.note ?? '');
   const [reviewing, setReviewing] = useState(false);
   const [insufficientMaterial, setInsufficientMaterial] = useState<string | null>(null);
 
@@ -110,13 +111,14 @@ export function CreateAssignmentDialog({ onClose, workerId: presetWorker }: { on
       if (!kit) throw new ApiError(422, 'NO_KIT', 'Нет комплекта материалов для этого цвета. Добавьте его на складе.');
       return api.post<AssignmentDetail>(
         '/admin/assignments',
-        { workerId, productModelId: productId, productVariantId: variantId, colorId: variant!.color!.id, materialKitTemplateId: kit.id, kitCount, dueAt: dueAt || undefined, notes: notes.trim() || undefined },
+        { workerId, productModelId: productId, productVariantId: variantId, colorId: variant!.color!.id, materialKitTemplateId: kit.id, kitCount, dueAt: dueAt || undefined, notes: notes.trim() || undefined, jobRequestId: request?.id },
         { idempotencyKey: crypto.randomUUID() },
       );
     },
     onSuccess: (a) => {
       qc.invalidateQueries({ queryKey: ['assignments'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['job-requests'] });
       router.push(`/assignments/${a.id}`);
     },
     onError: async (err) => {

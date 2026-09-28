@@ -8,6 +8,7 @@ import '../settings/pay_rate.dart';
 import '../settings/pay_rate_screen.dart';
 import '../work/assignment_admin_repository.dart' show LedgerEntry;
 import '../work/current_work_card.dart';
+import '../work/job_requests.dart';
 import '../work/work_repository.dart';
 import '../workers/collateral_card.dart';
 import '../workers/workers_providers.dart';
@@ -38,11 +39,15 @@ class WorkerHomeScreen extends ConsumerWidget {
                 ref.invalidate(payRateProvider);
                 ref.invalidate(currentWorkProvider);
                 ref.invalidate(myEarningsProvider);
+                ref.invalidate(myJobRequestsProvider);
               },
               child: ListView(padding: AppTokens.screenPadding.copyWith(top: 8, bottom: 24), children: [
                 Text(me.fullName, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
                 if (me.status != 'PENDING_APPROVAL') ...[
+                  const WorkerQuickActions(),
+                  const MyJobRequestCard(),
+                  const SizedBox(height: 20),
                   Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   currentWork.when(

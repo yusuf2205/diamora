@@ -16,12 +16,12 @@ class AssignmentAdminRepository {
 
   Future<AssignmentDetail> create({
     required String workerId, required String productModelId, required String productVariantId, required String colorId,
-    required String materialKitTemplateId, required int kitCount, DateTime? dueAt, String? notes,
+    required String materialKitTemplateId, required int kitCount, DateTime? dueAt, String? notes, String? jobRequestId,
   }) async =>
       AssignmentDetail.fromJson(await _api.postJson('/admin/assignments', idempotencyKey: _uuid.v4(), body: {
         'workerId': workerId, 'productModelId': productModelId, 'productVariantId': productVariantId, 'colorId': colorId,
         'materialKitTemplateId': materialKitTemplateId, 'kitCount': kitCount,
-        'dueAt': ?dueAt?.toIso8601String(), 'notes': ?notes,
+        'dueAt': ?dueAt?.toIso8601String(), 'notes': ?notes, 'jobRequestId': ?jobRequestId,
       }));
 
   Future<AssignmentDetail> get(String id) async => AssignmentDetail.fromJson(await _api.getJson('/admin/assignments/$id'));

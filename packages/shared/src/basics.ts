@@ -53,7 +53,7 @@ export type DeliveryType = (typeof DELIVERY_TYPES)[number];
 export const DELIVERY_STATUSES = ['PENDING', 'COMPLETED', 'CANCELLED'] as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
-export const JOB_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED'] as const;
+export const JOB_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED', 'CANCELLED'] as const;
 export type JobRequestStatus = (typeof JOB_REQUEST_STATUSES)[number];
 
 export const FILE_BUCKETS = ['collateral', 'assignments', 'products', 'quality', 'documents', 'avatars'] as const;

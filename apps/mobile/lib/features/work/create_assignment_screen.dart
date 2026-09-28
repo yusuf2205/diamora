@@ -12,26 +12,53 @@ import '../settings/pay_rate.dart';
 import '../workers/models.dart';
 import '../workers/workers_providers.dart';
 import 'assignment_admin_repository.dart';
+import 'job_requests.dart';
 
 /// M3 §4: "Выдать работу" — a short, guided flow instead of a form full of technical fields. A MANAGER only ever sees
 /// her own workers in the picker (the same server-scoped list as everywhere else); the server re-validates everything
 /// regardless of what the client shows.
 class CreateAssignmentScreen extends ConsumerStatefulWidget {
-  const CreateAssignmentScreen({super.key, this.workerId});
+  const CreateAssignmentScreen({super.key, this.workerId, this.request});
   final String? workerId;
+  /// «Заказать эту работу»: worker, model, colour and metres come from her request; staff only sets the deadline
+  final JobRequest? request;
   @override
   ConsumerState<CreateAssignmentScreen> createState() => _CreateAssignmentScreenState();
 }
 
 class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen> {
-  late int _step = widget.workerId != null ? 1 : 0;
+  late int _step = widget.request != null ? 4 : widget.workerId != null ? 1 : 0;
+  late final String? _workerId = widget.request?.workerId ?? widget.workerId;
   Worker? _worker;
   CatalogItem? _product;
   CatalogVariant? _variant;
   int? _kitCount; // 1=9m, 2=18m, 3=27m
   DateTime? _dueDate;
-  final _comment = TextEditingController();
+  late final _comment = TextEditingController(text: widget.request?.note ?? '');
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.request;
+    if (r != null) {
+      _kitCount = r.kitCount;
+      if (r.productId != null) {
+        ref.read(staffCatalogItemProvider(r.productId!).future).then((p) {
+          if (!mounted) return;
+          setState(() {
+            _product = p;
+            _variant = p.variants.where((v) => v.id == r.variantId).firstOrNull;
+            if (_variant == null) _step = 2; // the colour she picked is gone: staff picks another
+          });
+        }).catchError((_) {
+          if (mounted) setState(() => _step = 1);
+        });
+      } else {
+        _step = 1;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -52,8 +79,8 @@ class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    if (widget.workerId != null && _worker == null) {
-      final w = ref.watch(workerDetailProvider(widget.workerId!));
+    if (_workerId != null && _worker == null) {
+      final w = ref.watch(workerDetailProvider(_workerId));
       w.whenData((worker) => WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) setState(() => _worker = worker);
           }));
@@ -71,7 +98,7 @@ class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen>
       body: SafeArea(
         child: Column(children: [
           _StepDots(step: _step, total: _lastStep + 1),
-          Expanded(child: _busy ? const Center(child: CircularProgressIndicator()) : _buildStep(l)),
+          Expanded(child: _busy || (_step >= 4 && (_worker == null || _product == null || _variant == null)) ? const Center(child: CircularProgressIndicator()) : _buildStep(l)),
         ]),
       ),
       bottomNavigationBar: _busy
@@ -80,13 +107,13 @@ class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen>
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(children: [
-                  if (_step > (widget.workerId != null ? 1 : 0))
+                  if (_step > (_workerId != null ? 1 : 0))
                     Expanded(child: OutlinedButton(onPressed: () => setState(() => _step--), child: Text(l.back))),
-                  if (_step > (widget.workerId != null ? 1 : 0)) const SizedBox(width: 12),
+                  if (_step > (_workerId != null ? 1 : 0)) const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: FilledButton(
-                      onPressed: !_canGoNext
+                      onPressed: !_canGoNext || (_step >= 4 && (_worker == null || _product == null || _variant == null))
                           ? null
                           : _step == _lastStep
                               ? _submit
@@ -138,7 +165,9 @@ class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen>
       final result = await ref.read(assignmentAdminRepositoryProvider).create(
             workerId: _worker!.id, productModelId: _product!.id, productVariantId: _variant!.id, colorId: _variant!.color!.id,
             materialKitTemplateId: kit.id, kitCount: _kitCount!, dueAt: _dueDate, notes: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
+            jobRequestId: widget.request?.id,
           );
+      ref.invalidate(staffJobRequestsProvider);
       if (!mounted) return;
       context.pop();
       context.push('/admin/assignments/${result.id}');

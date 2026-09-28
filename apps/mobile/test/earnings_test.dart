@@ -79,6 +79,7 @@ void main() {
     await openHome(tester, () => app(worker, api, events));
 
     expect(find.text('Малика Каримова'), findsOneWidget); // the rest of the screen is unaffected (name comes from /workers/me)
+    await tester.scrollUntilVisible(find.text(sum('30000')), 200);
     expect(find.text(sum('30000')), findsWidgets); // pay rate card still works
     expect(find.text('История'), findsNothing);
     expect(find.text('Заработано'), findsNothing);
