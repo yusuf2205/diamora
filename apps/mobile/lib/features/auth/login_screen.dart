@@ -108,46 +108,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Icon(Icons.diamond_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
+                Icon(Icons.diamond_rounded, size: 56, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
                 Text(l.appTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
                 Text(l.welcomeTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 28),
                 if (_step == _Step.password) ...[
                   Row(children: [
-                    IconButton(onPressed: _busy ? null : _back, icon: const Icon(Icons.arrow_back)),
+                    IconButton(onPressed: _busy ? null : _back, icon: const Icon(Icons.arrow_back_rounded)),
                     Expanded(child: Text(_phone.text.trim(), style: Theme.of(context).textTheme.titleMedium)),
                   ]),
                   const SizedBox(height: 8),
                 ],
                 if (_step == _Step.phone) ...[
+                  // workers are the majority and never have a password: Telegram is THE button, big and first
+                  SizedBox(
+                    height: 60,
+                    child: FilledButton.icon(
+                      onPressed: _openingTelegram ? null : _signInWithTelegram,
+                      icon: _openingTelegram ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.send_rounded, size: 24),
+                      label: Text(_openingTelegram ? l.openingTelegram : l.signInWithTelegram, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(l.telegramLoginHint, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  const SizedBox(height: 32),
+                  Row(children: [
+                    const Expanded(child: Divider()),
+                    Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.staffSignIn, style: Theme.of(context).textTheme.bodySmall)),
+                    const Expanded(child: Divider()),
+                  ]),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _phone,
                     keyboardType: TextInputType.phone,
                     autofillHints: const [AutofillHints.telephoneNumber],
-                    decoration: InputDecoration(labelText: l.phone, hintText: '+998 90 123 45 67', prefixIcon: const Icon(Icons.phone_outlined)),
+                    decoration: InputDecoration(labelText: l.phone, hintText: '+998 90 123 45 67', prefixIcon: const Icon(Icons.phone_rounded)),
                     onSubmitted: (_) => _busy ? null : _submitPhone(),
                   ),
-                  const SizedBox(height: 20),
-                  FilledButton(onPressed: _busy ? null : _submitPhone, child: Text(l.continueAction)),
-                  const SizedBox(height: 24),
-                  Row(children: [
-                    const Expanded(child: Divider()),
-                    Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.orDivider, style: Theme.of(context).textTheme.bodySmall)),
-                    const Expanded(child: Divider()),
-                  ]),
-                  const SizedBox(height: 20),
-                  OutlinedButton.icon(
-                    onPressed: _openingTelegram ? null : _signInWithTelegram,
-                    icon: _openingTelegram ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send_rounded),
-                    label: Text(_openingTelegram ? l.openingTelegram : l.signInWithTelegram),
-                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(onPressed: _busy ? null : _submitPhone, child: Text(l.continueAction)),
                 ] else ...[
                   TextField(
                     controller: _password,
                     obscureText: true,
                     autofillHints: const [AutofillHints.password],
-                    decoration: InputDecoration(labelText: l.password, prefixIcon: const Icon(Icons.lock_outline)),
+                    decoration: InputDecoration(labelText: l.password, prefixIcon: const Icon(Icons.lock_outline_rounded)),
                     onSubmitted: (_) => _busy ? null : _run(() => auth.adminLogin(_phone.text.trim(), _password.text)),
                   ),
                   const SizedBox(height: 20),

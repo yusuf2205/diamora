@@ -34,7 +34,7 @@ class _CompanyContactScreenState extends ConsumerState<CompanyContactScreen> {
       appBar: AppBar(title: Text(l.settingsCompanyContact)),
       body: contact.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (_) => ListView(padding: AppTokens.screenPadding.copyWith(top: 16, bottom: 24), children: [
           Text(l.settingsCompanyContactHint, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 16),

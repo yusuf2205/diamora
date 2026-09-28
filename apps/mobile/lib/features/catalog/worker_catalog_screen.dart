@@ -25,9 +25,9 @@ class WorkerCatalogScreen extends ConsumerWidget {
         Expanded(
           child: items.when(
             loading: () => const SkeletonList(count: 6),
-            error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+            error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
             data: (list) => list.isEmpty
-                ? EmptyState(icon: Icons.auto_awesome_outlined, title: l.catalogEmpty, hint: l.catalogEmptyHint)
+                ? EmptyState(icon: Icons.auto_awesome_rounded, title: l.catalogEmpty, hint: l.catalogEmptyHint)
                 : RefreshIndicator(
                     onRefresh: () async => ref.invalidate(publishedCatalogProvider),
                     child: GridView.builder(
@@ -60,7 +60,7 @@ class _CatalogCard extends StatelessWidget {
             child: Stack(fit: StackFit.expand, children: [
               item.mainPhoto != null
                   ? Image(image: CachedNetworkImageProvider(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url), fit: BoxFit.cover)
-                  : Container(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.image_outlined, size: 40)),
+                  : Container(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.image_rounded, size: 40)),
               if (item.isNew)
                 Positioned(
                   top: 8, left: 8,
@@ -98,7 +98,7 @@ class CatalogItemDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.catalog)),
       body: item.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (i) => ListView(padding: const EdgeInsets.only(bottom: 24), children: [
           if (i.media.isNotEmpty)
             SizedBox(
@@ -106,7 +106,7 @@ class CatalogItemDetailScreen extends ConsumerWidget {
               child: PageView(children: [
                 for (final m in i.media)
                   m.isVideo
-                      ? Container(color: Colors.black, child: const Center(child: Icon(Icons.play_circle_outline, color: Colors.white, size: 56)))
+                      ? Container(color: Colors.black, child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 56)))
                       : (m.file != null ? Image(image: CachedNetworkImageProvider(m.file!.url), fit: BoxFit.cover) : const ColoredBox(color: Colors.black12)),
               ]),
             ),
@@ -131,10 +131,10 @@ class CatalogItemDetailScreen extends ConsumerWidget {
               contact.maybeWhen(
                 data: (c) => Row(children: [
                   if ((c.phone ?? '').isNotEmpty)
-                    Expanded(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse('tel:${c.phone}')), icon: const Icon(Icons.call_outlined), label: Text(l.catalogCall))),
+                    Expanded(child: OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse('tel:${c.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.catalogCall))),
                   if ((c.phone ?? '').isNotEmpty && (c.telegramUrl ?? '').isNotEmpty) const SizedBox(width: 12),
                   if ((c.telegramUrl ?? '').isNotEmpty)
-                    Expanded(child: FilledButton.icon(onPressed: () => _openTelegram(c.telegramUrl!), icon: const Icon(Icons.send_outlined), label: Text(l.catalogTelegram))),
+                    Expanded(child: FilledButton.icon(onPressed: () => _openTelegram(c.telegramUrl!), icon: const Icon(Icons.send_rounded), label: Text(l.catalogTelegram))),
                 ]),
                 orElse: () => const SizedBox.shrink(),
               ),

@@ -50,9 +50,9 @@ class _AssignmentQueue extends ConsumerWidget {
     final list = ref.watch(assignmentListProvider(AssignmentListFilter(status: status)));
     return list.when(
       loading: () => const SkeletonList(count: 4),
-      error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+      error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
       data: (items) => items.isEmpty
-          ? EmptyState(icon: Icons.inbox_outlined, title: status == 'READY_TO_DELIVER' ? l.deliveryNeeded : l.pickupNeeded, hint: l.workNoCurrent)
+          ? EmptyState(icon: Icons.inbox_rounded, title: status == 'READY_TO_DELIVER' ? l.deliveryNeeded : l.pickupNeeded, hint: l.workNoCurrent)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(assignmentListProvider(AssignmentListFilter(status: status))),
               child: ListView.separated(
@@ -77,7 +77,7 @@ class _QueueCard extends StatelessWidget {
         leading: CircleAvatar(backgroundColor: scheme.primaryContainer, child: Text(a.workerName.isNotEmpty ? a.workerName[0] : '?')),
         title: Text(a.workerName),
         subtitle: Text('${a.productName} · ${a.colorName} · ${a.plannedMeters.toStringAsFixed(0)} м'),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))),
       ),
     );

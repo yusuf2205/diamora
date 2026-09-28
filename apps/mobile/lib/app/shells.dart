@@ -56,11 +56,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         onDestinationSelected: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
-          NavigationDestination(icon: const Icon(Icons.dashboard_outlined), selectedIcon: const Icon(Icons.dashboard), label: l.dashboardTab),
-          NavigationDestination(icon: const Icon(Icons.groups_outlined), selectedIcon: const Icon(Icons.groups), label: l.workers),
-          NavigationDestination(icon: const Icon(Icons.map_outlined), selectedIcon: const Icon(Icons.map), label: l.map),
-          NavigationDestination(icon: const Icon(Icons.inventory_2_outlined), selectedIcon: const Icon(Icons.inventory_2), label: l.inventory),
-          NavigationDestination(icon: const Icon(Icons.more_horiz), selectedIcon: const Icon(Icons.more_horiz), label: l.more),
+          NavigationDestination(icon: const Icon(Icons.dashboard_rounded), selectedIcon: const Icon(Icons.dashboard_rounded), label: l.dashboardTab),
+          NavigationDestination(icon: const Icon(Icons.groups_rounded), selectedIcon: const Icon(Icons.groups_rounded), label: l.workers),
+          NavigationDestination(icon: const Icon(Icons.map_rounded), selectedIcon: const Icon(Icons.map_rounded), label: l.map),
+          NavigationDestination(icon: const Icon(Icons.inventory_2_rounded), selectedIcon: const Icon(Icons.inventory_2_rounded), label: l.inventory),
+          NavigationDestination(icon: const Icon(Icons.more_horiz_rounded), selectedIcon: const Icon(Icons.more_horiz_rounded), label: l.more),
         ],
       ),
     );
@@ -81,9 +81,9 @@ class WorkerShell extends StatelessWidget {
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
         destinations: [
-          NavigationDestination(icon: const Icon(Icons.auto_awesome_outlined), selectedIcon: const Icon(Icons.auto_awesome), label: l.catalog),
-          NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: l.home),
-          NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: l.profile),
+          NavigationDestination(icon: const Icon(Icons.auto_awesome_rounded), selectedIcon: const Icon(Icons.auto_awesome_rounded), label: l.catalog),
+          NavigationDestination(icon: const Icon(Icons.home_rounded), selectedIcon: const Icon(Icons.home_rounded), label: l.home),
+          NavigationDestination(icon: const Icon(Icons.person_outline_rounded), selectedIcon: const Icon(Icons.person_rounded), label: l.profile),
         ],
       ),
     );

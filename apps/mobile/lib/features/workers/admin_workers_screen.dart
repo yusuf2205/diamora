@@ -37,11 +37,11 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
         title: Text(l.workers),
         actions: [
           IconButton(
-            icon: const Icon(Icons.local_shipping_outlined),
+            icon: const Icon(Icons.local_shipping_rounded),
             tooltip: l.deliveryNeeded,
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DeliveriesScreen())),
           ),
-          IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan')),
+          IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan')),
         ],
         bottom: TabBar(controller: _tabs, tabs: [Tab(text: l.tabPending), Tab(text: l.tabActive), Tab(text: l.tabAll)]),
       ),
@@ -49,7 +49,7 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
         const ConnectionBanner(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: SearchBar(hintText: l.search, leading: const Icon(Icons.search), onChanged: (v) => setState(() => _query = v), elevation: const WidgetStatePropertyAll(0)),
+          child: SearchBar(hintText: l.search, leading: const Icon(Icons.search_rounded), onChanged: (v) => setState(() => _query = v), elevation: const WidgetStatePropertyAll(0)),
         ),
         Expanded(
           child: TabBarView(controller: _tabs, children: [
@@ -74,13 +74,13 @@ class _WorkersList extends ConsumerWidget {
       onRefresh: () => ref.read(workerRepositoryProvider).refresh(full: true),
       child: async.when(
         loading: () => const SkeletonList(),
-        error: (e, _) => ListView(children: [EmptyState(icon: Icons.error_outline, title: errorText(context, e))]),
+        error: (e, _) => ListView(children: [EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e))]),
         data: (items) => items.isEmpty
             ? ListView(children: [
                 SizedBox(
                   height: 320,
                   child: EmptyState(
-                    icon: emptyPending ? Icons.telegram : Icons.groups_outlined,
+                    icon: emptyPending ? Icons.telegram_rounded : Icons.groups_rounded,
                     title: emptyPending ? l.emptyPending : l.emptyWorkers,
                     hint: emptyPending ? l.emptyPendingHint : null,
                   ),

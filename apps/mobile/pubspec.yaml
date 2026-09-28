@@ -1,7 +1,7 @@
 ﻿name: yusmus_mobile
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0-rc.11+11
+version: 1.0.0-rc.12+12
 
 environment:
   sdk: ^3.13.3
@@ -48,3 +48,17 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+  # Manrope (SIL OFL 1.1, assets/fonts/OFL.txt): the same soft, modern face as the web panel, bundled = works offline
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-400.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-500.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-600.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-700.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-800.ttf
+          weight: 800

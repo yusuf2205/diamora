@@ -19,9 +19,9 @@ class AuditScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.audit)),
       body: entries.when(
         loading: () => const SkeletonList(count: 8),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (list) => list.isEmpty
-            ? EmptyState(icon: Icons.receipt_long_outlined, title: l.auditEmpty)
+            ? EmptyState(icon: Icons.receipt_long_rounded, title: l.auditEmpty)
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(auditProvider),
                 child: ListView.separated(
@@ -33,7 +33,7 @@ class AuditScreen extends ConsumerWidget {
                     final when = e.createdAt.length >= 16 ? e.createdAt.substring(0, 16).replaceFirst('T', ' ') : e.createdAt;
                     return ListTile(
                       dense: true,
-                      leading: const Icon(Icons.history),
+                      leading: const Icon(Icons.history_rounded),
                       title: Text(e.action),
                       subtitle: Text('${e.entity}${e.entityId != null ? ' #${e.entityId!.substring(0, 8)}' : ''} · ${e.actorRole ?? '—'}'),
                       trailing: Text(when, style: Theme.of(context).textTheme.bodySmall),

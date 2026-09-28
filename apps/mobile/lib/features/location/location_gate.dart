@@ -90,12 +90,12 @@ class _GapScreenState extends ConsumerState<_GapScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final (icon, title, body, action) = switch (widget.gap) {
-      LocationGap.servicesDisabled => (Icons.location_disabled, l.locationServicesOffTitle, l.locationServicesOffBody, l.locationOpenSettings),
-      LocationGap.foregroundDenied => (Icons.location_on_outlined, l.locationForegroundTitle, l.locationForegroundBody, l.locationAllow),
-      LocationGap.foregroundDeniedForever => (Icons.location_off_outlined, l.locationForegroundTitle, l.locationDeniedForeverBody, l.locationOpenAppSettings),
-      LocationGap.backgroundDenied => (Icons.my_location, l.locationBackgroundTitle, l.locationBackgroundBody, l.locationAllow),
-      LocationGap.backgroundDeniedForever => (Icons.my_location, l.locationBackgroundTitle, l.locationDeniedForeverBody, l.locationOpenAppSettings),
-      LocationGap.none => (Icons.check_circle, '', '', ''),
+      LocationGap.servicesDisabled => (Icons.location_disabled_rounded, l.locationServicesOffTitle, l.locationServicesOffBody, l.locationOpenSettings),
+      LocationGap.foregroundDenied => (Icons.location_on_rounded, l.locationForegroundTitle, l.locationForegroundBody, l.locationAllow),
+      LocationGap.foregroundDeniedForever => (Icons.location_off_rounded, l.locationForegroundTitle, l.locationDeniedForeverBody, l.locationOpenAppSettings),
+      LocationGap.backgroundDenied => (Icons.my_location_rounded, l.locationBackgroundTitle, l.locationBackgroundBody, l.locationAllow),
+      LocationGap.backgroundDeniedForever => (Icons.my_location_rounded, l.locationBackgroundTitle, l.locationDeniedForeverBody, l.locationOpenAppSettings),
+      LocationGap.none => (Icons.check_circle_rounded, '', '', ''),
     };
     return Scaffold(
       body: SafeArea(

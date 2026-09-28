@@ -14,10 +14,10 @@ class TelegramPendingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final (icon, title, body) = switch (status) {
-      'PENDING_APPROVAL' => (Icons.hourglass_top, l.pendingApprovalTitle, l.pendingApprovalBody),
-      'REJECTED' => (Icons.block, l.rejectedTitle, reason ?? l.pendingApprovalBody),
-      'PAUSED' => (Icons.pause_circle_outline, l.workerPausedTitle, l.workerPausedBody),
-      _ => (Icons.error_outline, l.genericError, l.telegramLoginFailed),
+      'PENDING_APPROVAL' => (Icons.hourglass_top_rounded, l.pendingApprovalTitle, l.pendingApprovalBody),
+      'REJECTED' => (Icons.block_rounded, l.rejectedTitle, reason ?? l.pendingApprovalBody),
+      'PAUSED' => (Icons.pause_circle_outline_rounded, l.workerPausedTitle, l.workerPausedBody),
+      _ => (Icons.error_outline_rounded, l.genericError, l.telegramLoginFailed),
     };
     return Scaffold(
       body: SafeArea(

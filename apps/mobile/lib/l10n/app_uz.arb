@@ -468,5 +468,7 @@
   "permPasswordSet": "Xodimlarga parol o'rnatish",
   "passwordForLogin": "Kirish paroli",
   "passwordForLoginHint": "O'zingiz o'ylab toping va shaxsan bering",
-  "userCreated": "Foydalanuvchi yaratildi. Parolni shaxsan bering."
+  "userCreated": "Foydalanuvchi yaratildi. Parolni shaxsan bering.",
+  "telegramLoginHint": "Ustalar uchun — parolsiz, Telegram orqali",
+  "staffSignIn": "Xodimlar uchun kirish"
 }

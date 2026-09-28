@@ -21,9 +21,20 @@ class AppTheme {
 
   static ThemeData _build(Brightness b) {
     final scheme = ColorScheme.fromSeed(seedColor: AppTokens.seed, brightness: b);
+    final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Manrope');
+    // headings a touch bolder and tighter: friendlier and easier to scan on a small phone
+    final text = base.textTheme.copyWith(
+      headlineSmall: base.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.3),
+      titleLarge: base.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.2),
+      titleMedium: base.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+      titleSmall: base.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+      labelLarge: base.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+    );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      fontFamily: 'Manrope',
+      textTheme: text,
       scaffoldBackgroundColor: scheme.surface,
       cardTheme: CardThemeData(
         elevation: 0,

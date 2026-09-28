@@ -19,12 +19,12 @@ class AdminCatalogScreen extends ConsumerWidget {
     final items = ref.watch(staffCatalogProvider(const StaffCatalogFilter()));
     return Scaffold(
       appBar: AppBar(title: Text(l.catalogAdminTitle)),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => _create(context, ref), icon: const Icon(Icons.add), label: Text(l.catalogAddItem)),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => _create(context, ref), icon: const Icon(Icons.add_rounded), label: Text(l.catalogAddItem)),
       body: items.when(
         loading: () => const SkeletonList(count: 5),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (list) => list.isEmpty
-            ? EmptyState(icon: Icons.auto_awesome_outlined, title: l.catalogEmpty)
+            ? EmptyState(icon: Icons.auto_awesome_rounded, title: l.catalogEmpty)
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(staffCatalogProvider(const StaffCatalogFilter())),
                 child: ListView.separated(
@@ -72,10 +72,10 @@ class _Row extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Card(
       child: ListTile(
-        leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest, backgroundImage: item.mainPhoto != null ? NetworkImage(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url) : null, child: item.mainPhoto == null ? const Icon(Icons.image_outlined) : null),
+        leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest, backgroundImage: item.mainPhoto != null ? NetworkImage(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url) : null, child: item.mainPhoto == null ? const Icon(Icons.image_rounded) : null),
         title: Text(item.name),
         subtitle: Text(_statusLabel(l, item.status)),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AdminCatalogDetailScreen(itemId: item.id))),
       ),
     );
@@ -141,7 +141,7 @@ class _AdminCatalogDetailScreenState extends ConsumerState<AdminCatalogDetailScr
       appBar: AppBar(title: Text(l.catalogAdminTitle)),
       body: item.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (i) => ListView(padding: AppTokens.screenPadding.copyWith(top: 16, bottom: 24), children: [
           Text(i.name, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),
@@ -159,15 +159,15 @@ class _AdminCatalogDetailScreenState extends ConsumerState<AdminCatalogDetailScr
                       borderRadius: BorderRadius.circular(AppTokens.radius),
                       child: m.file != null
                           ? Image.network(m.file!.thumbUrl ?? m.file!.url, width: 120, height: 120, fit: BoxFit.cover)
-                          : Container(width: 120, height: 120, color: Colors.black12, child: const Icon(Icons.movie_outlined)),
+                          : Container(width: 120, height: 120, color: Colors.black12, child: const Icon(Icons.movie_rounded)),
                     ),
-                    if (m.isMain) Positioned(top: 4, left: 4, child: Icon(Icons.star, color: Theme.of(context).colorScheme.primary)),
+                    if (m.isMain) Positioned(top: 4, left: 4, child: Icon(Icons.star_rounded, color: Theme.of(context).colorScheme.primary)),
                   ]);
                 },
               ),
             ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(onPressed: _busy ? null : _addPhoto, icon: const Icon(Icons.add_a_photo_outlined), label: Text(l.catalogAddPhoto)),
+          OutlinedButton.icon(onPressed: _busy ? null : _addPhoto, icon: const Icon(Icons.add_a_photo_rounded), label: Text(l.catalogAddPhoto)),
           const SizedBox(height: 20),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,

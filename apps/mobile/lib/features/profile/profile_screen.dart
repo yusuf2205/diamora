@@ -29,9 +29,9 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.key_outlined),
+              leading: const Icon(Icons.key_rounded),
               title: Text(l.changePassword),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const ChangePasswordSheet()),
             ),
           ),
@@ -51,7 +51,7 @@ class ProfileScreen extends ConsumerWidget {
             for (final s in items)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(s.device.platform == 'IOS' ? Icons.phone_iphone : Icons.phone_android),
+                leading: Icon(s.device.platform == 'IOS' ? Icons.phone_iphone_rounded : Icons.phone_android_rounded),
                 title: Text(s.device.name ?? s.device.platform),
                 subtitle: Text(s.current ? l.thisDevice : s.lastUsedAt.substring(0, 16).replaceFirst('T', ' ')),
                 trailing: s.current ? null : TextButton(onPressed: () async { await ref.read(authRepositoryProvider).revokeSession(s.id); ref.invalidate(_sessionsProvider); }, child: Text(l.revoke)),

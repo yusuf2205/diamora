@@ -23,7 +23,7 @@ class CollateralCard extends StatelessWidget {
         padding: AppTokens.cardPadding,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Icon(c.isMoney ? Icons.payments_outlined : Icons.diamond_outlined),
+            Icon(c.isMoney ? Icons.payments_rounded : Icons.diamond_rounded),
             const SizedBox(width: 8),
             Expanded(child: Text(c.isMoney ? '${l.collateralMoney}: ${formatUzs(c.amount)} ${l.currency}' : (c.description ?? l.collateralItem), style: Theme.of(context).textTheme.titleMedium)),
           ]),

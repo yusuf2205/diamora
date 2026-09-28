@@ -22,9 +22,9 @@ class LocationsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.locations)),
       body: rows.when(
         loading: () => const SkeletonList(count: 5),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (list) => list.isEmpty
-            ? EmptyState(icon: Icons.location_searching, title: l.locationsEmpty)
+            ? EmptyState(icon: Icons.location_searching_rounded, title: l.locationsEmpty)
             : RefreshIndicator(
                 onRefresh: () async => ref.invalidate(liveLocationsProvider),
                 child: ListView.separated(
@@ -52,7 +52,7 @@ class _Row extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: row.stale ? Theme.of(context).colorScheme.surfaceContainerHighest : AppTokens.ok.withValues(alpha: 0.15),
-          child: Icon(Icons.place_outlined, color: row.stale ? null : AppTokens.ok),
+          child: Icon(Icons.place_rounded, color: row.stale ? null : AppTokens.ok),
         ),
         title: Text(row.fullName),
         subtitle: Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}${row.online ? ' · ${l.onlineNow}' : ''} · ${row.latitude.toStringAsFixed(4)}, ${row.longitude.toStringAsFixed(4)}'),

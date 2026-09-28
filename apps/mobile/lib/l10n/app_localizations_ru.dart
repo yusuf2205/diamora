@@ -1440,4 +1440,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get userCreated => 'Пользователь создан. Передайте ему пароль лично.';
+
+  @override
+  String get telegramLoginHint =>
+      'Для мастериц — без пароля, через ваш Telegram';
+
+  @override
+  String get staffSignIn => 'Вход для сотрудников';
 }

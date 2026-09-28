@@ -20,11 +20,11 @@ class WorkersDueScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.payoutDue)),
       body: async.when(
         loading: () => const SkeletonList(),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (workers) {
           final due = workers.where((w) => (int.tryParse(w.balance) ?? 0) > 0).toList()
             ..sort((a, b) => (int.tryParse(b.balance) ?? 0).compareTo(int.tryParse(a.balance) ?? 0));
-          if (due.isEmpty) return EmptyState(icon: Icons.payments_outlined, title: l.workersDueEmpty);
+          if (due.isEmpty) return EmptyState(icon: Icons.payments_rounded, title: l.workersDueEmpty);
           return ListView.separated(
             padding: const EdgeInsets.all(12),
             itemCount: due.length,

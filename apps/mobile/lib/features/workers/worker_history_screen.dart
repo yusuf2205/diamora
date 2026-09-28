@@ -34,14 +34,14 @@ class WorkerHistoryScreen extends ConsumerWidget {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         work.when(
           loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
-          error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+          error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
           data: (items) => section(l.historyWork, [
             for (final a in items)
               ListTile(
-                leading: Icon(Icons.circle, size: 12, color: statusColor(scheme, a.status)),
+                leading: Icon(Icons.circle_rounded, size: 12, color: statusColor(scheme, a.status)),
                 title: Text('${a.productName} · ${a.colorName} · ${a.plannedMeters.toStringAsFixed(0)} м'),
                 subtitle: Text(statusLabel(l, a.status)),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))),
               ),
           ]),
@@ -52,7 +52,7 @@ class WorkerHistoryScreen extends ConsumerWidget {
           data: (led) => section(l.historyMoney, [
             for (final e in led.history)
               ListTile(
-                leading: Icon(e.type == 'PAYOUT_CASH' ? Icons.payments_outlined : Icons.trending_up, color: e.type == 'PAYOUT_CASH' ? scheme.error : Colors.green),
+                leading: Icon(e.type == 'PAYOUT_CASH' ? Icons.payments_rounded : Icons.trending_up_rounded, color: e.type == 'PAYOUT_CASH' ? scheme.error : Colors.green),
                 title: Text(e.type == 'PAYOUT_CASH' ? l.actionPayout : l.acceptanceCalculated),
                 subtitle: Text(date(e.createdAt.toLocal())),
                 trailing: Text(

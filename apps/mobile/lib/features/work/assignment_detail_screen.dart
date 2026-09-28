@@ -22,7 +22,7 @@ class AssignmentDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.assignmentDetailTitle)),
       body: async.when(
         loading: () => const SkeletonList(count: 4),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+        error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (a) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(assignmentDetailProvider(assignmentId)),
           child: ListView(padding: const EdgeInsets.all(16), children: [
@@ -66,14 +66,14 @@ class _Header extends StatelessWidget {
           Text('${a.colorName} · ${a.plannedMeters.toStringAsFixed(0)} м', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
           const Divider(height: 24),
           Row(children: [
-            Icon(Icons.person_outline, size: 18, color: scheme.onSurfaceVariant),
+            Icon(Icons.person_outline_rounded, size: 18, color: scheme.onSurfaceVariant),
             const SizedBox(width: 8),
             Expanded(child: Text('${a.workerName} · ${a.workerPhone}')),
           ]),
           if (a.dueAt != null) ...[
             const SizedBox(height: 6),
             Row(children: [
-              Icon(Icons.event_outlined, size: 18, color: scheme.onSurfaceVariant),
+              Icon(Icons.event_rounded, size: 18, color: scheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Text('${a.dueAt!.day.toString().padLeft(2, '0')}.${a.dueAt!.month.toString().padLeft(2, '0')}.${a.dueAt!.year}'),
             ]),
@@ -169,7 +169,7 @@ class _HistoryBlock extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(Icons.circle, size: 8, color: Theme.of(context).colorScheme.primary),
+            Icon(Icons.circle_rounded, size: 8, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -243,13 +243,13 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
     Widget? button;
     switch (a.status) {
       case 'READY_TO_DELIVER':
-        button = FilledButton.icon(onPressed: _busy ? null : () => _confirmDeliver(context), icon: const Icon(Icons.local_shipping_outlined), label: Text(l.deliveryDone));
+        button = FilledButton.icon(onPressed: _busy ? null : () => _confirmDeliver(context), icon: const Icon(Icons.local_shipping_rounded), label: Text(l.deliveryDone));
       case 'READY_FOR_PICKUP':
-        button = FilledButton.icon(onPressed: _busy ? null : () => _pickup(context), icon: const Icon(Icons.check_circle_outline), label: Text(l.workPickedUp));
+        button = FilledButton.icon(onPressed: _busy ? null : () => _pickup(context), icon: const Icon(Icons.check_circle_outline_rounded), label: Text(l.workPickedUp));
       case 'UNDER_REVIEW':
         button = FilledButton.icon(
           onPressed: _busy ? null : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AcceptanceScreen(assignment: a))),
-          icon: const Icon(Icons.fact_check_outlined),
+          icon: const Icon(Icons.fact_check_rounded),
           label: Text(l.actionAccept),
         );
       default:

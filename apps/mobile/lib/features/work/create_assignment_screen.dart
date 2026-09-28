@@ -67,7 +67,7 @@ class _CreateAssignmentScreenState extends ConsumerState<CreateAssignmentScreen>
       _ => l.assignStepSummary,
     };
     return Scaffold(
-      appBar: AppBar(title: Text(title), leading: IconButton(icon: const Icon(Icons.close), onPressed: () => context.pop())),
+      appBar: AppBar(title: Text(title), leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => context.pop())),
       body: SafeArea(
         child: Column(children: [
           _StepDots(step: _step, total: _lastStep + 1),
@@ -202,9 +202,9 @@ class _WorkerPicker extends ConsumerWidget {
     final workers = ref.watch(workersListProvider(const WorkersFilter(status: 'ACTIVE')));
     return workers.when(
       loading: () => const SkeletonList(count: 5),
-      error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+      error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
       data: (items) => items.isEmpty
-          ? EmptyState(icon: Icons.person_off_outlined, title: l.assignEmptyWorkers)
+          ? EmptyState(icon: Icons.person_off_rounded, title: l.assignEmptyWorkers)
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: items.length,
@@ -212,7 +212,7 @@ class _WorkerPicker extends ConsumerWidget {
               itemBuilder: (_, i) {
                 final w = items[i];
                 final sel = selected?.id == w.id;
-                return _SelectCard(selected: sel, onTap: () => onSelected(w), title: w.fullName, subtitle: w.phone, leading: const Icon(Icons.person_outline));
+                return _SelectCard(selected: sel, onTap: () => onSelected(w), title: w.fullName, subtitle: w.phone, leading: const Icon(Icons.person_outline_rounded));
               },
             ),
     );
@@ -229,9 +229,9 @@ class _ProductPicker extends ConsumerWidget {
     final items = ref.watch(staffCatalogProvider(const StaffCatalogFilter()));
     return items.when(
       loading: () => const SkeletonList(count: 5),
-      error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+      error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
       data: (models) => models.isEmpty
-          ? EmptyState(icon: Icons.auto_awesome_outlined, title: l.assignEmptyProducts)
+          ? EmptyState(icon: Icons.auto_awesome_rounded, title: l.assignEmptyProducts)
           : GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.85),
@@ -268,7 +268,7 @@ class _ProductCard extends StatelessWidget {
           Expanded(
             child: item.mainPhoto != null
                 ? Image.network(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url, fit: BoxFit.cover)
-                : ColoredBox(color: scheme.surfaceContainerHighest, child: Icon(Icons.auto_awesome_outlined, color: scheme.outline, size: 32)),
+                : ColoredBox(color: scheme.surfaceContainerHighest, child: Icon(Icons.auto_awesome_rounded, color: scheme.outline, size: 32)),
           ),
           Padding(
             padding: const EdgeInsets.all(10),
@@ -289,7 +289,7 @@ class _VariantPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final variants = product.variants.where((v) => v.active && v.color != null).toList();
-    if (variants.isEmpty) return EmptyState(icon: Icons.palette_outlined, title: l.assignNoVariants);
+    if (variants.isEmpty) return EmptyState(icon: Icons.palette_rounded, title: l.assignNoVariants);
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: variants.length,
@@ -371,7 +371,7 @@ class _DueAndComment extends StatelessWidget {
       Text(l.assignDueOptional, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 8),
       OutlinedButton.icon(
-        icon: const Icon(Icons.event_outlined),
+        icon: const Icon(Icons.event_rounded),
         onPressed: () async {
           final picked = await showDatePicker(context: context, initialDate: due ?? DateTime.now().add(const Duration(days: 3)), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
           onDueChanged(picked);
@@ -462,7 +462,7 @@ class _SelectCard extends StatelessWidget {
               if (subtitle != null) Text(subtitle!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
             ]),
           ),
-          if (selected) Icon(Icons.check_circle, color: scheme.primary),
+          if (selected) Icon(Icons.check_circle_rounded, color: scheme.primary),
         ]),
       ),
     );

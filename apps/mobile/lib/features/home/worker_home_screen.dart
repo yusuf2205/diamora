@@ -30,7 +30,7 @@ class WorkerHomeScreen extends ConsumerWidget {
         Expanded(
           child: profile.when(
             loading: () => const SkeletonList(count: 3),
-            error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+            error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
             data: (me) => RefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(myProfileProvider);
@@ -73,9 +73,9 @@ class WorkerHomeScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   currentWork.when(
                     loading: () => const SkeletonList(count: 1),
-                    error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+                    error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
                     data: (w) => w == null
-                        ? EmptyState(icon: Icons.inbox_outlined, title: l.workNoCurrent, hint: l.workNoCurrentHint)
+                        ? EmptyState(icon: Icons.inbox_rounded, title: l.workNoCurrent, hint: l.workNoCurrentHint)
                         : CurrentWorkCard(work: w),
                   ),
                 ],
@@ -127,7 +127,7 @@ class _EarningsHistory extends StatelessWidget {
             child: Column(children: [
               for (final e in entries)
                 ListTile(
-                  leading: Icon(e.type == 'PAYOUT_CASH' ? Icons.payments_outlined : Icons.trending_up, color: e.type == 'PAYOUT_CASH' ? scheme.error : Colors.green),
+                  leading: Icon(e.type == 'PAYOUT_CASH' ? Icons.payments_rounded : Icons.trending_up_rounded, color: e.type == 'PAYOUT_CASH' ? scheme.error : Colors.green),
                   title: Text(e.type == 'PAYOUT_CASH' ? l.actionPayout : l.acceptanceCalculated),
                   subtitle: Text('${e.createdAt.day.toString().padLeft(2, '0')}.${e.createdAt.month.toString().padLeft(2, '0')}.${e.createdAt.year}'),
                   trailing: Text(

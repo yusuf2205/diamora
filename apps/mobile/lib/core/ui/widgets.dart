@@ -22,7 +22,7 @@ class ConnectionBanner extends ConsumerWidget {
               color: scheme.tertiaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(children: [
-                Icon(Icons.cloud_off, size: 18, color: scheme.onTertiaryContainer),
+                Icon(Icons.cloud_off_rounded, size: 18, color: scheme.onTertiaryContainer),
                 const SizedBox(width: 8),
                 Expanded(child: Text(AppLocalizations.of(context).offlineBanner, style: TextStyle(color: scheme.onTertiaryContainer))),
               ]),

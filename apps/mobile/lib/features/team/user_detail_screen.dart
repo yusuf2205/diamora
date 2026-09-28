@@ -30,7 +30,7 @@ class UserDetailScreen extends ConsumerWidget {
             child: _Body(detail: value),
           ),
         AsyncValue(:final error?) => EmptyState(
-            icon: Icons.error_outline,
+            icon: Icons.error_outline_rounded,
             title: errorText(context, error),
             action: FilledButton.tonal(onPressed: () => ref.invalidate(userDetailProvider(userId)), child: Text(l.retry)),
           ),
@@ -88,10 +88,10 @@ class _Body extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Column(children: [
-            info(Icons.phone_outlined, l.phone, u.phone, onTap: () => launchUrl(Uri.parse('tel:${u.phone}'))),
-            info(Icons.schedule, l.lastSeenLabel, u.online ? l.onlineNow : seenLabel(l, u.seenAt)),
-            if (u.createdAt != null) info(Icons.event_outlined, l.createdLabel, shortDate(u.createdAt!)),
-            if (managerWorkers != null) info(Icons.groups_2_outlined, l.workersOfManager, '$managerWorkers'),
+            info(Icons.phone_rounded, l.phone, u.phone, onTap: () => launchUrl(Uri.parse('tel:${u.phone}'))),
+            info(Icons.schedule_rounded, l.lastSeenLabel, u.online ? l.onlineNow : seenLabel(l, u.seenAt)),
+            if (u.createdAt != null) info(Icons.event_rounded, l.createdLabel, shortDate(u.createdAt!)),
+            if (managerWorkers != null) info(Icons.groups_2_rounded, l.workersOfManager, '$managerWorkers'),
           ]),
         ),
       ),
@@ -99,24 +99,24 @@ class _Body extends ConsumerWidget {
       Card(
         child: Column(children: [
           if (canRole)
-            _ActionTile(icon: Icons.badge_outlined, title: l.changeRole, subtitle: teamRoleLabel(l, u.role), onTap: () => _changeRole(context, ref, u)),
+            _ActionTile(icon: Icons.badge_rounded, title: l.changeRole, subtitle: teamRoleLabel(l, u.role), onTap: () => _changeRole(context, ref, u)),
           _ActionTile(
-            icon: Icons.verified_user_outlined,
+            icon: Icons.verified_user_rounded,
             title: l.permissionsTitle,
             subtitle: u.role == 'SUPER_ADMIN' ? l.permissionsAllSuper : l.permissionsCount(detail.effective.length, _editableCount(ref, u.role, detail)),
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PermissionsScreen(userId: u.id, editable: canPerms))),
           ),
-          if (canEdit) _ActionTile(icon: Icons.edit_outlined, title: l.editDetails, onTap: () => _edit(context, ref, u)),
-          if ((me?.has('PASSWORD_SET') ?? false) && !isMe) _ActionTile(icon: Icons.password, title: l.setPassword, onTap: () => _setPassword(context, ref, u)),
+          if (canEdit) _ActionTile(icon: Icons.edit_rounded, title: l.editDetails, onTap: () => _edit(context, ref, u)),
+          if ((me?.has('PASSWORD_SET') ?? false) && !isMe) _ActionTile(icon: Icons.password_rounded, title: l.setPassword, onTap: () => _setPassword(context, ref, u)),
           if (isSuper)
             SwitchListTile(
-              secondary: const Icon(Icons.location_on_outlined),
+              secondary: const Icon(Icons.location_on_rounded),
               title: Text(l.showOnMap),
               subtitle: Text(u.locationHidden ? l.hiddenOnMapHint : l.showOnMapHint),
               value: !u.locationHidden,
               onChanged: (v) => _run(context, ref, u, () => ref.read(teamRepositoryProvider).setLocationHidden(u.id, !v), l.teamSaved),
             ),
-          if (canHistory) _ActionTile(icon: Icons.history, title: l.history, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _UserHistoryScreen(user: u)))),
+          if (canHistory) _ActionTile(icon: Icons.history_rounded, title: l.history, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _UserHistoryScreen(user: u)))),
         ]),
       ),
       if (canStatus) ...[
@@ -124,13 +124,13 @@ class _Body extends ConsumerWidget {
         u.isActive
             ? OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(foregroundColor: scheme.error, minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
-                icon: const Icon(Icons.block),
+                icon: const Icon(Icons.block_rounded),
                 onPressed: () => _setActive(context, ref, u, false),
                 label: Text(l.deactivateUser),
               )
             : FilledButton.icon(
                 style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
-                icon: const Icon(Icons.restore),
+                icon: const Icon(Icons.restore_rounded),
                 onPressed: () => _setActive(context, ref, u, true),
                 label: Text(l.restoreUser),
               ),
@@ -257,7 +257,7 @@ class _ActionTile extends StatelessWidget {
         leading: Icon(icon),
         title: Text(title),
         subtitle: subtitle == null ? null : Text(subtitle!),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
       );
 }
@@ -353,7 +353,7 @@ class _UserHistoryScreen extends ConsumerWidget {
       appBar: AppBar(title: Text('${l.history} · ${user.fullName}')),
       body: switch (async) {
         AsyncValue(:final value?) => value.isEmpty
-            ? EmptyState(icon: Icons.history, title: l.historyEmpty)
+            ? EmptyState(icon: Icons.history_rounded, title: l.historyEmpty)
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: value.length,
@@ -362,7 +362,7 @@ class _UserHistoryScreen extends ConsumerWidget {
                   final e = value[i];
                   final at = DateTime.tryParse(e.createdAt)?.toLocal();
                   return ListTile(
-                    leading: const Icon(Icons.circle, size: 10),
+                    leading: const Icon(Icons.circle_rounded, size: 10),
                     title: Text(auditActionLabel(l, e.action)),
                     subtitle: Text([
                       if (at != null) '${shortDate(at)} ${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}',
@@ -371,7 +371,7 @@ class _UserHistoryScreen extends ConsumerWidget {
                   );
                 },
               ),
-        AsyncValue(:final error?) => EmptyState(icon: Icons.error_outline, title: errorText(context, error)),
+        AsyncValue(:final error?) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, error)),
         _ => const SkeletonList(count: 5),
       },
     );

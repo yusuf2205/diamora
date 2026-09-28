@@ -40,12 +40,12 @@ class WorkerDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(async.value?.fullName ?? l.workers),
         actions: [
-          IconButton(icon: const Icon(Icons.qr_code_scanner_outlined), tooltip: l.actionScanQr, onPressed: () => context.push('/admin/qr-scan')),
+          IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.actionScanQr, onPressed: () => context.push('/admin/qr-scan')),
           if (async.value?.qrCode != null)
-            IconButton(icon: const Icon(Icons.qr_code_2), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
+            IconButton(icon: const Icon(Icons.qr_code_2_rounded), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
           if (async.value != null)
             IconButton(
-              icon: const Icon(Icons.history),
+              icon: const Icon(Icons.history_rounded),
               tooltip: l.history,
               onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => WorkerHistoryScreen(workerId: workerId, name: async.value!.fullName))),
             ),
@@ -56,7 +56,7 @@ class WorkerDetailScreen extends ConsumerWidget {
         Expanded(
           child: async.when(
             loading: () => const SkeletonList(count: 4),
-            error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+            error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
             data: (w) => RefreshIndicator(
               onRefresh: () async => ref.invalidate(workerDetailProvider(workerId)),
               child: ListView(padding: const EdgeInsets.all(16), children: [
@@ -86,7 +86,7 @@ class WorkerDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error, minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
-                    icon: const Icon(Icons.archive_outlined),
+                    icon: const Icon(Icons.archive_rounded),
                     onPressed: () => _setStatus(context, ref, w, 'ARCHIVED'),
                     label: Text(l.archiveWorker),
                   ),
@@ -95,16 +95,16 @@ class WorkerDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(AppTokens.buttonHeight)),
-                    icon: const Icon(Icons.unarchive_outlined),
+                    icon: const Icon(Icons.unarchive_rounded),
                     onPressed: () => _setStatus(context, ref, w, 'ACTIVE'),
                     label: Text(l.restoreWorker),
                   ),
                 ],
                 if (w.isPending) ...[
                   const SizedBox(height: 16),
-                  FilledButton.icon(icon: const Icon(Icons.check), onPressed: () => _approve(context, ref, w), label: Text(l.approve)),
+                  FilledButton.icon(icon: const Icon(Icons.check_rounded), onPressed: () => _approve(context, ref, w), label: Text(l.approve)),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(icon: const Icon(Icons.close), onPressed: () => _reject(context, ref, w), label: Text(l.reject)),
+                  OutlinedButton.icon(icon: const Icon(Icons.close_rounded), onPressed: () => _reject(context, ref, w), label: Text(l.reject)),
                 ],
               ]),
             ),
@@ -262,7 +262,7 @@ class _Header extends ConsumerWidget {
           if (canChangeManager && !worker.isPending)
             TextButton.icon(
               style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
-              icon: const Icon(Icons.swap_horiz, size: 18),
+              icon: const Icon(Icons.swap_horiz_rounded, size: 18),
               onPressed: () => showChangeManagerSheet(context, worker),
               label: Text(l.changeManager),
             ),
@@ -289,7 +289,7 @@ class _CurrentWorkSection extends ConsumerWidget {
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Expanded(child: Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium)),
         TextButton.icon(
-          icon: const Icon(Icons.add),
+          icon: const Icon(Icons.add_rounded),
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
           label: Text(l.actionAssign),
         ),
@@ -324,7 +324,7 @@ class _CurrentWorkSection extends ConsumerWidget {
                     const SizedBox(height: 10),
                     FilledButton.tonalIcon(
                       onPressed: () => open(a.id),
-                      icon: Icon(switch (a.status) { 'READY_TO_DELIVER' => Icons.local_shipping_outlined, 'READY_FOR_PICKUP' => Icons.move_to_inbox_outlined, _ => Icons.fact_check_outlined }),
+                      icon: Icon(switch (a.status) { 'READY_TO_DELIVER' => Icons.local_shipping_rounded, 'READY_FOR_PICKUP' => Icons.move_to_inbox_rounded, _ => Icons.fact_check_rounded }),
                       label: Text(switch (a.status) { 'READY_TO_DELIVER' => l.deliveryDone, 'READY_FOR_PICKUP' => l.workPickedUp, _ => l.actionAccept }),
                     ),
                   ],
@@ -359,7 +359,7 @@ class _EarningsSection extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                icon: const Icon(Icons.payments_outlined),
+                icon: const Icon(Icons.payments_rounded),
                 onPressed: () => showCashPayoutSheet(context, workerId: worker.id, balance: led.balance),
                 label: Text(l.actionPayout),
               ),
@@ -404,19 +404,19 @@ class _Contacts extends ConsumerWidget {
       child: Padding(
         padding: AppTokens.cardPadding,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.phone_outlined), title: Text(worker.phone), subtitle: worker.secondaryPhone == null ? null : Text('${l.secondaryPhone}: ${worker.secondaryPhone}')),
+          ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.phone_rounded), title: Text(worker.phone), subtitle: worker.secondaryPhone == null ? null : Text('${l.secondaryPhone}: ${worker.secondaryPhone}')),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.place_outlined),
+            leading: const Icon(Icons.place_rounded),
             title: Text(hasLocation ? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}' : l.noLocation),
             subtitle: Text(live != null ? freshnessLabel(l, live) : l.location),
           ),
           Row(children: [
-            Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.call), onPressed: () => _open(Uri.parse('tel:${worker.phone}')), label: Text(l.call))),
+            Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.call_rounded), onPressed: () => _open(Uri.parse('tel:${worker.phone}')), label: Text(l.call))),
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
-                icon: const Icon(Icons.directions),
+                icon: const Icon(Icons.directions_rounded),
                 // Yandex Maps deep link (no API key needed); falls back to the web page
                 onPressed: hasLocation ? () => _open(Uri.parse('https://yandex.uz/maps/?rtext=~$lat,$lng&rtt=auto')) : null,
                 label: Text(l.route),
@@ -475,7 +475,7 @@ class _ChangeManagerSheetState extends ConsumerState<_ChangeManagerSheet> {
     Widget option(String? id, String title, String? subtitle) => ListTile(
           enabled: !_busy,
           onTap: () => setState(() => _picked = id),
-          leading: Icon(_picked == id ? Icons.radio_button_checked : Icons.radio_button_off, color: _picked == id ? Theme.of(context).colorScheme.primary : null),
+          leading: Icon(_picked == id ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: _picked == id ? Theme.of(context).colorScheme.primary : null),
           title: Text(title),
           subtitle: subtitle == null ? null : Text(subtitle),
         );

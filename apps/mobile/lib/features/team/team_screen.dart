@@ -81,7 +81,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
     final l = AppLocalizations.of(context);
     final me = ref.watch(authControllerProvider).value;
     if (me == null || !me.has('USER_VIEW_ALL')) {
-      return Scaffold(appBar: AppBar(title: Text(l.team)), body: EmptyState(icon: Icons.lock_outline, title: l.teamNoAccess));
+      return Scaffold(appBar: AppBar(title: Text(l.team)), body: EmptyState(icon: Icons.lock_outline_rounded, title: l.teamNoAccess));
     }
     final q = _toQuery(_filter, _query);
     final users = ref.watch(teamUsersProvider(q));
@@ -92,14 +92,14 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l.team)),
       floatingActionButton: me.has('USER_CREATE')
-          ? FloatingActionButton.extended(onPressed: () => showAddUserSheet(context), icon: const Icon(Icons.person_add_alt), label: Text(l.teamAddUser))
+          ? FloatingActionButton.extended(onPressed: () => showAddUserSheet(context), icon: const Icon(Icons.person_add_alt_rounded), label: Text(l.teamAddUser))
           : null,
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: SearchBar(
             hintText: l.teamSearch,
-            leading: const Icon(Icons.search),
+            leading: const Icon(Icons.search_rounded),
             elevation: const WidgetStatePropertyAll(0),
             onChanged: (v) {
               _debounce?.cancel();
@@ -124,7 +124,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
         Expanded(
           child: switch (users) {
             AsyncValue(:final value?) => value.isEmpty
-                ? EmptyState(icon: Icons.person_search_outlined, title: l.usersEmpty)
+                ? EmptyState(icon: Icons.person_search_rounded, title: l.usersEmpty)
                 : RefreshIndicator(
                     onRefresh: () async => ref.invalidate(teamUsersProvider(q)),
                     child: ListView.separated(
@@ -135,7 +135,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
                     ),
                   ),
             AsyncValue(:final error?) => EmptyState(
-                icon: Icons.error_outline,
+                icon: Icons.error_outline_rounded,
                 title: errorText(context, error),
                 action: FilledButton.tonal(onPressed: () => ref.invalidate(teamUsersProvider(q)), child: Text(l.retry)),
               ),
@@ -244,7 +244,7 @@ Future<void> showTemporaryPassword(BuildContext context, String password) {
       ]),
       actions: [
         TextButton.icon(
-          icon: const Icon(Icons.copy),
+          icon: const Icon(Icons.copy_rounded),
           onPressed: () {
             Clipboard.setData(ClipboardData(text: password));
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.copied)));
@@ -382,7 +382,7 @@ class RoleOption extends StatelessWidget {
                   Text(hint, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
                 ]),
               ),
-              Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, color: selected ? scheme.primary : scheme.outline),
+              Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded, color: selected ? scheme.primary : scheme.outline),
             ]),
           ),
         ),

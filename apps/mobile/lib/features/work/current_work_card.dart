@@ -48,8 +48,8 @@ class CurrentWorkCard extends ConsumerWidget {
           const SizedBox(height: 6),
           ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: work.percent / 100, minHeight: 8)),
           const SizedBox(height: 16),
-          if (work.dueAt != null) _InfoRow(icon: Icons.event_outlined, label: l.workDueDate, value: _formatDate(work.dueAt!)),
-          if (expected != null) _InfoRow(icon: Icons.payments_outlined, label: l.workExpectedEarning, value: '${formatUzs(expected.toString())} ${l.currency}'),
+          if (work.dueAt != null) _InfoRow(icon: Icons.event_rounded, label: l.workDueDate, value: _formatDate(work.dueAt!)),
+          if (expected != null) _InfoRow(icon: Icons.payments_rounded, label: l.workExpectedEarning, value: '${formatUzs(expected.toString())} ${l.currency}'),
           if (work.materials.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(l.workMaterials, style: Theme.of(context).textTheme.labelLarge),
@@ -58,12 +58,12 @@ class CurrentWorkCard extends ConsumerWidget {
           ],
           const SizedBox(height: 20),
           if (inProgress) ...[
-            SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _reportProgress(context, ref), icon: const Icon(Icons.trending_up), label: Text(l.workUpdateProgress))),
+            SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _reportProgress(context, ref), icon: const Icon(Icons.trending_up_rounded), label: Text(l.workUpdateProgress))),
             const SizedBox(height: 10),
-            SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () => _markReady(context, ref), icon: const Icon(Icons.check_circle_outline), label: Text(l.workReady))),
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () => _markReady(context, ref), icon: const Icon(Icons.check_circle_outline_rounded), label: Text(l.workReady))),
             const SizedBox(height: 10),
           ],
-          SizedBox(width: double.infinity, child: TextButton.icon(onPressed: () => _reportProblem(context, ref), icon: const Icon(Icons.report_problem_outlined), label: Text(l.workProblem))),
+          SizedBox(width: double.infinity, child: TextButton.icon(onPressed: () => _reportProblem(context, ref), icon: const Icon(Icons.report_problem_rounded), label: Text(l.workProblem))),
         ]),
       ),
     );

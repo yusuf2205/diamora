@@ -2725,6 +2725,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Пользователь создан. Передайте ему пароль лично.'**
   String get userCreated;
+
+  /// No description provided for @telegramLoginHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Для мастериц — без пароля, через ваш Telegram'**
+  String get telegramLoginHint;
+
+  /// No description provided for @staffSignIn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход для сотрудников'**
+  String get staffSignIn;
 }
 
 class _AppLocalizationsDelegate

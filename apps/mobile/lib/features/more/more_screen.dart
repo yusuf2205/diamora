@@ -16,11 +16,11 @@ class MoreScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final perms = ref.watch(authControllerProvider).value?.permissions ?? const <String>[];
     final items = <(IconData, String, String)>[
-      (Icons.qr_code_scanner, l.qrScan, '/admin/qr-scan'),
-      (Icons.auto_awesome_outlined, l.catalog, '/admin/catalog'),
-      (Icons.badge_outlined, l.team, '/admin/team'),
-      if (canOpenSettings(perms)) (Icons.settings_outlined, l.settingsTitle, '/admin/settings'),
-      (Icons.person_outline, l.profile, '/admin/profile'),
+      (Icons.qr_code_scanner_rounded, l.qrScan, '/admin/qr-scan'),
+      (Icons.auto_awesome_rounded, l.catalog, '/admin/catalog'),
+      (Icons.badge_rounded, l.team, '/admin/team'),
+      if (canOpenSettings(perms)) (Icons.settings_rounded, l.settingsTitle, '/admin/settings'),
+      (Icons.person_outline_rounded, l.profile, '/admin/profile'),
     ];
     return Scaffold(
       appBar: AppBar(title: Text(l.more)),
@@ -32,7 +32,7 @@ class MoreScreen extends ConsumerWidget {
               child: ListTile(
                 leading: Icon(i.$1),
                 title: Text(i.$2),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push(i.$3),
               ),
             ),

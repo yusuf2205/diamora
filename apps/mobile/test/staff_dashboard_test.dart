@@ -71,7 +71,7 @@ void main() {
       when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
       await tester.pumpWidget(harness(api, const AssignmentQueueScreen(title: 'В работе', statuses: ['IN_PROGRESS'])));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.inbox_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.inbox_rounded), findsOneWidget);
     });
   });
 

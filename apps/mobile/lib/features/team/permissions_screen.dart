@@ -47,16 +47,16 @@ String permissionLabel(AppLocalizations l, String p) => switch (p) {
 
 /// Groups in the order an owner thinks about the business, each with an icon.
 List<(String, IconData, List<String>)> _groups(AppLocalizations l) => [
-      (l.permGroupUsers, Icons.manage_accounts_outlined, ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE']),
-      (l.permGroupWorkers, Icons.groups_2_outlined, ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER']),
-      (l.permGroupCollateral, Icons.lock_outline, ['COLLATERAL_VIEW', 'COLLATERAL_MANAGE']),
-      (l.permGroupAssignments, Icons.assignment_outlined, ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT']),
-      (l.permGroupFinance, Icons.payments_outlined, ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'CASH_PAYOUT', 'PROFIT_VIEW']),
-      (l.permGroupCatalog, Icons.auto_awesome_outlined, ['CATALOG_VIEW', 'CATALOG_MANAGE']),
-      (l.permGroupInventory, Icons.inventory_2_outlined, ['INVENTORY_VIEW', 'INVENTORY_MANAGE']),
-      (l.permGroupMap, Icons.map_outlined, ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED', 'LIVE_LOCATION_VIEW_ALL', 'LIVE_LOCATION_VIEW_ASSIGNED']),
-      (l.permGroupSettings, Icons.tune, ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE']),
-      (l.permGroupAudit, Icons.receipt_long_outlined, ['AUDIT_VIEW']),
+      (l.permGroupUsers, Icons.manage_accounts_rounded, ['USER_VIEW_ALL', 'USER_CREATE', 'USER_UPDATE', 'USER_DEACTIVATE', 'PASSWORD_SET', 'ROLE_ASSIGN', 'PERMISSION_MANAGE']),
+      (l.permGroupWorkers, Icons.groups_2_rounded, ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED', 'WORKER_APPROVE', 'WORKER_UPDATE', 'WORKER_ASSIGN_MANAGER']),
+      (l.permGroupCollateral, Icons.lock_outline_rounded, ['COLLATERAL_VIEW', 'COLLATERAL_MANAGE']),
+      (l.permGroupAssignments, Icons.assignment_rounded, ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT']),
+      (l.permGroupFinance, Icons.payments_rounded, ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'CASH_PAYOUT', 'PROFIT_VIEW']),
+      (l.permGroupCatalog, Icons.auto_awesome_rounded, ['CATALOG_VIEW', 'CATALOG_MANAGE']),
+      (l.permGroupInventory, Icons.inventory_2_rounded, ['INVENTORY_VIEW', 'INVENTORY_MANAGE']),
+      (l.permGroupMap, Icons.map_rounded, ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED', 'LIVE_LOCATION_VIEW_ALL', 'LIVE_LOCATION_VIEW_ASSIGNED']),
+      (l.permGroupSettings, Icons.tune_rounded, ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE']),
+      (l.permGroupAudit, Icons.receipt_long_rounded, ['AUDIT_VIEW']),
     ];
 
 /// «Права доступа» of one ADMIN / MANAGER: switches in plain words, grouped. Only what the role can have is shown;
@@ -107,7 +107,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
 
     Widget body;
     if (d != null && d.user.role == 'SUPER_ADMIN') {
-      body = EmptyState(icon: Icons.verified_user, title: l.permissionsAllSuper);
+      body = EmptyState(icon: Icons.verified_user_rounded, title: l.permissionsAllSuper);
     } else if (d != null && c != null) {
       final editable = c.editableFor(d.user.role).toSet();
       final on = _on ?? d.effective.toSet();
@@ -133,7 +133,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
           ],
       ]);
     } else if (error != null) {
-      body = EmptyState(icon: Icons.error_outline, title: errorText(context, error));
+      body = EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, error));
     } else {
       body = const SkeletonList(count: 6);
     }

@@ -30,7 +30,7 @@ class AssignmentQueueScreen extends ConsumerWidget {
       body = const SkeletonList(count: 4);
     } else if (results.any((r) => r.hasError)) {
       final failed = results.firstWhere((r) => r.hasError);
-      body = EmptyState(icon: Icons.error_outline, title: errorText(context, failed.error!));
+      body = EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, failed.error!));
     } else {
       final now = DateTime.now();
       final items = [for (final r in results) ...r.value ?? const <AssignmentSummary>[]]
@@ -47,7 +47,7 @@ class AssignmentQueueScreen extends ConsumerWidget {
           return a.dueAt!.compareTo(b.dueAt!);
         });
       body = items.isEmpty
-          ? EmptyState(icon: Icons.inbox_outlined, title: l.queueEmpty)
+          ? EmptyState(icon: Icons.inbox_rounded, title: l.queueEmpty)
           : RefreshIndicator(
               onRefresh: () async {
                 for (final s in statuses) {
@@ -86,7 +86,7 @@ class _QueueCard extends StatelessWidget {
         subtitle: Text('${a.productName} · ${a.colorName} · ${a.plannedMeters.toStringAsFixed(0)} м'
             '${a.dueAt != null ? ' · ${l.dueBy}${_date(a.dueAt!)}' : ''}'),
         subtitleTextStyle: overdue ? TextStyle(color: scheme.error) : null,
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))),
       ),
     );

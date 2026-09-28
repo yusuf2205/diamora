@@ -128,7 +128,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                             if (ctx.mounted) _snack(e.message);
                           }
                         },
-                        icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_circle_outline),
+                        icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_circle_outline_rounded),
                         label: Text(l.workPickedUp),
                       )
                     : OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(l.confirm)),

@@ -26,7 +26,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: Icon(icon),
             title: Text(title),
             subtitle: subtitle == null ? null : Text(subtitle),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push(path),
           ),
         );
@@ -34,11 +34,11 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         if (me?.has('PAY_RATE_MANAGE') ?? false)
-          tile(const Key('payRateTile'), Icons.payments_outlined, l.payRateTitle,
+          tile(const Key('payRateTile'), Icons.payments_rounded, l.payRateTitle,
               rate.maybeWhen(data: (r) => '${formatUzs(r.ratePerKit)} ${l.currency}', orElse: () => '…'), '/admin/settings/pay-rate'),
         if (me?.has('SETTINGS_MANAGE') ?? false)
-          tile(const Key('companyContactTile'), Icons.contact_phone_outlined, l.settingsCompanyContact, l.settingsCompanyContactHint, '/admin/settings/company-contact'),
-        if (me?.has('AUDIT_VIEW') ?? false) tile(const Key('auditTile'), Icons.receipt_long_outlined, l.audit, null, '/admin/settings/audit'),
+          tile(const Key('companyContactTile'), Icons.contact_phone_rounded, l.settingsCompanyContact, l.settingsCompanyContactHint, '/admin/settings/company-contact'),
+        if (me?.has('AUDIT_VIEW') ?? false) tile(const Key('auditTile'), Icons.receipt_long_rounded, l.audit, null, '/admin/settings/audit'),
       ]),
     );
   }

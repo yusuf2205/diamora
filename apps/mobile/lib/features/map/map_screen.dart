@@ -75,10 +75,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l.map),
-        actions: [IconButton(icon: const Icon(Icons.list), tooltip: l.mapListView, onPressed: () => context.push('/admin/profile/locations'))],
+        actions: [IconButton(icon: const Icon(Icons.list_rounded), tooltip: l.mapListView, onPressed: () => context.push('/admin/profile/locations'))],
       ),
       body: AppConfig.yandexMapKitKey.isEmpty
-          ? EmptyState(icon: Icons.map_outlined, title: l.mapEmpty, hint: 'YANDEX_MAPKIT_KEY is not configured')
+          ? EmptyState(icon: Icons.map_rounded, title: l.mapEmpty, hint: 'YANDEX_MAPKIT_KEY is not configured')
           : Stack(children: [
               YandexMap(onMapCreated: _onMapCreated),
               if (async.isLoading) const Positioned(top: 12, left: 0, right: 0, child: Center(child: LinearProgressIndicator())),
@@ -149,7 +149,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}'),
             const SizedBox(height: 4),
             Row(children: [
-              Icon(row.online ? Icons.circle : Icons.circle_outlined, size: 10, color: row.online ? AppTokens.ok : Theme.of(ctx).colorScheme.outline),
+              Icon(row.online ? Icons.circle_rounded : Icons.circle_rounded, size: 10, color: row.online ? AppTokens.ok : Theme.of(ctx).colorScheme.outline),
               const SizedBox(width: 6),
               Text(row.online ? l.onlineNow : l.offlineNow),
               const SizedBox(width: 12),
@@ -158,11 +158,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             if (row.phone != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(row.phone!)),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [
-              if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call), label: Text(l.call)),
+              if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.call)),
               OutlinedButton.icon(
                 onPressed: () => launchUrl(Uri.parse('yandexmaps://maps.yandex.ru/?rtext=~${row.latitude},${row.longitude}&rtt=auto'), mode: LaunchMode.externalApplication)
                     .catchError((_) => launchUrl(Uri.parse('https://yandex.uz/maps/?rtext=~${row.latitude},${row.longitude}&rtt=auto'))),
-                icon: const Icon(Icons.directions_outlined), label: Text(l.route),
+                icon: const Icon(Icons.directions_rounded), label: Text(l.route),
               ),
               if (row.workerId != null)
                 FilledButton.icon(
@@ -170,7 +170,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     Navigator.of(ctx).pop();
                     context.push('/admin/workers/${row.workerId}');
                   },
-                  icon: const Icon(Icons.badge_outlined), label: Text(l.mapOpenProfile),
+                  icon: const Icon(Icons.badge_rounded), label: Text(l.mapOpenProfile),
                 ),
             ]),
           ]),

@@ -25,7 +25,7 @@ class PayRateScreen extends ConsumerWidget {
         Expanded(
           child: rate.when(
             loading: () => const SkeletonList(count: 3),
-            error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+            error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
             data: (r) => RefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(payRateProvider);
@@ -46,7 +46,7 @@ class PayRateScreen extends ConsumerWidget {
                         FilledButton.icon(
                           key: const Key('changePayRate'),
                           onPressed: () => _edit(context, ref, r),
-                          icon: const Icon(Icons.edit),
+                          icon: const Icon(Icons.edit_rounded),
                           label: Text(l.payRateChange),
                         ),
                       ],
@@ -91,7 +91,7 @@ class _HistoryTile extends StatelessWidget {
     final when = change.createdAt.toLocal().toIso8601String().substring(0, 16).replaceFirst('T', ' ');
     final title = change.previousRatePerKit == null ? '${formatUzs(change.ratePerKit)} ${l.currency} · ${l.payRateStart}' : '${formatUzs(change.previousRatePerKit)} → ${formatUzs(change.ratePerKit)} ${l.currency}';
     final details = [when, if (change.changedBy != null) change.changedBy!, if (change.note != null && change.note!.isNotEmpty) change.note!].join(' · ');
-    return ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.history), title: Text(title), subtitle: Text(details));
+    return ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.history_rounded), title: Text(title), subtitle: Text(details));
   }
 }
 
@@ -179,7 +179,7 @@ class PayRateCard extends ConsumerWidget {
     return rate.maybeWhen(
       data: (r) => Card(
         child: ListTile(
-          leading: const Icon(Icons.payments_outlined),
+          leading: const Icon(Icons.payments_rounded),
           title: Text(l.payRatePerKit(r.kitMeters)),
           trailing: Text('${formatUzs(r.ratePerKit)} ${l.currency}', key: const Key('workerPayRate'), style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         ),

@@ -32,17 +32,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
     final l = AppLocalizations.of(context);
     final me = ref.watch(authControllerProvider).value;
     if (me == null || !me.has('INVENTORY_VIEW')) {
-      return Scaffold(appBar: AppBar(title: Text(l.inventory)), body: EmptyState(icon: Icons.lock_outline, title: l.teamNoAccess));
+      return Scaffold(appBar: AppBar(title: Text(l.inventory)), body: EmptyState(icon: Icons.lock_outline_rounded, title: l.teamNoAccess));
     }
     final canManage = me.has('INVENTORY_MANAGE');
     return Scaffold(
       appBar: AppBar(
         title: Text(l.inventory),
-        actions: [IconButton(icon: const Icon(Icons.qr_code_scanner), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan'))],
+        actions: [IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan'))],
         bottom: TabBar(controller: _tabs, tabs: [Tab(text: l.materials), Tab(text: l.kits)]),
       ),
       floatingActionButton: canManage
-          ? FloatingActionButton(onPressed: () => _tabs.index == 0 ? _materialActions(context) : _createKitDialog(context), child: const Icon(Icons.add))
+          ? FloatingActionButton(onPressed: () => _tabs.index == 0 ? _materialActions(context) : _createKitDialog(context), child: const Icon(Icons.add_rounded))
           : null,
       body: TabBarView(controller: _tabs, children: [_MaterialsTab(canManage: canManage), _KitsTab(canManage: canManage)]),
     );
@@ -54,8 +54,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.add_box_outlined), title: Text(l.materialAdd), onTap: () => Navigator.of(ctx).pop('new')),
-          ListTile(leading: const Icon(Icons.move_to_inbox_outlined), title: Text(l.stockReceipt), onTap: () => Navigator.of(ctx).pop('receipt')),
+          ListTile(leading: const Icon(Icons.add_box_rounded), title: Text(l.materialAdd), onTap: () => Navigator.of(ctx).pop('new')),
+          ListTile(leading: const Icon(Icons.move_to_inbox_rounded), title: Text(l.stockReceipt), onTap: () => Navigator.of(ctx).pop('receipt')),
         ]),
       ),
     );
@@ -189,10 +189,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                       ),
                       const SizedBox(width: 8),
                       SizedBox(width: 80, child: TextField(controller: rows[i].$2, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: l.quantity))),
-                      IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: rows.length > 1 ? () => setState(() => rows.removeAt(i)) : null),
+                      IconButton(icon: const Icon(Icons.remove_circle_outline_rounded), onPressed: rows.length > 1 ? () => setState(() => rows.removeAt(i)) : null),
                     ]),
                   ),
-                Align(alignment: Alignment.centerLeft, child: TextButton.icon(onPressed: () => setState(() => rows.add((materials.first.id, TextEditingController()))), icon: const Icon(Icons.add), label: Text(l.kitAddMaterial))),
+                Align(alignment: Alignment.centerLeft, child: TextButton.icon(onPressed: () => setState(() => rows.add((materials.first.id, TextEditingController()))), icon: const Icon(Icons.add_rounded), label: Text(l.kitAddMaterial))),
               ]),
             ),
           ),
@@ -225,9 +225,9 @@ class _MaterialsTab extends ConsumerWidget {
     final async = ref.watch(materialsProvider);
     return async.when(
       loading: () => const SkeletonList(),
-      error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+      error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
       data: (items) => items.isEmpty
-          ? EmptyState(icon: Icons.inventory_2_outlined, title: l.materialsEmpty)
+          ? EmptyState(icon: Icons.inventory_2_rounded, title: l.materialsEmpty)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(materialsProvider),
               child: ListView.separated(
@@ -238,7 +238,7 @@ class _MaterialsTab extends ConsumerWidget {
                   final m = items[i];
                   return Card(
                     child: ListTile(
-                      leading: CircleAvatar(backgroundColor: m.low ? Theme.of(context).colorScheme.errorContainer : Theme.of(context).colorScheme.primaryContainer, child: const Icon(Icons.inventory_2_outlined)),
+                      leading: CircleAvatar(backgroundColor: m.low ? Theme.of(context).colorScheme.errorContainer : Theme.of(context).colorScheme.primaryContainer, child: const Icon(Icons.inventory_2_rounded)),
                       title: Text(m.name),
                       subtitle: Text([if (m.categoryName != null) m.categoryName!, m.unit].join(' · ')),
                       trailing: Text('${m.balance} ${m.unit}${m.low ? ' · ${l.stockLow}' : ''}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: m.low ? FontWeight.w600 : null)),
@@ -260,9 +260,9 @@ class _KitsTab extends ConsumerWidget {
     final async = ref.watch(kitTemplatesProvider);
     return async.when(
       loading: () => const SkeletonList(),
-      error: (e, _) => EmptyState(icon: Icons.error_outline, title: errorText(context, e)),
+      error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
       data: (items) => items.isEmpty
-          ? EmptyState(icon: Icons.style_outlined, title: l.kitsEmpty)
+          ? EmptyState(icon: Icons.style_rounded, title: l.kitsEmpty)
           : RefreshIndicator(
               onRefresh: () async => ref.invalidate(kitTemplatesProvider),
               child: ListView.separated(
@@ -273,7 +273,7 @@ class _KitsTab extends ConsumerWidget {
                   final t = items[i];
                   return Card(
                     child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.style_outlined)),
+                      leading: const CircleAvatar(child: Icon(Icons.style_rounded)),
                       title: Text(t.name),
                       subtitle: Text('${t.ribbonMeters.toStringAsFixed(0)} м · ${t.items.length} материалов'),
                       trailing: canManage ? FilledButton.tonal(onPressed: () => _assemble(context, ref, t), child: Text(l.kitAssemble)) : null,
