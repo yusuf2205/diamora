@@ -1,6 +1,6 @@
 # Diamoraa — what it is and what was built
 
-*As of 28 Sep 2026. Русская версия: [PROJECT.ru.md](PROJECT.ru.md).*
+*As of 29 Sep 2026. Русская версия: [PROJECT.ru.md](PROJECT.ru.md).*
 
 Diamoraa runs a home-based ribbon-and-bead production business. Workers (craftswomen) sew at home, staff deliver materials and collect finished work, and the owner sees everything: people, stock, money, the map.
 
@@ -59,6 +59,18 @@ Permissions are enforced by the **server**, not by hiding buttons.
 - **QR label printing** (80×60 mm) for work, workers and kits — from the app and the panel.
 - **Reports** with Excel export; **audit log**: who, what, before → after.
 - **Team**: add admins/managers, roles, granular permissions, passwords (typed by people only), deactivate, **delete** (when there is no history).
+- **Deposits**: who left what, what is with us now (money total and items), «Receive» and «Return» with her confirmation.
+- **Assign a manager** to many craftswomen at once; **delete** from the catalog and warehouse (rights granted by the owner); **clear the log** (rows are never erased from the database).
+- **Map filters**: to deliver, ready to collect, overdue, by manager; craftswomen without a live position shown at home.
+
+### For the owner
+- **Craftswomen rating**: a score out of 100 — volume, defects, deadlines.
+- **Monthly profit**: sales − pay to craftswomen − materials at purchase price − expenses; sales and expenses are entered in the app/panel.
+- **Warehouse value** at purchase price (shelf and at craftswomen's homes).
+- **System status**: server, database, when the last backup ran.
+- **App languages**: Uzbek, Russian, English — chosen right on the sign-in screen.
+
+### Notifications
 - Notifications: new registration, work request, work ready, handoff problem, overdue, **material running low**, **daily summary** (20:00), **weekly/monthly report**.
 
 ### Reliability and data
