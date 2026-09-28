@@ -32,8 +32,50 @@ networks:
 
 services:
   # ---------------------------------------------------------------------------------------------- PostgreSQL
+  # ------------------------------------------------------------------------------------------- permfix
+  # Self-heal for the NAS: UGREEN OS resets everything under /volume1/docker to root:root ~90 s after EVERY boot
+  # (seen 2026-09-25 and 2026-09-28 15:31:47, ctime of all files incl. other projects). Postgres/Redis (uid 999) then
+  # lose their own files and the API crash-loops. This tiny root container gives ONLY the containers' data dirs back to
+  # uid 999 within ~20 s, forever. It never touches the source, .env or backups other than the WAL archive.
+  permfix:
+    <<: *hardened
+    image: alpine:3.22
+    user: "0:0"
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_READ_SEARCH, FOWNER]
+    read_only: true
+    network_mode: none
+    volumes:
+      - ${DATA_ROOT}/postgres:/fix/postgres
+      - ${DATA_ROOT}/redis:/fix/redis
+      - ${BACKUP_ROOT}/postgres/wal:/fix/wal
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          for d in /fix/postgres /fix/redis /fix/wal; do
+            if [ -n "$$(find "$$d" ! -user 999 -print -quit 2>/dev/null)" ]; then
+              chown -R 999:999 "$$d" && echo "$$(date -u +%FT%TZ) permfix: ownership of $$d restored to 999"
+            fi
+          done
+          chmod 700 /fix/postgres
+          touch /tmp/ok 2>/dev/null || true
+          sleep 20
+        done
+    tmpfs: [/tmp:size=1m]
+    mem_limit: 32m
+    healthcheck:
+      test: ["CMD-SHELL", "[ -z \"$$(find /fix/postgres /fix/redis /fix/wal -maxdepth 1 ! -user 999 -print -quit)\" ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   postgres:
     <<: *hardened
+    depends_on:
+      permfix: { condition: service_healthy }
     image: postgres:17-bookworm
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     environment:
@@ -65,6 +107,8 @@ services:
   # Realtime bus (pub/sub) between the API sockets and the bot worker.
   redis:
     <<: *hardened
+    depends_on:
+      permfix: { condition: service_healthy }
     image: redis:7.4-alpine
     command:
       - redis-server

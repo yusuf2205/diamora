@@ -43,7 +43,7 @@ fi
 # (by label, not `docker compose`: compose needs .env, which is exactly what may be unreadable here)
 pg="$(docker ps -q --filter "label=com.docker.compose.project=$(basename "$DIR")" --filter label=com.docker.compose.service=postgres 2>/dev/null)"
 if [ -n "$pg" ]; then
-  if docker exec "$pg" sh -c 'test -r "$PGDATA/global/pg_filenode.map" && test -w "$PGDATA"' 2>/dev/null; then
+  if docker exec -u 999 "$pg" sh -c 'test -r "$PGDATA/global/pg_filenode.map" && test -w "$PGDATA"' 2>/dev/null; then
     ok "postgres can read and write its data"
   else
     fail "postgres cannot read/write its data directory"
