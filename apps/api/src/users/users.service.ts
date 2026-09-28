@@ -1,10 +1,10 @@
 import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Prisma, User, UserPermission } from '@yusmus/database';
+import type { Prisma, User, UserPermission } from '@diamoraa/database';
 import {
   PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, ROLE_RANK, SUPER_ADMIN_ONLY, changeRoleSchema, createUserSchema, effectivePermissions,
   grantablePermissions, listUsersSchema, locationVisibilitySchema, resetPasswordSchema, setPermissionsSchema, setUserStatusSchema, updateUserSchema, type Permission, type Role,
-} from '@yusmus/shared';
+} from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { PasswordService, SessionAuthService } from '../auth/auth-core';
@@ -243,7 +243,7 @@ export class UsersService {
     if (ROLE_RANK[target.role as Role] >= ROLE_RANK[actor.role]) throw forbidden('You cannot manage a user of this rank');
   }
   /** Serialises everything that can change the set of active super admins. */
-  private lockSuperAdmins(tx: Tx) { return tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('yusmus:super_admins'))`; }
+  private lockSuperAdmins(tx: Tx) { return tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('diamoraa:super_admins'))`; }
   private async assertNotLastSuperAdmin(tx: Tx, target: User) {
     if (target.role !== 'SUPER_ADMIN' || target.status !== 'ACTIVE') return;
     const others = await tx.user.count({ where: { role: 'SUPER_ADMIN', status: 'ACTIVE', id: { not: target.id } } });

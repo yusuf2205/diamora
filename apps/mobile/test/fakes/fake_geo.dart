@@ -1,5 +1,5 @@
 import 'package:geolocator/geolocator.dart';
-import 'package:yusmus_mobile/core/location/geo.dart';
+import 'package:diamoraa_mobile/core/location/geo.dart';
 
 /// Test double for [Geo]: real `geolocator`/`permission_handler` calls hit platform channels that don't exist in the
 /// widget-test harness. Defaults to "everything granted" so existing screens render normally; tests of the permission

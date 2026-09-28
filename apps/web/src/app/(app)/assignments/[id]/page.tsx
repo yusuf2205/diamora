@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
-import { earningFor, metersToCm } from '@yusmus/shared';
+import { earningFor, metersToCm } from '@diamoraa/shared';
 import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, handoffProblemLabel } from '@/lib/format';
 import type { AssignmentDetail, AssignmentHandoff, HandoffTimelineEntry, PayRate } from '@/lib/types';
 import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';

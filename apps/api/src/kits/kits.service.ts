@@ -1,7 +1,7 @@
 import { Controller, Get, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Material, MaterialKitTemplate, MaterialKitTemplateItem } from '@yusmus/database';
-import { KIT_METERS, assembleKitSchema, createKitTemplateSchema, updateKitTemplateSchema } from '@yusmus/shared';
+import type { Material, MaterialKitTemplate, MaterialKitTemplateItem } from '@diamoraa/database';
+import { KIT_METERS, assembleKitSchema, createKitTemplateSchema, updateKitTemplateSchema } from '@diamoraa/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';

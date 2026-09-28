@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yusmus_mobile/core/theme/app_theme.dart';
-import 'package:yusmus_mobile/features/map/map_screen.dart';
-import 'package:yusmus_mobile/features/team/models.dart';
-import 'package:yusmus_mobile/l10n/app_localizations_ru.dart';
+import 'package:diamoraa_mobile/core/theme/app_theme.dart';
+import 'package:diamoraa_mobile/features/map/map_screen.dart';
+import 'package:diamoraa_mobile/features/team/models.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations_ru.dart';
 
 LiveLocationRow row({required String role, required LocationFreshness freshness, int ageSeconds = 0}) => LiveLocationRow(
       userId: 'u1', role: role, fullName: 'Тест', latitude: 41.3, longitude: 69.2, ageSeconds: ageSeconds,

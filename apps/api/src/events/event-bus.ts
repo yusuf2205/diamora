@@ -1,5 +1,5 @@
 import { Global, Injectable, Logger, Module, OnModuleDestroy } from '@nestjs/common';
-import { EVENTS_CHANNEL, type EventMap, type EventType, type RealtimeEnvelope } from '@yusmus/shared';
+import { EVENTS_CHANNEL, type EventMap, type EventType, type RealtimeEnvelope } from '@diamoraa/shared';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import type Redis from 'ioredis';

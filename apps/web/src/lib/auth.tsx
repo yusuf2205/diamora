@@ -78,11 +78,11 @@ export function useAuth(): AuthContextValue {
 /** Stable per-browser id for the "device" the session is bound to (sessions list, D-007). */
 function deviceId(): string {
   if (typeof window === 'undefined') return 'server';
-  const key = 'yusmus.deviceId';
-  let id = window.localStorage.getItem(key);
+  const key = 'diamoraa.deviceId';
+  let id = window.localStorage.getItem(key) ?? window.localStorage.getItem('yusmus.deviceId'); // keep the same device after the rebrand
   if (!id) {
     id = crypto.randomUUID();
-    window.localStorage.setItem(key, id);
   }
+  window.localStorage.setItem(key, id);
   return id;
 }

@@ -1,4 +1,4 @@
-import type { RealtimeEnvelope } from '@yusmus/shared';
+import type { RealtimeEnvelope } from '@diamoraa/shared';
 import { io, type Socket } from 'socket.io-client';
 import request from 'supertest';
 import {

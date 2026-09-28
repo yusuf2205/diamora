@@ -2,12 +2,12 @@ import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Po
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type {
   AssignmentHandoff, AssignmentStatus, Delivery, QualityResult, StockMovement, WorkAssignment, WorkAssignmentMaterial, WorkAssignmentStatusHistory, WorkProgress,
-} from '@yusmus/database';
+} from '@diamoraa/database';
 import {
   HANDOFF_TTL_MINUTES, acceptanceSchema, completeDeliverySchema, completePickupSchema, createAssignmentSchema, earningFor,
   handoffConfirmSchema, handoffProblemSchema, handoffScanSchema, listAssignmentsSchema, metersToCm, parseQrCode,
   readyForPickupSchema, reportProgressSchema,
-} from '@yusmus/shared';
+} from '@diamoraa/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';

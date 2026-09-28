@@ -1,6 +1,6 @@
 import { Controller, Injectable, Module, Post, Get, HttpCode } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { LOCATION_STALE_SECONDS, locationFreshness, reportLocationSchema, scopeFor } from '@yusmus/shared';
+import { LOCATION_STALE_SECONDS, locationFreshness, reportLocationSchema, scopeFor } from '@diamoraa/shared';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Perm } from '../common/decorators';
 import type { AuthUser } from '../common/request-context';

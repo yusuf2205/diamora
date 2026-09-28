@@ -2,7 +2,7 @@ import {
   CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client,
 } from '@aws-sdk/client-s3';
 import { Global, Inject, Injectable, Logger, Module, OnModuleInit } from '@nestjs/common';
-import { FILE_BUCKETS } from '@yusmus/shared';
+import { FILE_BUCKETS } from '@diamoraa/shared';
 import { Readable } from 'node:stream';
 import { ENV, Env } from '../config/env';
 

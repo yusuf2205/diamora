@@ -2,11 +2,11 @@ import {
   Controller, Delete, Get, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { CollateralPhoto, WorkerCollateral, WorkerProfile } from '@yusmus/database';
+import type { CollateralPhoto, WorkerCollateral, WorkerProfile } from '@diamoraa/database';
 import {
   WORKER_MACHINE, approveWorkerSchema, assertTransition, assignManagerSchema, createWorkerInviteSchema, listWorkersSchema, rejectWorkerSchema, updateWorkerSchema,
   COLLATERAL_MACHINE, type CollateralStatus, type WorkerStatus,
-} from '@yusmus/shared';
+} from '@diamoraa/shared';
 import { z } from 'zod';
 import { appDownloadUrl } from '../registration/texts';
 import { AuditService } from '../audit/audit.service';
@@ -231,8 +231,8 @@ export class WorkersService {
 
     await this.prisma.$transaction(async (tx) => {
       if (!(await lockRow(tx, 'worker_profiles', id))) throw notFound('Worker');
-      // the ONE place the declared-collateral trail may be deleted (see migration 20260928160000_worker_invite_delete)
-      await tx.$executeRawUnsafe(`SET LOCAL yusmus.worker_purge = 'on'`);
+      // the ONE place the declared-collateral trail may be deleted (see migrations 20260928160000_worker_invite_delete + 20260928180000_rebrand_purge_flag)
+      await tx.$executeRawUnsafe(`SET LOCAL diamoraa.worker_purge = 'on'`);
       const collateralIds = w.collaterals.map((c) => c.id);
       await tx.collateralPhoto.deleteMany({ where: { collateralId: { in: collateralIds } } });
       await tx.collateralHistory.deleteMany({ where: { collateralId: { in: collateralIds } } });

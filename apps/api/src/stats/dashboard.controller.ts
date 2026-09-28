@@ -1,7 +1,7 @@
 import { Controller, Get, Injectable, Module } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Prisma } from '@yusmus/database';
-import { scopeFor, type WorkerCategory } from '@yusmus/shared';
+import type { Prisma } from '@diamoraa/database';
+import { scopeFor, type WorkerCategory } from '@diamoraa/shared';
 import { CurrentUser, Perm } from '../common/decorators';
 import type { AuthUser } from '../common/request-context';
 import { PrismaService } from '../prisma/prisma.module';

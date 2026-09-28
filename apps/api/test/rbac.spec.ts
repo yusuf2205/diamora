@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { io, type Socket } from 'socket.io-client';
-import type { RealtimeEnvelope } from '@yusmus/shared';
+import type { RealtimeEnvelope } from '@diamoraa/shared';
 import request from 'supertest';
 import {
   adminActor, approveAndLoginWorker, client, createAdmin, createTestApp, PASSWORD, registerViaBot, staffActor, superAdminActor, TestApp,

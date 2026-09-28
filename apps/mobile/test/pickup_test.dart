@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:yusmus_mobile/core/network/api_exception.dart';
-import 'package:yusmus_mobile/core/providers.dart';
-import 'package:yusmus_mobile/features/qr/qr_repository.dart';
-import 'package:yusmus_mobile/features/work/assignment_detail_screen.dart';
-import 'package:yusmus_mobile/l10n/app_localizations.dart';
+import 'package:diamoraa_mobile/core/network/api_exception.dart';
+import 'package:diamoraa_mobile/core/providers.dart';
+import 'package:diamoraa_mobile/features/qr/qr_repository.dart';
+import 'package:diamoraa_mobile/features/work/assignment_detail_screen.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
 import 'app_flow_test.dart' show MockApi;
 

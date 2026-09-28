@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, Injectable, Module, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { PayRateChange } from '@yusmus/database';
-import { KIT_METERS, changePayRateSchema, earningFor } from '@yusmus/shared';
+import type { PayRateChange } from '@diamoraa/database';
+import { KIT_METERS, changePayRateSchema, earningFor } from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, Authenticated, CurrentUser, Perm } from '../common/decorators';
@@ -37,7 +37,7 @@ export class PayRateService {
   async change(actor: AuthUser, input: z.output<typeof changePayRateSchema>) {
     const { row, changed } = await this.prisma.$transaction(async (tx) => {
       // Serialises concurrent changes, so the history is always one straight chain (previous = the row before it).
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('yusmus:pay_rate'))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('diamoraa:pay_rate'))`;
       const before = await this.current(tx);
       if (before.ratePerKit === input.ratePerKit) return { row: before, changed: false };
       const created = await tx.payRateChange.create({

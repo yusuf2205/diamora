@@ -4,7 +4,7 @@
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
     "typecheck": { "dependsOn": ["^build"] },
-    "@yusmus/database#typecheck": { "dependsOn": ["@yusmus/database#build"] },
+    "@diamoraa/database#typecheck": { "dependsOn": ["@diamoraa/database#build"] },
     "test": { "dependsOn": ["^build"], "cache": false }
   }
 }

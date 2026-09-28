@@ -163,7 +163,7 @@ export const userRoom = (userId: string) => `user:${userId}`;
 export const permRoom = (p: Permission) => `perm:${p}`;
 export const catAllRoom = (c: WorkerCategory) => `cat:${c}:all`;
 export const catManagerRoom = (c: WorkerCategory, managerId: string) => `cat:${c}:mgr:${managerId}`;
-export const EVENTS_CHANNEL = 'yusmus:events';
+export const EVENTS_CHANNEL = 'diamoraa:events';
 
 export interface SocketPrincipal { id: string; role: Role; workerId: string | null; permissions: readonly Permission[] }
 

@@ -2,7 +2,7 @@ import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe
 import { JwtModule } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramSessionSchema, workerCodeRequestSchema } from '@yusmus/shared';
+import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramSessionSchema, workerCodeRequestSchema } from '@diamoraa/shared';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Public } from '../common/decorators';

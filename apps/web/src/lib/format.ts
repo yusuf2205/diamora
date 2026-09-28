@@ -1,4 +1,4 @@
-import { LOCATION_LIVE_SECONDS, LOCATION_RECENT_SECONDS } from '@yusmus/shared';
+import { LOCATION_LIVE_SECONDS, LOCATION_RECENT_SECONDS } from '@diamoraa/shared';
 import { ApiError } from './api';
 
 /** LIVE / RECENT / STALE (M2 §17) — same thresholds as the API and the Flutter app (packages/shared). A RECENT or

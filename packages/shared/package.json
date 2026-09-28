@@ -1,5 +1,5 @@
 {
-  "name": "@yusmus/shared",
+  "name": "@diamoraa/shared",
   "version": "0.1.0",
   "private": true,
   "description": "Domain core: roles, state machines, Telegram registration flow, realtime contracts, validation, money/metres",

@@ -1,7 +1,7 @@
 /** Where workers download the Android app (Caddy serves it at <PUBLIC_URL>/download). */
 export const appDownloadUrl = () => `${(process.env.PUBLIC_API_URL ?? 'https://diamoraa.uz').replace(/\/$/, '')}/download`;
 
-import type { RegAction, RegError, RegPrompt } from '@yusmus/shared';
+import type { RegAction, RegError, RegPrompt } from '@diamoraa/shared';
 
 /** Everything the bot says lives here (pure functions) — the bot process only renders these (D-005). */
 export type BotPrompt =

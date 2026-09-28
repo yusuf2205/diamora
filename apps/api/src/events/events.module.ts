@@ -1,7 +1,7 @@
 import { Logger, Module } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedSocket, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
-import { roomsForEvent, roomsForUser, type RealtimeEnvelope } from '@yusmus/shared';
+import { roomsForEvent, roomsForUser, type RealtimeEnvelope } from '@diamoraa/shared';
 import type { Server, Socket } from 'socket.io';
 import { EventBus, EventBusModule } from './event-bus';
 import { SessionAuthService } from '../auth/auth-core';

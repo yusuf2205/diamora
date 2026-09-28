@@ -1,4 +1,4 @@
-import type { Prisma } from '@yusmus/database';
+import type { Prisma } from '@diamoraa/database';
 import { createHash, randomBytes } from 'node:crypto';
 
 export type Tx = Prisma.TransactionClient;

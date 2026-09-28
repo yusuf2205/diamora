@@ -7,8 +7,8 @@ import '../features/profile/locale_controller.dart';
 import '../l10n/app_localizations.dart';
 import 'router.dart';
 
-class YusmusApp extends ConsumerWidget {
-  const YusmusApp({super.key});
+class DiamoraaApp extends ConsumerWidget {
+  const DiamoraaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

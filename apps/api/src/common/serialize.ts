@@ -1,4 +1,4 @@
-import type { Prisma } from '@yusmus/database';
+import type { Prisma } from '@diamoraa/database';
 
 // JSON has no bigint: money travels as a decimal string. Safety net for raw rows (audit snapshots, idempotency replays).
 if (!(BigInt.prototype as unknown as { toJSON?: unknown }).toJSON) {

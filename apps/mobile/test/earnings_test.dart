@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
-import 'package:yusmus_mobile/features/auth/models.dart';
+import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
+import 'package:diamoraa_mobile/features/auth/models.dart';
 
 import 'app_flow_test.dart' show MockApi;
 import 'models_test.dart' show workerListItem;

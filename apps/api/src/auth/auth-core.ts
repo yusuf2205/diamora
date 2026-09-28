@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { effectivePermissions, type Permission, type Role } from '@yusmus/shared';
+import { effectivePermissions, type Permission, type Role } from '@diamoraa/shared';
 import * as argon2 from 'argon2';
 import type { Request } from 'express';
 import { randomBytes } from 'node:crypto';

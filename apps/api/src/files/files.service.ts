@@ -1,7 +1,7 @@
 import { Controller, Get, Global, Header, Inject, Injectable, Module, Param, ParseUUIDPipe, Query, StreamableFile } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
-import type { FileAsset } from '@yusmus/database';
-import type { FileBucket } from '@yusmus/shared';
+import type { FileAsset } from '@diamoraa/database';
+import type { FileBucket } from '@diamoraa/shared';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import sharp from 'sharp';
 import { Public } from '../common/decorators';

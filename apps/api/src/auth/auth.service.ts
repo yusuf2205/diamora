@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { User, UserSession } from '@yusmus/database';
-import { isStaffRole, type Permission, type Role } from '@yusmus/shared';
+import type { User, UserSession } from '@diamoraa/database';
+import { isStaffRole, type Permission, type Role } from '@diamoraa/shared';
 import { createHash, randomBytes } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
 import { accountDisabled, AppError, invalidCredentials, notFound, rateLimited, sessionRevoked, ticketInvalid, unauthenticated, userNotFound } from '../common/errors';

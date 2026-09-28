@@ -7,15 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yusmus_mobile/app/app.dart';
-import 'package:yusmus_mobile/core/db/app_database.dart';
-import 'package:yusmus_mobile/core/providers.dart';
-import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
-import 'package:yusmus_mobile/core/storage/token_store.dart';
-import 'package:yusmus_mobile/core/ui/widgets.dart' show formatUzs;
-import 'package:yusmus_mobile/features/auth/auth_controller.dart';
-import 'package:yusmus_mobile/features/auth/models.dart';
-import 'package:yusmus_mobile/features/settings/pay_rate.dart';
+import 'package:diamoraa_mobile/app/app.dart';
+import 'package:diamoraa_mobile/core/db/app_database.dart';
+import 'package:diamoraa_mobile/core/providers.dart';
+import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
+import 'package:diamoraa_mobile/core/storage/token_store.dart';
+import 'package:diamoraa_mobile/core/ui/widgets.dart' show formatUzs;
+import 'package:diamoraa_mobile/features/auth/auth_controller.dart';
+import 'package:diamoraa_mobile/features/auth/models.dart';
+import 'package:diamoraa_mobile/features/settings/pay_rate.dart';
 
 import 'app_flow_test.dart' show FakeAuth, MockApi;
 import 'fakes/fake_geo.dart';
@@ -41,7 +41,7 @@ Future<ProviderScope> app(Session session, MockApi api, StreamController<Realtim
       geoProvider.overrideWithValue(const FakeGeo()),
       realtimeEventsProvider.overrideWith((ref) => events.stream),
     ],
-    child: const YusmusApp(),
+    child: const DiamoraaApp(),
   );
 }
 

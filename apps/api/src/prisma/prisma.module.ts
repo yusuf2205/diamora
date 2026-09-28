@@ -1,5 +1,5 @@
 import { Global, Inject, Injectable, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@yusmus/database';
+import { PrismaClient } from '@diamoraa/database';
 import { ENV, Env } from '../config/env';
 
 /** Single PostgreSQL client; pool size via ?connection_limit=… in DATABASE_URL. */

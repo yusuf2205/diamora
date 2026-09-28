@@ -17,7 +17,7 @@ if (hasReleaseKeystore) {
 }
 
 android {
-    namespace = "uz.yusmus.yusmus_mobile"
+    namespace = "uz.diamoraa.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -28,7 +28,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "uz.yusmus.yusmus_mobile"
+        applicationId = "uz.diamoraa.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // yandex_maps_mapkit_lite requires >= 26 (Android 8.0); Flutter's own default (21/24) is too low and the

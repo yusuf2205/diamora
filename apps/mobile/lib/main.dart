@@ -13,5 +13,5 @@ Future<void> main() async {
   // hard-coded. Without one the map screen shows a plain "not configured" message instead of a blank/crashing native view.
   if (AppConfig.yandexMapKitKey.isNotEmpty) await mapkit_init.initMapkit(apiKey: AppConfig.yandexMapKitKey);
   final prefs = await SharedPreferences.getInstance();
-  runApp(ProviderScope(overrides: [sharedPrefsProvider.overrideWithValue(prefs)], child: const YusmusApp()));
+  runApp(ProviderScope(overrides: [sharedPrefsProvider.overrideWithValue(prefs)], child: const DiamoraaApp()));
 }

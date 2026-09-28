@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Module } from '@nestjs/common';
-import { Prisma, type WorkerProfile } from '@yusmus/database';
-import { advance, initialRegState, parseUzs, type RegInput, type RegState } from '@yusmus/shared';
+import { Prisma, type WorkerProfile } from '@diamoraa/database';
+import { advance, initialRegState, parseUzs, type RegInput, type RegState } from '@diamoraa/shared';
 import { AuditService } from '../audit/audit.service';
 import { ENV, Env } from '../config/env';
 import { EventBus } from '../events/events.module';

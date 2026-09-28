@@ -9,8 +9,8 @@ module.exports = async () => {
   const repoRoot = path.resolve(__dirname, '../../../..');
   const dbPkg = path.join(repoRoot, 'packages/database');
   const { startEmbeddedPostgres } = await import(pathToFileURL(path.join(repoRoot, 'infra/scripts/lib/embedded-pg.mjs')).href);
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yusmus-test-pg-'));
-  const db = await startEmbeddedPostgres({ dataDir, persistent: false, database: 'yusmus_test', quiet: true });
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'diamoraa-test-pg-'));
+  const db = await startEmbeddedPostgres({ dataDir, persistent: false, database: 'diamoraa_test', quiet: true });
   const prismaCli = require.resolve('prisma/build/index.js', { paths: [dbPkg] });
   execFileSync(process.execPath, [prismaCli, 'migrate', 'deploy'], { cwd: dbPkg, env: { ...process.env, DATABASE_URL: db.url }, stdio: ['ignore', 'ignore', 'inherit'] });
   process.env.TEST_DATABASE_URL = db.url;

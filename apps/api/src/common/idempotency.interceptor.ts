@@ -1,6 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
-import { Prisma } from '@yusmus/database';
+import { Prisma } from '@diamoraa/database';
 import type { Request, Response } from 'express';
 import { createHash } from 'node:crypto';
 import { Observable, catchError, from, of, switchMap, throwError } from 'rxjs';

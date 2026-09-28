@@ -1,7 +1,7 @@
 import { Controller, Get, Global, Injectable, Module } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Prisma } from '@yusmus/database';
-import { idSchema, paginationSchema } from '@yusmus/shared';
+import type { Prisma } from '@diamoraa/database';
+import { idSchema, paginationSchema } from '@diamoraa/shared';
 import { z } from 'zod';
 import { Perm } from '../common/decorators';
 import { RequestContext } from '../common/request-context';

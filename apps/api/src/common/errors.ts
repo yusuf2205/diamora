@@ -1,5 +1,5 @@
 import { HttpException } from '@nestjs/common';
-import type { ErrorCode } from '@yusmus/shared';
+import type { ErrorCode } from '@diamoraa/shared';
 
 export class AppError extends HttpException {
   constructor(readonly code: ErrorCode, message: string, status: number, readonly details?: unknown) {

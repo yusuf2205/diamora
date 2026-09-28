@@ -15,7 +15,7 @@ if (args.length === 0) {
   console.error('usage: prisma-deployed.mjs <deploy-dir> <prisma args...>');
   process.exit(2);
 }
-const dbDir = realpathSync(join(resolve(dir), 'node_modules', '@yusmus', 'database'));
+const dbDir = realpathSync(join(resolve(dir), 'node_modules', '@diamoraa', 'database'));
 const prismaCli = createRequire(join(dbDir, 'package.json')).resolve('prisma/build/index.js');
 const res = spawnSync(process.execPath, [prismaCli, ...args], {
   cwd: dbDir,

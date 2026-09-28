@@ -24,8 +24,8 @@ FROM deps AS build
 COPY packages packages
 COPY apps/api apps/api
 COPY infra/scripts/prisma-deployed.mjs infra/scripts/prisma-deployed.mjs
-RUN pnpm --filter @yusmus/shared build && pnpm --filter @yusmus/database build && pnpm --filter @yusmus/api build \
- && pnpm --filter @yusmus/api deploy --prod /out \
+RUN pnpm --filter @diamoraa/shared build && pnpm --filter @diamoraa/database build && pnpm --filter @diamoraa/api build \
+ && pnpm --filter @diamoraa/api deploy --prod /out \
  && node infra/scripts/prisma-deployed.mjs /out generate \
  && cp infra/scripts/prisma-deployed.mjs /out/prisma-deployed.mjs
 

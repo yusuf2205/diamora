@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { Color } from '@yusmus/database';
-import { createColorSchema, listColorsSchema, updateColorSchema } from '@yusmus/shared';
+import type { Color } from '@diamoraa/database';
+import { createColorSchema, listColorsSchema, updateColorSchema } from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, Perm } from '../common/decorators';

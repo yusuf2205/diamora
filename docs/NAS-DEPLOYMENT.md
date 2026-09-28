@@ -68,7 +68,7 @@ The NAS has plenty of RAM; the defaults in `.env` (`*_MEM_LIMIT`, `API_CPUS`, �
 2. **Yandex MapKit key** (needed from M4):
    1. Open <https://developer.tech.yandex.ru/services/> and sign in with a Yandex account (create one if needed).
    2. Press **Подключить API** (Connect APIs) and choose **MapKit Mobile SDK**.
-   3. Fill in the project form (name *Yusmus*, your contact), pick the free licence (up to 25 000 monthly users) and press *Continue*.
+   3. Fill in the project form (name *Diamoraa*, your contact), pick the free licence (up to 25 000 monthly users) and press *Continue*.
    4. The key appears under **API Interfaces → MapKit Mobile SDK**. Wait ≈15 minutes for activation.
    5. Give it to the developer (or build the app with `--dart-define=YANDEX_MAPKIT_KEY=<key>`). Do not commit it to Git.
 3. **Internet access** — decide between A (Cloudflare Tunnel) and B (home network / Tailscale) in §3.

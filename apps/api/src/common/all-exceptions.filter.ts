@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Inject } from '@nestjs/common';
-import { Prisma } from '@yusmus/database';
-import { InvalidTransitionError, type ApiErrorBody, type ErrorCode } from '@yusmus/shared';
+import { Prisma } from '@diamoraa/database';
+import { InvalidTransitionError, type ApiErrorBody, type ErrorCode } from '@diamoraa/shared';
 import type { Response } from 'express';
 import { ZodError } from 'zod';
 import { AppError } from './errors';

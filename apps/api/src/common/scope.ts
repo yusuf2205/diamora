@@ -1,5 +1,5 @@
-import type { Prisma } from '@yusmus/database';
-import { scopeFor, type Permission, type WorkerCategory } from '@yusmus/shared';
+import type { Prisma } from '@diamoraa/database';
+import { scopeFor, type Permission, type WorkerCategory } from '@diamoraa/shared';
 import { forbidden, notFound } from './errors';
 import type { AuthUser } from './request-context';
 

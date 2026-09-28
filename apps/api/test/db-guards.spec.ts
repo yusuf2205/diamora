@@ -1,8 +1,8 @@
-import * as db from '@yusmus/database';
+import * as db from '@diamoraa/database';
 import {
   ASSIGNMENT_STATUSES, COLLATERAL_STATUSES, COLLATERAL_TYPES, DELIVERY_STATUSES, DELIVERY_TYPES, JOB_REQUEST_STATUSES,
   LEDGER_TYPES, MATERIAL_UNITS, ROLES, STOCK_MOVEMENT_TYPES, WORKER_STATUSES,
-} from '@yusmus/shared';
+} from '@diamoraa/shared';
 import { createTestApp, TestApp, uniquePhone, nextTelegramId } from './support/app';
 
 describe('database guards: business invariants enforced by PostgreSQL itself', () => {

@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { WorkerLedgerTransaction } from '@yusmus/database';
-import { cashPayoutSchema } from '@yusmus/shared';
+import type { WorkerLedgerTransaction } from '@diamoraa/database';
+import { cashPayoutSchema } from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';

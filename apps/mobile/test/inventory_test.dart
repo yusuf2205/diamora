@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:yusmus_mobile/features/auth/models.dart';
+import 'package:diamoraa_mobile/features/auth/models.dart';
 
 import 'app_flow_test.dart' show MockApi;
 import 'catalog_test.dart' show appWith, tearDownDb;

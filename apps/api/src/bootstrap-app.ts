@@ -25,6 +25,6 @@ export function configureApp(app: NestExpressApplication | INestApplication): vo
   });
   app.enableShutdownHooks();
   if (swaggerEnabled(env)) {
-    SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, new DocumentBuilder().setTitle('Yusmus API').setVersion('0.1.0').addBearerAuth().build()));
+    SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, new DocumentBuilder().setTitle('Diamoraa API').setVersion('0.1.0').addBearerAuth().build()));
   }
 }

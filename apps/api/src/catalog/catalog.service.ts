@@ -3,10 +3,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import type { Prisma, ProductMedia, ProductModel, ProductVariant } from '@yusmus/database';
+import type { Prisma, ProductMedia, ProductModel, ProductVariant } from '@diamoraa/database';
 import {
   addMediaSchema, createCatalogItemSchema, createVariantSchema, idSchema, listCatalogSchema, reorderSchema, updateCatalogItemSchema, updateVariantSchema,
-} from '@yusmus/shared';
+} from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';

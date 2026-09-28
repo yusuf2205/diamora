@@ -1,4 +1,4 @@
-# Yusmus — the whole system on OUR NAS.   docker compose up -d
+# Diamoraa — the whole system on OUR NAS.   docker compose up -d
 #
 # Networks (fixed subnets: this NAS runs many other Docker projects and the LAN is 192.168.1.0/24 — no clashes, D-025)
 #   edge   : Caddy <-> api/web (+ cloudflared). The ONLY published port of the stack is Caddy's ${HTTP_PORT} (plain HTTP;
@@ -181,7 +181,7 @@ services:
       context: .
       dockerfile: infra/docker/service.Dockerfile
       target: migrator
-    image: yusmus/migrate:${APP_VERSION:-local}
+    image: diamoraa/migrate:${APP_VERSION:-local}
     restart: "no"
     depends_on:
       postgres: { condition: service_healthy }
@@ -198,7 +198,7 @@ services:
       context: .
       dockerfile: infra/docker/service.Dockerfile
       target: runtime
-    image: yusmus/api:${APP_VERSION:-local}
+    image: diamoraa/api:${APP_VERSION:-local}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -240,7 +240,7 @@ services:
   # Telegram bot (long polling, no inbound port) + outbox delivery + integrity checks. Same image as the API.
   worker:
     <<: *hardened
-    image: yusmus/api:${APP_VERSION:-local}
+    image: diamoraa/api:${APP_VERSION:-local}
     command: ["dist/worker.js"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -288,7 +288,7 @@ services:
         NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
         NEXT_PUBLIC_YANDEX_MAPS_JS_KEY: ${YANDEX_MAPS_JS_KEY:-}
         NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-diamora1_bot}
-    image: yusmus/web:${APP_VERSION:-local}
+    image: diamoraa/web:${APP_VERSION:-local}
     depends_on:
       api: { condition: service_healthy }
     environment:
@@ -367,7 +367,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/backup.Dockerfile
-    image: yusmus/backup:${APP_VERSION:-local}
+    image: diamoraa/backup:${APP_VERSION:-local}
     depends_on:
       postgres: { condition: service_healthy }
       minio: { condition: service_healthy }

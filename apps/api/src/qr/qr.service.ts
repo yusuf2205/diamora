@@ -1,6 +1,6 @@
 import { Controller, Get, Injectable, Module, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { parseQrCode } from '@yusmus/shared';
+import { parseQrCode } from '@diamoraa/shared';
 import { AssignmentsModule, AssignmentsService } from '../assignments/assignments.service';
 import { CurrentUser, Roles } from '../common/decorators';
 import { forbidden, notFound } from '../common/errors';

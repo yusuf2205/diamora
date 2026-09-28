@@ -16,18 +16,24 @@ export class ApiError extends Error {
   }
 }
 
-const TOKENS_KEY = 'yusmus.tokens';
+const TOKENS_KEY = 'diamoraa.tokens';
+/** before the rebrand: read once and moved, so nobody is signed out by the rename */
+const LEGACY_TOKENS_KEY = 'yusmus.tokens';
 interface Tokens { accessToken: string; refreshToken: string }
 
 function readTokens(): Tokens | null {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(TOKENS_KEY);
+  let raw = window.localStorage.getItem(TOKENS_KEY);
+  if (!raw) {
+    raw = window.localStorage.getItem(LEGACY_TOKENS_KEY);
+    if (raw) { window.localStorage.setItem(TOKENS_KEY, raw); window.localStorage.removeItem(LEGACY_TOKENS_KEY); }
+  }
   return raw ? (JSON.parse(raw) as Tokens) : null;
 }
 function writeTokens(t: Tokens | null) {
   if (typeof window === 'undefined') return;
   if (t) window.localStorage.setItem(TOKENS_KEY, JSON.stringify(t));
-  else window.localStorage.removeItem(TOKENS_KEY);
+  else { window.localStorage.removeItem(TOKENS_KEY); window.localStorage.removeItem(LEGACY_TOKENS_KEY); }
 }
 
 let refreshing: Promise<boolean> | null = null;

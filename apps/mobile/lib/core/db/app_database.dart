@@ -23,7 +23,7 @@ class CachedWorkers extends Table {
 
 @DriftDatabase(tables: [CachedWorkers])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(driftDatabase(name: 'yusmus'));
+  AppDatabase() : super(driftDatabase(name: 'diamoraa'));
   AppDatabase.forTesting(super.e);
 
   @override

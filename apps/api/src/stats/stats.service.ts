@@ -1,5 +1,5 @@
 import { Injectable, Module } from '@nestjs/common';
-import type { Prisma } from '@yusmus/database';
+import type { Prisma } from '@diamoraa/database';
 import { money } from '../common/serialize';
 import { PrismaService } from '../prisma/prisma.module';
 

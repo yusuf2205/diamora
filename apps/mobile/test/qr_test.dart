@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yusmus_mobile/features/qr/qr_repository.dart';
+import 'package:diamoraa_mobile/features/qr/qr_repository.dart';
 
 void main() {
   group('classifyQr (M2 §10-13): pure, camera-free classification of a resolved QR', () {

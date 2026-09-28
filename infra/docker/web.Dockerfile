@@ -28,7 +28,7 @@ ARG NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=diamora1_bot
 ENV NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=${NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}
 COPY packages packages
 COPY apps/web apps/web
-RUN pnpm --filter @yusmus/shared build && pnpm --filter @yusmus/web build
+RUN pnpm --filter @diamoraa/shared build && pnpm --filter @diamoraa/web build
 
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0

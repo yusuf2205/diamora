@@ -33,7 +33,7 @@ them; `GET /v1/dashboard`'s `finance.salesRevenue/expenses/netProfit` are explic
 
 ## Getting there for the first time
 
-1. `pnpm --filter @yusmus/api cli:bootstrap -- --name "..." --phone "+998..."` on a fresh database creates the first
+1. `pnpm --filter @diamoraa/api cli:bootstrap -- --name "..." --phone "+998..."` on a fresh database creates the first
    `SUPER_ADMIN` (see [RBAC.md](RBAC.md) for `promote-owner.js` on an existing one).
 2. Sign in from either app with that phone/password.
 3. Create `ADMIN`/`MANAGER` accounts from "Команда" (Flutter) or `/team` (web); assign workers to managers from a

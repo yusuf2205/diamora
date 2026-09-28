@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { Permission, Role } from '@yusmus/shared';
+import type { Permission, Role } from '@diamoraa/shared';
 
 /** The authenticated principal. Loaded from the DB session on every request — never trusted from the client. */
 export interface AuthUser {

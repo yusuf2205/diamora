@@ -8,12 +8,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yusmus_mobile/core/db/app_database.dart';
-import 'package:yusmus_mobile/core/network/api_exception.dart';
-import 'package:yusmus_mobile/core/providers.dart';
-import 'package:yusmus_mobile/core/storage/token_store.dart';
-import 'package:yusmus_mobile/features/work/create_assignment_screen.dart';
-import 'package:yusmus_mobile/l10n/app_localizations.dart';
+import 'package:diamoraa_mobile/core/db/app_database.dart';
+import 'package:diamoraa_mobile/core/network/api_exception.dart';
+import 'package:diamoraa_mobile/core/providers.dart';
+import 'package:diamoraa_mobile/core/storage/token_store.dart';
+import 'package:diamoraa_mobile/features/work/create_assignment_screen.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
 import 'app_flow_test.dart' show MockApi;
 import 'models_test.dart' show workerListItem;

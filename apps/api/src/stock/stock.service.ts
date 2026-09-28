@@ -1,7 +1,7 @@
 import { Controller, Get, Injectable, Module, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Prisma, type Material, type StockMovement, type StockMovementType } from '@yusmus/database';
-import { listStockMovementsSchema, stockAdjustSchema, stockReceiptSchema, stockWriteOffSchema } from '@yusmus/shared';
+import { Prisma, type Material, type StockMovement, type StockMovementType } from '@diamoraa/database';
+import { listStockMovementsSchema, stockAdjustSchema, stockReceiptSchema, stockWriteOffSchema } from '@diamoraa/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';

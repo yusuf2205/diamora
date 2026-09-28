@@ -7,8 +7,8 @@
  */
 import 'reflect-metadata';
 import * as argon2 from 'argon2';
-import { PrismaClient } from '@yusmus/database';
-import { normalizePhone, STAFF_ROLES, type StaffRole } from '@yusmus/shared';
+import { PrismaClient } from '@diamoraa/database';
+import { normalizePhone, STAFF_ROLES, type StaffRole } from '@diamoraa/shared';
 import { randomInt } from 'node:crypto';
 
 const arg = (n: string) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? process.argv[i + 1] : undefined; };

@@ -1,6 +1,6 @@
 import { Controller, Get, Injectable, Module } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { scopeFor, type Role } from '@yusmus/shared';
+import { scopeFor, type Role } from '@diamoraa/shared';
 import { CurrentUser, Perm } from '../common/decorators';
 import type { AuthUser } from '../common/request-context';
 import { EventBus } from '../events/event-bus';

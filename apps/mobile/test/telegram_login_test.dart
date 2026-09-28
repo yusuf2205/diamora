@@ -6,15 +6,15 @@ import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
-import 'package:yusmus_mobile/app/router.dart';
-import 'package:yusmus_mobile/features/auth/login_screen.dart' show telegramAppUri;
-import 'package:yusmus_mobile/core/providers.dart';
-import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
-import 'package:yusmus_mobile/core/storage/token_store.dart';
-import 'package:yusmus_mobile/features/auth/auth_controller.dart';
-import 'package:yusmus_mobile/features/auth/models.dart';
-import 'package:yusmus_mobile/features/auth/telegram_pending_screen.dart';
-import 'package:yusmus_mobile/l10n/app_localizations.dart';
+import 'package:diamoraa_mobile/app/router.dart';
+import 'package:diamoraa_mobile/features/auth/login_screen.dart' show telegramAppUri;
+import 'package:diamoraa_mobile/core/providers.dart';
+import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
+import 'package:diamoraa_mobile/core/storage/token_store.dart';
+import 'package:diamoraa_mobile/features/auth/auth_controller.dart';
+import 'package:diamoraa_mobile/features/auth/models.dart';
+import 'package:diamoraa_mobile/features/auth/telegram_pending_screen.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
 import 'app_flow_test.dart' show MockApi, appWith;
 

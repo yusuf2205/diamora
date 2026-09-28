@@ -9,7 +9,7 @@
   - for each worker-scoped category (`WORKER`, `COLLATERAL`, `ASSIGNMENT`, `FINANCE`, `LOCATION`, `MAP`) a staff user additionally joins `cat:<category>:all` (has the `_ALL` permission) or `cat:<category>:mgr:<their own id>` (has only `_ASSIGNED` — a MANAGER's own room, nobody else's);
   - a WORKER joins `worker:<workerProfileId>` and the broadcast room `workers`; nothing else.
 - **Events are routed by `roomsForEvent(type, data)`**, using the same category + the event's `managerId`/`previousManagerId` field — the server decides who receives what; a client is never sent data it may not see "with the UI just hiding it".
-- Bus: Redis pub/sub channel `yusmus:events` (so the bot process and future API replicas reach all sockets). Without `REDIS_URL` an in-process emitter is used (tests).
+- Bus: Redis pub/sub channel `diamoraa:events` (so the bot process and future API replicas reach all sockets). Without `REDIS_URL` an in-process emitter is used (tests).
 - No replay: after reconnect the client refetches its screen data. Events are hints ("something changed"), payloads stay small and never contain full addresses, collateral details or bank-like data beyond what that audience may see.
 - **Presence** (D-031): the app sends `presence:ping` periodically; the gateway keeps `User.lastSeenAt` fresh and a live in-memory online/offline flag ([LIVE-LOCATION.md](LIVE-LOCATION.md#presence--separate-from-gps-d-031)).
 

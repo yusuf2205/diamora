@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yusmus_mobile/core/location/geo.dart';
-import 'package:yusmus_mobile/core/providers.dart';
-import 'package:yusmus_mobile/features/location/location_gate.dart';
-import 'package:yusmus_mobile/l10n/app_localizations.dart';
+import 'package:diamoraa_mobile/core/location/geo.dart';
+import 'package:diamoraa_mobile/core/providers.dart';
+import 'package:diamoraa_mobile/features/location/location_gate.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
 import 'fakes/fake_geo.dart';
 

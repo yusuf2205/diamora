@@ -1,4 +1,4 @@
-package uz.yusmus.yusmus_mobile
+package uz.diamoraa.app
 
 import io.flutter.embedding.android.FlutterActivity
 

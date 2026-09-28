@@ -11,7 +11,7 @@ import { PrismaService } from '../../src/prisma/prisma.module';
 import { RegistrationService, type BotInput } from '../../src/registration/registration.service';
 import { OutboxSender } from '../../src/worker/outbox';
 import { EventBus } from '../../src/events/events.module';
-import type { RealtimeEnvelope } from '@yusmus/shared';
+import type { RealtimeEnvelope } from '@diamoraa/shared';
 
 export interface TestApp {
   app: NestExpressApplication;

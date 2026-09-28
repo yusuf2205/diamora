@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yusmus_mobile/core/network/api_exception.dart';
-import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
-import 'package:yusmus_mobile/core/ui/widgets.dart';
-import 'package:yusmus_mobile/features/auth/models.dart';
-import 'package:yusmus_mobile/features/workers/models.dart';
+import 'package:diamoraa_mobile/core/network/api_exception.dart';
+import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
+import 'package:diamoraa_mobile/core/ui/widgets.dart';
+import 'package:diamoraa_mobile/features/auth/models.dart';
+import 'package:diamoraa_mobile/features/workers/models.dart';
 
 // Payloads copied from the API integration tests (apps/api/test/*.spec.ts) — the contract both sides rely on.
 const workerListItem = {

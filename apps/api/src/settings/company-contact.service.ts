@@ -1,6 +1,6 @@
 import { Controller, Get, Injectable, Module, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { companyContactSchema } from '@yusmus/shared';
+import { companyContactSchema } from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, Authenticated, CurrentUser, Perm } from '../common/decorators';

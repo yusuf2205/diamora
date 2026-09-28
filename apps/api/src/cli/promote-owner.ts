@@ -7,8 +7,8 @@
  *   node dist/cli/promote-owner.js --phone "+998901234567" --confirm-phone "+998901234567"
  */
 import 'reflect-metadata';
-import { PrismaClient } from '@yusmus/database';
-import { normalizePhone } from '@yusmus/shared';
+import { PrismaClient } from '@diamoraa/database';
+import { normalizePhone } from '@diamoraa/shared';
 
 const arg = (n: string) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? process.argv[i + 1] : undefined; };
 

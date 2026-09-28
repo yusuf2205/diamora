@@ -1,5 +1,5 @@
 import { Global, Injectable, Module } from '@nestjs/common';
-import type { Prisma } from '@yusmus/database';
+import type { Prisma } from '@diamoraa/database';
 import { PrismaService } from '../prisma/prisma.module';
 
 type Db = PrismaService | Prisma.TransactionClient;

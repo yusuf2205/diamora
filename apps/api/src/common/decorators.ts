@@ -1,13 +1,13 @@
 import { ExecutionContext, SetMetadata, applyDecorators, createParamDecorator } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
-import type { Permission, Role } from '@yusmus/shared';
+import type { Permission, Role } from '@diamoraa/shared';
 import { z } from 'zod';
 import type { AuthUser } from './request-context';
 
-export const IS_PUBLIC = 'yusmus:isPublic';
-export const IS_AUTHENTICATED = 'yusmus:isAuthenticated';
-export const ROLES_KEY = 'yusmus:roles';
-export const PERMISSIONS_KEY = 'yusmus:permissions';
+export const IS_PUBLIC = 'diamoraa:isPublic';
+export const IS_AUTHENTICATED = 'diamoraa:isAuthenticated';
+export const ROLES_KEY = 'diamoraa:roles';
+export const PERMISSIONS_KEY = 'diamoraa:permissions';
 
 /** No authentication (login, health, signed file URLs). */
 export const Public = () => SetMetadata(IS_PUBLIC, true);

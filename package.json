@@ -1,5 +1,5 @@
 {
-  "name": "yusmus",
+  "name": "diamoraa",
   "private": true,
   "version": "0.1.0",
   "description": "Home production: Telegram registration + Flutter (ADMIN/WORKER) + NAS + realtime",
@@ -10,8 +10,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "dev:db": "node infra/scripts/dev-postgres.mjs",
-    "db:migrate:dev": "pnpm --filter @yusmus/database migrate:dev",
-    "db:migrate:deploy": "pnpm --filter @yusmus/database migrate:deploy",
+    "db:migrate:dev": "pnpm --filter @diamoraa/database migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @diamoraa/database migrate:deploy",
     "infra:lint": "node infra/scripts/lint-infra.mjs"
   },
   "devDependencies": {

@@ -15,7 +15,7 @@ describe('«Журнал действий»: who by name, what by name, and exac
       '/audit': {
         items: [{
           id: 'l1', action: 'settings.company_contact', entity: 'CompanyContactSettings', entityId: null, actorId: 'sa1', actorRole: 'SUPER_ADMIN',
-          actorName: 'Юсуф Адилов', targetName: null, before: { phone: null, telegramUsername: null }, after: { phone: '+998903489818', telegramUsername: 'yusmus9606' },
+          actorName: 'Юсуф Адилов', targetName: null, before: { phone: null, telegramUsername: null }, after: { phone: '+998903489818', telegramUsername: 'diamoraa9606' },
           ip: '84.54.1.2', device: 'Chrome', requestId: null, createdAt: '2026-09-24T17:45:00Z',
         }, {
           id: 'l2', action: 'user.role_change', entity: 'User', entityId: 'u2', actorId: 'sa1', actorRole: 'SUPER_ADMIN',
@@ -40,7 +40,7 @@ describe('«Журнал действий»: who by name, what by name, and exac
       '/auth/me': OWNER,
       '/audit': { items: [{
         id: 'l1', action: 'settings.company_contact', entity: 'CompanyContactSettings', entityId: null, actorId: 'sa1', actorRole: 'SUPER_ADMIN',
-        actorName: 'Юсуф Адилов', targetName: null, before: { phone: '+998900000000', telegramUsername: null }, after: { phone: '+998903489818', telegramUsername: 'yusmus9606' },
+        actorName: 'Юсуф Адилов', targetName: null, before: { phone: '+998900000000', telegramUsername: null }, after: { phone: '+998903489818', telegramUsername: 'diamoraa9606' },
         requestId: null, createdAt: '2026-09-24T17:45:00Z',
       }], nextCursor: null },
     });
@@ -48,7 +48,7 @@ describe('«Журнал действий»: who by name, what by name, and exac
     fireEvent.click(await screen.findByText('Изменены контакты компании'));
     expect(await screen.findByText('+998900000000')).toBeInTheDocument();
     expect(screen.getByText('+998903489818')).toBeInTheDocument();
-    expect(screen.getByText('yusmus9606')).toBeInTheDocument();
+    expect(screen.getByText('diamoraa9606')).toBeInTheDocument();
     expect(screen.getByText('Telegram')).toBeInTheDocument();
   });
 });

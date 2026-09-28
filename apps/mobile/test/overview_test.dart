@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:yusmus_mobile/core/providers.dart';
-import 'package:yusmus_mobile/core/realtime/realtime_client.dart';
-import 'package:yusmus_mobile/features/auth/auth_controller.dart';
-import 'package:yusmus_mobile/features/auth/models.dart';
-import 'package:yusmus_mobile/features/dashboard/staff_dashboard_screen.dart';
-import 'package:yusmus_mobile/features/work/assignment_queue_screen.dart';
-import 'package:yusmus_mobile/l10n/app_localizations.dart';
+import 'package:diamoraa_mobile/core/providers.dart';
+import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
+import 'package:diamoraa_mobile/features/auth/auth_controller.dart';
+import 'package:diamoraa_mobile/features/auth/models.dart';
+import 'package:diamoraa_mobile/features/dashboard/staff_dashboard_screen.dart';
+import 'package:diamoraa_mobile/features/work/assignment_queue_screen.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
 import 'app_flow_test.dart' show FakeAuth, MockApi;
 

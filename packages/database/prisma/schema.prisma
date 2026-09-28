@@ -1,4 +1,4 @@
-// Yusmus — PostgreSQL schema (NAS is the source of truth). See docs/DATABASE.md.
+// Diamoraa — PostgreSQL schema (NAS is the source of truth). See docs/DATABASE.md.
 // ids UUIDv7 · timestamptz UTC · money BigInt whole UZS · metres Decimal(10,2) · quantities Decimal(14,3)
 // Append-only tables are protected by DB triggers (migration *_integrity_guards). Single organisation (D-003).
 

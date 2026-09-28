@@ -1,10 +1,10 @@
 import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import type { CollateralHistory, CollateralPhoto, WorkerCollateral } from '@yusmus/database';
+import type { CollateralHistory, CollateralPhoto, WorkerCollateral } from '@diamoraa/database';
 import {
   COLLATERAL_MACHINE, assertTransition, listCollateralSchema, receiveCollateralSchema, returnCollateralSchema, type CollateralStatus,
-} from '@yusmus/shared';
+} from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';
