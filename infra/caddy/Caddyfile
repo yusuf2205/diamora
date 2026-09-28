@@ -50,20 +50,20 @@
 
 	# the worker app itself: diamoraa.uz/download = the current APK (most phones, arm64), /download/<file> = any other
 	# published build (e.g. the one for old 32-bit phones). Files are put there by infra/scripts/publish-apk.sh.
+	# /download -> /download/diamoraa.apk: a URL ending in .apk is one Cloudflare caches at its edge, so phones download
+	# from Cloudflare (fast, whole file) instead of pulling 57 MB through the home uplink of the NAS every time.
 	@apk path /download /download/
-	handle @apk {
-		root * /srv/downloads
-		rewrite * /diamoraa.apk
-		header Content-Type "application/vnd.android.package-archive"
-		header Content-Disposition "attachment; filename=\"Diamoraa.apk\""
-		header Cache-Control "no-cache"
-		file_server
-	}
+	redir @apk /download/diamoraa.apk 302
 	handle_path /download/* {
 		root * /srv/downloads
 		@apkfile path *.apk
 		header @apkfile Content-Type "application/vnd.android.package-archive"
-		header Cache-Control "no-cache"
+		# 10 min at the edge: a new release is live everywhere within 10 min of publish-apk.sh
+		header @apkfile Cache-Control "public, max-age=600"
+		@main path /diamoraa.apk
+		header @main Content-Disposition "attachment; filename=\"Diamoraa.apk\""
+		@json path *.json
+		header @json Cache-Control "no-cache"
 		file_server
 	}
 
