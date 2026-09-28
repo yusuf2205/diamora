@@ -1,3 +1,6 @@
+/** Where workers download the Android app (Caddy serves it at <PUBLIC_URL>/download). */
+export const appDownloadUrl = () => `${(process.env.PUBLIC_API_URL ?? 'https://diamoraa.uz').replace(/\/$/, '')}/download`;
+
 import type { RegAction, RegError, RegPrompt } from '@yusmus/shared';
 
 /** Everything the bot says lives here (pure functions) — the bot process only renders these (D-005). */
@@ -104,10 +107,8 @@ export function summaryText(s: RegSummary): string {
     'Проверьте данные:',
     `👤 ФИО: ${s.fullName ?? '—'}`,
     `📱 Телефон: ${s.phone ?? '—'}`,
-    `📞 Доп. телефон: ${s.secondaryPhone ?? '—'}`,
     `📍 Геолокация: ${s.hasLocation ? 'получена' : '—'}`,
     `💰 Залог: ${collateral}`,
-    `📝 Заметка: ${s.note ?? '—'}`,
   ].join('\n');
 }
 
@@ -119,7 +120,7 @@ export function render(r: BotReply): Rendered {
   });
   switch (r.prompt) {
     case 'WELCOME':
-      return ask('Здравствуйте! Давайте познакомимся — это займёт пару минут.\n\nНапишите ваши фамилию и имя.');
+      return ask('Здравствуйте! 👋 Всего 4 коротких вопроса — и заявка готова.\n\nНапишите ваши фамилию и имя.');
     case 'ASK_NAME':
       return ask('Напишите ваши фамилию и имя.');
     case 'ASK_PHONE':
@@ -144,12 +145,12 @@ export function render(r: BotReply): Rendered {
     case 'CONFIRM':
       return ask(`${r.summary ? summaryText(r.summary) : ''}\n\nВсё верно?`, kb([{ text: BTN.confirm }], [{ text: BTN.edit }]));
     case 'EDIT_MENU':
-      return ask('Что хотите изменить?', kb([{ text: BTN.editName }, { text: BTN.editPhone }], [{ text: BTN.editSecondary }, { text: BTN.editLocation }], [{ text: BTN.editCollateral }, { text: BTN.editNote }], [{ text: BTN.back }]));
+      return ask('Что хотите изменить?', kb([{ text: BTN.editName }, { text: BTN.editPhone }], [{ text: BTN.editLocation }, { text: BTN.editCollateral }], [{ text: BTN.back }]));
     case 'SUBMITTED':
       return ask(
         r.telegramHandoffUrl
           ? 'Спасибо! Заявка отправлена. Нажмите «Подтвердить», чтобы открыть Diamoraa.'
-          : 'Спасибо! Заявка отправлена. Мы сообщим о решении здесь, в Telegram.',
+          : `Спасибо! Заявка отправлена ✅ Мы сообщим о решении здесь, в Telegram.\n\nПока ждёте — установите приложение Diamoraa: ${appDownloadUrl()}`,
       );
     case 'CANCELLED':
       return ask('Регистрация отменена. Чтобы начать заново, отправьте /start.');
@@ -157,7 +158,7 @@ export function render(r: BotReply): Rendered {
       return ask('Ваша заявка на рассмотрении. Мы сообщим о решении здесь, в Telegram.');
     case 'STATUS_ACTIVE':
       return ask(
-        r.telegramHandoffUrl ? 'С возвращением! Нажмите «Подтвердить», чтобы открыть Diamoraa.' : 'Вы уже зарегистрированы ✅ Чтобы войти, откройте Diamoraa и нажмите «Войти через Telegram».',
+        r.telegramHandoffUrl ? 'С возвращением! Нажмите «Подтвердить», чтобы открыть Diamoraa.' : `Вы уже зарегистрированы ✅ Откройте Diamoraa и нажмите «Войти через Telegram».\n\nНет приложения? Скачайте: ${appDownloadUrl()}`,
       );
     case 'STATUS_PAUSED':
       return ask('Ваш профиль временно приостановлен. Свяжитесь с администратором.');

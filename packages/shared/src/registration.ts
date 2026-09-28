@@ -164,7 +164,8 @@ export function advance(state: RegState, input: RegInput): RegResult {
       if (!phone) return reject('PHONE_INVALID');
       s.data.phone = phone;
       if (s.data.secondaryPhone === phone) s.data.secondaryPhone = null;
-      return to(after('SECONDARY_PHONE'));
+      // owner, 2026-09-24: as few questions as possible — no second phone, no note (the admin can add both on the card)
+      return to(after('LOCATION'));
     }
     case 'SECONDARY_PHONE': {
       if (input.kind === 'action' && input.action === 'skip') {
@@ -214,7 +215,7 @@ export function advance(state: RegState, input: RegInput): RegResult {
       }
       if (amount <= 0n || amount > 1_000_000_000_000n) return reject('AMOUNT_INVALID');
       s.data.collateralAmount = amount.toString();
-      return to(after('NOTE'));
+      return to('CONFIRM');
     }
     case 'COLLATERAL_DESCRIPTION': {
       if (input.kind !== 'text') return reject('UNEXPECTED_INPUT');
@@ -231,7 +232,7 @@ export function advance(state: RegState, input: RegInput): RegResult {
       }
       if (input.kind === 'action' && input.action === 'photos_done') {
         if (s.data.photoCount < 1) return reject('PHOTO_REQUIRED');
-        return to(after('NOTE'));
+        return to('CONFIRM');
       }
       return reject('UNEXPECTED_INPUT');
     }

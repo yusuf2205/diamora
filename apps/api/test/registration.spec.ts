@@ -51,7 +51,7 @@ describe('Telegram registration (business logic behind the bot)', () => {
     expect((draft.state as { step: string }).step).toBe('PHONE');
     // "restart": nothing is kept in memory; the next update just continues
     const r = await t.registration.process(ctx, { kind: 'contact', phone: uniquePhone().replace('+', ''), contactUserId: tgId });
-    expect(r.prompt).toBe('ASK_SECONDARY');
+    expect(r.prompt).toBe('ASK_LOCATION'); // straight to location: no second phone question
     // /start on a draft restarts the flow, /cancel drops it
     expect((await t.registration.process(ctx, { kind: 'command', command: 'start' })).prompt).toBe('WELCOME');
     expect((await t.registration.process(ctx, { kind: 'command', command: 'cancel' })).prompt).toBe('CANCELLED');
@@ -76,11 +76,9 @@ describe('Telegram registration (business logic behind the bot)', () => {
     await send({ kind: 'command', command: 'start' });
     await send(text('Другая Мастерица'));
     await send({ kind: 'contact', phone: first.phone.replace('+', ''), contactUserId: tgId });
-    await send(action('skip'));
     await send({ kind: 'location', latitude: 41.3, longitude: 69.2 });
     await send(action('type_money'));
     await send(text('100000'));
-    await send(action('skip'));
     const r = await send(action('confirm'));
     expect(r).toMatchObject({ prompt: 'ASK_PHONE', error: 'PHONE_TAKEN' });
     expect(await t.prisma.workerProfile.count({ where: { telegramUserId: ctx.telegramUserId } })).toBe(0);
@@ -94,11 +92,9 @@ describe('Telegram registration (business logic behind the bot)', () => {
     await send({ kind: 'command', command: 'start' });
     await send(text('Третья Мастерица'));
     await send({ kind: 'contact', phone: staff.phone.replace('+', ''), contactUserId: tgId });
-    await send(action('skip'));
     await send({ kind: 'location', latitude: 41.3, longitude: 69.2 });
     await send(action('type_money'));
     await send(text('100000'));
-    await send(action('skip'));
     const r = await send(action('confirm'));
     expect(r).toMatchObject({ prompt: 'ASK_PHONE', error: 'PHONE_TAKEN' });
     // no orphaned WorkerProfile left dangling for an admin to trip over at approval time
@@ -112,7 +108,6 @@ describe('Telegram registration (business logic behind the bot)', () => {
     await send({ kind: 'command', command: 'start' });
     await send(text('Альбом Тест'));
     await send({ kind: 'contact', phone: uniquePhone().replace('+', ''), contactUserId: tgId });
-    await send(action('skip'));
     await send({ kind: 'location', latitude: 41.3, longitude: 69.2 });
     await send(action('type_item'));
     await send(text('Серебряная цепочка'));

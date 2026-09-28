@@ -58,10 +58,74 @@ export class AuditController {
       orderBy: { id: 'desc' }, take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
     const items = rows.slice(0, q.limit);
+    const actors = await this.names('User', items.map((r) => r.actorId));
+    const targets = new Map<string, Map<string, string>>();
+    for (const entity of new Set(items.map((r) => r.entity))) {
+      targets.set(entity, await this.names(entity, items.filter((r) => r.entity === entity).map((r) => r.entityId)));
+    }
     return {
-      items: items.map((r) => ({ id: r.id, action: r.action, entity: r.entity, entityId: r.entityId, actorId: r.actorId, actorRole: r.actorRole, before: r.before, after: r.after, requestId: r.requestId, createdAt: r.createdAt.toISOString() })),
+      items: items.map((r) => ({
+        id: r.id, action: r.action, entity: r.entity, entityId: r.entityId, actorId: r.actorId, actorRole: r.actorRole,
+        // who and what, in words: the person's name (not just a role) and the name of the thing that changed
+        actorName: r.actorId ? (actors.get(r.actorId) ?? null) : null,
+        targetName: r.entityId ? (targets.get(r.entity)?.get(r.entityId) ?? null) : null,
+        before: r.before, after: r.after, ip: r.ip, device: r.device, requestId: r.requestId, createdAt: r.createdAt.toISOString(),
+      })),
       nextCursor: rows.length > q.limit ? items[items.length - 1].id : null,
     };
+  }
+
+  /** id -> a human name for one entity type, in ONE query per type (unknown types simply get no name). */
+  private async names(entity: string, rawIds: (string | null)[]): Promise<Map<string, string>> {
+    const ids = [...new Set(rawIds.filter((x): x is string => !!x))];
+    const out = new Map<string, string>();
+    if (ids.length === 0) return out;
+    const p = this.prisma;
+    const put = (rows: { id: string; label: string }[]) => rows.forEach((r) => out.set(r.id, r.label));
+    switch (entity) {
+      case 'User':
+        put((await p.user.findMany({ where: { id: { in: ids } }, select: { id: true, fullName: true } })).map((u) => ({ id: u.id, label: u.fullName })));
+        break;
+      case 'WorkerProfile':
+        put((await p.workerProfile.findMany({ where: { id: { in: ids } }, select: { id: true, fullName: true, code: true } })).map((w) => ({ id: w.id, label: `${w.fullName} · ${w.code}` })));
+        break;
+      case 'WorkAssignment':
+        put((await p.workAssignment.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, worker: { select: { fullName: true } }, productModel: { select: { name: true } } } }))
+          .map((a) => ({ id: a.id, label: `${a.productModel?.name ?? a.code} · ${a.worker.fullName}` })));
+        break;
+      case 'WorkerCollateral':
+        put((await p.workerCollateral.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, worker: { select: { fullName: true } } } })).map((c) => ({ id: c.id, label: `${c.worker.fullName} · ${c.code}` })));
+        break;
+      case 'Delivery':
+        put((await p.delivery.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, worker: { select: { fullName: true } } } })).map((d) => ({ id: d.id, label: `${d.worker.fullName} · ${d.code}` })));
+        break;
+      case 'CashPayment':
+        put((await p.cashPayment.findMany({ where: { id: { in: ids } }, select: { id: true, worker: { select: { fullName: true } } } })).map((c) => ({ id: c.id, label: c.worker.fullName })));
+        break;
+      case 'Material':
+        put((await p.material.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((m) => ({ id: m.id, label: m.name })));
+        break;
+      case 'MaterialKitTemplate':
+        put((await p.materialKitTemplate.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((k) => ({ id: k.id, label: k.name })));
+        break;
+      case 'ProductModel':
+        put((await p.productModel.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((m) => ({ id: m.id, label: m.name })));
+        break;
+      case 'ProductVariant':
+        put((await p.productVariant.findMany({ where: { id: { in: ids } }, select: { id: true, color: { select: { name: true } }, model: { select: { name: true } } } }))
+          .map((v) => ({ id: v.id, label: `${v.model.name} · ${v.color.name}` })));
+        break;
+      case 'Color':
+        put((await p.color.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((c) => ({ id: c.id, label: c.name })));
+        break;
+      case 'UserSession':
+        put((await p.userSession.findMany({ where: { id: { in: ids } }, select: { id: true, deviceName: true, user: { select: { fullName: true } } } }))
+          .map((x) => ({ id: x.id, label: `${x.user.fullName}${x.deviceName ? ` · ${x.deviceName}` : ''}` })));
+        break;
+      default:
+        break;
+    }
+    return out;
   }
 }
 

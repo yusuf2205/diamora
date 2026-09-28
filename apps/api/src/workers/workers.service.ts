@@ -8,6 +8,7 @@ import {
   COLLATERAL_MACHINE, type CollateralStatus, type WorkerStatus,
 } from '@yusmus/shared';
 import { z } from 'zod';
+import { appDownloadUrl } from '../registration/texts';
 import { AuditService } from '../audit/audit.service';
 import { AuthService } from '../auth/auth.service';
 import { ApiZodBody, CurrentUser, Perm, Roles } from '../common/decorators';
@@ -103,7 +104,7 @@ export class WorkersService {
         }
       }
       await this.audit.record({ action: 'worker.approve', entity: 'WorkerProfile', entityId: id, before: { status: w.status }, after: { status: 'ACTIVE', collateralReceived: input.collateralReceived } }, tx);
-      await this.notifications.telegram({ workerId: id, chatId: w.telegramChatId, type: 'worker.approved', body: '✅ Вас приняли! Откройте Diamoraa и нажмите «Войти через Telegram».' }, tx);
+      await this.notifications.telegram({ workerId: id, chatId: w.telegramChatId, type: 'worker.approved', body: `✅ Вас приняли! Откройте Diamoraa и нажмите «Войти через Telegram».\n\nНет приложения? Скачайте: ${appDownloadUrl()}` }, tx);
       events.push(() => this.events.publish('worker.approved', { workerId: id, managerId: w.assignedManagerId }));
     });
     for (const e of events) await e();

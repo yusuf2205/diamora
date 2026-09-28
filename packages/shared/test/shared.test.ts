@@ -101,7 +101,7 @@ describe('phone / money / qr', () => {
 
 describe('Telegram registration state machine', () => {
   test('happy path with MONEY collateral reaches SUBMITTED', () => {
-    const r = run([text('Малика Каримова'), contact, action('skip'), loc, action('type_money'), text('1 500 000'), action('skip'), action('confirm')]);
+    const r = run([text('Малика Каримова'), contact, loc, action('type_money'), text('1 500 000'), action('confirm')]);
     assert.equal(r.submit, true);
     assert.equal(r.prompt, 'SUBMITTED');
     assert.deepEqual(
@@ -109,19 +109,17 @@ describe('Telegram registration state machine', () => {
       {
         fullName: 'Малика Каримова',
         phone: '+998901234567',
-        secondaryPhone: null,
         latitude: 41.2995,
         longitude: 69.2401,
         collateralType: 'MONEY',
         collateralAmount: '1500000',
         photoCount: 0,
-        note: null,
       },
     );
   });
 
   test('ITEM collateral needs a description and at least one photo; photos are counted and limited', () => {
-    let r = run([text('Гуля Юсупова'), contact, text('+998 91 111 22 33'), loc, action('type_item'), text('Золотое кольцо 585')]);
+    let r = run([text('Гуля Юсупова'), contact, loc, action('type_item'), text('Золотое кольцо 585')]);
     assert.equal(r.prompt, 'ASK_PHOTOS');
     r = advance(r.state, action('photos_done'));
     assert.equal(r.error, 'PHOTO_REQUIRED');
@@ -132,10 +130,7 @@ describe('Telegram registration state machine', () => {
     assert.equal(advance(st, { kind: 'photo' }).error, 'PHOTO_LIMIT');
     assert.equal(advance(st, { kind: 'photo' }).acceptPhoto, undefined);
     r = advance(st, action('photos_done'));
-    assert.equal(r.prompt, 'ASK_NOTE');
-    r = advance(r.state, text('Кольцо с камнем'));
-    assert.equal(r.prompt, 'CONFIRM');
-    assert.equal(r.state.data.secondaryPhone, '+998911112233');
+    assert.equal(r.prompt, 'CONFIRM'); // no «заметка» question any more (owner: as few questions as possible)
     assert.equal(advance(r.state, action('confirm')).submit, true);
   });
 
@@ -151,14 +146,14 @@ describe('Telegram registration state machine', () => {
     assert.equal(r.error, 'NAME_INVALID');
     r = advance(initialRegState(), loc);
     assert.equal(r.error, 'UNEXPECTED_INPUT');
-    const atLoc = run([text('Малика'), contact, action('skip')]).state;
+    const atLoc = run([text('Малика'), contact]).state;
     assert.equal(advance(atLoc, { kind: 'location', latitude: 123, longitude: 0 }).error, 'LOCATION_INVALID');
-    const atAmount = run([text('Малика'), contact, action('skip'), loc, action('type_money')]).state;
+    const atAmount = run([text('Малика'), contact, loc, action('type_money')]).state;
     for (const bad of ['0', '-5', '12.5', 'abc', '']) assert.equal(advance(atAmount, text(bad)).error, 'AMOUNT_INVALID', bad);
   });
 
   test('editing from the confirmation screen returns to it and changing collateral type resets photos', () => {
-    let r = run([text('Малика'), contact, action('skip'), loc, action('type_item'), text('Кольцо'), { kind: 'photo' }, action('photos_done'), action('skip')]);
+    let r = run([text('Малика'), contact, loc, action('type_item'), text('Кольцо'), { kind: 'photo' }, action('photos_done')]);
     assert.equal(r.prompt, 'CONFIRM');
     r = advance(r.state, action('edit'));
     assert.equal(r.prompt, 'EDIT_MENU');
@@ -180,7 +175,7 @@ describe('Telegram registration state machine', () => {
   test('cannot confirm an incomplete registration; SUBMITTED is final', () => {
     const st: RegState = { step: 'CONFIRM', data: { photoCount: 0, fullName: 'X Y' }, returnToConfirm: false };
     assert.equal(advance(st, action('confirm')).error, 'INCOMPLETE');
-    const done = run([text('Малика'), contact, action('skip'), loc, action('type_money'), text('100000'), action('skip'), action('confirm')]);
+    const done = run([text('Малика'), contact, loc, action('type_money'), text('100000'), action('confirm')]);
     assert.equal(advance(done.state, text('again')).prompt, 'SUBMITTED');
     assert.equal(advance(done.state, text('again')).submit, undefined);
   });

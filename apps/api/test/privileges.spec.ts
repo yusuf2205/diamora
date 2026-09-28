@@ -70,4 +70,15 @@ describe('owner privileges: company contact, passwords, whose location is visibl
     await owner.api.put(`/v1/users/${wUser}/location-visibility`, { hidden: false }).expect(200);
     expect((await ids(admin.api)).map((i) => i.userId)).toContain(wUser);
   });
+
+  it('the journal says WHO (their name, not only a role) and WHAT (the object by name), with the before/after values', async () => {
+    const owner = await superAdminActor(t);
+    const mgr = await staffActor(t, 'MANAGER');
+    const mgrName = (await t.prisma.user.findUniqueOrThrow({ where: { id: mgr.user.id } })).fullName;
+    const ownerName = (await t.prisma.user.findUniqueOrThrow({ where: { id: owner.user.id } })).fullName;
+    await owner.api.put(`/v1/users/${mgr.user.id}/location-visibility`, { hidden: true }).expect(200);
+    const res = await owner.api.get(`/v1/audit?entityId=${mgr.user.id}&limit=5`).expect(200);
+    const row = (res.body.items as { action: string; actorName: string; targetName: string; before: unknown; after: unknown }[]).find((r) => r.action === 'user.location_visibility')!;
+    expect(row).toMatchObject({ actorName: ownerName, targetName: mgrName, before: { hidden: false }, after: { hidden: true } });
+  });
 });

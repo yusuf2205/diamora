@@ -102,7 +102,6 @@ export async function registerViaBot(t: TestApp, opts: { name?: string; phone?: 
   await send({ kind: 'command', command: 'start' });
   await send(text(opts.name ?? 'Малика Каримова'));
   await send({ kind: 'contact', phone: phone.replace('+', ''), contactUserId: tgId });
-  await send(action('skip'));
   await send({ kind: 'location', latitude: 41.2995, longitude: 69.2401 });
   if ((opts.type ?? 'MONEY') === 'MONEY') {
     await send(action('type_money'));
@@ -114,7 +113,6 @@ export async function registerViaBot(t: TestApp, opts: { name?: string; phone?: 
     await send({ kind: 'photo', download: async () => ({ buffer: img, filename: 'ring.jpg' }) });
     await send(action('photos_done'));
   }
-  await send(action('skip'));
   const done = await send(action('confirm'));
   return { tgId, phone, ctx, send, done };
 }
