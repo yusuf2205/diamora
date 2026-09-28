@@ -191,7 +191,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Удалить мастерицу'), 200);
     await tester.tap(find.text('Удалить мастерицу'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('будет удалена навсегда'), findsOneWidget);
+    expect(find.textContaining('исчезнет из всех списков'), findsOneWidget);
     verifyNever(() => api.deleteJson(any()));
     await tester.tap(find.text('Удалить навсегда'));
     await tester.pumpAndSettle();

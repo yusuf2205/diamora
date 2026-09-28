@@ -152,12 +152,12 @@ class WorkerDetailScreen extends ConsumerWidget {
       Navigator.of(context).maybePop();
     } on ApiException catch (e) {
       if (!context.mounted) return;
-      if (e.code != 'HAS_HISTORY') return showError(context, e);
+      if (e.code != 'HAS_HISTORY' && e.code != 'OPEN_WORK') return showError(context, e);
       final archive = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(l.deleteWorker),
-          content: Text(l.deleteWorkerBlocked),
+          content: Text(e.code == 'OPEN_WORK' ? l.errOpenWork : l.deleteWorkerBlocked),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
             if (canArchive && w.status != 'ARCHIVED') FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.archiveWorker)),

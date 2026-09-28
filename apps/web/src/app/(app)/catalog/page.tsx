@@ -9,6 +9,7 @@ import { statusLabel } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import type { CatalogItem, Page } from '@/lib/types';
 import { Badge, Button, EmptyState, ErrorState, Input, Modal } from '@/components/ui';
+import { ConfirmDelete } from '@/components/confirm-delete';
 
 const STATUS_TONE: Record<CatalogItem['status'], 'default' | 'ok' | 'warn'> = { DRAFT: 'warn', PUBLISHED: 'ok', HIDDEN: 'default' };
 
@@ -19,6 +20,8 @@ export default function CatalogPage() {
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const canManage = hasPerm(me, 'CATALOG_MANAGE');
+  const canDelete = hasPerm(me, 'CATALOG_DELETE');
+  const [deleting, setDeleting] = useState<CatalogItem | null>(null);
 
   const { data, error, isLoading } = useQuery<Page<CatalogItem>>({ queryKey: ['admin-catalog'], queryFn: () => api.get<Page<CatalogItem>>('/admin/catalog', { limit: 100 }) });
 
@@ -64,13 +67,14 @@ export default function CatalogPage() {
                   </div>
                 </div>
               </button>
-              {canManage && (
+              {(canManage || canDelete) && (
                 <div className="flex gap-2 p-3 pt-2">
-                  {item.status === 'PUBLISHED' ? (
+                  {canManage && (item.status === 'PUBLISHED' ? (
                     <Button variant="outline" className="flex-1" onClick={() => hide.mutate(item.id)} disabled={hide.isPending}>Скрыть</Button>
                   ) : (
                     <Button variant="outline" className="flex-1" onClick={() => publish.mutate(item.id)} disabled={publish.isPending}>Опубликовать</Button>
-                  )}
+                  ))}
+                  {canDelete && <Button variant="ghost" className="text-danger" aria-label={`Удалить ${item.name}`} onClick={() => setDeleting(item)}>Удалить</Button>}
                 </div>
               )}
             </div>
@@ -78,6 +82,11 @@ export default function CatalogPage() {
         </div>
       )}
       {creating && <CreateDialog onClose={() => setCreating(false)} />}
+      {deleting && (
+        <ConfirmDelete title="Удалить из каталога" action={() => api.delete(`/admin/catalog/${deleting.id}`)} invalidate={[['admin-catalog']]} onClose={() => setDeleting(null)}>
+          «{deleting.name}» исчезнет из каталога у всех. Уже выданные работы останутся в истории. Это нельзя отменить.
+        </ConfirmDelete>
+      )}
     </div>
   );
 }

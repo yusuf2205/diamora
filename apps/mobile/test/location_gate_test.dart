@@ -44,6 +44,20 @@ Future<void> pump(WidgetTester tester, Geo geo) async {
 }
 
 void main() {
+  testWidgets('short phone + large font: the «Разрешить» button is still reachable (scrolls), never cut off under a bar', (tester) async {
+    tester.view.physicalSize = const Size(320 * 2, 420 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final calls = <String>[];
+    await pump(tester, _RecordingGeo(gap: LocationGap.foregroundDenied, calls: calls));
+    expect(tester.takeException(), isNull); // no overflow
+    await tester.ensureVisible(find.byKey(const Key('locationGateAction')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('locationGateAction')));
+    await tester.pumpAndSettle();
+    expect(calls, ['requestForeground']);
+  });
+
   testWidgets('Location Services off: shows the right screen and opens the system settings, never pretends to switch it on', (tester) async {
     final calls = <String>[];
     await pump(tester, _RecordingGeo(gap: LocationGap.servicesDisabled, calls: calls));

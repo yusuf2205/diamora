@@ -90,7 +90,7 @@ describe('catalog "Наши работы" (D-029): informational, no price, ADMI
     expect(reordered.body.media.map((m: { id: string }) => m.id)).toEqual(order);
   });
 
-  it('deleting a catalog item is blocked once it is used by real work; hiding always works', async () => {
+  it('delete (CATALOG_DELETE): an unused item is erased; a used one disappears from every list but old work keeps it', async () => {
     const admin = await superAdminActor(t);
     const model = await t.prisma.productModel.create({ data: { code: `USED-${Math.random()}`, name: 'Used' } });
     const color = await t.prisma.color.create({ data: { name: `Цвет ${Math.random()}` } });
@@ -98,8 +98,17 @@ describe('catalog "Наши работы" (D-029): informational, no price, ADMI
     const w = await t.prisma.workerProfile.create({ data: { telegramUserId: BigInt(Date.now()), telegramChatId: 1n, code: `W-${Math.random().toString(36).slice(2, 8)}`, fullName: 'X', phone: `+99890${Math.floor(1_000_000 + Math.random() * 8_000_000)}` } });
     await t.prisma.workAssignment.create({ data: { code: `ASN-${Math.random()}`, workerId: w.id, productModelId: model.id, productVariantId: variant.id, colorId: color.id, kitCount: 1, plannedMeters: 9, createdById: w.id } });
 
-    await admin.api.delete(`/v1/admin/catalog/${model.id}`).expect(409);
-    await admin.api.post(`/v1/admin/catalog/${model.id}/hide`).expect(200);
+    const plain = await staffActor(t, 'ADMIN');
+    await plain.api.delete(`/v1/admin/catalog/${model.id}`).expect(403); // CATALOG_MANAGE is not enough
+    const granted = await staffActor(t, 'ADMIN', ['CATALOG_DELETE']);
+    expect((await granted.api.delete(`/v1/admin/catalog/${model.id}`).expect(200)).body.erased).toBe(false);
+    const kept = await t.prisma.productModel.findUniqueOrThrow({ where: { id: model.id } });
+    expect(kept.deletedAt).not.toBeNull();
+    expect(kept.status).toBe('HIDDEN');
+    await admin.api.get(`/v1/admin/catalog/${model.id}`).expect(404);
+    const listed = (await admin.api.get('/v1/admin/catalog?limit=100').expect(200)).body.items as { id: string }[];
+    expect(listed.map((i) => i.id)).not.toContain(model.id);
+    expect(await t.prisma.workAssignment.count({ where: { productModelId: model.id } })).toBe(1);
 
     const unused = await admin.api.post('/v1/admin/catalog', { name: 'Unused' }).expect(201);
     await admin.api.delete(`/v1/admin/catalog/${unused.body.id}`).expect(200);

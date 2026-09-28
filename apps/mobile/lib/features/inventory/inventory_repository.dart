@@ -32,6 +32,10 @@ class InventoryRepository {
   Future<void> createKit({required String name, double ribbonMeters = 9, required List<Map<String, String>> items}) =>
       _api.postJson('/admin/kits', idempotencyKey: _uuid.v4(), body: {'name': name, 'ribbonMeters': ribbonMeters, 'items': items});
 
+  Future<void> deleteMaterial(String id) => _api.deleteJson('/admin/materials/$id');
+
+  Future<void> deleteKit(String id) => _api.deleteJson('/admin/kits/$id');
+
   Future<KitAssembled> assembleKit(String kitTemplateId, int count) async =>
       KitAssembled.fromJson(await _api.postJson('/admin/kits/$kitTemplateId/assemble', idempotencyKey: _uuid.v4(), body: {'count': count}));
 }

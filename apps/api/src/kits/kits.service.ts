@@ -1,4 +1,4 @@
-import { Controller, Get, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Material, MaterialKitTemplate, MaterialKitTemplateItem } from '@diamoraa/database';
 import { KIT_METERS, assembleKitSchema, createKitTemplateSchema, updateKitTemplateSchema } from '@diamoraa/shared';
@@ -30,7 +30,7 @@ export class KitsService {
   ) {}
 
   async list() {
-    const rows = await this.prisma.materialKitTemplate.findMany({ include: { items: { include: { material: true } } }, orderBy: { name: 'asc' } });
+    const rows = await this.prisma.materialKitTemplate.findMany({ where: { deletedAt: null }, include: { items: { include: { material: true } } }, orderBy: { name: 'asc' } });
     return { items: rows.map((t) => this.dto(t)) };
   }
 
@@ -99,6 +99,26 @@ export class KitsService {
     };
   }
 
+  /**
+   * «Удалить комплект» (INVENTORY_DELETE). A recipe never used by work or a printed kit QR is erased; a used one is hidden
+   * for good (its name is freed for a new recipe) so old work and printed labels still read right.
+   */
+  async remove(id: string) {
+    const t = await this.load(id);
+    const used = await this.prisma.workAssignment.count({ where: { materialKitTemplateId: id } }) + await this.prisma.qrEntity.count({ where: { kitTemplateId: id } });
+    await this.prisma.$transaction(async (tx) => {
+      if (used === 0) {
+        await tx.materialKitTemplateItem.deleteMany({ where: { templateId: id } });
+        await tx.materialKitTemplate.delete({ where: { id } });
+      } else {
+        await tx.materialKitTemplate.update({ where: { id }, data: { deletedAt: new Date(), active: false, name: `${t.name} · удалён ${id.slice(-6)}` } });
+      }
+      await this.audit.record({ action: 'kit_template.delete', entity: 'MaterialKitTemplate', entityId: id, before: { name: t.name }, after: { erased: used === 0 } }, tx);
+    });
+    await this.events.publish('kit.updated', { kitTemplateId: id });
+    return { deleted: true };
+  }
+
   // ---- internals -------------------------------------------------------------------------------------------------------
   private async assertMaterialsExist(ids: string[]) {
     const found = await this.prisma.material.count({ where: { id: { in: [...new Set(ids)] }, isActive: true } });
@@ -106,7 +126,7 @@ export class KitsService {
   }
   private async load(id: string): Promise<TemplateWithItems> {
     const t = await this.prisma.materialKitTemplate.findUnique({ where: { id }, include: { items: { include: { material: true } } } });
-    if (!t) throw notFound('Kit template');
+    if (!t || t.deletedAt) throw notFound('Kit template');
     return t;
   }
   private dto(t: TemplateWithItems) {
@@ -138,6 +158,9 @@ export class KitsController {
 
   @Perm('INVENTORY_MANAGE') @Post(':id/assemble') @ApiZodBody(assembleKitSchema)
   assemble(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(assembleKitSchema) b: z.output<typeof assembleKitSchema>) { return this.kits.assemble(u, id, b); }
+
+  @Perm('INVENTORY_DELETE') @Delete(':id') @HttpCode(200)
+  remove(@Param('id', new ParseUUIDPipe()) id: string) { return this.kits.remove(id); }
 }
 
 @Module({ imports: [StockModule], controllers: [KitsController], providers: [KitsService], exports: [KitsService] })

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../auth/auth_controller.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'catalog_repository.dart';
@@ -112,6 +113,23 @@ class _AdminCatalogDetailScreenState extends ConsumerState<AdminCatalogDetailScr
     }
   }
 
+  Future<void> _delete(CatalogItem item) async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmDelete(context, title: l.deleteAction, body: l.catalogDeleteConfirm(item.name)) || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(catalogRepositoryProvider).remove(widget.itemId);
+      ref.invalidate(staffCatalogProvider(const StaffCatalogFilter()));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.deleteDone)));
+      Navigator.of(context).maybePop();
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _togglePublish(CatalogItem item) async {
     final l = AppLocalizations.of(context);
     setState(() => _busy = true);
@@ -137,8 +155,12 @@ class _AdminCatalogDetailScreenState extends ConsumerState<AdminCatalogDetailScr
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final item = ref.watch(staffCatalogItemProvider(widget.itemId));
+    final canDelete = ref.watch(authControllerProvider).value?.has('CATALOG_DELETE') ?? false;
     return Scaffold(
-      appBar: AppBar(title: Text(l.catalogAdminTitle)),
+      appBar: AppBar(title: Text(l.catalogAdminTitle), actions: [
+        if (canDelete && item.hasValue)
+          IconButton(key: const Key('catalogDelete'), tooltip: l.deleteAction, icon: const Icon(Icons.delete_outline_rounded), onPressed: _busy ? null : () => _delete(item.value!)),
+      ]),
       body: item.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),

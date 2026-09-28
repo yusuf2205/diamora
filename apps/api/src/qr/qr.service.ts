@@ -3,8 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { parseQrCode } from '@diamoraa/shared';
 import { AssignmentsModule, AssignmentsService } from '../assignments/assignments.service';
 import { CurrentUser, Roles } from '../common/decorators';
-import { forbidden, notFound } from '../common/errors';
-import { can } from '../common/scope';
+import { AppError, forbidden, notFound } from '../common/errors';
+import { can, inWorkerScope } from '../common/scope';
 import { num } from '../common/serialize';
 import { PrismaService } from '../prisma/prisma.module';
 import { WorkersModule, WorkersService } from '../workers/workers.service';
@@ -24,7 +24,15 @@ export class QrService {
     const code = parseQrCode(rawCode);
     if (!code) throw notFound('QR code');
     const qr = await this.prisma.qrEntity.findUnique({ where: { code } });
-    if (!qr || qr.revokedAt) throw notFound('QR code');
+    if (!qr) throw notFound('QR code');
+    // A real code that stopped working, or a real code of somebody else's worker: said plainly (the camera did read it —
+    // «не найден» made people think the scanner was broken). Only the reason is returned, never the worker's data.
+    if (qr.revokedAt) throw new AppError('QR_REVOKED', 'This QR no longer works', 410);
+    if (qr.workerId && qr.type !== 'KIT') {
+      const w = await this.prisma.workerProfile.findUnique({ where: { id: qr.workerId }, select: { assignedManagerId: true, deletedAt: true } });
+      if (!w || w.deletedAt) throw new AppError('QR_REVOKED', 'This QR no longer works', 410);
+      if (!inWorkerScope(actor, qr.type === 'WORKER' ? 'WORKER' : 'ASSIGNMENT', w)) throw new AppError('QR_NOT_YOURS', 'This worker is assigned to another manager', 403);
+    }
 
     if (qr.type === 'WORKER') {
       if (!qr.workerId) throw notFound('QR code');

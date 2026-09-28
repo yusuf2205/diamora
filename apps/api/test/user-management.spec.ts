@@ -47,7 +47,7 @@ describe('user management: manager reassignment, archive/restore — every chann
       expect(await until(() => n.events.some((e) => e.type === 'worker.manager_changed'))).toBe(true);
 
       await oldMgr.api.get(`/v1/workers/${w.workerId}`).expect(404);
-      await oldMgr.api.get(`/v1/qr/${qr}`).expect(404);
+      await oldMgr.api.get(`/v1/qr/${qr}`).expect(403);
       expect(await mapIds(oldMgr.api)).not.toContain(w.workerId);
       await newMgr.api.get(`/v1/workers/${w.workerId}`).expect(200);
       await newMgr.api.get(`/v1/qr/${qr}`).expect(200);

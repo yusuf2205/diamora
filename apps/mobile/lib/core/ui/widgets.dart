@@ -39,18 +39,20 @@ class EmptyState extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 56, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(height: 12),
-            Text(title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
-            if (hint != null) ...[const SizedBox(height: 6), Text(hint!, textAlign: TextAlign.center)],
-            if (action != null) ...[const SizedBox(height: 16), action!],
-          ]),
-        ),
-      );
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final content = Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 56, color: Theme.of(context).colorScheme.outline),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+          if (hint != null) ...[const SizedBox(height: 6), Text(hint!, textAlign: TextAlign.center)],
+          if (action != null) ...[const SizedBox(height: 16), action!],
+        ]);
+        // on its own (a whole screen) it scrolls, so on a short phone the action button is never hidden under the
+        // bottom bar; inside a list it is just a block (a list already scrolls)
+        return box.hasBoundedHeight
+            ? Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: content))
+            : Padding(padding: const EdgeInsets.all(24), child: content);
+      });
 }
 
 /// Grey placeholder rows while data loads (better than a spinner on slow mobile networks).
@@ -95,11 +97,42 @@ String errorText(BuildContext context, Object error) {
         return l.insufficientStockGeneric;
       case 'INVALID_TRANSITION':
         return l.statusChangedMeanwhile;
+      case 'QR_NOT_YOURS':
+        return l.qrNotYours;
+      case 'QR_REVOKED':
+        return l.qrRevoked;
+      case 'OPEN_WORK':
+        return l.errOpenWork;
+      case 'IN_USE':
+        final kits = (error.details is Map ? (error.details as Map)['kits'] : null) as List?;
+        return kits != null && kits.isNotEmpty ? l.errInUseKits(kits.join(', ')) : l.errInUse;
       default:
         return error.message;
     }
   }
   return l.genericError;
+}
+
+/// The one «Удалить?» dialog: a plain sentence of what will happen and a red button. true only on an explicit confirm.
+Future<bool> confirmDelete(BuildContext context, {required String title, required String body}) async {
+  final l = AppLocalizations.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(body),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+        FilledButton(
+          key: const Key('confirmDelete'),
+          style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error, minimumSize: const Size(0, 44)),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l.deleteAction),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
 }
 
 void showError(BuildContext context, Object error) => ScaffoldMessenger.of(context)

@@ -207,7 +207,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
     mutationFn: () => api.delete(`/workers/${w.id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['workers'] }); router.push('/workers'); },
   });
-  const removeBlocked = remove.error instanceof ApiError && remove.error.code === 'HAS_HISTORY';
+  const removeBlocked = remove.error instanceof ApiError && (remove.error.code === 'HAS_HISTORY' || remove.error.code === 'OPEN_WORK');
   const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers'), enabled: canManager });
   const [picked, setPicked] = useState<string>(w.manager?.id ?? '');
   const [archiving, setArchiving] = useState(false);
@@ -253,8 +253,8 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
         <Modal title="Удалить мастерицу" onClose={() => setDeleting(false)}>
           {removeBlocked ? (
             <>
-              <p className="text-sm">Удалить нельзя: у мастерицы уже есть работа, деньги или принятый залог — эти записи нужны для отчётов и выплат.</p>
-              <p className="mt-2 text-sm text-muted">Её можно архивировать: она не сможет войти и не получит работу, а история сохранится.</p>
+              <p className="text-sm">Сейчас удалить нельзя: у мастерицы есть работа в процессе или у вас её залог.</p>
+              <p className="mt-2 text-sm text-muted">Завершите или отмените её работы и верните залог — потом удалите. Или архивируйте: она не сможет войти, история сохранится.</p>
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="ghost" onClick={() => setDeleting(false)}>Закрыть</Button>
                 {canStatus && w.status !== 'ARCHIVED' && <Button onClick={() => { setDeleting(false); setArchiving(true); }}>Архивировать</Button>}
@@ -262,7 +262,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
             </>
           ) : (
             <>
-              <p className="text-sm"><span className="font-semibold">{w.fullName}</span> будет удалена навсегда вместе со входом в приложение. Это нельзя отменить.</p>
+              <p className="text-sm"><span className="font-semibold">{w.fullName}</span> исчезнет из всех списков, с карты и из отчётов и больше не сможет войти. Прошлые работы и выплаты останутся в истории как «Удалённая мастерица». Это нельзя отменить.</p>
               {remove.isError && <div className="mt-2"><ErrorState error={remove.error} /></div>}
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="ghost" onClick={() => setDeleting(false)}>Отмена</Button>

@@ -39,7 +39,7 @@ export class StockService {
 
   async balances(lowOnly = false) {
     const rows = await this.prisma.material.findMany({
-      where: { isActive: true }, include: { category: true, balance: true }, orderBy: { name: 'asc' },
+      where: { isActive: true, deletedAt: null }, include: { category: true, balance: true }, orderBy: { name: 'asc' },
     });
     const items = rows.map((m) => {
       const qty = num(m.balance?.quantity) ?? 0;

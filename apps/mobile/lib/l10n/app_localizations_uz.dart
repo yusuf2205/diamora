@@ -1606,7 +1606,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String deleteWorkerConfirm(String name) {
-    return '$name ilovaga kirish bilan birga butunlay o\'chiriladi. Buni qaytarib bo\'lmaydi.';
+    return '$name barcha roʻyxatlardan, xaritadan va hisobotlardan yoʻqoladi va boshqa kira olmaydi. Oldingi ishlar va toʻlovlar tarixda «Oʻchirilgan usta» sifatida qoladi. Buni qaytarib boʻlmaydi.';
   }
 
   @override
@@ -1837,4 +1837,52 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get userDeleted => 'Xodim o\'chirildi';
+
+  @override
+  String get qrNotYours =>
+      'Bu usta boshqa menejerga biriktirilgan. Administratordan uni sizga biriktirishni soʻrang.';
+
+  @override
+  String get qrRevoked =>
+      'Bu QR endi ishlamaydi: ish tugagan yoki bekor qilingan, yoki usta oʻchirilgan.';
+
+  @override
+  String get errOpenWork =>
+      'Avval uning ishlarini tugating yoki bekor qiling va garovni qaytaring — keyin oʻchirish mumkin.';
+
+  @override
+  String get errInUse =>
+      'Material hozir ishlatilmoqda: ustada yoki toʻplamda. Avval uni u yerdan olib tashlang.';
+
+  @override
+  String errInUseKits(String kits) {
+    return 'Material toʻplamlarda bor: $kits. Avval shu toʻplamlarni oʻchiring yoki oʻzgartiring.';
+  }
+
+  @override
+  String get deleteAction => 'Oʻchirish';
+
+  @override
+  String get deleteDone => 'Oʻchirildi';
+
+  @override
+  String catalogDeleteConfirm(String name) {
+    return '«$name» hammadan katalogdan yoʻqoladi. Berilgan ishlar tarixda qoladi. Buni qaytarib boʻlmaydi.';
+  }
+
+  @override
+  String materialDeleteConfirm(String name, String left) {
+    return '«$name» ombordan yoʻqoladi. Qoldiq ($left) hisobdan chiqariladi. Buni qaytarib boʻlmaydi.';
+  }
+
+  @override
+  String kitDeleteConfirm(String name) {
+    return '«$name» toʻplami ombordan yoʻqoladi. Berilgan ishlar tarixda qoladi. Buni qaytarib boʻlmaydi.';
+  }
+
+  @override
+  String get permCatalogDelete => 'Katalogdan oʻchirish';
+
+  @override
+  String get permInventoryDelete => 'Material va toʻplamlarni oʻchirish';
 }

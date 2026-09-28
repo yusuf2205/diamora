@@ -17,7 +17,7 @@ describe('QR resolve (M2 §10-13): opaque code only, server-side authorization, 
     expect(scanned.body.worker.id).toBe(worker.workerId);
   });
 
-  it('a MANAGER scanning a WORKER QR outside her scope gets 404, never the data or a 403 that reveals existence', async () => {
+  it('a MANAGER scanning a WORKER QR outside her scope gets a plain QR_NOT_YOURS (the camera did read it), never the data', async () => {
     const superAdmin = await superAdminActor(t);
     const mgrA = await staffActor(t, 'MANAGER');
     const mgrB = await staffActor(t, 'MANAGER');
@@ -27,7 +27,11 @@ describe('QR resolve (M2 §10-13): opaque code only, server-side authorization, 
     const detail = await superAdmin.api.get(`/v1/workers/${worker.workerId}`).expect(200);
 
     await mgrA.api.get(`/v1/qr/${detail.body.qrCode}`).expect(200);
-    await mgrB.api.get(`/v1/qr/${detail.body.qrCode}`).expect(404);
+    const res = await mgrB.api.get(`/v1/qr/${detail.body.qrCode}`).expect(403);
+    expect(res.body.error.code).toBe('QR_NOT_YOURS');
+    expect(JSON.stringify(res.body)).not.toContain(worker.workerId);
+    // an unknown (well-formed) code is still simply «not found»
+    await superAdmin.api.get('/v1/qr/YQ1.000000000000').expect(404);
   });
 
   it('a KIT QR resolves for anyone with INVENTORY_VIEW, with the exact assembled composition', async () => {

@@ -45,7 +45,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
       floatingActionButton: canManage
           ? FloatingActionButton(onPressed: () => _tabs.index == 0 ? _materialActions(context) : _createKitDialog(context), child: const Icon(Icons.add_rounded))
           : null,
-      body: TabBarView(controller: _tabs, children: [_MaterialsTab(canManage: canManage), _KitsTab(canManage: canManage)]),
+      body: TabBarView(controller: _tabs, children: [_MaterialsTab(canDelete: me.has('INVENTORY_DELETE')), _KitsTab(canManage: canManage, canDelete: me.has('INVENTORY_DELETE'))]),
     );
   }
 
@@ -218,8 +218,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
 }
 
 class _MaterialsTab extends ConsumerWidget {
-  const _MaterialsTab({required this.canManage});
-  final bool canManage;
+  const _MaterialsTab({required this.canDelete});
+  final bool canDelete;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -243,6 +243,7 @@ class _MaterialsTab extends ConsumerWidget {
                       title: Text(m.name),
                       subtitle: Text([if (m.categoryName != null) m.categoryName!, if (m.low) l.stockLow].join(' · '), style: m.low ? TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600) : null),
                       trailing: Text('${m.balance} ${m.unit}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600)),
+                      onTap: canDelete ? () => _materialSheet(context, ref, m) : null,
                     ),
                   );
                 },
@@ -250,11 +251,23 @@ class _MaterialsTab extends ConsumerWidget {
             ),
     );
   }
+  Future<void> _materialSheet(BuildContext context, WidgetRef ref, MaterialItem m) async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmDelete(context, title: '${l.deleteAction}: ${m.name}', body: l.materialDeleteConfirm(m.name, '${m.balance} ${m.unit}')) || !context.mounted) return;
+    try {
+      await ref.read(inventoryRepositoryProvider).deleteMaterial(m.id);
+      ref.invalidate(materialsProvider);
+      if (context.mounted) ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.deleteDone)));
+    } catch (e) {
+      if (context.mounted) showError(context, e);
+    }
+  }
 }
 
 class _KitsTab extends ConsumerWidget {
-  const _KitsTab({required this.canManage});
+  const _KitsTab({required this.canManage, required this.canDelete});
   final bool canManage;
+  final bool canDelete;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -278,13 +291,35 @@ class _KitsTab extends ConsumerWidget {
                       title: Text(t.name),
                       subtitle: Text('${t.ribbonMeters.toStringAsFixed(0)} м · ${t.items.length} материалов'),
                       // an icon, not a text button: a wide button in `trailing` squeezes the name into one letter per line on a narrow phone
-                      trailing: canManage ? IconButton.filledTonal(key: Key('assemble-${t.id}'), tooltip: l.kitAssemble, icon: const Icon(Icons.add_box_rounded), onPressed: () => _assemble(context, ref, t)) : null,
+                      trailing: !canManage && !canDelete
+                          ? null
+                          : PopupMenuButton<String>(
+                              key: Key('kitMenu-${t.id}'),
+                              icon: const Icon(Icons.more_vert_rounded),
+                              onSelected: (v) => v == 'assemble' ? _assemble(context, ref, t) : _deleteKit(context, ref, t),
+                              itemBuilder: (_) => [
+                                if (canManage) PopupMenuItem(value: 'assemble', child: ListTile(leading: const Icon(Icons.add_box_rounded), title: Text(l.kitAssemble), contentPadding: EdgeInsets.zero)),
+                                if (canDelete) PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error), title: Text(l.deleteAction), contentPadding: EdgeInsets.zero)),
+                              ],
+                            ),
                     ),
                   );
                 },
               ),
             ),
     );
+  }
+
+  Future<void> _deleteKit(BuildContext context, WidgetRef ref, KitTemplate t) async {
+    final l = AppLocalizations.of(context);
+    if (!await confirmDelete(context, title: l.deleteAction, body: l.kitDeleteConfirm(t.name)) || !context.mounted) return;
+    try {
+      await ref.read(inventoryRepositoryProvider).deleteKit(t.id);
+      ref.invalidate(kitTemplatesProvider);
+      if (context.mounted) ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.deleteDone)));
+    } catch (e) {
+      if (context.mounted) showError(context, e);
+    }
   }
 
   Future<void> _assemble(BuildContext context, WidgetRef ref, KitTemplate t) async {

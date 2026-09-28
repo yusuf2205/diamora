@@ -32,7 +32,7 @@ export class CatalogService {
   // ---- WORKER: published catalog only, no prices, no drafts -----------------------------------------------------------------
   async published() {
     const rows = await this.prisma.productModel.findMany({
-      where: { status: 'PUBLISHED' },
+      where: { status: 'PUBLISHED', deletedAt: null },
       include: { media: { orderBy: { sortOrder: 'asc' } }, variants: { where: { active: true }, orderBy: { sortOrder: 'asc' }, include: { color: true } } },
       orderBy: [{ sortOrder: 'asc' }, { publishedAt: 'desc' }],
     });
@@ -41,7 +41,7 @@ export class CatalogService {
 
   async publishedDetail(id: string) {
     const m = await this.prisma.productModel.findFirst({
-      where: { id, status: 'PUBLISHED' },
+      where: { id, status: 'PUBLISHED', deletedAt: null },
       include: { media: { orderBy: { sortOrder: 'asc' } }, variants: { where: { active: true }, orderBy: { sortOrder: 'asc' }, include: { color: true } } },
     });
     if (!m) throw notFound('Item');
@@ -51,7 +51,7 @@ export class CatalogService {
   // ---- staff: manage everything -----------------------------------------------------------------------------------------------
   async list(q: z.output<typeof listCatalogSchema>) {
     const rows = await this.prisma.productModel.findMany({
-      where: { status: q.status },
+      where: { status: q.status, deletedAt: null },
       include: { media: { orderBy: { sortOrder: 'asc' } }, variants: { orderBy: { sortOrder: 'asc' }, include: { color: true } } },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }], take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
@@ -96,15 +96,32 @@ export class CatalogService {
     return this.get(id);
   }
 
+  /**
+   * «Удалить» (CATALOG_DELETE, granted by the SUPER_ADMIN). Never used by work, requests or sales → erased with its photos.
+   * Already used → hidden from everyone and from every list for good (old work keeps pointing at it, history stays right).
+   */
   async remove(id: string) {
-    const used = await this.prisma.workAssignment.count({ where: { productModelId: id } }) + await this.prisma.saleItem.count({ where: { productModelId: id } });
-    if (used > 0) throw invariant('This item is used by real work or sales — hide it instead of deleting');
+    const m = await this.load(id);
+    const variantIds = m.variants.map((v) => v.id);
+    const used = (await Promise.all([
+      this.prisma.workAssignment.count({ where: { OR: [{ productModelId: id }, { productVariantId: { in: variantIds } }] } }),
+      this.prisma.saleItem.count({ where: { OR: [{ productModelId: id }, { variantId: { in: variantIds } }] } }),
+      this.prisma.workerJobRequest.count({ where: { productModelId: id } }),
+    ])).reduce((a, b) => a + b, 0);
     await this.prisma.$transaction(async (tx) => {
-      await tx.productModel.delete({ where: { id } });
-      await this.audit.record({ action: 'catalog.delete', entity: 'ProductModel', entityId: id }, tx);
+      if (used === 0) {
+        await tx.materialKitTemplate.updateMany({ where: { variantId: { in: variantIds } }, data: { variantId: null } });
+        await tx.productMedia.deleteMany({ where: { productModelId: id } });
+        await tx.productVariant.deleteMany({ where: { modelId: id } });
+        await tx.productModel.delete({ where: { id } });
+      } else {
+        await tx.productVariant.updateMany({ where: { modelId: id }, data: { active: false } });
+        await tx.productModel.update({ where: { id }, data: { deletedAt: new Date(), status: 'HIDDEN', active: false } });
+      }
+      await this.audit.record({ action: 'catalog.delete', entity: 'ProductModel', entityId: id, before: { name: m.name, status: m.status }, after: { erased: used === 0 } }, tx);
     });
     await this.events.publish('catalog.item.deleted', { itemId: id });
-    return { deleted: true };
+    return { deleted: true, erased: used === 0 };
   }
 
   async reorder(ids: string[]) {
@@ -185,7 +202,7 @@ export class CatalogService {
   // ---- internals --------------------------------------------------------------------------------------------------------------
   private async load(id: string): Promise<ModelWithMedia> {
     const m = await this.prisma.productModel.findUnique({ where: { id }, include: { media: { orderBy: { sortOrder: 'asc' } }, variants: { orderBy: { sortOrder: 'asc' }, include: { color: true } } } });
-    if (!m) throw notFound('Item');
+    if (!m || m.deletedAt) throw notFound('Item');
     return m;
   }
   private mediaRef(m: ProductMedia) {
@@ -244,7 +261,7 @@ export class CatalogController {
   @Perm('CATALOG_MANAGE') @Post('admin/catalog/:id/hide') @HttpCode(200)
   hide(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.catalog.setStatus(u, id, 'HIDDEN'); }
 
-  @Perm('CATALOG_MANAGE') @Delete('admin/catalog/:id') @HttpCode(200)
+  @Perm('CATALOG_DELETE') @Delete('admin/catalog/:id') @HttpCode(200)
   remove(@Param('id', new ParseUUIDPipe()) id: string) { return this.catalog.remove(id); }
 
   @Perm('CATALOG_MANAGE') @Put('admin/catalog/order') @ApiZodBody(reorderSchema)

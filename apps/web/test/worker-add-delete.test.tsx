@@ -66,7 +66,7 @@ describe('«Мастерицы»: add by invitation link, delete for good', () =
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Удалить мастерицу' }));
     await user.click(screen.getByRole('button', { name: 'Удалить навсегда' }));
-    expect(await screen.findByText(/Удалить нельзя/)).toBeInTheDocument();
+    expect(await screen.findByText(/Сейчас удалить нельзя/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Архивировать' })).toBeInTheDocument();
     expect(screen.queryByText('HAS_HISTORY')).not.toBeInTheDocument();
   });

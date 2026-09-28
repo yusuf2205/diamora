@@ -49,7 +49,7 @@ export class WorkersService {
     const rows = await this.prisma.workerProfile.findMany({
       where: {
         ...scopeWhere,
-        status: q.status,
+        status: q.status, deletedAt: null,
         updatedAt: q.updatedSince ? { gt: q.updatedSince } : undefined,
         OR: text ? [
           { fullName: { contains: text, mode: 'insensitive' } }, { code: { contains: text, mode: 'insensitive' } },
@@ -214,20 +214,28 @@ export class WorkersService {
   }
 
   // ---- «Удалить мастерицу»: a full erase, ONLY when there is nothing the business must keep ----------------------------
+  /**
+   * «Удалить мастерицу» (WORKER_DELETE). Always a full delete for the owner: she disappears from every list, the map, reports
+   * and the bot, can no longer sign in, and her phone / Telegram are free to register again.
+   *  - no history at all → every row about her is erased;
+   *  - with history (work, money, stock) → her personal data is erased (name, phones, Telegram, location trail, collateral,
+   *    photos, sessions) and the row is kept only as «Удалённая мастерица · W-0007», so past work, payouts and the
+   *    append-only stock/money trail still add up.
+   * Refused only while she has work in progress or her collateral is still held (finish/cancel the work, return the collateral).
+   */
   async remove(actor: AuthUser, id: string) {
     const w = await this.load(id);
     assertWorkerInScope(actor, 'WORKER', w);
+    const open = await this.prisma.workAssignment.count({ where: { workerId: id, status: { notIn: ['COMPLETED', 'CANCELLED'] } } });
+    const collateralHeld = w.collaterals.some((c) => c.status === 'HELD');
+    // her collateral is her property / money in the company's hands: it must be handed back (and recorded) before she goes
+    if (open > 0 || collateralHeld) throw new AppError('OPEN_WORK', 'Finish or cancel her work and return the collateral first', 409, { open, collateralHeld });
     const [assignments, ledger, payments, jobRequests, deliveries, movements] = await Promise.all([
       this.prisma.workAssignment.count({ where: { workerId: id } }), this.prisma.workerLedgerTransaction.count({ where: { workerId: id } }),
       this.prisma.cashPayment.count({ where: { workerId: id } }), this.prisma.workerJobRequest.count({ where: { workerId: id } }),
       this.prisma.delivery.count({ where: { workerId: id } }), this.prisma.stockMovement.count({ where: { workerId: id } }),
     ]);
-    const reasons = [
-      ...(assignments + jobRequests + deliveries + movements > 0 ? ['WORK'] : []),
-      ...(ledger + payments > 0 || w.balance !== 0n ? ['MONEY'] : []),
-      ...(w.collaterals.some((c) => c.status !== 'PENDING') ? ['COLLATERAL'] : []),
-    ];
-    if (reasons.length) throw new AppError('HAS_HISTORY', 'This worker has history; archive her instead', 409, { reasons });
+    const hasHistory = assignments + ledger + payments + jobRequests + deliveries + movements > 0 || w.balance !== 0n;
 
     await this.prisma.$transaction(async (tx) => {
       if (!(await lockRow(tx, 'worker_profiles', id))) throw notFound('Worker');
@@ -238,27 +246,47 @@ export class WorkersService {
       await tx.collateralHistory.deleteMany({ where: { collateralId: { in: collateralIds } } });
       await tx.workerCollateral.deleteMany({ where: { workerId: id } });
       await tx.workerLocation.deleteMany({ where: { workerId: id } });
-      await tx.qrEntity.deleteMany({ where: { workerId: id } });
       await tx.loginCode.deleteMany({ where: { workerId: id } });
       await tx.telegramHandoffTicket.deleteMany({ where: { OR: [{ workerId: id }, { telegramUserId: w.telegramUserId }] } });
       await tx.telegramLoginSession.deleteMany({ where: { telegramUserId: w.telegramUserId } });
       await tx.registrationDraft.deleteMany({ where: { telegramUserId: w.telegramUserId } });
       await tx.notification.deleteMany({ where: { workerId: id } });
-      await tx.workerMaterialBalance.deleteMany({ where: { workerId: id } });
       await tx.workerInvitation.updateMany({ where: { workerId: id }, data: { workerId: null } });
-      await tx.workerProfile.delete({ where: { id } });
-      if (w.userId) {
-        await tx.userSession.deleteMany({ where: { userId: w.userId } });
-        await tx.idempotencyKey.deleteMany({ where: { userId: w.userId } });
-        await tx.user.delete({ where: { id: w.userId } });
+      if (w.userId) await tx.userSession.deleteMany({ where: { userId: w.userId } });
+
+      if (!hasHistory) {
+        await tx.qrEntity.deleteMany({ where: { workerId: id } });
+        await tx.workerMaterialBalance.deleteMany({ where: { workerId: id } });
+        await tx.workerProfile.delete({ where: { id } });
+        if (w.userId) {
+          await tx.idempotencyKey.deleteMany({ where: { userId: w.userId } });
+          await tx.user.delete({ where: { id: w.userId } });
+        }
+      } else {
+        const gone = `deleted-${id}`;
+        await tx.qrEntity.updateMany({ where: { workerId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+        await tx.workerJobRequest.updateMany({ where: { workerId: id, status: 'PENDING' }, data: { status: 'CANCELLED' } });
+        await tx.workerProfile.update({
+          where: { id },
+          data: {
+            fullName: 'Удалённая мастерица', phone: gone, secondaryPhone: null, notes: null, latitude: null, longitude: null, locationReceivedAt: null,
+            // Telegram ids are unique and non-null: a negative number no real Telegram account can have frees hers for a new sign-up
+            telegramUserId: -BigInt(Date.now()) * 1000n - BigInt(Math.floor(Math.random() * 1000)), telegramChatId: 0n,
+            assignedManagerId: null, status: 'ARCHIVED', deletedAt: new Date(),
+          },
+        });
+        if (w.userId) {
+          await tx.userLiveLocation.deleteMany({ where: { userId: w.userId } });
+          await tx.user.update({ where: { id: w.userId }, data: { fullName: 'Удалённая мастерица', phone: gone, status: 'SUSPENDED', passwordHash: null } });
+        }
       }
       await this.audit.record({
         action: 'worker.delete', entity: 'WorkerProfile', entityId: id,
-        before: { code: w.code, fullName: w.fullName, phone: w.phone, status: w.status, managerId: w.assignedManagerId },
+        before: { code: w.code, fullName: w.fullName, phone: w.phone, status: w.status, managerId: w.assignedManagerId }, after: { erased: !hasHistory },
       }, tx);
     });
     await this.events.publish('worker.deleted', { workerId: id, managerId: w.assignedManagerId });
-    return { ok: true };
+    return { ok: true, erased: !hasHistory };
   }
 
   private inviteDto(r: { id: string; fullName: string; phone: string; managerId: string | null; createdAt: Date; expiresAt: Date }) {
@@ -271,7 +299,7 @@ export class WorkersService {
       where: { id },
       include: { collaterals: { orderBy: { createdAt: 'desc' }, include: { photos: { orderBy: { createdAt: 'asc' } } } }, assignedManager: { select: { id: true, fullName: true } } },
     });
-    if (!w) throw notFound('Worker');
+    if (!w || w.deletedAt) throw notFound('Worker');
     return w;
   }
 

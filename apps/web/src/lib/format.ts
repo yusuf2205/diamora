@@ -107,9 +107,17 @@ const ERROR_MESSAGES: Record<string, string> = {
   INSUFFICIENT_STOCK: 'Не хватает материала на складе',
   RATE_LIMITED: 'Слишком много попыток, подождите немного',
   INVALID_CREDENTIALS: 'Неверный телефон или пароль',
+  OPEN_WORK: 'Сначала завершите или отмените её работы и верните залог — потом можно удалить',
+  IN_USE: 'Материал сейчас используется: он у мастерицы или в комплекте. Сначала уберите его оттуда',
+  QR_NOT_YOURS: 'Эта мастерица закреплена за другим менеджером',
+  QR_REVOKED: 'Этот QR больше не действует',
 };
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return ERROR_MESSAGES[error.code] ?? 'Не удалось выполнить действие';
+  if (error instanceof ApiError) {
+    const kits = (error.details as { kits?: string[] } | undefined)?.kits;
+    if (error.code === 'IN_USE' && kits?.length) return `Материал есть в комплектах: ${kits.join(', ')}. Сначала удалите или измените эти комплекты`;
+    return ERROR_MESSAGES[error.code] ?? 'Не удалось выполнить действие';
+  }
   if (error instanceof TypeError) return 'Нет соединения с сервером'; // fetch() network failure
   return 'Не удалось выполнить действие';
 }

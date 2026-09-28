@@ -99,16 +99,17 @@ class _GapScreenState extends ConsumerState<_GapScreen> {
     };
     return Scaffold(
       body: SafeArea(
+        // scrolls instead of pushing the button under the bottom bar on a short phone or with a large system font
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(icon, size: 72, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(height: 20),
-              Text(title, style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
+              Icon(icon, size: 56, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 14),
+              Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               Text(body, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
               FilledButton(key: const Key('locationGateAction'), onPressed: _busy ? null : _act, child: Text(action)),
               const SizedBox(height: 8),
               TextButton(onPressed: () => ref.invalidate(locationStatusProvider), child: Text(l.retry)),

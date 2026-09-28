@@ -57,7 +57,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           _snack(l.qrInvalid);
       }
     } on ApiException catch (e) {
-      if (mounted) _snack(e.status == 404 ? l.qrInvalid : e.message);
+      if (mounted) _snack(switch (e.code) { 'QR_NOT_YOURS' => l.qrNotYours, 'QR_REVOKED' => l.qrRevoked, _ => e.status == 404 ? l.qrInvalid : e.message });
     } finally {
       if (mounted) setState(() => _busy = false);
     }

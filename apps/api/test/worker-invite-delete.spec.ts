@@ -88,20 +88,54 @@ describe('workers: add by invitation, delete for good', () => {
     await expect(t.prisma.collateralHistory.deleteMany({ where: { collateralId: col.id } })).rejects.toThrow(/append-only/);
   });
 
-  it('delete: refused with HAS_HISTORY when she has work (or received collateral); needs WORKER_DELETE (ADMIN only if granted)', async () => {
+  it('delete: refused only while work is open or collateral is held; needs WORKER_DELETE (ADMIN only if granted)', async () => {
     const admin = await superAdminActor(t);
     const reg = await registerViaBot(t);
     const list = await admin.api.get(`/v1/workers?q=${reg.phone.slice(-7)}`).expect(200);
     const workerId = list.body.items[0].id;
     await admin.api.post(`/v1/workers/${workerId}/approve`, { collateralReceived: true }).expect(201);
     const res = await admin.api.delete(`/v1/workers/${workerId}`).expect(409);
-    expect(res.body.error.code).toBe('HAS_HISTORY');
-    expect(res.body.error.details.reasons).toContain('COLLATERAL');
-    expect(await t.prisma.workerProfile.count({ where: { id: workerId } })).toBe(1);
+    expect(res.body.error.code).toBe('OPEN_WORK');
+    expect(res.body.error.details.collateralHeld).toBe(true);
+    expect(await t.prisma.workerProfile.count({ where: { id: workerId, deletedAt: null } })).toBe(1);
 
     const plainAdmin = await staffActor(t, 'ADMIN');
     await plainAdmin.api.delete(`/v1/workers/${workerId}`).expect(403);
     const granted = await staffActor(t, 'ADMIN', ['WORKER_DELETE']);
-    await granted.api.delete(`/v1/workers/${workerId}`).expect(409); // allowed to try, still protected by history
+    await granted.api.delete(`/v1/workers/${workerId}`).expect(409); // allowed to try, still protected
+  });
+
+  it('delete WITH history: personal data erased, she vanishes everywhere, her QR stops working, her Telegram can sign up again', async () => {
+    const admin = await superAdminActor(t);
+    const reg = await registerViaBot(t);
+    const { workerId } = await approveAndLoginWorker(t, admin.api, reg.phone, false);
+    const before = await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
+    const qr = (await admin.api.get(`/v1/workers/${workerId}`).expect(200)).body.qrCode as string;
+    const model = await t.prisma.productModel.create({ data: { code: `DEL-${Math.random()}`, name: 'Del' } });
+    const color = await t.prisma.color.create({ data: { name: `Цвет ${Math.random()}` } });
+    const variant = await t.prisma.productVariant.create({ data: { modelId: model.id, colorId: color.id, sku: `SKU-${Math.random()}` } });
+    const work = await t.prisma.workAssignment.create({ data: { code: `ASN-${Math.random()}`, workerId, productModelId: model.id, productVariantId: variant.id, colorId: color.id, kitCount: 1, plannedMeters: 9, createdById: before.userId!, status: 'IN_PROGRESS' } });
+
+    // work in progress blocks it
+    expect((await admin.api.delete(`/v1/workers/${workerId}`).expect(409)).body.error.code).toBe('OPEN_WORK');
+    await t.prisma.workAssignment.update({ where: { id: work.id }, data: { status: 'COMPLETED' } });
+
+    expect((await admin.api.delete(`/v1/workers/${workerId}`).expect(200)).body.erased).toBe(false);
+    const after = await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
+    expect(after.deletedAt).not.toBeNull();
+    expect(after.fullName).toBe('Удалённая мастерица');
+    expect(after.phone).not.toBe(before.phone);
+    expect(after.telegramUserId).not.toBe(before.telegramUserId);
+    expect(await t.prisma.workerCollateral.count({ where: { workerId } })).toBe(0);
+    expect((await t.prisma.user.findUniqueOrThrow({ where: { id: before.userId! } })).status).toBe('SUSPENDED');
+    expect(await t.prisma.workAssignment.count({ where: { workerId } })).toBe(1); // the history stays whole
+
+    await admin.api.get(`/v1/workers/${workerId}`).expect(404);
+    const listed = (await admin.api.get('/v1/workers?limit=100').expect(200)).body.items as { id: string }[];
+    expect(listed.map((i) => i.id)).not.toContain(workerId);
+    expect((await admin.api.get(`/v1/qr/${qr}`).expect(410)).body.error.code).toBe('QR_REVOKED');
+    // her phone and Telegram are free again
+    expect(await t.prisma.workerProfile.count({ where: { phone: before.phone } })).toBe(0);
+    expect((await reg.send({ kind: 'command', command: 'start' })).prompt).toBe('WELCOME');
   });
 });

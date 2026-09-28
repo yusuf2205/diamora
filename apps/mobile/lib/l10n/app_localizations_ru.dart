@@ -1647,7 +1647,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String deleteWorkerConfirm(String name) {
-    return '$name будет удалена навсегда вместе со входом в приложение. Это нельзя отменить.';
+    return '$name исчезнет из всех списков, с карты и из отчётов и больше не сможет войти. Прошлые работы и выплаты останутся в истории как «Удалённая мастерица». Это нельзя отменить.';
   }
 
   @override
@@ -1878,4 +1878,52 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get userDeleted => 'Сотрудник удалён';
+
+  @override
+  String get qrNotYours =>
+      'Эта мастерица закреплена за другим менеджером. Попросите администратора закрепить её за вами.';
+
+  @override
+  String get qrRevoked =>
+      'Этот QR больше не действует: работа завершена или отменена, либо мастерица удалена.';
+
+  @override
+  String get errOpenWork =>
+      'Сначала завершите или отмените её работы и верните залог — потом можно удалить.';
+
+  @override
+  String get errInUse =>
+      'Материал сейчас используется: он у мастерицы или в комплекте. Сначала уберите его оттуда.';
+
+  @override
+  String errInUseKits(String kits) {
+    return 'Материал есть в комплектах: $kits. Сначала удалите или измените эти комплекты.';
+  }
+
+  @override
+  String get deleteAction => 'Удалить';
+
+  @override
+  String get deleteDone => 'Удалено';
+
+  @override
+  String catalogDeleteConfirm(String name) {
+    return '«$name» исчезнет из каталога у всех. Уже выданные работы останутся в истории. Это нельзя отменить.';
+  }
+
+  @override
+  String materialDeleteConfirm(String name, String left) {
+    return '«$name» исчезнет со склада. Остаток ($left) будет списан. Это нельзя отменить.';
+  }
+
+  @override
+  String kitDeleteConfirm(String name) {
+    return 'Комплект «$name» исчезнет со склада. Уже выданные работы останутся в истории. Это нельзя отменить.';
+  }
+
+  @override
+  String get permCatalogDelete => 'Удалять из каталога';
+
+  @override
+  String get permInventoryDelete => 'Удалять материалы и комплекты';
 }

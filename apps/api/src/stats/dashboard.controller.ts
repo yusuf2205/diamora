@@ -44,8 +44,8 @@ class DashboardService {
     const [global, today, catalogPublished, catalogDraft, userRoles, lowStock] = await Promise.all([
       workerWhere ? this.stats.forWorkers(workerWhere) : null,
       workerWhere ? this.stats.today(workerWhere) : null,
-      canCatalog ? this.prisma.productModel.count({ where: { status: 'PUBLISHED' } }) : null,
-      canCatalog ? this.prisma.productModel.count({ where: { status: 'DRAFT' } }) : null,
+      canCatalog ? this.prisma.productModel.count({ where: { status: 'PUBLISHED', deletedAt: null } }) : null,
+      canCatalog ? this.prisma.productModel.count({ where: { status: 'DRAFT', deletedAt: null } }) : null,
       canUsers ? this.prisma.user.groupBy({ by: ['role'], where: { status: 'ACTIVE' }, _count: true }) : null,
       canInventory ? this.stock.balances(true) : null,
     ]);

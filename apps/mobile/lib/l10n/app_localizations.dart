@@ -3101,7 +3101,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteWorkerConfirm.
   ///
   /// In ru, this message translates to:
-  /// **'{name} будет удалена навсегда вместе со входом в приложение. Это нельзя отменить.'**
+  /// **'{name} исчезнет из всех списков, с карты и из отчётов и больше не сможет войти. Прошлые работы и выплаты останутся в истории как «Удалённая мастерица». Это нельзя отменить.'**
   String deleteWorkerConfirm(String name);
 
   /// No description provided for @deleteWorkerForever.
@@ -3529,6 +3529,78 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сотрудник удалён'**
   String get userDeleted;
+
+  /// No description provided for @qrNotYours.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эта мастерица закреплена за другим менеджером. Попросите администратора закрепить её за вами.'**
+  String get qrNotYours;
+
+  /// No description provided for @qrRevoked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот QR больше не действует: работа завершена или отменена, либо мастерица удалена.'**
+  String get qrRevoked;
+
+  /// No description provided for @errOpenWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала завершите или отмените её работы и верните залог — потом можно удалить.'**
+  String get errOpenWork;
+
+  /// No description provided for @errInUse.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материал сейчас используется: он у мастерицы или в комплекте. Сначала уберите его оттуда.'**
+  String get errInUse;
+
+  /// No description provided for @errInUseKits.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материал есть в комплектах: {kits}. Сначала удалите или измените эти комплекты.'**
+  String errInUseKits(String kits);
+
+  /// No description provided for @deleteAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить'**
+  String get deleteAction;
+
+  /// No description provided for @deleteDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалено'**
+  String get deleteDone;
+
+  /// No description provided for @catalogDeleteConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{name}» исчезнет из каталога у всех. Уже выданные работы останутся в истории. Это нельзя отменить.'**
+  String catalogDeleteConfirm(String name);
+
+  /// No description provided for @materialDeleteConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'«{name}» исчезнет со склада. Остаток ({left}) будет списан. Это нельзя отменить.'**
+  String materialDeleteConfirm(String name, String left);
+
+  /// No description provided for @kitDeleteConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комплект «{name}» исчезнет со склада. Уже выданные работы останутся в истории. Это нельзя отменить.'**
+  String kitDeleteConfirm(String name);
+
+  /// No description provided for @permCatalogDelete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалять из каталога'**
+  String get permCatalogDelete;
+
+  /// No description provided for @permInventoryDelete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалять материалы и комплекты'**
+  String get permInventoryDelete;
 }
 
 class _AppLocalizationsDelegate

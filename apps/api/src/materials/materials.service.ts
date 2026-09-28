@@ -1,15 +1,16 @@
-import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Material, MaterialCategory, StockBalance } from '@diamoraa/database';
 import { createMaterialSchema, listMaterialsSchema, updateMaterialSchema } from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { ApiZodBody, CurrentUser, Perm } from '../common/decorators';
-import { invariant, notFound } from '../common/errors';
+import { AppError, invariant, notFound } from '../common/errors';
 import { num } from '../common/serialize';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
+import { StockModule, StockService } from '../stock/stock.service';
 import type { AuthUser } from '../common/request-context';
 
 type MaterialRow = Material & { category: MaterialCategory | null; balance: StockBalance | null };
@@ -21,7 +22,7 @@ type MaterialRow = Material & { category: MaterialCategory | null; balance: Stoc
  */
 @Injectable()
 export class MaterialsService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus, private readonly stock: StockService) {}
 
   categories() {
     return this.prisma.materialCategory.findMany({ orderBy: { name: 'asc' } });
@@ -31,7 +32,7 @@ export class MaterialsService {
     const text = q.q?.trim();
     const rows = await this.prisma.material.findMany({
       where: {
-        categoryId: q.categoryId, isActive: q.isActive,
+        categoryId: q.categoryId, isActive: q.isActive, deletedAt: null,
         name: text ? { contains: text, mode: 'insensitive' } : undefined,
       },
       include: { category: true, balance: true },
@@ -78,10 +79,46 @@ export class MaterialsService {
     return this.update(id, { isActive: false });
   }
 
+  /**
+   * «Удалить материал» (INVENTORY_DELETE, granted by the SUPER_ADMIN). Refused only while it is really in use — held by a
+   * worker or in a live kit recipe (those would silently break). What is left on the shelf is written off first. With no
+   * stock history at all it is erased; otherwise it is hidden for good and the append-only movement trail stays whole.
+   */
+  async remove(actor: AuthUser, id: string) {
+    const m = await this.load(id);
+    const [held, kits] = await Promise.all([
+      this.prisma.workerMaterialBalance.findMany({ where: { materialId: id, quantity: { gt: 0 } }, select: { workerId: true } }),
+      this.prisma.materialKitTemplateItem.findMany({ where: { materialId: id, template: { deletedAt: null } }, select: { template: { select: { name: true } } } }),
+    ]);
+    if (held.length || kits.length) {
+      throw new AppError('IN_USE', 'This material is still in use', 409, { workers: (await this.prisma.workerProfile.findMany({ where: { id: { in: held.map((h) => h.workerId) } }, select: { fullName: true } })).map((w) => w.fullName), kits: kits.map((k) => k.template.name) });
+    }
+    const left = m.balance?.quantity;
+    const written = await this.prisma.$transaction(async (tx) => {
+      const mv = left && left.gt(0)
+        ? await this.stock.recordMovement(tx, actor, { type: 'WRITE_OFF', materialId: id, quantity: left.toFixed(3), warehouseDelta: `-${left.toFixed(3)}`, comment: 'Материал удалён' })
+        : null;
+      const history = await tx.stockMovement.count({ where: { materialId: id } }) + await tx.workAssignmentMaterial.count({ where: { materialId: id } }) + await tx.deliveryItem.count({ where: { materialId: id } });
+      if (history === 0) {
+        await tx.materialKitTemplateItem.deleteMany({ where: { materialId: id } });
+        await tx.workerMaterialBalance.deleteMany({ where: { materialId: id } });
+        await tx.stockBalance.deleteMany({ where: { materialId: id } });
+        await tx.material.delete({ where: { id } });
+      } else {
+        await tx.material.update({ where: { id }, data: { deletedAt: new Date(), isActive: false } });
+      }
+      await this.audit.record({ action: 'material.delete', entity: 'Material', entityId: id, before: { name: m.name, balance: left?.toString() ?? '0' }, after: { erased: history === 0 } }, tx);
+      return mv;
+    });
+    if (written) await this.stock.publish(written);
+    await this.events.publish('material.updated', { materialId: id });
+    return { deleted: true };
+  }
+
   // ---- internals -------------------------------------------------------------------------------------------------------
   private async load(id: string): Promise<MaterialRow> {
     const m = await this.prisma.material.findUnique({ where: { id }, include: { category: true, balance: true } });
-    if (!m) throw notFound('Material');
+    if (!m || m.deletedAt) throw notFound('Material');
     return m;
   }
   private dto(m: MaterialRow) {
@@ -119,7 +156,10 @@ export class MaterialsController {
 
   @Perm('INVENTORY_MANAGE') @Post(':id/deactivate') @HttpCode(200)
   deactivate(@Param('id', new ParseUUIDPipe()) id: string) { return this.materials.deactivate(id); }
+
+  @Perm('INVENTORY_DELETE') @Delete(':id') @HttpCode(200)
+  remove(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.materials.remove(u, id); }
 }
 
-@Module({ controllers: [MaterialsController], providers: [MaterialsService], exports: [MaterialsService] })
+@Module({ imports: [StockModule], controllers: [MaterialsController], providers: [MaterialsService], exports: [MaterialsService] })
 export class MaterialsModule {}

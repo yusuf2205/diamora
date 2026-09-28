@@ -153,6 +153,14 @@ export const ERROR_CODES = [
   'HANDOFF_EXPIRED',
   /** a worker with work, money, stock or a received collateral cannot be erased - archive her instead */
   'HAS_HISTORY',
+  /** a worker with work still in progress cannot be deleted - finish or cancel the work first */
+  'OPEN_WORK',
+  /** a material still held by a worker or used in a live kit recipe */
+  'IN_USE',
+  /** a real, live QR of a worker/work outside the scanner's scope (a MANAGER scanning another manager's worker) */
+  'QR_NOT_YOURS',
+  /** a QR that no longer works: the work was completed or cancelled, or the worker was deleted */
+  'QR_REVOKED',
   'IDEMPOTENCY_CONFLICT',
   'RATE_LIMITED',
   'FILE_REJECTED',

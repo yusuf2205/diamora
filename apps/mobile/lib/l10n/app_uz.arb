@@ -531,7 +531,7 @@
   "invitesPending": "Taklif qilingan — havolani hali ochmagan",
   "inviteCancel": "Bekor qilish",
   "deleteWorker": "Ustani o'chirish",
-  "deleteWorkerConfirm": "{name} ilovaga kirish bilan birga butunlay o'chiriladi. Buni qaytarib bo'lmaydi.",
+  "deleteWorkerConfirm": "{name} barcha roʻyxatlardan, xaritadan va hisobotlardan yoʻqoladi va boshqa kira olmaydi. Oldingi ishlar va toʻlovlar tarixda «Oʻchirilgan usta» sifatida qoladi. Buni qaytarib boʻlmaydi.",
   "deleteWorkerForever": "Butunlay o'chirish",
   "deleteWorkerBlocked": "O'chirib bo'lmaydi: ustada ish, pul yoki qabul qilingan garov bor — bu yozuvlar hisobot va to'lovlar uchun kerak. Uni arxivlash mumkin: u kira olmaydi, tarix saqlanadi.",
   "deleteWorkerDone": "Usta o'chirildi",
@@ -602,5 +602,17 @@
   "userDelete": "Xodimni o'chirish",
   "userDeleteConfirm": "{name} butunlay o'chiriladi.",
   "userDeleteBlocked": "O'chirib bo'lmaydi: xodimda tarix bor (ishlar, to'lovlar, ombor). Uni o'chirib qo'yish mumkin.",
-  "userDeleted": "Xodim o'chirildi"
+  "userDeleted": "Xodim o'chirildi",
+  "qrNotYours": "Bu usta boshqa menejerga biriktirilgan. Administratordan uni sizga biriktirishni soʻrang.",
+  "qrRevoked": "Bu QR endi ishlamaydi: ish tugagan yoki bekor qilingan, yoki usta oʻchirilgan.",
+  "errOpenWork": "Avval uning ishlarini tugating yoki bekor qiling va garovni qaytaring — keyin oʻchirish mumkin.",
+  "errInUse": "Material hozir ishlatilmoqda: ustada yoki toʻplamda. Avval uni u yerdan olib tashlang.",
+  "errInUseKits": "Material toʻplamlarda bor: {kits}. Avval shu toʻplamlarni oʻchiring yoki oʻzgartiring.",
+  "deleteAction": "Oʻchirish",
+  "deleteDone": "Oʻchirildi",
+  "catalogDeleteConfirm": "«{name}» hammadan katalogdan yoʻqoladi. Berilgan ishlar tarixda qoladi. Buni qaytarib boʻlmaydi.",
+  "materialDeleteConfirm": "«{name}» ombordan yoʻqoladi. Qoldiq ({left}) hisobdan chiqariladi. Buni qaytarib boʻlmaydi.",
+  "kitDeleteConfirm": "«{name}» toʻplami ombordan yoʻqoladi. Berilgan ishlar tarixda qoladi. Buni qaytarib boʻlmaydi.",
+  "permCatalogDelete": "Katalogdan oʻchirish",
+  "permInventoryDelete": "Material va toʻplamlarni oʻchirish"
 }

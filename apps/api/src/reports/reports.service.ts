@@ -49,7 +49,7 @@ export class ReportsService {
   async report(actor: AuthUser, q: z.output<typeof reportQuerySchema>) {
     const { from, to } = periodRange(q.period, q.offset);
     const { where: scope } = workerScope(actor, 'FINANCE');
-    const workers = await this.prisma.workerProfile.findMany({ where: { ...scope, status: { not: 'REJECTED' } }, select: { id: true, code: true, fullName: true } });
+    const workers = await this.prisma.workerProfile.findMany({ where: { ...scope, status: { not: 'REJECTED' }, deletedAt: null }, select: { id: true, code: true, fullName: true } });
     const ids = workers.map((w) => w.id);
     const [issued, inspections, ledger, overdue] = await Promise.all([
       // aggregated in PostgreSQL, not loaded row by row: stays fast with thousands of workers
@@ -80,7 +80,7 @@ export class ReportsService {
     }), { issuedCount: 0, issuedMeters: 0, acceptedMeters: 0, defectiveMeters: 0, earned: 0n, paid: 0n, overdue: 0 });
 
     const lowStock = can(actor, 'INVENTORY_VIEW') || can(actor, 'INVENTORY_MANAGE')
-      ? (await this.prisma.material.findMany({ where: { isActive: true }, include: { balance: true }, orderBy: { name: 'asc' } }))
+      ? (await this.prisma.material.findMany({ where: { isActive: true, deletedAt: null }, include: { balance: true }, orderBy: { name: 'asc' } }))
           .filter((m) => Number(m.balance?.quantity ?? 0) < Number(m.minStock))
           .map((m) => ({ materialId: m.id, name: m.name, unit: m.unit, quantity: Number(m.balance?.quantity ?? 0), minStock: Number(m.minStock) }))
       : null;

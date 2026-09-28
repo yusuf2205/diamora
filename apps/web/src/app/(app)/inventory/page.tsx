@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { hasPerm } from '@/lib/types';
 import type { KitTemplate, Page } from '@/lib/types';
 import { Badge, Button, Card, Chips, DataList, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
+import { ConfirmDelete } from '@/components/confirm-delete';
 
 interface Material { id: string; name: string; unit: string; balance: number; minStock: number; low: boolean; isActive: boolean }
 
@@ -25,6 +26,9 @@ const unit = (u: string) => UNITS.find((x) => x.value === u)?.short ?? u;
 export default function InventoryPage() {
   const { me } = useAuth();
   const canManage = hasPerm(me, 'INVENTORY_MANAGE');
+  const canDelete = hasPerm(me, 'INVENTORY_DELETE');
+  const [deletingMaterial, setDeletingMaterial] = useState<Material | null>(null);
+  const [deletingKit, setDeletingKit] = useState<KitTemplate | null>(null);
   const [tab, setTab] = useState<'materials' | 'kits'>('materials');
   const [creatingMaterial, setCreatingMaterial] = useState(false);
   const [creatingKit, setCreatingKit] = useState(false);
@@ -54,13 +58,14 @@ export default function InventoryPage() {
             <DataList
               rows={[...materials.data.items].sort((a, b) => Number(b.isActive) - Number(a.isActive))}
               rowKey={(m) => m.id}
-              onRowClick={canManage ? (m) => setReceiving(m) : undefined}
+              onRowClick={canManage ? (m) => setReceiving(m) : canDelete ? (m) => setDeletingMaterial(m) : undefined}
               columns={[
                 { header: 'Материал', cell: (m) => <span className="font-medium">{m.name}</span> },
                 { header: 'Остаток', cell: (m) => <span className={`tabular-nums ${m.balance <= 0 ? 'font-semibold text-danger' : m.low ? 'font-semibold text-primary' : ''}`}>{m.balance} {unit(m.unit)}</span>, className: 'text-right' },
                 { header: 'Минимум', cell: (m) => <span className="tabular-nums text-muted">{m.minStock} {unit(m.unit)}</span>, className: 'text-right' },
                 { header: '', cell: (m) => (!m.isActive ? <Badge>Выключен</Badge> : m.balance <= 0 ? <Badge tone="danger">Закончился</Badge> : m.low ? <Badge tone="warn">Мало</Badge> : null) },
                 ...(canManage ? [{ header: 'Приход', cell: () => <span className="text-primary">+ Приход</span> }] : []),
+                ...(canDelete ? [{ header: 'Удалить', cell: (m: Material) => <button type="button" aria-label={`Удалить ${m.name}`} className="text-danger hover:underline" onClick={(e) => { e.stopPropagation(); setDeletingMaterial(m); }}>Удалить</button> }] : []),
               ]}
               card={(m) => (
                 <div className={`flex items-center justify-between gap-3 ${m.isActive ? '' : 'opacity-50'}`}>
@@ -89,7 +94,10 @@ export default function InventoryPage() {
               <Card key={k.id} className={k.active ? '' : 'opacity-60'}>
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-medium">{k.name}</p>
-                  <Badge tone={k.active ? 'ok' : 'default'}>{k.active ? `${k.ribbonMeters} м` : 'Выключен'}</Badge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge tone={k.active ? 'ok' : 'default'}>{k.active ? `${k.ribbonMeters} м` : 'Выключен'}</Badge>
+                    {canDelete && <button type="button" aria-label={`Удалить ${k.name}`} className="text-sm text-danger hover:underline" onClick={() => setDeletingKit(k)}>Удалить</button>}
+                  </div>
                 </div>
                 <ul className="mt-2 divide-y divide-border text-sm">
                   {k.items.map((i) => (
@@ -103,7 +111,17 @@ export default function InventoryPage() {
       )}
 
       {creatingMaterial && <MaterialDialog onClose={() => setCreatingMaterial(false)} />}
-      {receiving && <ReceiptDialog material={receiving} onClose={() => setReceiving(null)} />}
+      {receiving && <ReceiptDialog material={receiving} onClose={() => setReceiving(null)} onDelete={canDelete ? () => { setDeletingMaterial(receiving); setReceiving(null); } : undefined} />}
+      {deletingMaterial && (
+        <ConfirmDelete title="Удалить материал" action={() => api.delete(`/admin/materials/${deletingMaterial.id}`)} invalidate={[['materials'], ['dashboard']]} onClose={() => setDeletingMaterial(null)}>
+          «{deletingMaterial.name}» исчезнет со склада.{deletingMaterial.balance > 0 ? ` Остаток ${deletingMaterial.balance} ${unit(deletingMaterial.unit)} будет списан.` : ''} Это нельзя отменить.
+        </ConfirmDelete>
+      )}
+      {deletingKit && (
+        <ConfirmDelete title="Удалить комплект" action={() => api.delete(`/admin/kits/${deletingKit.id}`)} invalidate={[['admin-kits']]} onClose={() => setDeletingKit(null)}>
+          Комплект «{deletingKit.name}» исчезнет со склада. Уже выданные работы останутся в истории. Это нельзя отменить.
+        </ConfirmDelete>
+      )}
       {creatingKit && <KitDialog materials={materials.data?.items ?? []} onClose={() => setCreatingKit(false)} />}
     </div>
   );
@@ -143,7 +161,7 @@ function MaterialDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ReceiptDialog({ material, onClose }: { material: Material; onClose: () => void }) {
+function ReceiptDialog({ material, onClose, onDelete }: { material: Material; onClose: () => void; onDelete?: () => void }) {
   const qc = useQueryClient();
   const [qty, setQty] = useState('');
   const [comment, setComment] = useState('');
@@ -162,6 +180,7 @@ function ReceiptDialog({ material, onClose }: { material: Material; onClose: () 
           <Button variant="ghost" onClick={onClose}>Отмена</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending || !(Number(qty) > 0)}>Добавить на склад</Button>
         </div>
+        {onDelete && <button type="button" className="text-sm text-danger hover:underline" onClick={onDelete}>Удалить этот материал</button>}
       </div>
     </Modal>
   );
