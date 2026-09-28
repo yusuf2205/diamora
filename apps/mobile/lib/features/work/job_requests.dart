@@ -307,6 +307,7 @@ class JobRequestsScreen extends ConsumerWidget {
                 child: ListView(padding: const EdgeInsets.all(16), children: [
                   for (final r in items)
                     Card(
+                      margin: const EdgeInsets.only(bottom: 8),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

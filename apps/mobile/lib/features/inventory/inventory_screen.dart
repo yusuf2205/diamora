@@ -241,8 +241,8 @@ class _MaterialsTab extends ConsumerWidget {
                     child: ListTile(
                       leading: CircleAvatar(backgroundColor: m.low ? Theme.of(context).colorScheme.errorContainer : Theme.of(context).colorScheme.primaryContainer, child: const Icon(Icons.inventory_2_rounded)),
                       title: Text(m.name),
-                      subtitle: Text([if (m.categoryName != null) m.categoryName!, m.unit].join(' · ')),
-                      trailing: Text('${m.balance} ${m.unit}${m.low ? ' · ${l.stockLow}' : ''}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: m.low ? FontWeight.w600 : null)),
+                      subtitle: Text([if (m.categoryName != null) m.categoryName!, if (m.low) l.stockLow].join(' · '), style: m.low ? TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600) : null),
+                      trailing: Text('${m.balance} ${m.unit}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600)),
                     ),
                   );
                 },
@@ -277,7 +277,8 @@ class _KitsTab extends ConsumerWidget {
                       leading: const CircleAvatar(child: Icon(Icons.style_rounded)),
                       title: Text(t.name),
                       subtitle: Text('${t.ribbonMeters.toStringAsFixed(0)} м · ${t.items.length} материалов'),
-                      trailing: canManage ? FilledButton.tonal(onPressed: () => _assemble(context, ref, t), child: Text(l.kitAssemble)) : null,
+                      // an icon, not a text button: a wide button in `trailing` squeezes the name into one letter per line on a narrow phone
+                      trailing: canManage ? IconButton.filledTonal(key: Key('assemble-${t.id}'), tooltip: l.kitAssemble, icon: const Icon(Icons.add_box_rounded), onPressed: () => _assemble(context, ref, t)) : null,
                     ),
                   );
                 },

@@ -30,6 +30,7 @@ class MoreScreen extends ConsumerWidget {
         children: [
           for (final i in items)
             Card(
+              margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 leading: Icon(i.$1),
                 title: Text(i.$2),

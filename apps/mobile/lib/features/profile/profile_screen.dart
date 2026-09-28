@@ -54,7 +54,7 @@ class ProfileScreen extends ConsumerWidget {
                 leading: Icon(s.device.platform == 'IOS' ? Icons.phone_iphone_rounded : Icons.phone_android_rounded),
                 title: Text(s.device.name ?? s.device.platform),
                 subtitle: Text(s.current ? l.thisDevice : s.lastUsedAt.substring(0, 16).replaceFirst('T', ' ')),
-                trailing: s.current ? null : TextButton(onPressed: () async { await ref.read(authRepositoryProvider).revokeSession(s.id); ref.invalidate(_sessionsProvider); }, child: Text(l.revoke)),
+                trailing: s.current ? null : IconButton(tooltip: l.revoke, icon: const Icon(Icons.logout_rounded), onPressed: () async { await ref.read(authRepositoryProvider).revokeSession(s.id); ref.invalidate(_sessionsProvider); }),
               ),
           ],
           orElse: () => const <Widget>[],

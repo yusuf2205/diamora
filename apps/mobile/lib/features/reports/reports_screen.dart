@@ -94,6 +94,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               if (rows.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(l.reportEmpty, style: text.bodyMedium)),
               for (final x in rows)
                 Card(
+                  margin: const EdgeInsets.only(bottom: 8),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -111,6 +112,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 const SizedBox(height: 8),
                 for (final s in low)
                   Card(
+                    margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: Icon(Icons.warning_amber_rounded, color: scheme.error),
                       title: Text(s['name'] as String),

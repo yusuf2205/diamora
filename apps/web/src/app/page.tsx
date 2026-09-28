@@ -29,7 +29,7 @@ export default function Landing() {
         Android · <a href="/download/diamoraa-armv7.apk" className="underline">для старых телефонов</a>
       </p>
       <a href="/w" className="mt-4 flex min-h-12 items-center justify-center rounded-2xl border border-border bg-card px-5 text-base font-semibold">
-        Открыть веб-версию (iPhone и без установки)
+        Открыть веб-версию (без установки)
       </a>
 
       <ol className="mt-10 space-y-3">

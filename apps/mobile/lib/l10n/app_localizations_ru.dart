@@ -597,7 +597,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get quantity => 'Количество';
 
   @override
-  String get kits => 'Комплекты (9 м)';
+  String get kits => 'Комплекты';
 
   @override
   String get kitsEmpty => 'Комплектов пока нет';

@@ -1205,7 +1205,7 @@ abstract class AppLocalizations {
   /// No description provided for @kits.
   ///
   /// In ru, this message translates to:
-  /// **'Комплекты (9 м)'**
+  /// **'Комплекты'**
   String get kits;
 
   /// No description provided for @kitsEmpty.

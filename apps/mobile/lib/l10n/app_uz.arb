@@ -196,7 +196,7 @@
   "stockReceipt": "Kirim",
   "stockReceiptHint": "Omborga material kelib tushishi",
   "quantity": "Miqdor",
-  "kits": "Toʻplamlar (9 m)",
+  "kits": "Toʻplamlar",
   "kitsEmpty": "Hozircha toʻplam yoʻq",
   "kitAssemble": "Toʻplamni yigʻish",
   "kitAssembled": "Toʻplam yigʻildi, QR-kod tayyor",

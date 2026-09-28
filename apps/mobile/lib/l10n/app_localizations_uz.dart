@@ -599,7 +599,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get quantity => 'Miqdor';
 
   @override
-  String get kits => 'Toʻplamlar (9 m)';
+  String get kits => 'Toʻplamlar';
 
   @override
   String get kitsEmpty => 'Hozircha toʻplam yoʻq';

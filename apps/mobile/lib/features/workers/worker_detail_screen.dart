@@ -359,6 +359,7 @@ class _CurrentWorkSection extends ConsumerWidget {
       else
         for (final a in active)
           Card(
+            margin: const EdgeInsets.only(bottom: 8),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () => open(a.id),
