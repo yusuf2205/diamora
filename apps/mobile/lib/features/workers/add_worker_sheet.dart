@@ -1,7 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
@@ -69,6 +72,21 @@ class _AddWorkerSheetState extends ConsumerState<AddWorkerSheet> {
     }
   }
 
+  Future<void> _shareWithQr(WorkerInvite inv) async {
+    final text = 'Здравствуйте, ${inv.fullName}! Вас добавили в Diamoraa. Откройте ссылку или отсканируйте QR камерой телефона:\n${inv.url}';
+    try {
+      final png = await qrPng(inv.url!);
+      await SharePlus.instance.share(ShareParams(
+        text: text,
+        files: [XFile.fromData(png, mimeType: 'image/png', name: 'diamoraa-invite.png')],
+        fileNameOverrides: const ['diamoraa-invite.png'],
+      ));
+    } catch (_) {
+      // no share sheet (rare): at least the link via Telegram's own share page
+      await launchUrl(Uri.parse('https://t.me/share/url?url=${Uri.encodeComponent(inv.url!)}&text=${Uri.encodeComponent(text)}'), mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -117,13 +135,11 @@ class _AddWorkerSheetState extends ConsumerState<AddWorkerSheet> {
             const SizedBox(height: 16),
             SizedBox(
               height: AppTokens.buttonHeight,
+              // the QR picture AND the link in one message: the share sheet -> Telegram (or any messenger)
               child: FilledButton.icon(
                 icon: const Icon(Icons.send_rounded),
                 label: Text(l.addWorkerSendTelegram),
-                onPressed: () => launchUrl(
-                  Uri.parse('https://t.me/share/url?url=${Uri.encodeComponent(created.url!)}&text=${Uri.encodeComponent('Здравствуйте, ${created.fullName}! Вас добавили в Diamoraa — откройте ссылку.')}'),
-                  mode: LaunchMode.externalApplication,
-                ),
+                onPressed: () => _shareWithQr(created),
               ),
             ),
             const SizedBox(height: 8),
@@ -181,4 +197,18 @@ class PendingInvitesCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A QR as a PNG on a white card (transparent QRs look broken in chat apps).
+Future<Uint8List> qrPng(String data, {double size = 720}) async {
+  final painter = QrPainter(data: data, version: QrVersions.auto, gapless: true);
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  const pad = 48.0;
+  canvas.drawRect(Rect.fromLTWH(0, 0, size + pad * 2, size + pad * 2), Paint()..color = Colors.white);
+  canvas.translate(pad, pad);
+  painter.paint(canvas, Size(size, size));
+  final image = await recorder.endRecording().toImage((size + pad * 2).toInt(), (size + pad * 2).toInt());
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  return bytes!.buffer.asUint8List();
 }

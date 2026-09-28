@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
+import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatUzs, statusLabel } from '@/lib/format';
@@ -107,6 +108,25 @@ export function AddWorkerDialog({ onClose }: { onClose: () => void }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['invitations'] }),
   });
   const link = create.data?.url;
+  const [qr, setQr] = useState<string | null>(null);
+  useEffect(() => {
+    if (!link) return;
+    QRCode.toDataURL(link, { width: 640, margin: 2 }).then(setQr).catch(() => setQr(null));
+  }, [link]);
+  // the QR picture AND the link in one message where the browser can share files (phones); else Telegram's share page
+  const share = async () => {
+    if (!link) return;
+    const text = `Здравствуйте, ${create.data!.fullName}! Вас добавили в Diamoraa. Откройте ссылку или отсканируйте QR камерой телефона:
+${link}`;
+    try {
+      if (qr && typeof navigator !== 'undefined' && navigator.canShare) {
+        const blob = await (await fetch(qr)).blob();
+        const file = new File([blob], 'diamoraa-invite.png', { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+      }
+    } catch { /* cancelled or unsupported: fall through */ }
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank', 'noreferrer');
+  };
   const message = link ? `Здравствуйте, ${create.data!.fullName}! Вас добавили в Diamoraa. Откройте ссылку в Telegram: ${link}` : '';
   const valid = fullName.trim().length >= 2 && phone.replace(/\D/g, '').length >= 9;
 
@@ -134,12 +154,11 @@ export function AddWorkerDialog({ onClose }: { onClose: () => void }) {
       ) : (
         <div className="space-y-3">
           <p className="text-sm">Отправьте эту ссылку <span className="font-semibold">{create.data!.fullName}</span>. Она действует 7 дней и открывается один раз.</p>
+          {qr && <img src={qr} alt="QR приглашения" className="mx-auto h-48 w-48 rounded-lg bg-white p-2" />}
           <p className="break-all rounded-lg bg-border/40 p-3 font-mono text-sm">{link}</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button className="flex-1" onClick={() => { navigator.clipboard?.writeText(message).then(() => setCopied(true)).catch(() => setCopied(false)); }}>{copied ? '✓ Скопировано' : 'Скопировать'}</Button>
-            <a className="flex-1" href={`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Здравствуйте, ${create.data!.fullName}! Вас добавили в Diamoraa — откройте ссылку.`)}`} target="_blank" rel="noreferrer">
-              <Button variant="outline" className="w-full" type="button">Отправить в Telegram</Button>
-            </a>
+            <Button variant="outline" className="flex-1" type="button" onClick={share}>Отправить в Telegram</Button>
           </div>
           <div className="flex justify-end pt-2"><Button variant="ghost" onClick={onClose}>Готово</Button></div>
         </div>
