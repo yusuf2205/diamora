@@ -15,6 +15,9 @@ DIR="${2:-/volume1/docker/yusmus}"
 ADDR="${HOST#*@}"
 cd "$(dirname "$0")/../.."
 
+# ownership/health gate: abort before anything on the NAS is touched
+ssh "$HOST" "sh -s -- '$DIR'" < infra/scripts/nas-preflight.sh || { echo "deploy aborted by preflight"; exit 1; }
+
 echo "==> uploading the source to $HOST:$DIR (no .env, no node_modules, no mobile app)"
 tar czf - --exclude=node_modules --exclude=.git --exclude=.dev-data --exclude=.env --exclude=dist --exclude=.next --exclude=.turbo \
   --exclude=apps/mobile --exclude='*.log' --exclude=.tmp --exclude=.claude --exclude=.vscode . \
