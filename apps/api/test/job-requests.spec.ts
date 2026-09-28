@@ -19,7 +19,11 @@ async function setup(t: TestApp) {
 describe('job requests («Заказать эту работу»)', () => {
   let t: TestApp;
   beforeAll(async () => (t = await createTestApp()));
-  afterAll(() => t.close());
+  afterAll(async () => {
+    // leave no published items behind: the catalog suite expects an empty worker catalog in the shared test database
+    await t.prisma.productModel.updateMany({ where: { name: { startsWith: 'JModel' } }, data: { status: 'HIDDEN' } });
+    await t.close();
+  });
 
   it('worker orders 18 m of a published colour; staff sees it and prepares the assignment from it -> FULFILLED, linked', async () => {
     const f = await setup(t);
@@ -46,12 +50,14 @@ describe('job requests («Заказать эту работу»)', () => {
     await f.workerApi.post('/v1/work/requests', { productVariantId: f.variantId, kitCount: 1 }).expect(201);
   });
 
-  it('staff declines with a reason (Telegram notification queued); worker can withdraw her own; hidden work cannot be ordered', async () => {
+  it('staff declines with a reason (in-app notice); worker can withdraw her own; hidden work cannot be ordered', async () => {
     const f = await setup(t);
     const req = await f.workerApi.post('/v1/work/requests', { productVariantId: f.variantId, kitCount: 1 }).expect(201);
     const rej = await f.admin.api.post(`/v1/admin/job-requests/${req.body.id}/reject`, { note: 'нет бисера' }).expect(200);
     expect(rej.body).toMatchObject({ status: 'REJECTED', decisionNote: 'нет бисера' });
-    expect(await t.prisma.notification.count({ where: { workerId: f.workerId, type: 'job_request.rejected' } })).toBe(1);
+    const wu = await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: f.workerId } });
+    expect(await t.prisma.notification.count({ where: { channel: 'APP', userId: wu.userId!, type: 'job_request.decided' } })).toBe(1); // in the app, not Telegram
+    expect(await t.prisma.notification.count({ where: { channel: 'TELEGRAM', workerId: f.workerId, type: 'job_request.rejected' } })).toBe(0);
     await f.admin.api.post(`/v1/admin/job-requests/${req.body.id}/reject`, {}).expect(409);
 
     const second = await f.workerApi.post('/v1/work/requests', { productVariantId: f.variantId, kitCount: 3 }).expect(201);

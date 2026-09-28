@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type Redis from 'ioredis';
 import { RedisService } from '../redis/redis.module';
 
-type Handler = (e: RealtimeEnvelope) => void;
+type Handler = (e: RealtimeEnvelope) => void | Promise<void>;
 
 /**
  * Domain event bus (D-008). Services call `publish` AFTER the transaction has committed.
@@ -17,6 +17,8 @@ export class EventBus implements OnModuleDestroy {
   private readonly log = new Logger('EventBus');
   private readonly local = new EventEmitter();
   private subscriber?: Redis;
+  /** in-process listeners run once per event, in the process that published it (in-app notifications) */
+  private readonly hooks: Handler[] = [];
 
   constructor(private readonly redis: RedisService) {
     this.local.setMaxListeners(50);
@@ -31,7 +33,14 @@ export class EventBus implements OnModuleDestroy {
       // the data is already committed; a lost hint only delays the UI until its next refetch
       this.log.warn(`publish ${type} failed: ${(e as Error).message}`);
     }
+    // hooks run AFTER this call returns: a notice must never slow down (or fail) the business action that caused it
+    for (const h of this.hooks) {
+      setImmediate(() => { Promise.resolve(h(envelope as RealtimeEnvelope)).catch((e: Error) => this.log.warn(`hook ${type}: ${e.message}`)); });
+    }
   }
+
+  /** Runs `handler` right after every publish from THIS process (never for events received from Redis). */
+  onPublished(handler: (e: RealtimeEnvelope) => void | Promise<void>): void { this.hooks.push(handler as Handler); }
 
   /** Called by the WebSocket gateway (API process). */
   subscribe(handler: Handler): void {

@@ -7,6 +7,7 @@ import { AppLogger } from './common/logger';
 import './common/serialize';
 import { ENV, Env } from './config/env';
 import { PrismaService } from './prisma/prisma.module';
+import { AppNotifier } from './notifications/app-notifier';
 import { MaintenanceService } from './worker/maintenance';
 import { OutboxSender } from './worker/outbox';
 import { TelegramBot } from './worker/telegram-bot';
@@ -35,6 +36,10 @@ async function main() {
   timers.push(setInterval(() => void maintenance.integrity().catch((e) => log.error(`integrity: ${e.message}`)), 60 * 60_000));
   timers.push(setInterval(() => void maintenance.cleanup().catch((e) => log.error(`cleanup: ${e.message}`)), 24 * 60 * 60_000));
   void maintenance.integrity().catch(() => undefined);
+  // deadlines, overdue, the evening summary, weekly/monthly reports -> in-app notifications (idempotent, dedupeKey)
+  const notifier = app.get(AppNotifier);
+  timers.push(setInterval(() => void notifier.tick().catch((e) => log.error(`notifier: ${e.message}`)), 5 * 60_000));
+  void notifier.tick().catch(() => undefined);
 
   // liveness for the Docker health check (internal network only)
   const server = createServer(async (req, res) => {

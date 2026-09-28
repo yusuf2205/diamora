@@ -233,6 +233,14 @@ export const createAssignmentSchema = z.object({
   jobRequestId: idSchema.optional(),
 });
 
+// ---- in-app notifications (bell) ----------------------------------------------------------------------------------------
+export const listNotificationsSchema = z.object({
+  /** background check: only what arrived after this moment */
+  since: z.coerce.date().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export const markNotificationsReadSchema = z.object({ ids: z.array(idSchema).max(200).optional(), all: z.boolean().optional() });
+
 // ---- «Заказать работу»: a worker asks for work from the catalog; staff prepares it or declines --------------------------
 export const createJobRequestSchema = z.object({
   productVariantId: idSchema,

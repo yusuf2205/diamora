@@ -11,7 +11,6 @@ import { assertWorkerInScope, workerScope } from '../common/scope';
 import { lockRow } from '../common/sequence';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
-import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.module';
 
 const KIT_METERS = 9;
@@ -25,7 +24,6 @@ const KIT_METERS = 9;
 export class JobRequestsService {
   constructor(
     private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus,
-    private readonly notifications: NotificationsService,
   ) {}
 
   // ---- worker ------------------------------------------------------------------------------------------------------------
@@ -91,10 +89,6 @@ export class JobRequestsService {
       if (fresh.status !== 'PENDING') throw invariant(`Request is ${fresh.status}`);
       await tx.workerJobRequest.update({ where: { id }, data: { status: 'REJECTED', decidedById: actor.id, decidedAt: new Date(), decisionNote: input.note } });
       await this.audit.record({ action: 'job_request.reject', entity: 'WorkerJobRequest', entityId: id, after: { note: input.note ?? null } }, tx);
-      await this.notifications.telegram({
-        workerId: r.workerId, chatId: r.worker.telegramChatId, type: 'job_request.rejected',
-        body: `Заявка на работу пока не принята.${input.note ? `\nПричина: ${input.note}` : ''}\n\nВы можете выбрать другую работу в приложении Diamoraa.`,
-      }, tx);
     });
     await this.events.publish('job_request.decided', { requestId: id, workerId: r.workerId, status: 'REJECTED', managerId: r.worker.assignedManagerId });
     return this.dtoOf(id);

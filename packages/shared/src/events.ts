@@ -12,6 +12,8 @@ type WithManager = { managerId?: string | null };
 export interface EventMap {
   // users, roles, presence
   'user.created': { userId: string; role: Role; fullName: string };
+  /** a new in-app notification for exactly this user: the app shows it at once (bell + Android notification) */
+  'notification.created': { userId: string; notificationId: string; title: string; body: string | null; link: string | null };
   'user.updated': { userId: string };
   'user.role_changed': { userId: string; from: Role; to: Role };
   'user.permission_changed': { userId: string };
@@ -94,6 +96,7 @@ const w = (cat: WorkerCategory, worker = true): EventRoute => ({ cat, worker });
 
 export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'user.created': { perms: ['USER_VIEW_ALL'] },
+  'notification.created': { user: true },
   'user.updated': { perms: ['USER_VIEW_ALL'], user: true },
   'user.role_changed': { perms: ['USER_VIEW_ALL'], user: true },
   'user.permission_changed': { perms: ['USER_VIEW_ALL'], user: true },

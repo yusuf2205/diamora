@@ -28,7 +28,7 @@ describe('Telegram registration (business logic behind the bot)', () => {
     expect(await t.prisma.registrationDraft.count({ where: { telegramUserId: w.telegramUserId } })).toBe(0);
 
     const fresh = t.events.slice(before);
-    expect(fresh.map((e) => e.type)).toEqual(['worker.created', 'collateral.created']);
+    expect(fresh.map((e) => e.type).filter((x) => !x.startsWith('notification.'))).toEqual(['worker.created', 'collateral.created']); // + in-app notices for staff
     expect(fresh[0].data).toMatchObject({ workerId: w.id, code: w.code, status: 'PENDING_APPROVAL' });
   });
 

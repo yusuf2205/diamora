@@ -1032,6 +1032,14 @@ model Notification {
   status         NotificationStatus  @default(PENDING)
   workerId       String?             @db.Uuid
   telegramChatId BigInt?
+  /// channel APP: the person who sees it in the app (bell + system notification)
+  userId         String?             @db.Uuid
+  /// channel APP: short headline; `body` is the detail line
+  title          String?
+  /// channel APP: where a tap leads inside the app, e.g. /admin/assignments/<id>
+  link           String?
+  /// channel APP: makes scheduled notices idempotent (one reminder per assignment/day, one summary per day, ...)
+  dedupeKey      String?             @unique
   /// e.g. worker.approved, login_code
   type           String
   /// cleared after a successful send for sensitive messages (login codes)
@@ -1046,6 +1054,7 @@ model Notification {
 
   @@index([status, nextAttemptAt])
   @@index([workerId, createdAt])
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 

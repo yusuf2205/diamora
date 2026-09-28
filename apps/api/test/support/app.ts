@@ -36,7 +36,7 @@ export async function createTestApp(env: Record<string, string> = {}): Promise<T
   await app.init();
   const bus = app.get(EventBus);
   const events: RealtimeEnvelope[] = [];
-  bus.subscribe((e) => events.push(e));
+  bus.subscribe((e) => { if (!e.type.startsWith('notification.')) events.push(e); }); // in-app notices are asserted via the API, not this list
   return { app, prisma: app.get(PrismaService), registration: app.get(RegistrationService), outbox: new OutboxSender(app.get(PrismaService)), bus, events, close: () => app.close() };
 }
 
