@@ -21,6 +21,7 @@ import '../map/map_screen.dart' show freshnessLabel;
 import '../team/models.dart';
 import '../team/team_repository.dart';
 import 'collateral_card.dart';
+import 'collaterals_screen.dart';
 import 'models.dart';
 import 'worker_history_screen.dart';
 import 'workers_providers.dart';
@@ -40,6 +41,7 @@ class WorkerDetailScreen extends ConsumerWidget {
     final async = ref.watch(workerDetailProvider(workerId));
     final canArchive = ref.watch(authControllerProvider).value?.has('WORKER_UPDATE') ?? false;
     final canDelete = ref.watch(authControllerProvider).value?.has('WORKER_DELETE') ?? false;
+    final canCollateral = ref.watch(authControllerProvider).value?.has('COLLATERAL_MANAGE') ?? false;
     return Scaffold(
       appBar: AppBar(
         title: Text(async.value?.fullName ?? l.workers),
@@ -79,9 +81,22 @@ class WorkerDetailScreen extends ConsumerWidget {
                 for (final c in w.collaterals) ...[
                   CollateralCard(
                     collateral: c,
-                    actions: c.status == 'PENDING' && !w.isPending
-                        ? [FilledButton.tonal(onPressed: () => _receive(context, ref, c), child: Text(l.receiveCollateral))]
-                        : null,
+                    actions: !canCollateral
+                        ? null
+                        : c.status == 'PENDING' && !w.isPending
+                            ? [FilledButton.tonal(onPressed: () => _receive(context, ref, c), child: Text(l.receiveCollateral))]
+                            : c.status == 'HELD'
+                                ? [
+                                    FilledButton.tonal(
+                                      key: Key('returnCollateral-${c.id}'),
+                                      onPressed: () async {
+                                        final what = '${w.fullName} — ${collateralWhatText(l, type: c.type, amount: c.amount, description: c.description)}';
+                                        if (await returnCollateralFlow(context, ref, collateralId: c.id, what: what)) ref.invalidate(workerDetailProvider(workerId));
+                                      },
+                                      child: Text(l.collateralReturnTitle),
+                                    ),
+                                  ]
+                                : null,
                   ),
                   const SizedBox(height: 12),
                 ],

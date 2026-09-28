@@ -7,12 +7,13 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { ClipboardList, Gem, LayoutDashboard, LogOut, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { ClipboardList, Gem, LayoutDashboard, Lock, LogOut, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
   { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
   { href: '/workers', label: 'Мастерицы', icon: Sparkles, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
+  { href: '/collaterals', label: 'Залоги', icon: Lock, perms: ['COLLATERAL_VIEW'] },
   { href: '/assignments', label: 'Задания', icon: ClipboardList, perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
   { href: '/catalog', label: 'Каталог', icon: Gem, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
   { href: '/inventory', label: 'Склад', icon: Package, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },

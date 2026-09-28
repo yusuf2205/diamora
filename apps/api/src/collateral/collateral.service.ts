@@ -39,7 +39,15 @@ export class CollateralService {
       orderBy: { id: 'desc' }, take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
     const items = rows.slice(0, q.limit);
-    return { items: items.map((c) => ({ ...this.dto(c), cover: this.files.ref(c.photos[0]?.fileId) })), nextCursor: rows.length > q.limit ? items[items.length - 1].id : null };
+    // «Сейчас у нас»: what the company is holding right now (money summed in the database, items counted), same scope
+    const [money_, items_] = await Promise.all([
+      this.prisma.workerCollateral.aggregate({ where: { status: 'HELD', type: 'MONEY', worker: scopeWhere }, _sum: { amount: true }, _count: { _all: true } }),
+      this.prisma.workerCollateral.count({ where: { status: 'HELD', type: 'ITEM', worker: scopeWhere } }),
+    ]);
+    return {
+      items: items.map((c) => ({ ...this.dto(c), cover: this.files.ref(c.photos[0]?.fileId) })), nextCursor: rows.length > q.limit ? items[items.length - 1].id : null,
+      held: { moneyTotal: money(money_._sum.amount ?? 0n), moneyCount: money_._count._all, itemCount: items_ },
+    };
   }
 
   async get(actor: AuthUser, id: string) {

@@ -1,7 +1,7 @@
 name: diamoraa_mobile
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0-rc.22+22
+version: 1.0.0-rc.23+23
 
 environment:
   sdk: ^3.13.3

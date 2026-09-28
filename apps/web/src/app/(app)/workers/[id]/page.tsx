@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
 import { PayoutDialog } from '../../assignments/[id]/page';
 import { QrCard } from '@/components/qr';
+import { COLLATERAL_STATUS, collateralWhat, ReceiveCollateralDialog, ReturnCollateralDialog, type CollateralRow } from '@/components/collateral-actions';
 import { CreateAssignmentDialog } from '../../assignments/page';
 
 /** Мастерица: profile, earnings/payout, and her assignments — the same numbers the worker sees on her own phone (§13). */
@@ -67,6 +68,7 @@ export default function WorkerDetailPage() {
       )}
 
       {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
+      {w.status !== 'PENDING_APPROVAL' && (w.collaterals?.length ?? 0) > 0 && <CollateralsCard worker={w} />}
       {w.qrCode && <QrCard heading="Личный QR мастерицы" code={w.qrCode} title={w.fullName} lines={[`${w.code} · ${w.phone}`]} />}
 
       <Card>
@@ -283,6 +285,37 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
           </div>
         </Modal>
       )}
+    </Card>
+  );
+}
+
+/** «Залог»: what she left, whether it is with us, and «Принять» / «Вернуть» right here. */
+function CollateralsCard({ worker: w }: { worker: Worker }) {
+  const { me } = useAuth();
+  const canManage = hasPerm(me, 'COLLATERAL_MANAGE');
+  const [receiving, setReceiving] = useState<CollateralRow | null>(null);
+  const [returning, setReturning] = useState<CollateralRow | null>(null);
+  const rows: CollateralRow[] = (w.collaterals ?? []).map((c) => ({ ...c, returnedAt: null, returnNote: null, worker: { id: w.id, code: w.code, fullName: w.fullName } }));
+  return (
+    <Card>
+      <h2 className="mb-2 text-sm font-semibold">Залог</h2>
+      <ul className="divide-y divide-border">
+        {rows.map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+            <div className="min-w-0">
+              <p className="font-medium">{collateralWhat(c)}</p>
+              <p className="text-xs text-muted">{c.storageLocation ? `Хранится: ${c.storageLocation}` : ' '}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge tone={COLLATERAL_STATUS[c.status].tone}>{COLLATERAL_STATUS[c.status].label}</Badge>
+              {canManage && c.status === 'PENDING' && <Button variant="outline" onClick={() => setReceiving(c)}>Принять</Button>}
+              {canManage && c.status === 'HELD' && <Button variant="outline" onClick={() => setReturning(c)}>Вернуть залог</Button>}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {receiving && <ReceiveCollateralDialog c={receiving} onClose={() => setReceiving(null)} />}
+      {returning && <ReturnCollateralDialog c={returning} onClose={() => setReturning(null)} />}
     </Card>
   );
 }

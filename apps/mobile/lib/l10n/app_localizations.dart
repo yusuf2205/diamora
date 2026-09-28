@@ -3637,6 +3637,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия).'**
   String get auditClearConfirm;
+
+  /// No description provided for @collateralsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Залоги'**
+  String get collateralsTitle;
+
+  /// No description provided for @collateralsWithUs.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас у нас'**
+  String get collateralsWithUs;
+
+  /// No description provided for @collateralsItems.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} вещей'**
+  String collateralsItems(int count);
+
+  /// No description provided for @collateralsTabHeld.
+  ///
+  /// In ru, this message translates to:
+  /// **'У нас'**
+  String get collateralsTabHeld;
+
+  /// No description provided for @collateralsTabPending.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не получены'**
+  String get collateralsTabPending;
+
+  /// No description provided for @collateralsTabReturned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возвращены'**
+  String get collateralsTabReturned;
+
+  /// No description provided for @collateralsEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Здесь пусто'**
+  String get collateralsEmpty;
+
+  /// No description provided for @collateralReturnTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуть залог'**
+  String get collateralReturnTitle;
+
+  /// No description provided for @collateralReturnNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как вернули'**
+  String get collateralReturnNote;
+
+  /// No description provided for @collateralReturnConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица получила залог обратно'**
+  String get collateralReturnConfirm;
+
+  /// No description provided for @collateralReturnedToast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Залог возвращён'**
+  String get collateralReturnedToast;
 }
 
 class _AppLocalizationsDelegate

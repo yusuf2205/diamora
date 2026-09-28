@@ -89,4 +89,18 @@ describe('collateral (залог): declared in Telegram, held by ADMIN, returned
     const pending = await admin.api.get(`/v1/collaterals?workerId=${workerId}&status=PENDING`).expect(200);
     expect(pending.body.items.map((c: { id: string }) => c.id)).toEqual([collateralId]);
   });
+  it('«Залоги» list: filter by status + «сейчас у нас» totals follow receive and return', async () => {
+    const { admin, collateralId } = await setup('MONEY');
+    const heldBefore = (await admin.api.get('/v1/collaterals?status=HELD&limit=100').expect(200)).body.held;
+    await admin.api.post(`/v1/collaterals/${collateralId}/receive`, { storageLocation: 'Сейф' }).expect(200);
+    const held = await admin.api.get('/v1/collaterals?status=HELD&limit=100').expect(200);
+    expect(held.body.items.map((c: { id: string }) => c.id)).toContain(collateralId);
+    expect(held.body.held.moneyCount).toBe(heldBefore.moneyCount + 1);
+    expect(BigInt(held.body.held.moneyTotal)).toBeGreaterThan(BigInt(heldBefore.moneyTotal));
+
+    await admin.api.post(`/v1/collaterals/${collateralId}/return`, { note: 'Вернули лично в руки', workerConfirmed: true }).expect(200);
+    const after = await admin.api.get('/v1/collaterals?status=RETURNED&limit=100').expect(200);
+    expect(after.body.items.map((c: { id: string }) => c.id)).toContain(collateralId);
+    expect(after.body.held.moneyCount).toBe(heldBefore.moneyCount);
+  });
 });

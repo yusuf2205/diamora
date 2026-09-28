@@ -620,5 +620,16 @@
   "assignManagerDone": "Tayyor: {count} usta",
   "assignWorkersToManager": "Ustalarni biriktirish",
   "auditClear": "Jurnalni tozalash",
-  "auditClearConfirm": "Jurnal boshidan boshlanadi — birinchi qatorda sizning ismingiz bilan «Jurnal tozalandi» boʻladi. Eski yozuvlar bu yerda koʻrinmaydi, lekin bazadan oʻchirilmaydi."
+  "auditClearConfirm": "Jurnal boshidan boshlanadi — birinchi qatorda sizning ismingiz bilan «Jurnal tozalandi» boʻladi. Eski yozuvlar bu yerda koʻrinmaydi, lekin bazadan oʻchirilmaydi.",
+  "collateralsTitle": "Garovlar",
+  "collateralsWithUs": "Hozir bizda",
+  "collateralsItems": "{count} ta buyum",
+  "collateralsTabHeld": "Bizda",
+  "collateralsTabPending": "Olinmagan",
+  "collateralsTabReturned": "Qaytarilgan",
+  "collateralsEmpty": "Bu yerda boʻsh",
+  "collateralReturnTitle": "Garovni qaytarish",
+  "collateralReturnNote": "Qanday qaytarildi",
+  "collateralReturnConfirm": "Usta garovni qaytarib oldi",
+  "collateralReturnedToast": "Garov qaytarildi"
 }

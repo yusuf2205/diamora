@@ -646,5 +646,17 @@
   "@assignManagerDone": {"placeholders": {"count": {"type": "int"}}},
   "assignWorkersToManager": "Назначить мастериц",
   "auditClear": "Очистить журнал",
-  "auditClearConfirm": "Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия)."
+  "auditClearConfirm": "Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия).",
+  "collateralsTitle": "Залоги",
+  "collateralsWithUs": "Сейчас у нас",
+  "collateralsItems": "{count} вещей",
+  "@collateralsItems": {"placeholders": {"count": {"type": "int"}}},
+  "collateralsTabHeld": "У нас",
+  "collateralsTabPending": "Не получены",
+  "collateralsTabReturned": "Возвращены",
+  "collateralsEmpty": "Здесь пусто",
+  "collateralReturnTitle": "Вернуть залог",
+  "collateralReturnNote": "Как вернули",
+  "collateralReturnConfirm": "Мастерица получила залог обратно",
+  "collateralReturnedToast": "Залог возвращён"
 }

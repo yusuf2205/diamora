@@ -60,6 +60,8 @@ export interface Worker {
   balance: string;
   manager: { id: string; fullName: string } | null;
   collateral: { id: string; type: string; status: string; amount: string | null; description: string | null } | null;
+  /** detail only: every collateral she declared, with status and where it is kept */
+  collaterals?: { id: string; code: string | null; type: 'MONEY' | 'ITEM'; status: 'PENDING' | 'HELD' | 'RETURNED'; amount: string | null; description: string | null; estimatedValue: string | null; storageLocation: string | null; declaredAt: string; receivedAt: string | null }[];
   rejectedReason?: string | null; // detail only
   createdAt: string;
   updatedAt: string;

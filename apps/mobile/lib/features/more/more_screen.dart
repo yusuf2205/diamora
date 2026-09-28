@@ -19,6 +19,7 @@ class MoreScreen extends ConsumerWidget {
       (Icons.qr_code_scanner_rounded, l.qrScan, '/admin/qr-scan'),
       (Icons.auto_awesome_rounded, l.catalog, '/admin/catalog'),
       (Icons.badge_rounded, l.team, '/admin/team'),
+      if (perms.contains('COLLATERAL_VIEW')) (Icons.lock_rounded, l.collateralsTitle, '/admin/collaterals'),
       if (perms.contains('FINANCE_VIEW_ALL') || perms.contains('FINANCE_VIEW_ASSIGNED') || perms.contains('PROFIT_VIEW')) (Icons.bar_chart_rounded, l.reportsTitle, '/admin/reports'),
       if (canOpenSettings(perms)) (Icons.settings_rounded, l.settingsTitle, '/admin/settings'),
       (Icons.person_outline_rounded, l.profile, '/admin/profile'),

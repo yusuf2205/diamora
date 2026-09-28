@@ -30,6 +30,7 @@ import '../features/work/job_requests.dart';
 import '../features/workers/admin_workers_screen.dart';
 import '../features/workers/worker_detail_screen.dart';
 import 'shells.dart';
+import '../features/workers/collaterals_screen.dart';
 
 /// Route table. Redirects are UX only — the server rejects anything the role may not do.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -64,6 +65,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       GoRoute(path: '/admin/job-requests', builder: (_, _) => const JobRequestsScreen()),
+      GoRoute(path: '/admin/collaterals', builder: (_, _) => const CollateralsScreen()),
       GoRoute(path: '/admin/reports', builder: (_, s) => ReportsScreen(period: s.uri.queryParameters['period'] ?? 'week', offset: int.tryParse(s.uri.queryParameters['offset'] ?? '') ?? 0)),
       GoRoute(path: '/admin/assignments/:id', builder: (_, s) => AssignmentDetailScreen(assignmentId: s.pathParameters['id']!)),
       // opened from «Ещё» (full screen, back arrow) rather than taking a bottom-bar slot each (§11)

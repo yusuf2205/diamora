@@ -1906,4 +1906,39 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get auditClearConfirm =>
       'Jurnal boshidan boshlanadi — birinchi qatorda sizning ismingiz bilan «Jurnal tozalandi» boʻladi. Eski yozuvlar bu yerda koʻrinmaydi, lekin bazadan oʻchirilmaydi.';
+
+  @override
+  String get collateralsTitle => 'Garovlar';
+
+  @override
+  String get collateralsWithUs => 'Hozir bizda';
+
+  @override
+  String collateralsItems(int count) {
+    return '$count ta buyum';
+  }
+
+  @override
+  String get collateralsTabHeld => 'Bizda';
+
+  @override
+  String get collateralsTabPending => 'Olinmagan';
+
+  @override
+  String get collateralsTabReturned => 'Qaytarilgan';
+
+  @override
+  String get collateralsEmpty => 'Bu yerda boʻsh';
+
+  @override
+  String get collateralReturnTitle => 'Garovni qaytarish';
+
+  @override
+  String get collateralReturnNote => 'Qanday qaytarildi';
+
+  @override
+  String get collateralReturnConfirm => 'Usta garovni qaytarib oldi';
+
+  @override
+  String get collateralReturnedToast => 'Garov qaytarildi';
 }

@@ -1947,4 +1947,39 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get auditClearConfirm =>
       'Журнал начнётся с чистого листа — первой строкой будет «Журнал очищен» с вашим именем. Старые записи здесь больше не показываются, но из базы не стираются (так никто не может скрыть свои действия).';
+
+  @override
+  String get collateralsTitle => 'Залоги';
+
+  @override
+  String get collateralsWithUs => 'Сейчас у нас';
+
+  @override
+  String collateralsItems(int count) {
+    return '$count вещей';
+  }
+
+  @override
+  String get collateralsTabHeld => 'У нас';
+
+  @override
+  String get collateralsTabPending => 'Не получены';
+
+  @override
+  String get collateralsTabReturned => 'Возвращены';
+
+  @override
+  String get collateralsEmpty => 'Здесь пусто';
+
+  @override
+  String get collateralReturnTitle => 'Вернуть залог';
+
+  @override
+  String get collateralReturnNote => 'Как вернули';
+
+  @override
+  String get collateralReturnConfirm => 'Мастерица получила залог обратно';
+
+  @override
+  String get collateralReturnedToast => 'Залог возвращён';
 }
