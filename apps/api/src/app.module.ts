@@ -7,6 +7,7 @@ import { AssignmentsModule } from './assignments/assignments.service';
 import { JobRequestsModule } from './job-requests/job-requests.service';
 import { AppNotificationsApiModule, AppNotifierModule } from './notifications/app-notifier';
 import { ReportsModule } from './reports/reports.service';
+import { InsightsModule } from './insights/insights.service';
 import { AuditModule } from './audit/audit.service';
 import { AuthModule } from './auth/auth.controller';
 import { JwtAuthGuard, RolesGuard } from './auth/auth-core';
@@ -74,7 +75,7 @@ class RequestMiddleware implements NestMiddleware {
     PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
     UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,
-    MaterialsModule, StockModule, KitsModule, QrModule, ColorsModule, LedgerModule, AssignmentsModule, JobRequestsModule, AppNotifierModule, AppNotificationsApiModule, ReportsModule,
+    MaterialsModule, StockModule, KitsModule, QrModule, ColorsModule, LedgerModule, AssignmentsModule, JobRequestsModule, AppNotifierModule, AppNotificationsApiModule, ReportsModule, InsightsModule,
   ],
   controllers: [HealthController],
   providers: [

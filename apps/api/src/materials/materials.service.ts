@@ -51,7 +51,7 @@ export class MaterialsService {
       throw invariant('Unknown category');
     const m = await this.prisma.$transaction(async (tx) => {
       const created = await tx.material.create({
-        data: { name: input.name, categoryId: input.categoryId, colorId: input.colorId, article: input.article, unit: input.unit, minStock: input.minStock ?? '0' },
+        data: { name: input.name, categoryId: input.categoryId, colorId: input.colorId, article: input.article, unit: input.unit, minStock: input.minStock ?? '0', unitCost: input.unitCost ?? null },
       });
       await tx.stockBalance.create({ data: { materialId: created.id, quantity: 0 } });
       await this.audit.record({ action: 'material.create', entity: 'Material', entityId: created.id, after: { name: created.name, unit: created.unit } }, tx);
@@ -128,6 +128,7 @@ export class MaterialsService {
       id: m.id, name: m.name, article: m.article, unit: m.unit, isActive: m.isActive,
       category: m.category ? { id: m.category.id, code: m.category.code, name: m.category.name } : null,
       colorId: m.colorId, minStock: min, balance: qty, low: qty < min,
+      unitCost: m.unitCost === null ? null : m.unitCost.toString(),
       createdAt: m.createdAt.toISOString(), updatedAt: m.updatedAt.toISOString(),
     };
   }

@@ -7,7 +7,7 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { ClipboardList, Gem, LayoutDashboard, Lock, LogOut, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
@@ -19,10 +19,13 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/inventory', label: 'Склад', icon: Package, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   { href: '/map', label: 'Карта', icon: MapPin, perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },
   { href: '/reports', label: 'Отчёты', icon: BarChart3, perms: ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'PROFIT_VIEW'] },
+  { href: '/rating', label: 'Рейтинг', icon: Medal, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
+  { href: '/finance', label: 'Прибыль', icon: TrendingUp, perms: ['PROFIT_VIEW'] },
   { href: '/team', label: 'Команда', icon: Users, perms: ['USER_VIEW_ALL'] },
   { href: '/managers', label: 'Менеджеры', icon: UserCog, perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/settings', label: 'Настройки', icon: Settings, perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },
   { href: '/audit', label: 'Журнал', icon: ScrollText, perms: ['AUDIT_VIEW'] },
+  { href: '/system', label: 'Система', icon: Activity, perms: ['SETTINGS_MANAGE'] },
 ];
 
 /** Everything under (app) requires a signed-in STAFF session (D-028) - the server enforces the rest per page. */

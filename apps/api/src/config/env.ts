@@ -55,6 +55,10 @@ export const envSchema = z
     TELEGRAM_LOGIN_SESSION_TTL_MINUTES: z.coerce.number().int().min(1).default(30),
     /** TTL for the one-time handoff ticket behind the bot's final button (§7: 1-5 min) */
     TELEGRAM_HANDOFF_TICKET_TTL_MINUTES: z.coerce.number().int().min(1).default(5),
+    /** the backup job's status files (read-only mount), shown on «Состояние системы»; unset = not visible here */
+    BACKUP_STATUS_DIR: z.string().optional(),
+    /** the deployed build, shown on «Состояние системы» */
+    APP_VERSION: z.string().optional(),
   })
   .superRefine((v, ctx) => {
     if (v.STORAGE_DRIVER === 's3') {

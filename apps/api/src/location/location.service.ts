@@ -55,7 +55,33 @@ export class LocationService {
       include: { liveLocation: true, workerProfile: { select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true } } },
     });
     const now = Date.now();
+    // what is waiting at each worker's (for the map filters «ждут доставку» / «готово к забору» / «просрочено»)
+    const inScope = await this.prisma.workerProfile.findMany({
+      where: { deletedAt: null, status: { in: ['ACTIVE', 'PAUSED'] }, ...(scope === 'all' ? {} : { assignedManagerId: viewer.id }) },
+      select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true, latitude: true, longitude: true, user: { select: { locationHidden: true } } },
+    });
+    const open = await this.prisma.workAssignment.findMany({
+      where: { workerId: { in: inScope.map((w) => w.id) }, status: { in: ['READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'REWORK_REQUIRED'] } },
+      select: { workerId: true, status: true, dueAt: true },
+    });
+    const work = new Map<string, { toDeliver: boolean; toPickup: boolean; overdue: boolean }>();
+    for (const a of open) {
+      const f = work.get(a.workerId) ?? { toDeliver: false, toPickup: false, overdue: false };
+      if (a.status === 'READY_TO_DELIVER') f.toDeliver = true;
+      if (a.status === 'READY_FOR_PICKUP') f.toPickup = true;
+      if (a.dueAt && a.dueAt.getTime() < now && a.status !== 'READY_FOR_PICKUP') f.overdue = true;
+      work.set(a.workerId, f);
+    }
+    const noWork = { toDeliver: false, toPickup: false, overdue: false };
+    const live = new Set(users.filter((u) => u.liveLocation && u.workerProfile).map((u) => u.workerProfile!.id));
+    // a person the SUPER_ADMIN hid from the map is hidden here too (her home is not shown instead)
+    const homes = inScope.filter((w) => !live.has(w.id) && w.latitude !== null && w.longitude !== null && (viewer.role === 'SUPER_ADMIN' || !w.user?.locationHidden));
     return {
+      // workers whose phone does not share a live position: shown at the address they registered with
+      homes: homes.map((w) => ({
+        worker: { id: w.id, code: w.code, fullName: w.fullName, phone: w.phone, managerId: w.assignedManagerId },
+        latitude: Number(w.latitude), longitude: Number(w.longitude), work: work.get(w.id) ?? noWork,
+      })),
       // map markers (M2 §14-16): role, online (presence, separate from GPS) and phone are what a marker's bottom sheet needs.
       items: users.filter((u) => u.liveLocation).map((u) => {
         const l = u.liveLocation!;
@@ -64,6 +90,7 @@ export class LocationService {
           userId: u.id, role: u.role, fullName: u.fullName, phone: u.phone, hidden: u.locationHidden,
           online: this.presence.isOnline(u.id),
           worker: u.workerProfile ? { id: u.workerProfile.id, code: u.workerProfile.code, phone: u.workerProfile.phone, managerId: u.workerProfile.assignedManagerId } : null,
+          work: u.workerProfile ? (work.get(u.workerProfile.id) ?? noWork) : null,
           latitude: l.latitude, longitude: l.longitude, accuracy: l.accuracy, heading: l.heading, speed: l.speed,
           recordedAt: l.recordedAt.toISOString(), ageSeconds, freshness: locationFreshness(ageSeconds), stale: ageSeconds > LOCATION_STALE_SECONDS, isBackground: l.isBackground,
         };

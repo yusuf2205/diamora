@@ -9,7 +9,7 @@ import type { KitTemplate, Page } from '@/lib/types';
 import { Badge, Button, Card, Chips, DataList, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 import { ConfirmDelete } from '@/components/confirm-delete';
 
-interface Material { id: string; name: string; unit: string; balance: number; minStock: number; low: boolean; isActive: boolean }
+interface Material { id: string; name: string; unit: string; balance: number; minStock: number; low: boolean; isActive: boolean; unitCost?: string | null }
 
 const UNITS: { value: string; label: string; short: string }[] = [
   { value: 'METER', label: 'Метры', short: 'м' },
@@ -133,9 +133,11 @@ function MaterialDialog({ onClose }: { onClose: () => void }) {
   const [u, setU] = useState('METER');
   const [min, setMin] = useState('');
   const [qty, setQty] = useState('');
+  const [price, setPrice] = useState('');
   const save = useMutation({
     mutationFn: async () => {
-      const m = await api.post<Material>('/admin/materials', { name: name.trim(), unit: u, minStock: min || '0' }, { idempotencyKey: crypto.randomUUID() });
+      const cost = price.replace(/\D/g, '');
+      const m = await api.post<Material>('/admin/materials', { name: name.trim(), unit: u, minStock: min || '0', unitCost: cost || undefined }, { idempotencyKey: crypto.randomUUID() });
       if (qty && Number(qty) > 0) await api.post('/admin/stock/receipt', { materialId: m.id, quantity: qty, comment: 'Начальный остаток' }, { idempotencyKey: crypto.randomUUID() });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['materials'] }); onClose(); },
@@ -151,6 +153,7 @@ function MaterialDialog({ onClose }: { onClose: () => void }) {
           <Field label={`Уже есть, ${unit(u)}`} htmlFor="m-qty"><Input id="m-qty" inputMode="decimal" placeholder="0" value={qty} onChange={(e) => setQty(e.target.value.replace(',', '.'))} /></Field>
           <Field label={`Минимум, ${unit(u)}`} htmlFor="m-min"><Input id="m-min" inputMode="decimal" placeholder="0" value={min} onChange={(e) => setMin(e.target.value.replace(',', '.'))} /></Field>
         </div>
+        <Field label={`Цена закупки за 1 ${unit(u)}, сум (для прибыли)`} htmlFor="m-price"><Input id="m-price" inputMode="numeric" placeholder="необязательно" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
         {save.isError && <ErrorState error={save.error} />}
         <div className="flex gap-2 pt-2 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
           <Button variant="ghost" onClick={onClose}>Отмена</Button>
@@ -165,8 +168,13 @@ function ReceiptDialog({ material, onClose, onDelete }: { material: Material; on
   const qc = useQueryClient();
   const [qty, setQty] = useState('');
   const [comment, setComment] = useState('');
+  const [price, setPrice] = useState(material.unitCost ?? '');
   const save = useMutation({
-    mutationFn: () => api.post('/admin/stock/receipt', { materialId: material.id, quantity: qty, comment: comment.trim() || undefined }, { idempotencyKey: crypto.randomUUID() }),
+    mutationFn: async () => {
+      const cost = String(price).replace(/\D/g, '');
+      if (cost !== (material.unitCost ?? '')) await api.patch(`/admin/materials/${material.id}`, { unitCost: cost || null });
+      if (Number(qty) > 0) await api.post('/admin/stock/receipt', { materialId: material.id, quantity: qty, comment: comment.trim() || undefined }, { idempotencyKey: crypto.randomUUID() });
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['materials'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onClose(); },
   });
   return (
@@ -174,11 +182,12 @@ function ReceiptDialog({ material, onClose, onDelete }: { material: Material; on
       <div className="space-y-3">
         <p className="text-sm text-muted">Сейчас на складе: <span className="font-semibold text-foreground">{material.balance} {unit(material.unit)}</span></p>
         <Field label={`Пришло, ${unit(material.unit)}`} htmlFor="r-qty"><Input id="r-qty" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value.replace(',', '.'))} autoFocus /></Field>
+        <Field label={`Цена закупки за 1 ${unit(material.unit)}, сум`} htmlFor="r-price"><Input id="r-price" inputMode="numeric" placeholder="не указана" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
         <Field label="Комментарий (необязательно)" htmlFor="r-comment"><Input id="r-comment" placeholder="Поставщик, накладная" value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
         {save.isError && <ErrorState error={save.error} />}
         <div className="flex gap-2 pt-2 [&>*]:flex-1 sm:justify-end sm:[&>*]:flex-none">
           <Button variant="ghost" onClick={onClose}>Отмена</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !(Number(qty) > 0)}>Добавить на склад</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || (!(Number(qty) > 0) && String(price).replace(/\D/g, '') === (material.unitCost ?? ''))}>{Number(qty) > 0 ? 'Добавить на склад' : 'Сохранить цену'}</Button>
         </div>
         {onDelete && <button type="button" className="text-sm text-danger hover:underline" onClick={onDelete}>Удалить этот материал</button>}
       </div>

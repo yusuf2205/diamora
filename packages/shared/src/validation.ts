@@ -171,14 +171,31 @@ export const createMaterialSchema = z.object({
   article: z.string().trim().max(60).optional(),
   unit: z.enum(MATERIAL_UNITS),
   minStock: quantitySchema.optional(),
+  /** purchase price per unit (UZS): «Себестоимость», «Стоимость склада», «Прибыль» */
+  unitCost: uzsSchema.nullable().optional(),
 });
 export const updateMaterialSchema = z
   .object({
     name: z.string().trim().min(2).max(120), categoryId: idSchema.nullable(), colorId: idSchema.nullable(),
-    article: z.string().trim().max(60).nullable(), unit: z.enum(MATERIAL_UNITS), minStock: quantitySchema, isActive: z.boolean(),
+    article: z.string().trim().max(60).nullable(), unit: z.enum(MATERIAL_UNITS), minStock: quantitySchema, isActive: z.boolean(), unitCost: uzsSchema.nullable(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+// ---- owner's analytics: sales and expenses feed «Прибыль» -------------------------------------------------------------------
+export const insightsMonthsSchema = z.object({ months: z.coerce.number().int().min(1).max(24).default(6) });
+export const createSaleSchema = z.object({
+  total: uzsSchema.refine((v) => v > 0n, 'Amount must be above zero'),
+  customer: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(1000).optional(),
+  date: z.coerce.date().optional(),
+});
+export const EXPENSE_CATEGORIES = ['DELIVERY_FUEL', 'PACKAGING', 'OTHER'] as const;
+export const createExpenseSchema = z.object({
+  category: z.enum(EXPENSE_CATEGORIES),
+  amount: uzsSchema.refine((v) => v > 0n, 'Amount must be above zero'),
+  comment: z.string().trim().max(500).optional(),
+  date: z.coerce.date().optional(),
+});
 export const listMaterialsSchema = paginationSchema.extend({
   categoryId: idSchema.optional(),
   isActive: z.coerce.boolean().optional(),

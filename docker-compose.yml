@@ -223,6 +223,11 @@ services:
       CORS_ORIGINS: ${PUBLIC_URL}
       TRUST_PROXY_HOPS: "1" # Caddy is the only hop the API sees; Caddy resolves the real client IP itself
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      BACKUP_STATUS_DIR: /backup-status
+      APP_VERSION: ${APP_VERSION:-local}
+    volumes:
+      # «Состояние системы»: when each backup last succeeded (the backup job's status files, read-only)
+      - ${BACKUP_ROOT}/status:/backup-status:ro
     networks: [edge, data]
     read_only: true
     tmpfs: [/tmp]

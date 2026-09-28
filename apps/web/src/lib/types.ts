@@ -94,7 +94,13 @@ export interface LiveLocation {
   ageSeconds: number; freshness: 'LIVE' | 'RECENT' | 'STALE'; stale: boolean; isBackground: boolean;
   /** SUPER_ADMIN only ever receives hidden people, flagged; everyone else never gets them at all */
   hidden?: boolean;
+  /** what is waiting at this worker's (map filters) */
+  work?: WorkFlags | null;
+  /** a worker whose phone does not share a live position, shown at the address she registered with */
+  isHome?: boolean;
 }
+export interface WorkFlags { toDeliver: boolean; toPickup: boolean; overdue: boolean }
+export interface HomePoint { worker: { id: string; code: string; fullName: string; phone: string; managerId: string | null }; latitude: number; longitude: number; work: WorkFlags }
 
 // Every section is `null` when the viewer lacks the permission to see it (never a fabricated zero, never a 403 for
 // the whole endpoint over one out-of-reach section) — apps/api/src/stats/dashboard.controller.ts.
