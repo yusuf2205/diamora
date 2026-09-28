@@ -1,0 +1,17 @@
+{
+  "name": "Diamoraa",
+  "short_name": "Diamoraa",
+  "description": "Работа для мастериц: заказы, получение по QR, прогресс и оплата",
+  "start_url": "/w",
+  "scope": "/w",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff7f6",
+  "theme_color": "#a3324f",
+  "lang": "ru",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

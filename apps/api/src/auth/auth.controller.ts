@@ -2,7 +2,7 @@ import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe
 import { JwtModule } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramSessionSchema, workerCodeRequestSchema } from '@diamoraa/shared';
+import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramPollSchema, telegramSessionSchema, workerCodeRequestSchema } from '@diamoraa/shared';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Public } from '../common/decorators';
@@ -34,6 +34,10 @@ export class AuthController {
   @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('telegram/exchange') @HttpCode(200)
   @ApiOperation({ summary: 'WORKER: exchange the bot handoff ticket for a real session (or a not-ready-yet status)' }) @ApiZodBody(telegramExchangeSchema)
   telegramExchange(@ZodBody(telegramExchangeSchema) b: z.output<typeof telegramExchangeSchema>, @Req() r: Request) { return this.auth.telegramExchange(b, meta(r)); }
+
+  @Public() @Throttle({ default: { limit: 120, ttl: 60_000 } }) @Post('telegram/poll') @HttpCode(200)
+  @ApiOperation({ summary: 'WORKER (web/PWA): the tab that started the Telegram login asks whether she pressed Start' }) @ApiZodBody(telegramPollSchema)
+  telegramPoll(@ZodBody(telegramPollSchema) b: z.output<typeof telegramPollSchema>, @Req() r: Request) { return this.auth.telegramPoll(b, meta(r)); }
 
   @Public() @Throttle({ default: { limit: 60, ttl: 60_000 } }) @Post('refresh') @HttpCode(200) @ApiZodBody(refreshSchema)
   refresh(@ZodBody(refreshSchema) b: z.output<typeof refreshSchema>, @Req() r: Request) { return this.auth.refresh(b.refreshToken, meta(r)); }

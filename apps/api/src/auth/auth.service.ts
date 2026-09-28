@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { User, UserSession } from '@diamoraa/database';
+import type { User, UserSession, WorkerProfile } from '@diamoraa/database';
 import { isStaffRole, type Permission, type Role } from '@diamoraa/shared';
 import { createHash, randomBytes } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
@@ -96,6 +96,30 @@ export class AuthService {
     }
     await this.audit.record({ action: 'worker.telegram_handoff_consumed', entity: 'TelegramHandoffTicket', entityId: ticket.id, actorId: null, actorRole: 'WORKER' });
     const worker = ticket.workerId ? await this.prisma.workerProfile.findUnique({ where: { id: ticket.workerId }, include: { user: true } }) : null;
+    return this.loginWorker(worker, input.device, meta, ticket.id);
+  }
+
+  /**
+   * Web / PWA Telegram login: no App Link can bring the ticket back to a browser tab, so the tab that started the
+   * session polls. WAITING until she presses Start in the bot; NOT_REGISTERED while she is still answering the bot's
+   * questions; then the same outcome as the ticket exchange — and the session is spent (one login per session).
+   */
+  async telegramPoll(input: { sessionToken: string; device: DeviceInput }, meta: ClientMeta): Promise<TelegramExchangeResult | { status: 'WAITING' | 'NOT_REGISTERED' }> {
+    const row = await this.prisma.telegramLoginSession.findUnique({ where: { tokenHash: sha256(input.sessionToken) } });
+    if (!row || row.expiresAt <= new Date() || row.installId !== input.device.installId) throw ticketInvalid();
+    if (row.telegramUserId === null) return { status: 'WAITING' };
+    const worker = await this.prisma.workerProfile.findUnique({ where: { telegramUserId: row.telegramUserId }, include: { user: true } });
+    if (!worker) return { status: 'NOT_REGISTERED' };
+    const spent = await this.prisma.telegramLoginSession.updateMany({ where: { id: row.id, expiresAt: { gt: new Date() } }, data: { expiresAt: new Date() } });
+    if (spent.count !== 1) throw ticketInvalid(); // a concurrent poll already used it
+    await this.prisma.telegramHandoffTicket.updateMany({ where: { sessionId: row.id, consumedAt: null }, data: { consumedAt: new Date() } });
+    return this.loginWorker(worker, input.device, meta, row.id);
+  }
+
+  private async loginWorker(
+    worker: (WorkerProfile & { user: User | null }) | null, device: DeviceInput, meta: ClientMeta, ref: string,
+  ): Promise<TelegramExchangeResult> {
+    const ticket = { id: ref };
     if (!worker) {
       await this.audit.record({ action: 'worker.telegram_login_failed', entity: 'TelegramHandoffTicket', entityId: ticket.id, actorId: null, actorRole: 'WORKER', after: { reason: 'no_worker' } });
       throw ticketInvalid();
@@ -107,7 +131,7 @@ export class AuthService {
       return { status: 'PAUSED' };
     }
     await this.audit.record({ action: 'worker.telegram_login_success', entity: 'User', entityId: worker.user.id, actorId: worker.user.id, actorRole: 'WORKER' });
-    return this.createSession(worker.user, input.device, meta);
+    return this.createSession(worker.user, device, meta);
   }
 
   // ---- sessions ------------------------------------------------------------------------------------------------------

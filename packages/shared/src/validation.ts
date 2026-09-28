@@ -42,6 +42,9 @@ export const refreshSchema = z.object({ refreshToken: z.string().min(20).max(512
 // handoff ticket that this same device exchanges for a real session — never a password, never a JWT in a URL.
 export const telegramSessionSchema = z.object({ device: deviceSchema });
 export const telegramExchangeSchema = z.object({ ticket: z.string().min(16).max(200), device: deviceSchema });
+/** Web / PWA: the page that started the Telegram login asks «did she press Start?» — it proves it owns the session by
+ * the secret it put into the deep link (never shown to anyone else) and the same installId. */
+export const telegramPollSchema = z.object({ sessionToken: z.string().min(16).max(200), device: deviceSchema });
 
 export const listWorkersSchema = paginationSchema.extend({
   status: z.enum(WORKER_STATUSES).optional(),

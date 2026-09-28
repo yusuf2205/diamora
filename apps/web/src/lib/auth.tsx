@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionExpiredHandler(() => {
       qc.setQueryData(['me'], undefined);
       qc.clear();
-      router.replace('/login');
+      router.replace(/^\/w(\/|$)/.test(window.location.pathname) ? '/w/login' : '/login');
     });
     return () => setSessionExpiredHandler(null);
   }, [qc, router]);

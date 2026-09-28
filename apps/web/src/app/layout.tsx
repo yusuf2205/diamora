@@ -11,7 +11,12 @@ export const metadata: Metadata = {
   title: 'Diamoraa',
   description: 'Diamoraa — работа для мастериц: заказы, прогресс и оплата в одном приложении.',
   robots: { index: false, follow: false },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Diamoraa', statusBarStyle: 'default' },
+  icons: { apple: '/icon-192.png' },
 };
+
+export const viewport = { themeColor: '#a3324f' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
