@@ -70,3 +70,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // self-update: FileProvider hands the downloaded APK to the system installer (MainActivity "diamoraa/updater")
+    implementation("androidx.core:core-ktx:1.13.1")
+}

@@ -1672,4 +1672,16 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get jobRequestRejectReason => 'Sabab (usta ko\'radi)';
+
+  @override
+  String updateReady(String version) {
+    return 'Yangi versiya $version tayyor';
+  }
+
+  @override
+  String get updateInstall => 'O\'rnatish';
+
+  @override
+  String get updateAllowInstall =>
+      'Diamoraa uchun o\'rnatishga ruxsat bering va yana bosing';
 }

@@ -551,5 +551,8 @@
   "jobRequestsTitle": "Ishga arizalar",
   "jobRequestsEmpty": "Yangi arizalar yo'q",
   "jobRequestsCount": "Ishga arizalar: {count}",
-  "jobRequestRejectReason": "Sabab (usta ko'radi)"
+  "jobRequestRejectReason": "Sabab (usta ko'radi)",
+  "updateReady": "Yangi versiya {version} tayyor",
+  "updateInstall": "O'rnatish",
+  "updateAllowInstall": "Diamoraa uchun o'rnatishga ruxsat bering va yana bosing"
 }

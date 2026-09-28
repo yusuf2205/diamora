@@ -568,5 +568,9 @@
   "jobRequestsEmpty": "Новых заявок нет",
   "jobRequestsCount": "Заявки на работу: {count}",
   "@jobRequestsCount": {"placeholders": {"count": {"type": "int"}}},
-  "jobRequestRejectReason": "Причина (мастерица её увидит)"
+  "jobRequestRejectReason": "Причина (мастерица её увидит)",
+  "updateReady": "Новая версия {version} готова",
+  "@updateReady": {"placeholders": {"version": {"type": "String"}}},
+  "updateInstall": "Установить",
+  "updateAllowInstall": "Разрешите установку для Diamoraa и нажмите ещё раз"
 }

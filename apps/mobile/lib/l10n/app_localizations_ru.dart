@@ -1713,4 +1713,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get jobRequestRejectReason => 'Причина (мастерица её увидит)';
+
+  @override
+  String updateReady(String version) {
+    return 'Новая версия $version готова';
+  }
+
+  @override
+  String get updateInstall => 'Установить';
+
+  @override
+  String get updateAllowInstall =>
+      'Разрешите установку для Diamoraa и нажмите ещё раз';
 }

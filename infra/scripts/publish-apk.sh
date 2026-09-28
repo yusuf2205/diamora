@@ -24,5 +24,12 @@ put() { # <local file> <published name>
 }
 put "$OUT/app-arm64-v8a-release.apk" diamoraa.apk
 put "$OUT/app-armeabi-v7a-release.apk" diamoraa-armv7.apk
-printf '{"version":"%s","publishedAt":"%s"}\n' "$VERSION" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | $SSH "cat > '$DATA_ROOT/downloads/version.json'"
-echo "==> published $VERSION"
+# The app updates itself from this manifest (apps/mobile/lib/core/update/app_updater.dart): build = the +N of
+# pubspec.yaml; sha256 lets the phone throw away a broken download instead of offering it for install.
+BUILD="$(sed -n 's/^version: *[^+]*+\([0-9]*\).*/\1/p' apps/mobile/pubspec.yaml | head -n1)"
+[ -n "$BUILD" ] || { echo "build number not found in apps/mobile/pubspec.yaml" >&2; exit 1; }
+sha() { sha256sum "$1" | cut -d' ' -f1; }
+printf '{"version":"%s","build":%s,"publishedAt":"%s","files":{"arm64":{"path":"/download/diamoraa.apk","sha256":"%s"},"armv7":{"path":"/download/diamoraa-armv7.apk","sha256":"%s"}}}\n' \
+  "$VERSION" "$BUILD" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(sha "$OUT/app-arm64-v8a-release.apk")" "$(sha "$OUT/app-armeabi-v7a-release.apk")" \
+  | $SSH "cat > '$DATA_ROOT/downloads/.version.json.tmp' && mv '$DATA_ROOT/downloads/.version.json.tmp' '$DATA_ROOT/downloads/version.json'"
+echo "==> published $VERSION (build $BUILD)"

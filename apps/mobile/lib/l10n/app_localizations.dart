@@ -3223,6 +3223,24 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Причина (мастерица её увидит)'**
   String get jobRequestRejectReason;
+
+  /// No description provided for @updateReady.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новая версия {version} готова'**
+  String updateReady(String version);
+
+  /// No description provided for @updateInstall.
+  ///
+  /// In ru, this message translates to:
+  /// **'Установить'**
+  String get updateInstall;
+
+  /// No description provided for @updateAllowInstall.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешите установку для Diamoraa и нажмите ещё раз'**
+  String get updateAllowInstall;
 }
 
 class _AppLocalizationsDelegate
