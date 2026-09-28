@@ -6,10 +6,13 @@ import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { Button, Card, ErrorState, Input, ListSkeleton, Modal } from '@/components/ui';
 
-interface Item {
-  id: string; name: string; description: string | null; availability: string; isNew: boolean;
-  coverPhoto: { url: string } | null;
-  variants: { id: string; label: string | null; active: boolean; color: { id: string; name: string; hex: string | null } | null }[];
+/** A card of the list (GET /catalog): no colours or description — those come with the item itself. */
+interface Item { id: string; name: string; availability: string; isNew: boolean; coverPhoto: { url: string; thumbUrl?: string } | null }
+/** One item (GET /catalog/:id): only active colours of a published item are ever returned. */
+interface ItemDetail {
+  id: string; name: string; description: string | null; availability: string;
+  media: { id: string; kind: string; file: { url: string } | null }[];
+  variants: { id: string; label: string | null; color: { id: string; name: string; hex: string | null } | null }[];
 }
 
 /** «Наши работы» + «Заказать эту работу» (colour, 9/18/27 м, a wish) — the same as in the app. */
@@ -25,7 +28,7 @@ export default function WorkerCatalog() {
       <div className="grid grid-cols-2 gap-3">
         {data?.items.map((i) => (
           <button key={i.id} onClick={() => setOrdering(i)} className="overflow-hidden rounded-2xl border border-border bg-card text-left">
-            {i.coverPhoto ? <img src={i.coverPhoto.url} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square w-full bg-primary/10" />}
+            {i.coverPhoto ? <img src={i.coverPhoto.thumbUrl ?? i.coverPhoto.url} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square w-full bg-primary/10" />}
             <div className="p-2">
               <p className="line-clamp-2 text-sm font-bold">{i.name}</p>
               {i.availability === 'UNAVAILABLE' && <p className="text-xs text-muted">Сейчас нет</p>}
@@ -38,10 +41,21 @@ export default function WorkerCatalog() {
   );
 }
 
-function OrderDialog({ item, onClose }: { item: Item; onClose: () => void }) {
+function OrderDialog({ item: card, onClose }: { item: Item; onClose: () => void }) {
+  const detail = useQuery<ItemDetail>({ queryKey: ['w-catalog', card.id], queryFn: () => api.get<ItemDetail>(`/catalog/${card.id}`) });
+  return (
+    <Modal title={card.name} onClose={onClose}>
+      {detail.error && <ErrorState error={detail.error} />}
+      {detail.isLoading && <ListSkeleton rows={2} />}
+      {detail.data && <OrderForm item={detail.data} cover={card.coverPhoto?.url ?? null} />}
+    </Modal>
+  );
+}
+
+function OrderForm({ item, cover }: { item: ItemDetail; cover: string | null }) {
   const qc = useQueryClient();
   const router = useRouter();
-  const variants = item.variants.filter((v) => v.active && v.color);
+  const variants = item.variants.filter((v) => v.color);
   const [variantId, setVariantId] = useState(variants.length === 1 ? variants[0].id : '');
   const [kits, setKits] = useState(1);
   const [note, setNote] = useState('');
@@ -53,9 +67,8 @@ function OrderDialog({ item, onClose }: { item: Item; onClose: () => void }) {
   });
   const orderable = item.availability !== 'UNAVAILABLE' && variants.length > 0;
   return (
-    <Modal title={item.name} onClose={onClose}>
       <div className="space-y-3">
-        {item.coverPhoto && <img src={item.coverPhoto.url} alt="" className="max-h-64 w-full rounded-xl object-cover" />}
+        {cover && <img src={cover} alt="" className="max-h-64 w-full rounded-xl object-cover" />}
         {item.description && <p className="text-sm">{item.description}</p>}
         {orderable ? (
           <>
@@ -79,6 +92,5 @@ function OrderDialog({ item, onClose }: { item: Item; onClose: () => void }) {
           </>
         ) : <p className="text-sm text-muted">Сейчас эту работу заказать нельзя.</p>}
       </div>
-    </Modal>
   );
 }
