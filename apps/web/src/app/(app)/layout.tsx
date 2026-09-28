@@ -7,7 +7,7 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { ClipboardList, Gem, LayoutDashboard, LogOut, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon } from 'lucide-react';
+import { ClipboardList, Gem, LayoutDashboard, LogOut, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
@@ -17,6 +17,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/catalog', label: 'Каталог', icon: Gem, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
   { href: '/inventory', label: 'Склад', icon: Package, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   { href: '/map', label: 'Карта', icon: MapPin, perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },
+  { href: '/reports', label: 'Отчёты', icon: BarChart3, perms: ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'PROFIT_VIEW'] },
   { href: '/team', label: 'Команда', icon: Users, perms: ['USER_VIEW_ALL'] },
   { href: '/managers', label: 'Менеджеры', icon: UserCog, perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/settings', label: 'Настройки', icon: Settings, perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },

@@ -1,3 +1,4 @@
+import '../../core/ui/navigate.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 
@@ -180,8 +181,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             Wrap(spacing: 8, runSpacing: 8, children: [
               if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.call)),
               OutlinedButton.icon(
-                onPressed: () => launchUrl(Uri.parse('yandexmaps://maps.yandex.ru/?rtext=~${row.latitude},${row.longitude}&rtt=auto'), mode: LaunchMode.externalApplication)
-                    .catchError((_) => launchUrl(Uri.parse('https://yandex.uz/maps/?rtext=~${row.latitude},${row.longitude}&rtt=auto'))),
+                onPressed: () => openRoute(row.latitude, row.longitude),
                 icon: const Icon(Icons.directions_rounded), label: Text(l.route),
               ),
               if (row.workerId != null)

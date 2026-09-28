@@ -1,5 +1,5 @@
+import '../../core/ui/navigate.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -71,7 +71,7 @@ class _Row extends StatelessWidget {
           IconButton(
             tooltip: l.route,
             icon: const Icon(Icons.directions_rounded),
-            onPressed: () => launchUrl(Uri.parse('https://yandex.uz/maps/?rtext=~${row.latitude},${row.longitude}&rtt=auto'), mode: LaunchMode.externalApplication),
+            onPressed: () => openRoute(row.latitude, row.longitude),
           ),
         ]),
       ),

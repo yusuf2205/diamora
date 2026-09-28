@@ -24,6 +24,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications (in-app notices) needs java.time on older Android
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -74,4 +76,5 @@ flutter {
 dependencies {
     // self-update: FileProvider hands the downloaded APK to the system installer (MainActivity "diamoraa/updater")
     implementation("androidx.core:core-ktx:1.13.1")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

@@ -1,3 +1,4 @@
+import '../reports/reports_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../settings/pay_rate.dart';
 import '../settings/pay_rate_screen.dart';
 import '../work/assignment_admin_repository.dart' show LedgerEntry;
+import '../../core/notifications/app_notifications.dart';
 import '../work/current_work_card.dart';
 import '../work/job_requests.dart';
 import '../work/work_repository.dart';
@@ -25,7 +27,7 @@ class WorkerHomeScreen extends ConsumerWidget {
     final currentWork = ref.watch(currentWorkProvider);
     final earnings = ref.watch(myEarningsProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(l.home)),
+      appBar: AppBar(title: Text(l.home), actions: const [NoticeBell()]),
       body: Column(children: [
         const ConnectionBanner(),
         Expanded(
@@ -80,6 +82,7 @@ class WorkerHomeScreen extends ConsumerWidget {
                     ]),
                   ),
                 ),
+                const MyMonthsCard(),
                 earnings.maybeWhen(
                   data: (led) => led.history.isEmpty ? const SizedBox.shrink() : _EarningsHistory(entries: led.history),
                   orElse: () => const SizedBox.shrink(),

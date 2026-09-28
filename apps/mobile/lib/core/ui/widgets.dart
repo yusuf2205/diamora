@@ -174,3 +174,29 @@ class FitButton extends StatelessWidget {
     });
   }
 }
+
+/// Text that never breaks a word in the middle: it wraps only between words, and if a single word is wider than the
+/// space (a narrow phone, a big system font) the whole text is scaled down just enough to fit.
+class WordSafeText extends StatelessWidget {
+  const WordSafeText(this.text, {super.key, this.style, this.maxLines = 2, this.textAlign});
+  final String text;
+  final TextStyle? style;
+  final int maxLines;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, c) {
+      final effective = DefaultTextStyle.of(context).style.merge(style);
+      final scaler = MediaQuery.textScalerOf(context);
+      var widest = 0.0;
+      for (final word in text.split(RegExp(r'\s+'))) {
+        final tp = TextPainter(text: TextSpan(text: word, style: effective), textDirection: Directionality.of(context), textScaler: scaler, maxLines: 1)..layout();
+        if (tp.width > widest) widest = tp.width;
+      }
+      final factor = c.hasBoundedWidth && widest > c.maxWidth && widest > 0 ? (c.maxWidth / widest) * 0.98 : 1.0;
+      final size = (effective.fontSize ?? 14) * factor;
+      return Text(text, maxLines: maxLines, overflow: TextOverflow.ellipsis, textAlign: textAlign, style: effective.copyWith(fontSize: size));
+    });
+  }
+}

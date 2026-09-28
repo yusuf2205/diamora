@@ -1748,4 +1748,104 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get qrPrint => 'Печать QR';
+
+  @override
+  String get noticesTitle => 'Уведомления';
+
+  @override
+  String get noticesReadAll => 'Прочитать все';
+
+  @override
+  String get noticesEmpty => 'Пока уведомлений нет';
+
+  @override
+  String get reportsTitle => 'Отчёты';
+
+  @override
+  String get reportDay => 'День';
+
+  @override
+  String get reportWeek => 'Неделя';
+
+  @override
+  String get reportMonth => 'Месяц';
+
+  @override
+  String get reportIssued => 'Выдано';
+
+  @override
+  String get reportAccepted => 'Принято';
+
+  @override
+  String get reportOverdue => 'Просрочено';
+
+  @override
+  String get reportDefective => 'Брак';
+
+  @override
+  String get reportByWorker => 'По мастерицам';
+
+  @override
+  String get reportEmpty => 'За этот период ничего не было';
+
+  @override
+  String get reportLowStock => 'Заканчивается на складе';
+
+  @override
+  String get reportExcelHint =>
+      'Выгрузка в Excel — в веб-панели: Отчёты → «Скачать для Excel».';
+
+  @override
+  String get myMonthsTitle => 'Мои заработки по месяцам';
+
+  @override
+  String get m1 => 'Январь';
+
+  @override
+  String get m2 => 'Февраль';
+
+  @override
+  String get m3 => 'Март';
+
+  @override
+  String get m4 => 'Апрель';
+
+  @override
+  String get m5 => 'Май';
+
+  @override
+  String get m6 => 'Июнь';
+
+  @override
+  String get m7 => 'Июль';
+
+  @override
+  String get m8 => 'Август';
+
+  @override
+  String get m9 => 'Сентябрь';
+
+  @override
+  String get m10 => 'Октябрь';
+
+  @override
+  String get m11 => 'Ноябрь';
+
+  @override
+  String get m12 => 'Декабрь';
+
+  @override
+  String get qaAssign => 'Работа';
+
+  @override
+  String get qaScan => 'QR';
+
+  @override
+  String get qaMap => 'Карта';
+
+  @override
+  String get qaStock => 'Склад';
+
+  @override
+  String get qaPay => 'Выплата';
 }

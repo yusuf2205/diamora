@@ -21,6 +21,8 @@ class DiamoraaApp extends ConsumerWidget {
       supportedLocales: supportedLocales,
       localizationsDelegates: const [AppLocalizations.delegate, GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
       routerConfig: ref.watch(routerProvider),
+      // a very large system font made every screen scroll and broke words: follow it, but at most +10 %
+      builder: (context, child) => MediaQuery.withClampedTextScaling(maxScaleFactor: 1.1, child: child!),
     );
   }
 }

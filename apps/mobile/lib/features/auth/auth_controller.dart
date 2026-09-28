@@ -1,3 +1,4 @@
+import '../../core/notifications/app_notifications.dart';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,7 @@ class AuthController extends AsyncNotifier<Session?> {
 
   Future<void> sessionExpired() async {
     if (state.value == null) return;
+    await stopNoticeDelivery().catchError((_) {}); // no background notices for a signed-out phone
     await ref.read(tokenStoreProvider).clear();
     await _wipe();
     state = const AsyncData(null);

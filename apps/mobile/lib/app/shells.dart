@@ -1,3 +1,4 @@
+import '../core/notifications/app_notifications.dart';
 import '../core/update/app_updater.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,7 +53,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     });
 
     return Scaffold(
-      body: UpdateBanner(child: LocationGate(child: widget.shell)),
+      body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: widget.shell))),
       bottomNavigationBar: NavigationBar(
         selectedIndex: widget.shell.currentIndex,
         onDestinationSelected: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
@@ -78,7 +79,7 @@ class WorkerShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      body: UpdateBanner(child: LocationGate(child: shell)),
+      body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: shell))),
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),

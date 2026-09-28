@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../work/job_requests.dart';
+import '../../core/notifications/app_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -37,9 +38,9 @@ class StaffDashboardScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             _Header(session: session),
+            _QuickActions(session: session),
             if (session?.has('ASSIGNMENT_VIEW_ALL') == true || session?.has('ASSIGNMENT_VIEW_ASSIGNED') == true) const JobRequestsBanner(),
             _Attention(d: d),
-            _QuickActions(session: session),
             _Counters(d: d),
             if (d.today != null) _Today(t: d.today!),
           ],
@@ -77,18 +78,20 @@ class _Header extends StatelessWidget {
     final role = switch (s?.role) { 'SUPER_ADMIN' => l.roleSuperAdmin, 'ADMIN' => l.roleAdmin, 'MANAGER' => l.roleManager, _ => '' };
     final name = s == null ? '' : s.fullName.trim().split(RegExp(r'\s+')).first;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(greeting, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.outline)),
-        const SizedBox(height: 2),
-        Text(name, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-        if (role.isNotEmpty) Text(role, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary)),
+      padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(name.isEmpty ? greeting : '$greeting, $name', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800), maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (role.isNotEmpty) Text(role, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
+          ]),
+        ),
+        const NoticeBell(),
       ]),
     );
   }
 }
 
-/// "Требует внимания": only the lines that are non-zero, most urgent first; nothing to do = one calm line.
 class _Attention extends StatelessWidget {
   const _Attention({required this.d});
   final StaffDashboard d;
@@ -113,24 +116,20 @@ class _Attention extends StatelessWidget {
         _AttnItem(Icons.payments_rounded, Colors.green, l.attnWorkersDue(f.workersDue), () => _push(context, const WorkersDueScreen())),
     ];
     if (w == null && f == null) return const SizedBox.shrink();
+    // compact chips, not a tall list: the counters below already hold the numbers, these only say what to do FIRST
     return _Section(
       title: l.dashAttention,
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: items.isEmpty
-            ? ListTile(leading: const Icon(Icons.check_circle_outline_rounded, color: Colors.green), title: Text(l.dashAllClear))
-            : Column(children: [
-                for (var i = 0; i < items.length; i++) ...[
-                  if (i > 0) const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: Icon(items[i].icon, color: items[i].color),
-                    title: Text(items[i].text, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: items[i].onTap,
-                  ),
-                ],
-              ]),
-      ),
+      child: items.isEmpty
+          ? Row(children: [const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 20), const SizedBox(width: 8), Text(l.dashAllClear)])
+          : Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final it in items)
+                ActionChip(
+                  avatar: Icon(it.icon, color: it.color, size: 18),
+                  label: Text(it.text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: it.onTap,
+                ),
+            ]),
     );
   }
 }
@@ -151,28 +150,32 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final perms = session?.permissions ?? const <String>[];
-    final actions = <(IconData, String, VoidCallback)>[
-      if (perms.contains('ASSIGNMENT_CREATE')) (Icons.add_task_rounded, l.actionAssign, () => _push(context, const CreateAssignmentScreen())),
-      (Icons.qr_code_scanner_rounded, l.actionScanQr, () => context.push('/admin/qr-scan')),
-      (Icons.map_rounded, l.actionMap, () => context.go('/admin/map')),
-      (Icons.inventory_2_rounded, l.actionStock, () => context.go('/admin/inventory')),
-      if (perms.contains('CASH_PAYOUT')) (Icons.payments_rounded, l.actionPayout, () => _push(context, const WorkersDueScreen())),
+    // short one-word labels (the full name is the tooltip): five in one tidy row on any phone
+    final actions = <(IconData, String, String, VoidCallback)>[
+      if (perms.contains('ASSIGNMENT_CREATE')) (Icons.add_task_rounded, l.qaAssign, l.actionAssign, () => _push(context, const CreateAssignmentScreen())),
+      (Icons.qr_code_scanner_rounded, l.qaScan, l.actionScanQr, () => context.push('/admin/qr-scan')),
+      (Icons.map_rounded, l.qaMap, l.actionMap, () => context.go('/admin/map')),
+      (Icons.inventory_2_rounded, l.qaStock, l.actionStock, () => context.go('/admin/inventory')),
+      if (perms.contains('CASH_PAYOUT')) (Icons.payments_rounded, l.qaPay, l.actionPayout, () => _push(context, const WorkersDueScreen())),
     ];
     return _Section(
       title: l.dashQuickActions,
-      child: Row(children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         for (final a in actions)
           Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: a.$3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(children: [
-                  CircleAvatar(radius: 26, backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Icon(a.$1)),
-                  const SizedBox(height: 6),
-                  Text(a.$2, textAlign: TextAlign.center, maxLines: 2, style: Theme.of(context).textTheme.labelMedium),
-                ]),
+            child: Tooltip(
+              message: a.$3,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: a.$4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    CircleAvatar(radius: 22, backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Icon(a.$1, size: 22)),
+                    const SizedBox(height: 4),
+                    WordSafeText(a.$2, textAlign: TextAlign.center, maxLines: 1, style: Theme.of(context).textTheme.labelMedium),
+                  ]),
+                ),
               ),
             ),
           ),
@@ -210,9 +213,9 @@ class _Counters extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: LayoutBuilder(builder: (context, c) {
-        final cols = c.maxWidth >= 900 ? 4 : 2;
-        final width = (c.maxWidth - 12 * (cols - 1)) / cols;
-        return Wrap(spacing: 12, runSpacing: 12, children: [for (final card in cards) SizedBox(width: width, child: card)]);
+        final cols = c.maxWidth >= 900 ? 6 : c.maxWidth >= 560 ? 4 : 3;
+        final width = (c.maxWidth - 8 * (cols - 1)) / cols;
+        return Wrap(spacing: 8, runSpacing: 8, children: [for (final card in cards) SizedBox(width: width, child: card)]);
       }),
     );
   }
@@ -233,21 +236,25 @@ class _StatCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 12),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: danger ? color : null)),
-            ),
-            const SizedBox(height: 2),
-            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline)),
+            Row(children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: danger ? color : null)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 4),
+            SizedBox(height: 30, child: Align(alignment: Alignment.topLeft, child: WordSafeText(label, maxLines: 2, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline, height: 1.15)))),
           ]),
         ),
       ),

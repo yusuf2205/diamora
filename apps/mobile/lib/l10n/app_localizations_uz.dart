@@ -1707,4 +1707,104 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get qrPrint => 'QR-ni chop etish';
+
+  @override
+  String get noticesTitle => 'Bildirishnomalar';
+
+  @override
+  String get noticesReadAll => 'Hammasini o\'qilgan deb belgilash';
+
+  @override
+  String get noticesEmpty => 'Hozircha bildirishnomalar yo\'q';
+
+  @override
+  String get reportsTitle => 'Hisobotlar';
+
+  @override
+  String get reportDay => 'Kun';
+
+  @override
+  String get reportWeek => 'Hafta';
+
+  @override
+  String get reportMonth => 'Oy';
+
+  @override
+  String get reportIssued => 'Berildi';
+
+  @override
+  String get reportAccepted => 'Qabul qilindi';
+
+  @override
+  String get reportOverdue => 'Muddati o\'tgan';
+
+  @override
+  String get reportDefective => 'Brak';
+
+  @override
+  String get reportByWorker => 'Ustalar bo\'yicha';
+
+  @override
+  String get reportEmpty => 'Bu davrda hech narsa bo\'lmagan';
+
+  @override
+  String get reportLowStock => 'Omborda tugayapti';
+
+  @override
+  String get reportExcelHint =>
+      'Excel uchun yuklab olish — veb-panelda: Hisobotlar → «Excel uchun yuklab olish».';
+
+  @override
+  String get myMonthsTitle => 'Oylar bo\'yicha daromadim';
+
+  @override
+  String get m1 => 'Yanvar';
+
+  @override
+  String get m2 => 'Fevral';
+
+  @override
+  String get m3 => 'Mart';
+
+  @override
+  String get m4 => 'Aprel';
+
+  @override
+  String get m5 => 'May';
+
+  @override
+  String get m6 => 'Iyun';
+
+  @override
+  String get m7 => 'Iyul';
+
+  @override
+  String get m8 => 'Avgust';
+
+  @override
+  String get m9 => 'Sentyabr';
+
+  @override
+  String get m10 => 'Oktyabr';
+
+  @override
+  String get m11 => 'Noyabr';
+
+  @override
+  String get m12 => 'Dekabr';
+
+  @override
+  String get qaAssign => 'Ish';
+
+  @override
+  String get qaScan => 'QR';
+
+  @override
+  String get qaMap => 'Xarita';
+
+  @override
+  String get qaStock => 'Ombor';
+
+  @override
+  String get qaPay => 'To\'lov';
 }

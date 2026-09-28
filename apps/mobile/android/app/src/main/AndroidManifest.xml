@@ -80,6 +80,15 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="tg"/>
         </intent>
+        <!-- «Маршрут»: Yandex Navigator / Yandex Maps build the route from the current position at once -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="yandexnavi"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="yandexmaps"/>
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

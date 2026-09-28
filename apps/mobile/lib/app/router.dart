@@ -23,7 +23,10 @@ import '../features/team/locations_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/team/team_screen.dart';
 import '../features/team/user_detail_screen.dart';
+import '../core/notifications/app_notifications.dart';
+import '../features/reports/reports_screen.dart';
 import '../features/work/assignment_detail_screen.dart';
+import '../features/work/job_requests.dart';
 import '../features/workers/admin_workers_screen.dart';
 import '../features/workers/worker_detail_screen.dart';
 import 'shells.dart';
@@ -60,6 +63,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => TelegramPendingScreen(status: s.uri.queryParameters['status'] ?? 'ERROR', reason: s.uri.queryParameters['reason']),
       ),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
+      GoRoute(path: '/admin/job-requests', builder: (_, _) => const JobRequestsScreen()),
+      GoRoute(path: '/admin/reports', builder: (_, s) => ReportsScreen(period: s.uri.queryParameters['period'] ?? 'week', offset: int.tryParse(s.uri.queryParameters['offset'] ?? '') ?? 0)),
       GoRoute(path: '/admin/assignments/:id', builder: (_, s) => AssignmentDetailScreen(assignmentId: s.pathParameters['id']!)),
       // opened from «Ещё» (full screen, back arrow) rather than taking a bottom-bar slot each (§11)
       GoRoute(
@@ -127,6 +132,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   // /telegram-pending?status=ERROR navigation could overwrite an otherwise-successful login. Both sides also go
   // through a platform channel that doesn't exist in widget tests (or could hiccup for any other reason) — never
   // let that take the whole app down, it's just one login path among others.
+  // a tap on a system notification opens the screen it is about
+  onNoticeTap = (link) => router.push(link);
   final handledTickets = <String>{};
   try {
     final links = AppLinks();

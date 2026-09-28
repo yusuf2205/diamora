@@ -3277,6 +3277,204 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Печать QR'**
   String get qrPrint;
+
+  /// No description provided for @noticesTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уведомления'**
+  String get noticesTitle;
+
+  /// No description provided for @noticesReadAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прочитать все'**
+  String get noticesReadAll;
+
+  /// No description provided for @noticesEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока уведомлений нет'**
+  String get noticesEmpty;
+
+  /// No description provided for @reportsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отчёты'**
+  String get reportsTitle;
+
+  /// No description provided for @reportDay.
+  ///
+  /// In ru, this message translates to:
+  /// **'День'**
+  String get reportDay;
+
+  /// No description provided for @reportWeek.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неделя'**
+  String get reportWeek;
+
+  /// No description provided for @reportMonth.
+  ///
+  /// In ru, this message translates to:
+  /// **'Месяц'**
+  String get reportMonth;
+
+  /// No description provided for @reportIssued.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдано'**
+  String get reportIssued;
+
+  /// No description provided for @reportAccepted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принято'**
+  String get reportAccepted;
+
+  /// No description provided for @reportOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просрочено'**
+  String get reportOverdue;
+
+  /// No description provided for @reportDefective.
+  ///
+  /// In ru, this message translates to:
+  /// **'Брак'**
+  String get reportDefective;
+
+  /// No description provided for @reportByWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'По мастерицам'**
+  String get reportByWorker;
+
+  /// No description provided for @reportEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'За этот период ничего не было'**
+  String get reportEmpty;
+
+  /// No description provided for @reportLowStock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заканчивается на складе'**
+  String get reportLowStock;
+
+  /// No description provided for @reportExcelHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выгрузка в Excel — в веб-панели: Отчёты → «Скачать для Excel».'**
+  String get reportExcelHint;
+
+  /// No description provided for @myMonthsTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мои заработки по месяцам'**
+  String get myMonthsTitle;
+
+  /// No description provided for @m1.
+  ///
+  /// In ru, this message translates to:
+  /// **'Январь'**
+  String get m1;
+
+  /// No description provided for @m2.
+  ///
+  /// In ru, this message translates to:
+  /// **'Февраль'**
+  String get m2;
+
+  /// No description provided for @m3.
+  ///
+  /// In ru, this message translates to:
+  /// **'Март'**
+  String get m3;
+
+  /// No description provided for @m4.
+  ///
+  /// In ru, this message translates to:
+  /// **'Апрель'**
+  String get m4;
+
+  /// No description provided for @m5.
+  ///
+  /// In ru, this message translates to:
+  /// **'Май'**
+  String get m5;
+
+  /// No description provided for @m6.
+  ///
+  /// In ru, this message translates to:
+  /// **'Июнь'**
+  String get m6;
+
+  /// No description provided for @m7.
+  ///
+  /// In ru, this message translates to:
+  /// **'Июль'**
+  String get m7;
+
+  /// No description provided for @m8.
+  ///
+  /// In ru, this message translates to:
+  /// **'Август'**
+  String get m8;
+
+  /// No description provided for @m9.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сентябрь'**
+  String get m9;
+
+  /// No description provided for @m10.
+  ///
+  /// In ru, this message translates to:
+  /// **'Октябрь'**
+  String get m10;
+
+  /// No description provided for @m11.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ноябрь'**
+  String get m11;
+
+  /// No description provided for @m12.
+  ///
+  /// In ru, this message translates to:
+  /// **'Декабрь'**
+  String get m12;
+
+  /// No description provided for @qaAssign.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа'**
+  String get qaAssign;
+
+  /// No description provided for @qaScan.
+  ///
+  /// In ru, this message translates to:
+  /// **'QR'**
+  String get qaScan;
+
+  /// No description provided for @qaMap.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта'**
+  String get qaMap;
+
+  /// No description provided for @qaStock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Склад'**
+  String get qaStock;
+
+  /// No description provided for @qaPay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата'**
+  String get qaPay;
 }
 
 class _AppLocalizationsDelegate

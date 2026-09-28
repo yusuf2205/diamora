@@ -1,3 +1,4 @@
+import '../../core/ui/navigate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -477,7 +478,7 @@ class _Contacts extends ConsumerWidget {
                 icon: Icons.directions_rounded,
                 label: l.route,
                 // Yandex Maps deep link (no API key needed); falls back to the web page
-                onPressed: hasLocation ? () => _open(Uri.parse('https://yandex.uz/maps/?rtext=~$lat,$lng&rtt=auto')) : null,
+                onPressed: hasLocation ? () => openRoute(lat, lng) : null,
               ),
             ),
           ]),
