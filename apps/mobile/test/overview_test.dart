@@ -69,7 +69,7 @@ void main() {
     expect(find.text('2 мастерицы ждут выплату'), findsOneWidget);
     expect(find.text('Срок сегодня'), findsOneWidget);
     expect(find.textContaining(RegExp(r'60\s000')), findsOneWidget); // выплачено сегодня
-    expect(find.text('Выдать работу'), findsOneWidget);
+    expect(find.text('Подготовить работу'), findsOneWidget);
     expect(find.text('Выплатить наличными'), findsOneWidget);
   });
 
@@ -80,7 +80,7 @@ void main() {
     expect(find.text('Менеджер'), findsOneWidget);
     expect(find.text('К выплате'), findsNothing);
     expect(find.text('Выплатить наличными'), findsNothing);
-    expect(find.text('Выдать работу'), findsNothing); // no ASSIGNMENT_CREATE
+    expect(find.text('Подготовить работу'), findsNothing); // no ASSIGNMENT_CREATE
     expect(find.text('В работе'), findsOneWidget);
   });
 

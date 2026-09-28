@@ -667,10 +667,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get workMetersDone => 'Сколько метров готово';
 
   @override
-  String get workStatusReadyToDeliver => 'Ожидает доставки материалов';
+  String get workStatusReadyToDeliver => 'Ожидает получения';
 
   @override
-  String get workStatusDelivered => 'Материалы доставлены';
+  String get workStatusDelivered => 'Получено мастерицей';
 
   @override
   String get workStatusInProgress => 'В работе';
@@ -716,7 +716,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get next => 'Далее';
 
   @override
-  String get assignCreateTitle => 'Выдать работу';
+  String get assignCreateTitle => 'Подготовить работу';
 
   @override
   String get assignStepProduct => 'Модель';
@@ -781,7 +781,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get assignSummaryPayment => 'Расчётная оплата';
 
   @override
-  String get assignSubmit => 'Выдать работу';
+  String get assignSubmit => 'Подготовить работу';
 
   @override
   String get assignSuccess => 'Работа выдана';
@@ -820,7 +820,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deliveryConfirmBody => 'Материалы переданы мастерице?';
 
   @override
-  String get deliveryDone => 'Доставлено';
+  String get deliveryDone => 'Начать передачу';
 
   @override
   String get pickupNeeded => 'Есть что забрать';
@@ -1060,7 +1060,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get earningsEmpty => 'Пока нет начислений';
 
   @override
-  String get actionAssign => 'Выдать работу';
+  String get actionAssign => 'Подготовить работу';
 
   @override
   String get actionScanQr => 'Сканировать QR';
@@ -1447,4 +1447,157 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get staffSignIn => 'Вход для сотрудников';
+
+  @override
+  String get workWaitingTitle => 'Вас ожидает новая работа';
+
+  @override
+  String get workKitReadyTitle => 'Ваш комплект готов к получению';
+
+  @override
+  String get workKitReadyHint =>
+      'Отсканируйте QR-код на комплекте, который привёз сотрудник';
+
+  @override
+  String get workWaitingHint =>
+      'Сотрудник привезёт комплект. Когда он отсканирует QR, здесь появится кнопка получения.';
+
+  @override
+  String get workScanQr => 'Сканировать QR';
+
+  @override
+  String get receiveTitle => 'Получение работы';
+
+  @override
+  String get receiveCheckHint =>
+      'Проверьте работу и материалы перед подтверждением.';
+
+  @override
+  String get receiveConfirm => 'Подтвердить получение';
+
+  @override
+  String get receiveProblem => 'Есть проблема';
+
+  @override
+  String receiveKits(int count) {
+    return 'Комплектов: $count';
+  }
+
+  @override
+  String get receiveDone => 'Работа получена!';
+
+  @override
+  String get receiveDoneHint => 'Материалы теперь у вас. Удачной работы!';
+
+  @override
+  String get receiveAlready => 'Вы уже получили эту работу';
+
+  @override
+  String get receiveForeign => 'Этот комплект предназначен другой мастерице.';
+
+  @override
+  String get receiveNotStarted =>
+      'Сначала сотрудник должен отсканировать этот QR';
+
+  @override
+  String get receiveExpired =>
+      'Время передачи истекло. Попросите сотрудника отсканировать QR ещё раз.';
+
+  @override
+  String get receiveScanHint => 'Наведите камеру на QR-код комплекта';
+
+  @override
+  String get receiveGoHome => 'На главную';
+
+  @override
+  String get problemTitle => 'Что не так?';
+
+  @override
+  String get problemShortage => 'Не хватает материала';
+
+  @override
+  String get problemWrongColor => 'Неправильный цвет';
+
+  @override
+  String get problemWrongModel => 'Неправильная модель';
+
+  @override
+  String get problemWrongMeters => 'Неправильный метраж';
+
+  @override
+  String get problemDamaged => 'Повреждение';
+
+  @override
+  String get problemOther => 'Другое';
+
+  @override
+  String get problemComment => 'Комментарий (необязательно)';
+
+  @override
+  String get problemSend => 'Отправить';
+
+  @override
+  String get problemSent =>
+      'Сотрудник получил ваше сообщение. Работа пока не передана.';
+
+  @override
+  String get handoffStart => 'Начать передачу';
+
+  @override
+  String get handoffStartTitle => 'Передать комплект мастерице?';
+
+  @override
+  String get handoffStartBody =>
+      'После этого мастерица сама отсканирует этот QR в своём приложении и подтвердит получение. Материалы перейдут к ней только после её подтверждения.';
+
+  @override
+  String get handoffWaiting => 'Ожидаем подтверждения мастерицы';
+
+  @override
+  String get handoffWaitingHint =>
+      'Попросите мастерицу открыть приложение и отсканировать этот QR';
+
+  @override
+  String get handoffWorkerScanned =>
+      'Мастерица отсканировала QR и проверяет комплект';
+
+  @override
+  String handoffReceived(String name) {
+    return '$name получила комплект';
+  }
+
+  @override
+  String get handoffProblemTitle => 'Мастерица сообщила о проблеме';
+
+  @override
+  String get handoffRestart => 'Начать передачу снова';
+
+  @override
+  String get handoffExpiredLabel => 'Время передачи истекло';
+
+  @override
+  String timelineStarted(String name) {
+    return 'Передача начата · $name';
+  }
+
+  @override
+  String get timelineScanned => 'Мастерица отсканировала QR';
+
+  @override
+  String get timelineConfirmed => 'Мастерица подтвердила получение';
+
+  @override
+  String get timelineProblem => 'Мастерица сообщила о проблеме';
+
+  @override
+  String get handoffTimelineTitle => 'Передача';
+
+  @override
+  String get materialsAtWorker => 'Материалы у мастерицы';
+
+  @override
+  String get materialsPrepared => 'Подготовленные материалы';
+
+  @override
+  String get workRemaining => 'Осталось';
 }

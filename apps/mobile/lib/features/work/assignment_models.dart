@@ -1,3 +1,5 @@
+import 'models.dart';
+
 /// Staff-side assignment detail (§4-7, §12-14) — mirrors `AssignmentsService.dto` on the API exactly.
 class AssignmentDetail {
   const AssignmentDetail({
@@ -7,6 +9,7 @@ class AssignmentDetail {
     required this.workerId, required this.workerName, required this.workerPhone,
     required this.productName, this.variantLabel, required this.colorName, this.colorHex,
     required this.materials, required this.statusHistory, required this.deliveries,
+    this.expectedPayment, this.handoff, this.handoffTimeline = const [],
   });
   final String id;
   final String code;
@@ -31,6 +34,10 @@ class AssignmentDetail {
   final List<AssignmentMaterialLine> materials;
   final List<AssignmentStatusEvent> statusHistory;
   final List<AssignmentDelivery> deliveries;
+  final String? expectedPayment;
+  /// latest two-sided QR handoff (Phase 5); null until staff starts one
+  final HandoffInfo? handoff;
+  final List<HandoffTimelineEntry> handoffTimeline;
 
   double get percent => plannedMeters > 0 ? (reportedMeters / plannedMeters * 100).clamp(0, 100) : 0;
 
@@ -51,15 +58,22 @@ class AssignmentDetail {
       materials: ((j['materials'] as List?) ?? const []).map((x) => AssignmentMaterialLine.fromJson((x as Map).cast<String, dynamic>())).toList(),
       statusHistory: ((j['statusHistory'] as List?) ?? const []).map((x) => AssignmentStatusEvent.fromJson((x as Map).cast<String, dynamic>())).toList(),
       deliveries: ((j['deliveries'] as List?) ?? const []).map((x) => AssignmentDelivery.fromJson((x as Map).cast<String, dynamic>())).toList(),
+      expectedPayment: j['expectedPayment'] as String?,
+      handoff: j['handoff'] is Map ? HandoffInfo.fromJson((j['handoff'] as Map).cast<String, dynamic>()) : null,
+      handoffTimeline: ((j['handoffTimeline'] as List?) ?? const []).map((x) => HandoffTimelineEntry.fromJson((x as Map).cast<String, dynamic>())).toList(),
     );
   }
 }
 
 class AssignmentMaterialLine {
-  const AssignmentMaterialLine({required this.materialId, required this.quantity});
+  const AssignmentMaterialLine({required this.materialId, required this.quantity, this.name, this.unit});
   final String materialId;
   final double quantity;
-  factory AssignmentMaterialLine.fromJson(Map<String, dynamic> j) => AssignmentMaterialLine(materialId: j['materialId'] as String, quantity: (j['quantity'] as num).toDouble());
+  final String? name;
+  final String? unit;
+  factory AssignmentMaterialLine.fromJson(Map<String, dynamic> j) => AssignmentMaterialLine(
+        materialId: j['materialId'] as String, quantity: (j['quantity'] as num).toDouble(), name: j['name'] as String?, unit: j['unit'] as String?,
+      );
 }
 
 class AssignmentStatusEvent {

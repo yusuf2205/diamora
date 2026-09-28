@@ -31,7 +31,8 @@ class AssignmentAdminRepository {
           .map((j) => AssignmentSummary.fromJson((j as Map).cast<String, dynamic>()))
           .toList();
 
-  Future<AssignmentDetail> deliver(String id) async => AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/deliver', idempotencyKey: _uuid.v4()));
+  /// Phase 5 step 1: staff at the worker's door starts the handoff; nothing moves until SHE confirms in her app.
+  Future<AssignmentDetail> startHandoff(String id) async => AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/handoff', idempotencyKey: _uuid.v4()));
   Future<AssignmentDetail> pickup(String id) async => AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/pickup', idempotencyKey: _uuid.v4()));
 
   Future<AssignmentDetail> accept(String id, {required String broughtMeters, required String acceptedMeters, String? defectiveMeters, String? reworkMeters, String? comment}) async =>
@@ -50,7 +51,7 @@ final assignmentAdminRepositoryProvider = Provider<AssignmentAdminRepository>((r
 final assignmentDetailProvider = FutureProvider.autoDispose.family<AssignmentDetail, String>((ref, id) {
   ref.listen(realtimeEventsProvider, (_, next) {
     final t = next.value?.type;
-    if (t != null && (t.startsWith('assignment.') || t.startsWith('work.') || t.startsWith('delivery.') || t == 'quality.completed')) ref.invalidateSelf();
+    if (t != null && (t.startsWith('assignment.') || t.startsWith('work.') || t.startsWith('delivery.') || t.startsWith('handoff.') || t == 'quality.completed')) ref.invalidateSelf();
   });
   return ref.watch(assignmentAdminRepositoryProvider).get(id);
 });

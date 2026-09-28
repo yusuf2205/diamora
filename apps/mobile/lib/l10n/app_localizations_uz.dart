@@ -669,10 +669,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get workMetersDone => 'Necha metr tayyor';
 
   @override
-  String get workStatusReadyToDeliver => 'Material yetkazilishini kutmoqda';
+  String get workStatusReadyToDeliver => 'Qabul qilinishi kutilmoqda';
 
   @override
-  String get workStatusDelivered => 'Material yetkazildi';
+  String get workStatusDelivered => 'Usta qabul qildi';
 
   @override
   String get workStatusInProgress => 'Ishlanmoqda';
@@ -718,7 +718,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get next => 'Keyingisi';
 
   @override
-  String get assignCreateTitle => 'Ish berish';
+  String get assignCreateTitle => 'Ishni tayyorlash';
 
   @override
   String get assignStepProduct => 'Model';
@@ -783,7 +783,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get assignSummaryPayment => 'Hisoblangan toʻlov';
 
   @override
-  String get assignSubmit => 'Ish berish';
+  String get assignSubmit => 'Ishni tayyorlash';
 
   @override
   String get assignSuccess => 'Ish berildi';
@@ -823,7 +823,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get deliveryConfirmBody => 'Materiallar mastaricaga topshirildimi?';
 
   @override
-  String get deliveryDone => 'Yetkazildi';
+  String get deliveryDone => 'Topshirishni boshlash';
 
   @override
   String get pickupNeeded => 'Olib ketish kerak';
@@ -1021,7 +1021,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get earningsEmpty => 'Hozircha hisoblanganlar yoʻq';
 
   @override
-  String get actionAssign => 'Ish berish';
+  String get actionAssign => 'Ishni tayyorlash';
 
   @override
   String get actionScanQr => 'QR skanerlash';
@@ -1408,4 +1408,155 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get staffSignIn => 'Xodimlar uchun kirish';
+
+  @override
+  String get workWaitingTitle => 'Sizni yangi ish kutmoqda';
+
+  @override
+  String get workKitReadyTitle => 'To\'plamingiz qabul qilishga tayyor';
+
+  @override
+  String get workKitReadyHint =>
+      'Xodim olib kelgan to\'plamdagi QR-kodni skanerlang';
+
+  @override
+  String get workWaitingHint =>
+      'Xodim to\'plamni olib keladi. U QR-kodni skanerlaganda, shu yerda qabul qilish tugmasi chiqadi.';
+
+  @override
+  String get workScanQr => 'QR-ni skanerlash';
+
+  @override
+  String get receiveTitle => 'Ishni qabul qilish';
+
+  @override
+  String get receiveCheckHint =>
+      'Tasdiqlashdan oldin ish va materiallarni tekshiring.';
+
+  @override
+  String get receiveConfirm => 'Qabul qilishni tasdiqlash';
+
+  @override
+  String get receiveProblem => 'Muammo bor';
+
+  @override
+  String receiveKits(int count) {
+    return 'To\'plamlar: $count';
+  }
+
+  @override
+  String get receiveDone => 'Ish qabul qilindi!';
+
+  @override
+  String get receiveDoneHint => 'Materiallar endi sizda. Ishingizga omad!';
+
+  @override
+  String get receiveAlready => 'Siz bu ishni allaqachon qabul qilgansiz';
+
+  @override
+  String get receiveForeign => 'Bu to\'plam boshqa ustaga mo\'ljallangan.';
+
+  @override
+  String get receiveNotStarted => 'Avval xodim bu QR-ni skanerlashi kerak';
+
+  @override
+  String get receiveExpired =>
+      'Topshirish vaqti tugadi. Xodimdan QR-ni qayta skanerlashni so\'rang.';
+
+  @override
+  String get receiveScanHint => 'Kamerani to\'plamdagi QR-kodga qarating';
+
+  @override
+  String get receiveGoHome => 'Bosh sahifaga';
+
+  @override
+  String get problemTitle => 'Nima noto\'g\'ri?';
+
+  @override
+  String get problemShortage => 'Material yetarli emas';
+
+  @override
+  String get problemWrongColor => 'Rang noto\'g\'ri';
+
+  @override
+  String get problemWrongModel => 'Model noto\'g\'ri';
+
+  @override
+  String get problemWrongMeters => 'Metraj noto\'g\'ri';
+
+  @override
+  String get problemDamaged => 'Shikastlangan';
+
+  @override
+  String get problemOther => 'Boshqa';
+
+  @override
+  String get problemComment => 'Izoh (ixtiyoriy)';
+
+  @override
+  String get problemSend => 'Yuborish';
+
+  @override
+  String get problemSent => 'Xodim xabaringizni oldi. Ish hali topshirilmagan.';
+
+  @override
+  String get handoffStart => 'Topshirishni boshlash';
+
+  @override
+  String get handoffStartTitle => 'To\'plamni ustaga topshirasizmi?';
+
+  @override
+  String get handoffStartBody =>
+      'Shundan so\'ng usta o\'z ilovasida ushbu QR-ni skanerlaydi va qabul qilishni tasdiqlaydi. Materiallar faqat uning tasdig\'idan keyin unga o\'tadi.';
+
+  @override
+  String get handoffWaiting => 'Usta tasdig\'i kutilmoqda';
+
+  @override
+  String get handoffWaitingHint =>
+      'Ustadan ilovani ochib, ushbu QR-ni skanerlashini so\'rang';
+
+  @override
+  String get handoffWorkerScanned =>
+      'Usta QR-ni skanerladi va to\'plamni tekshirmoqda';
+
+  @override
+  String handoffReceived(String name) {
+    return '$name to\'plamni oldi';
+  }
+
+  @override
+  String get handoffProblemTitle => 'Usta muammo haqida xabar berdi';
+
+  @override
+  String get handoffRestart => 'Topshirishni qaytadan boshlash';
+
+  @override
+  String get handoffExpiredLabel => 'Topshirish vaqti tugadi';
+
+  @override
+  String timelineStarted(String name) {
+    return 'Topshirish boshlandi · $name';
+  }
+
+  @override
+  String get timelineScanned => 'Usta QR-ni skanerladi';
+
+  @override
+  String get timelineConfirmed => 'Usta qabul qilishni tasdiqladi';
+
+  @override
+  String get timelineProblem => 'Usta muammo haqida xabar berdi';
+
+  @override
+  String get handoffTimelineTitle => 'Topshirish';
+
+  @override
+  String get materialsAtWorker => 'Materiallar ustada';
+
+  @override
+  String get materialsPrepared => 'Tayyorlangan materiallar';
+
+  @override
+  String get workRemaining => 'Qoldi';
 }

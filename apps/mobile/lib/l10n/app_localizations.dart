@@ -1337,13 +1337,13 @@ abstract class AppLocalizations {
   /// No description provided for @workStatusReadyToDeliver.
   ///
   /// In ru, this message translates to:
-  /// **'Ожидает доставки материалов'**
+  /// **'Ожидает получения'**
   String get workStatusReadyToDeliver;
 
   /// No description provided for @workStatusDelivered.
   ///
   /// In ru, this message translates to:
-  /// **'Материалы доставлены'**
+  /// **'Получено мастерицей'**
   String get workStatusDelivered;
 
   /// No description provided for @workStatusInProgress.
@@ -1427,7 +1427,7 @@ abstract class AppLocalizations {
   /// No description provided for @assignCreateTitle.
   ///
   /// In ru, this message translates to:
-  /// **'Выдать работу'**
+  /// **'Подготовить работу'**
   String get assignCreateTitle;
 
   /// No description provided for @assignStepProduct.
@@ -1553,7 +1553,7 @@ abstract class AppLocalizations {
   /// No description provided for @assignSubmit.
   ///
   /// In ru, this message translates to:
-  /// **'Выдать работу'**
+  /// **'Подготовить работу'**
   String get assignSubmit;
 
   /// No description provided for @assignSuccess.
@@ -1631,7 +1631,7 @@ abstract class AppLocalizations {
   /// No description provided for @deliveryDone.
   ///
   /// In ru, this message translates to:
-  /// **'Доставлено'**
+  /// **'Начать передачу'**
   String get deliveryDone;
 
   /// No description provided for @pickupNeeded.
@@ -1997,7 +1997,7 @@ abstract class AppLocalizations {
   /// No description provided for @actionAssign.
   ///
   /// In ru, this message translates to:
-  /// **'Выдать работу'**
+  /// **'Подготовить работу'**
   String get actionAssign;
 
   /// No description provided for @actionScanQr.
@@ -2737,6 +2737,282 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Вход для сотрудников'**
   String get staffSignIn;
+
+  /// No description provided for @workWaitingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вас ожидает новая работа'**
+  String get workWaitingTitle;
+
+  /// No description provided for @workKitReadyTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш комплект готов к получению'**
+  String get workKitReadyTitle;
+
+  /// No description provided for @workKitReadyHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отсканируйте QR-код на комплекте, который привёз сотрудник'**
+  String get workKitReadyHint;
+
+  /// No description provided for @workWaitingHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сотрудник привезёт комплект. Когда он отсканирует QR, здесь появится кнопка получения.'**
+  String get workWaitingHint;
+
+  /// No description provided for @workScanQr.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сканировать QR'**
+  String get workScanQr;
+
+  /// No description provided for @receiveTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получение работы'**
+  String get receiveTitle;
+
+  /// No description provided for @receiveCheckHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверьте работу и материалы перед подтверждением.'**
+  String get receiveCheckHint;
+
+  /// No description provided for @receiveConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердить получение'**
+  String get receiveConfirm;
+
+  /// No description provided for @receiveProblem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть проблема'**
+  String get receiveProblem;
+
+  /// No description provided for @receiveKits.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комплектов: {count}'**
+  String receiveKits(int count);
+
+  /// No description provided for @receiveDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа получена!'**
+  String get receiveDone;
+
+  /// No description provided for @receiveDoneHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы теперь у вас. Удачной работы!'**
+  String get receiveDoneHint;
+
+  /// No description provided for @receiveAlready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы уже получили эту работу'**
+  String get receiveAlready;
+
+  /// No description provided for @receiveForeign.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот комплект предназначен другой мастерице.'**
+  String get receiveForeign;
+
+  /// No description provided for @receiveNotStarted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала сотрудник должен отсканировать этот QR'**
+  String get receiveNotStarted;
+
+  /// No description provided for @receiveExpired.
+  ///
+  /// In ru, this message translates to:
+  /// **'Время передачи истекло. Попросите сотрудника отсканировать QR ещё раз.'**
+  String get receiveExpired;
+
+  /// No description provided for @receiveScanHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Наведите камеру на QR-код комплекта'**
+  String get receiveScanHint;
+
+  /// No description provided for @receiveGoHome.
+  ///
+  /// In ru, this message translates to:
+  /// **'На главную'**
+  String get receiveGoHome;
+
+  /// No description provided for @problemTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Что не так?'**
+  String get problemTitle;
+
+  /// No description provided for @problemShortage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не хватает материала'**
+  String get problemShortage;
+
+  /// No description provided for @problemWrongColor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неправильный цвет'**
+  String get problemWrongColor;
+
+  /// No description provided for @problemWrongModel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неправильная модель'**
+  String get problemWrongModel;
+
+  /// No description provided for @problemWrongMeters.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неправильный метраж'**
+  String get problemWrongMeters;
+
+  /// No description provided for @problemDamaged.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повреждение'**
+  String get problemDamaged;
+
+  /// No description provided for @problemOther.
+  ///
+  /// In ru, this message translates to:
+  /// **'Другое'**
+  String get problemOther;
+
+  /// No description provided for @problemComment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Комментарий (необязательно)'**
+  String get problemComment;
+
+  /// No description provided for @problemSend.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get problemSend;
+
+  /// No description provided for @problemSent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сотрудник получил ваше сообщение. Работа пока не передана.'**
+  String get problemSent;
+
+  /// No description provided for @handoffStart.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начать передачу'**
+  String get handoffStart;
+
+  /// No description provided for @handoffStartTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передать комплект мастерице?'**
+  String get handoffStartTitle;
+
+  /// No description provided for @handoffStartBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'После этого мастерица сама отсканирует этот QR в своём приложении и подтвердит получение. Материалы перейдут к ней только после её подтверждения.'**
+  String get handoffStartBody;
+
+  /// No description provided for @handoffWaiting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидаем подтверждения мастерицы'**
+  String get handoffWaiting;
+
+  /// No description provided for @handoffWaitingHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Попросите мастерицу открыть приложение и отсканировать этот QR'**
+  String get handoffWaitingHint;
+
+  /// No description provided for @handoffWorkerScanned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица отсканировала QR и проверяет комплект'**
+  String get handoffWorkerScanned;
+
+  /// No description provided for @handoffReceived.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} получила комплект'**
+  String handoffReceived(String name);
+
+  /// No description provided for @handoffProblemTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица сообщила о проблеме'**
+  String get handoffProblemTitle;
+
+  /// No description provided for @handoffRestart.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начать передачу снова'**
+  String get handoffRestart;
+
+  /// No description provided for @handoffExpiredLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Время передачи истекло'**
+  String get handoffExpiredLabel;
+
+  /// No description provided for @timelineStarted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передача начата · {name}'**
+  String timelineStarted(String name);
+
+  /// No description provided for @timelineScanned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица отсканировала QR'**
+  String get timelineScanned;
+
+  /// No description provided for @timelineConfirmed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица подтвердила получение'**
+  String get timelineConfirmed;
+
+  /// No description provided for @timelineProblem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерица сообщила о проблеме'**
+  String get timelineProblem;
+
+  /// No description provided for @handoffTimelineTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передача'**
+  String get handoffTimelineTitle;
+
+  /// No description provided for @materialsAtWorker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы у мастерицы'**
+  String get materialsAtWorker;
+
+  /// No description provided for @materialsPrepared.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подготовленные материалы'**
+  String get materialsPrepared;
+
+  /// No description provided for @workRemaining.
+  ///
+  /// In ru, this message translates to:
+  /// **'Осталось'**
+  String get workRemaining;
 }
 
 class _AppLocalizationsDelegate

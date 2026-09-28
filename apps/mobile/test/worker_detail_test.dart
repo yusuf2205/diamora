@@ -85,7 +85,7 @@ void main() {
     expect(find.textContaining('Дилноза Менеджер'), findsOneWidget);
     expect(find.textContaining('в сети'), findsOneWidget);
     expect(find.text('41.30000, 69.28000'), findsOneWidget);
-    expect(find.text('Выдать работу'), findsOneWidget);
+    expect(find.text('Подготовить работу'), findsOneWidget);
     await dispose(tester, db);
   });
 

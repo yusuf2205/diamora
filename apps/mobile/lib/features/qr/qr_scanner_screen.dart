@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/network/api_exception.dart';
 import '../../l10n/app_localizations.dart';
 import '../work/assignment_admin_repository.dart';
+import '../work/models.dart';
 import 'qr_repository.dart';
 
 /// Full QR scanner (M2 §12-13). After a scan: a WORKER code opens Worker Detail (scope-checked server-side — a MANAGER
@@ -111,11 +112,39 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               Text(worker['phone'] as String? ?? '', style: Theme.of(ctx).textTheme.bodySmall),
               const Divider(height: 24),
               Text('${product?['name'] ?? ''} · ${color?['name'] ?? ''}', style: Theme.of(ctx).textTheme.bodyLarge),
-              Text('${a['reportedMeters']} / ${a['plannedMeters']} м'),
+              if (status == 'READY_TO_DELIVER') ...[
+                // Phase 5.2: everything to check before handing the kit over
+                Text('${a['plannedMeters']} м · ${l.receiveKits((a['kitCount'] as num).toInt())}'),
+                if (a['dueAt'] != null) Text('${l.workDueDate}: ${_day(a['dueAt'] as String)}'),
+                const SizedBox(height: 8),
+                for (final m in ((a['materials'] as List?) ?? const []).cast<Map>())
+                  Text(materialLine(m['name'] as String?, (m['quantity'] as num).toDouble(), m['unit'] as String?), style: Theme.of(ctx).textTheme.bodyMedium),
+                if ((a['notes'] as String?)?.isNotEmpty == true) ...[const SizedBox(height: 6), Text(a['notes'] as String, style: Theme.of(ctx).textTheme.bodySmall)],
+              ] else
+                Text('${a['reportedMeters']} / ${a['plannedMeters']} м'),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                child: status == 'READY_FOR_PICKUP'
+                child: status == 'READY_TO_DELIVER'
+                    ? FilledButton.icon(
+                        onPressed: busy ? null : () async {
+                          setSheetState(() => busy = true);
+                          try {
+                            await ref.read(assignmentAdminRepositoryProvider).startHandoff(a['id'] as String);
+                            if (ctx.mounted) Navigator.of(ctx).pop();
+                            if (!mounted) return;
+                            // the waiting screen: she scans the same QR, this screen turns green when she confirms
+                            context.pop();
+                            context.push('/admin/assignments/${a['id']}');
+                          } on ApiException catch (e) {
+                            setSheetState(() => busy = false);
+                            if (ctx.mounted) _snack(e.message);
+                          }
+                        },
+                        icon: busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.qr_code_2_rounded),
+                        label: Text(l.handoffStart),
+                      )
+                    : status == 'READY_FOR_PICKUP'
                     ? FilledButton.icon(
                         onPressed: busy ? null : () async {
                           setSheetState(() => busy = true);
@@ -138,6 +167,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         ),
       ),
     );
+  }
+
+  String _day(String iso) {
+    final d = DateTime.parse(iso).toLocal();
+    return '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
   }
 
   @override

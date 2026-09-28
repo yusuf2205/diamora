@@ -288,10 +288,12 @@ class _CurrentWorkSection extends ConsumerWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Expanded(child: Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium)),
-        TextButton.icon(
-          icon: const Icon(Icons.add_rounded),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
-          label: Text(l.actionAssign),
+        Flexible(
+          child: TextButton.icon(
+            icon: const Icon(Icons.add_rounded),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CreateAssignmentScreen(workerId: worker.id))),
+            label: Text(l.actionAssign, overflow: TextOverflow.ellipsis),
+          ),
         ),
       ]),
       const SizedBox(height: 8),

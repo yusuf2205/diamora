@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../settings/company_contact.dart';
 import '../settings/pay_rate.dart';
 import 'models.dart';
+import 'receive_work_screens.dart';
 import 'work_repository.dart';
 
 /// M3 §8: "understand your current job in one look" — photo-less for now (product photos are catalog media, a nice-to-have
@@ -22,9 +23,10 @@ class CurrentWorkCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final rate = ref.watch(payRateProvider).value;
     final ratePerKit = rate != null ? int.tryParse(rate.ratePerKit) : null;
-    final expected = ratePerKit != null ? (ratePerKit * work.plannedMeters / 9).round() : null;
+    final expected = work.expectedPayment != null ? int.tryParse(work.expectedPayment!) : ratePerKit != null ? (ratePerKit * work.plannedMeters / 9).round() : null;
     final inProgress = work.status == 'IN_PROGRESS';
     final color = _hexColor(work.colorHex) ?? scheme.primary;
+    if (work.awaitingReceipt) return _PendingWorkCard(work: work);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -48,13 +50,14 @@ class CurrentWorkCard extends ConsumerWidget {
           const SizedBox(height: 6),
           ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: work.percent / 100, minHeight: 8)),
           const SizedBox(height: 16),
+          if (inProgress) _InfoRow(icon: Icons.straighten_rounded, label: l.workRemaining, value: '${work.remainingMeters.toStringAsFixed(work.remainingMeters.truncateToDouble() == work.remainingMeters ? 0 : 1)} м'),
           if (work.dueAt != null) _InfoRow(icon: Icons.event_rounded, label: l.workDueDate, value: _formatDate(work.dueAt!)),
           if (expected != null) _InfoRow(icon: Icons.payments_rounded, label: l.workExpectedEarning, value: '${formatUzs(expected.toString())} ${l.currency}'),
           if (work.materials.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(l.workMaterials, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
-            Text(work.materials.map((m) => m.quantity.toStringAsFixed(m.quantity.truncateToDouble() == m.quantity ? 0 : 2)).join(' · '), style: Theme.of(context).textTheme.bodySmall),
+            for (final m in work.materials) Text(materialLine(m.name, m.quantity, m.unit), style: Theme.of(context).textTheme.bodySmall),
           ],
           const SizedBox(height: 20),
           if (inProgress) ...[
@@ -171,4 +174,60 @@ class _InfoRow extends StatelessWidget {
           Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
         ]),
       );
+}
+
+/// Phase 5.1: assigned ≠ received. She sees what is coming (and what it pays), but there is nothing to do until staff
+/// brings the kit and scans its QR; then ONE big button: «Сканировать QR».
+class _PendingWorkCard extends StatelessWidget {
+  const _PendingWorkCard({required this.work});
+  final CurrentWork work;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final ready = work.kitReadyToReceive;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: ready ? Colors.green.withValues(alpha: 0.12) : scheme.tertiaryContainer.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(children: [
+          Icon(ready ? Icons.qr_code_scanner_rounded : Icons.card_giftcard_rounded, size: 32, color: ready ? Colors.green.shade700 : scheme.tertiary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(ready ? l.workKitReadyTitle : l.workWaitingTitle, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(ready ? l.workKitReadyHint : l.workWaitingHint, style: text.bodyMedium),
+            ]),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      WorkHeroCard(work: work),
+      const SizedBox(height: 8),
+      Align(alignment: Alignment.centerLeft, child: _StatusChip(status: work.status)),
+      if (work.materials.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(l.workMaterials, style: text.labelLarge),
+        const SizedBox(height: 4),
+        for (final m in work.materials) Text(materialLine(m.name, m.quantity, m.unit), style: text.bodyMedium),
+      ],
+      if (ready) ...[
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 60,
+          child: FilledButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ReceiveScanScreen())),
+            icon: const Icon(Icons.qr_code_scanner_rounded, size: 26),
+            label: Text(l.workScanQr, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ),
+        ),
+      ],
+    ]);
+  }
 }

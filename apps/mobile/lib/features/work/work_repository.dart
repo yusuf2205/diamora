@@ -27,6 +27,18 @@ class WorkRepository {
   Future<void> markReady(String assignmentId, {required String readyMeters, String? comment}) =>
       _api.postJson('/work/$assignmentId/ready', idempotencyKey: _uuid.v4(), body: {'readyMeters': readyMeters, 'comment': ?comment});
 
+  /// Phase 5: she scanned a kit QR with her own camera. A foreign kit is refused server-side (FOREIGN_KIT) with no data.
+  Future<HandoffScan> scanHandoff(String code) async => HandoffScan.fromJson(await _api.postJson('/work/handoff/scan', body: {'code': code}));
+
+  /// «Подтвердить получение»: the server moves material custody to her in one transaction; replay-safe.
+  Future<CurrentWork> confirmHandoff(String handoffId, {double? latitude, double? longitude, double? accuracyM}) async => CurrentWork.fromJson(
+        await _api.postJson('/work/handoff/$handoffId/confirm', idempotencyKey: _uuid.v4(), body: {'latitude': ?latitude, 'longitude': ?longitude, 'accuracyM': ?accuracyM}),
+      );
+
+  /// «Есть проблема»: nothing is transferred, staff is told in realtime.
+  Future<void> reportHandoffProblem(String handoffId, {required String reason, String? comment}) =>
+      _api.postJson('/work/handoff/$handoffId/problem', idempotencyKey: _uuid.v4(), body: {'reason': reason, 'comment': ?comment});
+
   /// M3 §13: "К получению / Заработано / Выплачено" — self-only, the same numbers a staff member would see about her.
   Future<WorkerLedger> myEarnings() async => WorkerLedger.fromJson(await _api.getJson('/work/earnings'));
 }
@@ -36,7 +48,7 @@ final workRepositoryProvider = Provider<WorkRepository>((ref) => WorkRepository(
 final currentWorkProvider = FutureProvider.autoDispose<CurrentWork?>((ref) {
   ref.listen(realtimeEventsProvider, (_, next) {
     final t = next.value?.type;
-    if (t != null && (t.startsWith('assignment.') || t.startsWith('work.') || t.startsWith('delivery.'))) ref.invalidateSelf();
+    if (t != null && (t.startsWith('assignment.') || t.startsWith('work.') || t.startsWith('delivery.') || t.startsWith('handoff.'))) ref.invalidateSelf();
   });
   return ref.watch(workRepositoryProvider).current();
 });

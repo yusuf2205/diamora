@@ -136,7 +136,7 @@ void main() {
     expect(find.text('9 м'), findsOneWidget);
     expect(find.text(sum('30000')), findsOneWidget); // 1 kit x 30 000 — the calculated payment, never left to the client to invent
 
-    await tester.tap(find.text('Выдать работу'));
+    await tester.tap(find.text('Подготовить работу'));
     await tester.pump(); // one frame: the catch-free success path pops and pushes immediately
     await tester.pump();
 
@@ -174,7 +174,7 @@ void main() {
     await tester.tap(find.text('Далее'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Выдать работу'));
+    await tester.tap(find.text('Подготовить работу'));
     // the catch handler chains TWO awaits (the rejected create call, then a fresh kits() fetch to resolve the material
     // name) before it calls showError — enough pumps to flush both microtask hops, short of a full pumpAndSettle
     // (which would run out the SnackBar's own auto-dismiss timer and make it invisible to the assertion below)
@@ -212,10 +212,10 @@ void main() {
     await tester.tap(find.text('Далее'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Выдать работу'));
+    await tester.tap(find.text('Подготовить работу'));
     await tester.pumpAndSettle();
     expect(find.text('Нет связи с сервером. Проверьте интернет.'), findsOneWidget);
-    expect(find.text('Выдать работу'), findsOneWidget); // the button is back: nothing is stuck in a busy state forever
+    expect(find.text('Подготовить работу'), findsOneWidget); // the button is back: nothing is stuck in a busy state forever
     await tearDownDb(tester);
   });
 
@@ -247,9 +247,9 @@ void main() {
     await tester.tap(find.text('Далее'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Выдать работу'));
+    await tester.tap(find.text('Подготовить работу'));
     await tester.pump(); // one frame: _busy is now true, the whole bottom bar (and its button) is gone
-    expect(find.text('Выдать работу'), findsNothing);
+    expect(find.text('Подготовить работу'), findsNothing);
     await tester.pumpAndSettle();
     verify(() => api.postJson('/admin/assignments', idempotencyKey: any(named: 'idempotencyKey'), body: any(named: 'body'))).called(1);
     await tearDownDb(tester);

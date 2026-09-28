@@ -56,6 +56,7 @@ void main() {
         ));
     await openHome(tester, () => app(worker, api, events));
 
+    await tester.scrollUntilVisible(find.text('Начисление'), 150);
     expect(find.text('История'), findsOneWidget);
     expect(find.text('Начисление'), findsOneWidget); // EARNING, in plain language
     expect(find.text('Выплатить наличными'), findsOneWidget); // PAYOUT_CASH, in plain language

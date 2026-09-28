@@ -7,6 +7,8 @@ import '../../l10n/app_localizations.dart';
 import 'acceptance_screen.dart';
 import 'assignment_admin_repository.dart';
 import 'assignment_models.dart';
+import 'models.dart';
+import '../../core/providers.dart';
 
 /// M3 §5: the assignment as the main operational screen for staff — status-dependent quick actions instead of a
 /// generic "edit" form, human status labels instead of the raw enum, a visible history timeline.
@@ -18,6 +20,17 @@ class AssignmentDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final async = ref.watch(assignmentDetailProvider(assignmentId));
+    // Phase 5.9: the moment she confirms in her app, the staff member standing next to her sees it here
+    ref.listen(realtimeEventsProvider, (_, next) {
+      final e = next.value;
+      if (e == null || e.data['assignmentId'] != assignmentId) return;
+      final name = async.value?.workerName ?? '';
+      final msg = switch (e.type) { 'handoff.confirmed' => l.handoffReceived(name), 'handoff.problem' => l.handoffProblemTitle, _ => null };
+      if (msg == null) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(msg), backgroundColor: e.type == 'handoff.confirmed' ? Colors.green.shade700 : Theme.of(context).colorScheme.error));
+    });
     return Scaffold(
       appBar: AppBar(title: Text(l.assignmentDetailTitle)),
       body: async.when(
@@ -30,6 +43,7 @@ class AssignmentDetailScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _StatusChip(status: a.status),
             const SizedBox(height: 16),
+            if (a.status == 'READY_TO_DELIVER' && a.handoff != null) ...[_HandoffBlock(a: a), const SizedBox(height: 16)],
             _ProgressBlock(a: a),
             const SizedBox(height: 20),
             if (a.qrCode != null) _QrBlock(code: a.qrCode!),
@@ -138,7 +152,7 @@ class _MaterialsBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(l.assignmentMaterialsIssued, style: Theme.of(context).textTheme.titleSmall),
+      Text(a.status == 'READY_TO_DELIVER' || a.status == 'DRAFT' ? l.materialsPrepared : l.materialsAtWorker, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 8),
       Card(
         child: Padding(
@@ -147,7 +161,7 @@ class _MaterialsBlock extends StatelessWidget {
             for (final m in a.materials)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(m.materialId.substring(0, 8)), Text(m.quantity.toStringAsFixed(2))]),
+                child: Align(alignment: Alignment.centerLeft, child: Text(materialLine(m.name, m.quantity, m.unit))),
               ),
           ]),
         ),
@@ -163,6 +177,12 @@ class _HistoryBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (a.handoffTimeline.isNotEmpty) ...[
+        Text(l.handoffTimelineTitle, style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        for (final e in a.handoffTimeline.reversed) _TimelineRow(text: handoffTimelineText(l, e), at: e.at, problem: e.kind == 'WORKER_PROBLEM'),
+        const SizedBox(height: 16),
+      ],
       Text(l.assignmentHistory, style: Theme.of(context).textTheme.titleSmall),
       const SizedBox(height: 8),
       for (final h in a.statusHistory.reversed)
@@ -243,7 +263,15 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
     Widget? button;
     switch (a.status) {
       case 'READY_TO_DELIVER':
-        button = FilledButton.icon(onPressed: _busy ? null : () => _confirmDeliver(context), icon: const Icon(Icons.local_shipping_rounded), label: Text(l.deliveryDone));
+        // while she is confirming there is nothing for staff to press; after a problem / timeout: start again
+        final h = a.handoff;
+        button = h != null && h.waiting
+            ? null
+            : FilledButton.icon(
+                onPressed: _busy ? null : () => _confirmDeliver(context),
+                icon: const Icon(Icons.qr_code_2_rounded),
+                label: Text(h == null ? l.handoffStart : l.handoffRestart),
+              );
       case 'READY_FOR_PICKUP':
         button = FilledButton.icon(onPressed: _busy ? null : () => _pickup(context), icon: const Icon(Icons.check_circle_outline_rounded), label: Text(l.workPickedUp));
       case 'UNDER_REVIEW':
@@ -272,17 +300,17 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(l.deliveryConfirmTitle, style: Theme.of(ctx).textTheme.titleMedium),
+            Text(l.handoffStartTitle, style: Theme.of(ctx).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(l.deliveryConfirmBody, textAlign: TextAlign.center),
+            Text(l.handoffStartBody, textAlign: TextAlign.center),
             const SizedBox(height: 20),
-            SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.deliveryDone))),
+            SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.handoffStart))),
           ]),
         ),
       ),
     );
     if (ok != true) return;
-    await _run(() => ref.read(assignmentAdminRepositoryProvider).deliver(widget.a.id));
+    await _run(() => ref.read(assignmentAdminRepositoryProvider).startHandoff(widget.a.id));
   }
 
   Future<void> _pickup(BuildContext context) => _run(() => ref.read(assignmentAdminRepositoryProvider).pickup(widget.a.id));
@@ -299,3 +327,82 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
     }
   }
 }
+
+/// Phase 5.2/5.9: what the staff member at the door sees after «Начать передачу»: waiting -> she scanned -> received,
+/// or her problem in plain words.
+class _HandoffBlock extends StatelessWidget {
+  const _HandoffBlock({required this.a});
+  final AssignmentDetail a;
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final h = a.handoff!;
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final (IconData icon, Color color, String title, String? hint) = switch (h.status) {
+      'AWAITING_WORKER' when h.expired => (Icons.timer_off_rounded, scheme.error, l.handoffExpiredLabel, null),
+      'AWAITING_WORKER' when h.workerScannedAt != null => (Icons.phone_android_rounded, scheme.primary, l.handoffWorkerScanned, null),
+      'AWAITING_WORKER' => (Icons.hourglass_top_rounded, scheme.primary, l.handoffWaiting, l.handoffWaitingHint),
+      'PROBLEM' => (Icons.report_problem_rounded, scheme.error, l.handoffProblemTitle,
+          [problemReasonText(l, h.problemReason), if (h.problemComment?.isNotEmpty == true) h.problemComment!].join(' · ')),
+      _ => (Icons.check_circle_rounded, Colors.green, l.handoffReceived(a.workerName), null),
+    };
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withValues(alpha: 0.4))),
+      child: Row(children: [
+        if (h.waiting) SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3, color: color)) else Icon(icon, color: color, size: 28),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            if (hint != null) ...[const SizedBox(height: 2), Text(hint, style: text.bodyMedium)],
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({required this.text, required this.at, this.problem = false});
+  final String text;
+  final DateTime at;
+  final bool problem;
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final t = at.toLocal();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(problem ? Icons.error_rounded : Icons.check_circle_rounded, size: 16, color: problem ? scheme.error : scheme.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(text),
+            Text('${t.day.toString().padLeft(2, '0')}.${t.month.toString().padLeft(2, '0')} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+String handoffTimelineText(AppLocalizations l, HandoffTimelineEntry e) => switch (e.kind) {
+      'HANDOFF_STARTED' => l.timelineStarted(e.by ?? ''),
+      'WORKER_SCANNED' => l.timelineScanned,
+      'WORKER_CONFIRMED' => l.timelineConfirmed,
+      'WORKER_PROBLEM' => '${l.timelineProblem}: ${problemReasonText(l, e.reason)}',
+      _ => e.kind,
+    };
+
+String problemReasonText(AppLocalizations l, String? r) => switch (r) {
+      'SHORTAGE' => l.problemShortage,
+      'WRONG_COLOR' => l.problemWrongColor,
+      'WRONG_MODEL' => l.problemWrongModel,
+      'WRONG_METERS' => l.problemWrongMeters,
+      'DAMAGED' => l.problemDamaged,
+      _ => l.problemOther,
+    };

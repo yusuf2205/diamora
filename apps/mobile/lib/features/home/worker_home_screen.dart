@@ -42,6 +42,18 @@ class WorkerHomeScreen extends ConsumerWidget {
               child: ListView(padding: AppTokens.screenPadding.copyWith(top: 8, bottom: 24), children: [
                 Text(me.fullName, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
+                if (me.status != 'PENDING_APPROVAL') ...[
+                  Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  currentWork.when(
+                    loading: () => const SkeletonList(count: 1),
+                    error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
+                    data: (w) => w == null
+                        ? EmptyState(icon: Icons.inbox_rounded, title: l.workNoCurrent, hint: l.workNoCurrentHint)
+                        : CurrentWorkCard(work: w),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -67,18 +79,6 @@ class WorkerHomeScreen extends ConsumerWidget {
                   data: (led) => led.history.isEmpty ? const SizedBox.shrink() : _EarningsHistory(entries: led.history),
                   orElse: () => const SizedBox.shrink(),
                 ),
-                if (me.status != 'PENDING_APPROVAL') ...[
-                  const SizedBox(height: 20),
-                  Text(l.workCurrentTitle, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  currentWork.when(
-                    loading: () => const SkeletonList(count: 1),
-                    error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
-                    data: (w) => w == null
-                        ? EmptyState(icon: Icons.inbox_rounded, title: l.workNoCurrent, hint: l.workNoCurrentHint)
-                        : CurrentWorkCard(work: w),
-                  ),
-                ],
                 const SizedBox(height: 12),
                 const PayRateCard(),
                 const SizedBox(height: 20),
