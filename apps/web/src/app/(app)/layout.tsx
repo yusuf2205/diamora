@@ -7,11 +7,13 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { MessageCircle, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
+import { useChatUnread } from '@/components/chat';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
   { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
+  { href: '/chat', label: 'Чат', icon: MessageCircle },
   { href: '/workers', label: 'Мастерицы', icon: Sparkles, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/collaterals', label: 'Залоги', icon: Lock, perms: ['COLLATERAL_VIEW'] },
   { href: '/assignments', label: 'Задания', icon: ClipboardList, perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
@@ -35,6 +37,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   useLivePanel(!!me && me.role !== 'WORKER'); // presence («в сети»), live refresh and the web user's own map dot
+  const unread = useChatUnread(!!me && me.role !== 'WORKER');
   useEffect(() => setMenuOpen(false), [pathname]); // a tap on a menu item closes the phone drawer
 
   useEffect(() => {
@@ -65,6 +68,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
         <button aria-label="Меню" onClick={() => setMenuOpen(true)} className="-ml-1 rounded-lg p-2 hover:bg-border/50"><Menu size={22} aria-hidden /></button>
         <p className="truncate text-base font-semibold">{current}</p>
+        {unread > 0 && pathname !== '/chat' && <Link href="/chat" className="ml-auto rounded-full bg-danger px-2 text-xs font-bold text-white" aria-label={`Чат: непрочитанных ${unread}`}>💬 {unread}</Link>}
       </header>
       {menuOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMenuOpen(false)} />}
       <aside
@@ -85,7 +89,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${pathname.startsWith(n.href) ? 'bg-primary text-white shadow-sm' : 'text-foreground hover:bg-border/50'}`}
             >
               <n.icon size={18} strokeWidth={1.8} aria-hidden />
-              {n.label}
+              <span className="flex-1">{n.label}</span>
+              {n.href === '/chat' && unread > 0 && <span className="rounded-full bg-danger px-2 text-xs font-bold text-white" aria-label={`Непрочитанных: ${unread}`}>{unread}</span>}
             </Link>
           ))}
         </nav>
