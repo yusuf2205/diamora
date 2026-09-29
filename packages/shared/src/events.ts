@@ -73,6 +73,11 @@ export interface EventMap {
   'qr.created': { code: string; type: string; workerId?: string | null; kitTemplateId?: string | null };
   'sale.created': { saleId: string };
   'profit.updated': { period: string };
+  // chat: sent to exactly the room's members (userIds); the app refetches the room
+  'chat.message': { roomId: string; messageId: string; senderId: string | null; userIds: string[] };
+  'chat.message_deleted': { roomId: string; messageId: string; userIds: string[] };
+  'chat.room': { roomId: string; userIds: string[] };
+  'chat.read': { roomId: string; userId: string; userIds: string[] };
 }
 export type EventType = keyof EventMap;
 
@@ -90,6 +95,8 @@ export interface EventRoute {
   allWorkers?: boolean;
   staff?: boolean;
   user?: boolean;
+  /** every user named in data.userIds (chat members) */
+  users?: boolean;
 }
 
 const w = (cat: WorkerCategory, worker = true): EventRoute => ({ cat, worker });
@@ -148,6 +155,10 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'qr.created': { perms: ['INVENTORY_VIEW'] },
   'sale.created': { perms: ['PROFIT_VIEW'] },
   'profit.updated': { perms: ['PROFIT_VIEW'] },
+  'chat.message': { users: true },
+  'chat.message_deleted': { users: true },
+  'chat.room': { users: true },
+  'chat.read': { users: true },
 };
 
 export interface RealtimeEnvelope<T extends EventType = EventType> {
@@ -192,7 +203,7 @@ export function roomsForUser(u: SocketPrincipal): string[] {
 export function roomsForEvent(type: EventType, data: unknown): string[] {
   const route = EVENT_ROUTES[type];
   if (!route) return [];
-  const d = (data ?? {}) as { workerId?: string; userId?: string; managerId?: string | null; previousManagerId?: string | null };
+  const d = (data ?? {}) as { workerId?: string; userId?: string; userIds?: string[]; managerId?: string | null; previousManagerId?: string | null };
   const rooms: string[] = [];
   for (const p of route.perms ?? []) rooms.push(permRoom(p));
   if (route.cat) {
@@ -204,5 +215,6 @@ export function roomsForEvent(type: EventType, data: unknown): string[] {
   if (route.allWorkers) rooms.push(WORKERS_ROOM);
   if (route.staff) rooms.push(STAFF_ROOM);
   if (route.user && d.userId) rooms.push(userRoom(d.userId));
+  if (route.users) for (const id of d.userIds ?? []) rooms.push(userRoom(id));
   return [...new Set(rooms)];
 }

@@ -2101,4 +2101,145 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get nameTooShort => 'Ism kamida 2 harf bo\'lsin';
+
+  @override
+  String get chat => 'Chat';
+
+  @override
+  String get chatCompany => 'Umumiy chat';
+
+  @override
+  String get chatNew => 'Yangi chat';
+
+  @override
+  String get chatNewGroup => 'Yangi guruh';
+
+  @override
+  String get chatGroupName => 'Guruh nomi';
+
+  @override
+  String chatMembers(int count) {
+    return 'A\'zolar: $count';
+  }
+
+  @override
+  String get chatSearchPeople => 'Ism bo\'yicha qidirish';
+
+  @override
+  String get chatEmpty => 'Hozircha xabar yo\'q — birinchi bo\'lib yozing';
+
+  @override
+  String get chatNoChats => 'Bu yerda yozishmalaringiz bo\'ladi';
+
+  @override
+  String get chatTypeMessage => 'Xabar';
+
+  @override
+  String get chatPhoto => 'Rasm';
+
+  @override
+  String get chatCamera => 'Kamera';
+
+  @override
+  String get chatVideo => 'Video';
+
+  @override
+  String get chatRecordVideo => 'Video olish';
+
+  @override
+  String get chatFile => 'Fayl';
+
+  @override
+  String get chatVoice => 'Ovozli xabar';
+
+  @override
+  String get chatAudio => 'Audio';
+
+  @override
+  String get chatHoldToRecord => 'Yozish uchun mikrofon tugmasini bosib turing';
+
+  @override
+  String get chatRecording => 'Yozilmoqda… qo\'yib yuboring — yuboriladi';
+
+  @override
+  String get chatMessageDeleted => 'Xabar o\'chirildi';
+
+  @override
+  String get chatDeleteMessage => 'Xabarni o\'chirish';
+
+  @override
+  String get chatDeleteMessageBody => 'Xabar barcha a\'zolarda o\'chadi.';
+
+  @override
+  String get chatCopy => 'Nusxa olish';
+
+  @override
+  String get chatCopied => 'Nusxa olindi';
+
+  @override
+  String get chatFileTooLarge => 'Fayl 50 MB dan katta — yuborib bo\'lmaydi';
+
+  @override
+  String chatSendingProgress(int percent) {
+    return 'Yuborilmoqda… $percent%';
+  }
+
+  @override
+  String get chatSendFailed => 'Yuborilmadi — qayta urinish uchun bosing';
+
+  @override
+  String get chatRead => 'O\'qildi';
+
+  @override
+  String get chatLeaveGroup => 'Guruhdan chiqish';
+
+  @override
+  String get chatLeaveGroupBody =>
+      'Siz bu guruh xabarlarini boshqa ko\'rmaysiz.';
+
+  @override
+  String get chatAddMembers => 'A\'zo qo\'shish';
+
+  @override
+  String get chatRemoveMember => 'Guruhdan chiqarish';
+
+  @override
+  String get chatRename => 'Nomini o\'zgartirish';
+
+  @override
+  String get chatOwner => 'yaratuvchi';
+
+  @override
+  String get chatMicPermission =>
+      'Ovozli xabar yozish uchun mikrofonga ruxsat bering';
+
+  @override
+  String get chatYou => 'Siz';
+
+  @override
+  String get chatDownloading => 'Yuklanmoqda…';
+
+  @override
+  String get chatFileFailed => 'Faylni yuklab bo\'lmadi';
+
+  @override
+  String get chatCreate => 'Yaratish';
+
+  @override
+  String get chatGroupInfo => 'Guruh haqida';
+
+  @override
+  String get chatToday => 'Bugun';
+
+  @override
+  String get chatYesterday => 'Kecha';
+
+  @override
+  String get chatCompanyHint => 'Barcha xodimlar va ustalar';
+
+  @override
+  String get chatAttach => 'Biriktirish';
+
+  @override
+  String get chatSend => 'Yuborish';
 }

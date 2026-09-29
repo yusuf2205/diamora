@@ -347,3 +347,34 @@ export const cashPayoutSchema = z.object({
   /** ADMIN paying more than the current balance — allowed, but flagged in the ledger and audit. */
   forced: z.boolean().optional(),
 });
+
+// ---- chat (everyone with everyone: direct, groups, one company-wide chat) -------------------------------------------------
+export const CHAT_KINDS = ['DIRECT', 'GROUP', 'COMPANY'] as const;
+export type ChatKind = (typeof CHAT_KINDS)[number];
+export const CHAT_MESSAGE_KINDS = ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE'] as const;
+export type ChatMessageKind = (typeof CHAT_MESSAGE_KINDS)[number];
+/** the largest file a chat message may carry (photos, videos, voice, documents) */
+export const CHAT_MAX_FILE_BYTES = 50 * 1024 * 1024;
+export const chatDirectSchema = z.object({ userId: z.string().uuid() });
+export const chatGroupSchema = z.object({
+  title: z.string().trim().min(1).max(80),
+  memberIds: z.array(z.string().uuid()).min(1).max(500),
+});
+export const chatGroupUpdateSchema = z.object({
+  title: z.string().trim().min(1).max(80).optional(),
+  addIds: z.array(z.string().uuid()).max(500).optional(),
+  removeIds: z.array(z.string().uuid()).max(500).optional(),
+});
+export const chatTextSchema = z.object({ text: z.string().trim().min(1).max(4000), clientId: z.string().max(64).optional() });
+export const chatFileFieldsSchema = z.object({
+  kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE']).optional(),
+  text: z.string().trim().max(4000).optional(),
+  durationMs: z.coerce.number().int().min(0).max(6 * 3600_000).optional(),
+  clientId: z.string().max(64).optional(),
+});
+export const chatMessagesQuerySchema = z.object({
+  before: z.string().uuid().optional(),
+  after: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(40),
+});
+export const chatContactsQuerySchema = z.object({ q: z.string().trim().max(80).optional() });

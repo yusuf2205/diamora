@@ -56,7 +56,7 @@ export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 export const JOB_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED', 'CANCELLED'] as const;
 export type JobRequestStatus = (typeof JOB_REQUEST_STATUSES)[number];
 
-export const FILE_BUCKETS = ['collateral', 'assignments', 'products', 'quality', 'documents', 'avatars'] as const;
+export const FILE_BUCKETS = ['collateral', 'assignments', 'products', 'quality', 'documents', 'avatars', 'chat'] as const;
 export type FileBucket = (typeof FILE_BUCKETS)[number];
 
 // ---- phone (Uzbekistan first; Telegram gives E.164 without '+') -----------------------------------------------

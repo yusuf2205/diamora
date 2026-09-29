@@ -183,6 +183,8 @@ model User {
   permissions     UserPermission[]
   liveLocation    UserLiveLocation?
   pushTokens      PushToken[]
+  chatMembers     ChatMember[]
+  chatMessages    ChatMessage[]       @relation("ChatSender")
 
   @@index([role, status])
   @@map("users")
@@ -1115,6 +1117,79 @@ model PushToken {
 
   @@index([userId])
   @@map("push_tokens")
+}
+
+enum ChatKind {
+  DIRECT
+  GROUP
+  COMPANY
+}
+
+enum ChatMessageKind {
+  TEXT
+  IMAGE
+  VIDEO
+  VOICE
+  AUDIO
+  FILE
+}
+
+/// A conversation. DIRECT: exactly two people (directKey = the two user ids, sorted); GROUP: chosen members;
+/// COMPANY: the one chat of everyone (every active user is a member).
+model ChatRoom {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  kind          ChatKind
+  title         String?
+  directKey     String?       @unique
+  createdById   String?       @db.Uuid
+  lastMessageAt DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+  members       ChatMember[]
+  messages      ChatMessage[]
+
+  @@index([kind])
+  @@map("chat_rooms")
+}
+
+model ChatMember {
+  roomId     String    @db.Uuid
+  room       ChatRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String    @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isOwner    Boolean   @default(false)
+  lastReadAt DateTime? @db.Timestamptz(3)
+  joinedAt   DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@id([roomId, userId])
+  @@index([userId])
+  @@map("chat_members")
+}
+
+/// Text, or one file (photo/video/voice/audio/document) with an optional caption. Deleting keeps the row (deletedAt).
+model ChatMessage {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  roomId     String          @db.Uuid
+  room       ChatRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId   String?         @db.Uuid
+  sender     User?           @relation("ChatSender", fields: [senderId], references: [id], onDelete: SetNull)
+  kind       ChatMessageKind @default(TEXT)
+  text       String?
+  fileId     String?         @db.Uuid
+  fileName   String?
+  fileSize   BigInt?
+  mimeType   String?
+  durationMs Int?
+  width      Int?
+  height     Int?
+  /// the sender's own id for this message: a retried send never posts it twice
+  clientId   String?
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+  deletedAt  DateTime?       @db.Timestamptz(3)
+
+  @@unique([senderId, clientId])
+  @@index([roomId, createdAt])
+  @@map("chat_messages")
 }
 
 model FileAsset {

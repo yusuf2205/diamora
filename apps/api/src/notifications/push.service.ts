@@ -5,7 +5,7 @@ import { ENV, type Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.module';
 
 interface ServiceAccount { project_id: string; client_email: string; private_key: string; token_uri: string }
-export interface PushNotice { id: string; title: string; body?: string | null; link?: string | null }
+export interface PushNotice { id: string; title: string; body?: string | null; link?: string | null; /** "chat": the app skips it while the chat is on screen */ kind?: string }
 
 const b64url = (v: Buffer | string) => Buffer.from(v).toString('base64url');
 
@@ -68,7 +68,7 @@ export class PushService {
           body: JSON.stringify({
             message: {
               token,
-              data: { id: n.id, title: n.title, body: n.body ?? '', link: n.link ?? '' },
+              data: { id: n.id, title: n.title, body: n.body ?? '', link: n.link ?? '', kind: n.kind ?? 'notice' },
               android: { priority: 'HIGH', ttl: '86400s' },
             },
           }),

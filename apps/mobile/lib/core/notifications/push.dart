@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../features/chat/chat_repository.dart' show openChatRoomId;
 import '../network/api_client.dart';
 import 'app_notifications.dart';
 
@@ -32,13 +33,20 @@ Future<void> _show(RemoteMessage m) async {
   await showSystemNotice(id: '${d['id'] ?? m.messageId}', title: title, body: (body?.isEmpty ?? true) ? null : body, link: (link?.isEmpty ?? true) ? null : link);
 }
 
+/// App open: a chat message for the chat already on screen is not shown again as a notification.
+Future<void> _showForeground(RemoteMessage m) async {
+  final link = m.data['link'] as String?;
+  if (m.data['kind'] == 'chat' && openChatRoomId != null && link == '/chat/$openChatRoomId') return;
+  await _show(m);
+}
+
 /// Once per app start (main): Firebase + the background handler + foreground messages.
 Future<void> initPush() async {
   if (!_supported || _ready) return;
   try {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(pushBackgroundHandler);
-    FirebaseMessaging.onMessage.listen(_show); // app open: same id as the realtime copy -> one notification
+    FirebaseMessaging.onMessage.listen(_showForeground); // app open: same id as the realtime copy -> one notification
     _ready = true;
   } catch (_) {/* this build has no Firebase config: background check only */}
 }

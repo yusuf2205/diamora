@@ -16,6 +16,7 @@ import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { AppLogger } from './common/logger';
 import { RequestContext } from './common/request-context';
 import { CatalogModule } from './catalog/catalog.service';
+import { ChatModule } from './chat/chat.service';
 import { CollateralModule } from './collateral/collateral.service';
 import { ENV, Env, EnvModule } from './config/env';
 import { EventBusModule } from './events/event-bus';
@@ -75,7 +76,7 @@ class RequestMiddleware implements NestMiddleware {
     PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
     UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,
-    MaterialsModule, StockModule, KitsModule, QrModule, ColorsModule, LedgerModule, AssignmentsModule, JobRequestsModule, AppNotifierModule, AppNotificationsApiModule, ReportsModule, InsightsModule,
+    MaterialsModule, StockModule, KitsModule, QrModule, ColorsModule, LedgerModule, AssignmentsModule, JobRequestsModule, AppNotifierModule, AppNotificationsApiModule, ReportsModule, InsightsModule, ChatModule,
   ],
   controllers: [HealthController],
   providers: [

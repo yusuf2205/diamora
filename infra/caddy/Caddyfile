@@ -27,7 +27,13 @@
 		Referrer-Policy "no-referrer"
 		-Server
 	}
-	request_body {
+	# uploads: 25 MB everywhere, except chat files (photos, videos, voice, documents: up to 50 MB + form overhead)
+	@chatUpload path_regexp chatUpload ^/v1/chat/rooms/[^/]+/files$
+	request_body @chatUpload {
+		max_size 55MB
+	}
+	@otherBody not path_regexp ^/v1/chat/rooms/[^/]+/files$
+	request_body @otherBody {
 		max_size 25MB
 	}
 

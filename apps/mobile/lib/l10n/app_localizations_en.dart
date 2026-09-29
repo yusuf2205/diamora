@@ -2131,4 +2131,146 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nameTooShort => 'The first name needs at least 2 letters';
+
+  @override
+  String get chat => 'Chat';
+
+  @override
+  String get chatCompany => 'Company chat';
+
+  @override
+  String get chatNew => 'New chat';
+
+  @override
+  String get chatNewGroup => 'New group';
+
+  @override
+  String get chatGroupName => 'Group name';
+
+  @override
+  String chatMembers(int count) {
+    return 'Members: $count';
+  }
+
+  @override
+  String get chatSearchPeople => 'Search by name';
+
+  @override
+  String get chatEmpty => 'No messages yet — say hello';
+
+  @override
+  String get chatNoChats => 'Your conversations will be here';
+
+  @override
+  String get chatTypeMessage => 'Message';
+
+  @override
+  String get chatPhoto => 'Photo';
+
+  @override
+  String get chatCamera => 'Camera';
+
+  @override
+  String get chatVideo => 'Video';
+
+  @override
+  String get chatRecordVideo => 'Record video';
+
+  @override
+  String get chatFile => 'File';
+
+  @override
+  String get chatVoice => 'Voice message';
+
+  @override
+  String get chatAudio => 'Audio';
+
+  @override
+  String get chatHoldToRecord => 'Hold the microphone button to record';
+
+  @override
+  String get chatRecording => 'Recording… release to send';
+
+  @override
+  String get chatMessageDeleted => 'Message deleted';
+
+  @override
+  String get chatDeleteMessage => 'Delete message';
+
+  @override
+  String get chatDeleteMessageBody =>
+      'The message will disappear for everyone.';
+
+  @override
+  String get chatCopy => 'Copy';
+
+  @override
+  String get chatCopied => 'Copied';
+
+  @override
+  String get chatFileTooLarge =>
+      'The file is larger than 50 MB and cannot be sent';
+
+  @override
+  String chatSendingProgress(int percent) {
+    return 'Sending… $percent%';
+  }
+
+  @override
+  String get chatSendFailed => 'Not sent — tap to retry';
+
+  @override
+  String get chatRead => 'Read';
+
+  @override
+  String get chatLeaveGroup => 'Leave group';
+
+  @override
+  String get chatLeaveGroupBody => 'You will no longer see this group.';
+
+  @override
+  String get chatAddMembers => 'Add members';
+
+  @override
+  String get chatRemoveMember => 'Remove from group';
+
+  @override
+  String get chatRename => 'Rename';
+
+  @override
+  String get chatOwner => 'owner';
+
+  @override
+  String get chatMicPermission =>
+      'Allow the microphone to record voice messages';
+
+  @override
+  String get chatYou => 'You';
+
+  @override
+  String get chatDownloading => 'Downloading…';
+
+  @override
+  String get chatFileFailed => 'Could not load the file';
+
+  @override
+  String get chatCreate => 'Create';
+
+  @override
+  String get chatGroupInfo => 'Group info';
+
+  @override
+  String get chatToday => 'Today';
+
+  @override
+  String get chatYesterday => 'Yesterday';
+
+  @override
+  String get chatCompanyHint => 'All staff and workers';
+
+  @override
+  String get chatAttach => 'Attach';
+
+  @override
+  String get chatSend => 'Send';
 }

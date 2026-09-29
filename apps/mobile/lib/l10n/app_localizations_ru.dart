@@ -2142,4 +2142,145 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get nameTooShort => 'Имя — не меньше 2 букв';
+
+  @override
+  String get chat => 'Чат';
+
+  @override
+  String get chatCompany => 'Общий чат';
+
+  @override
+  String get chatNew => 'Новый чат';
+
+  @override
+  String get chatNewGroup => 'Новая группа';
+
+  @override
+  String get chatGroupName => 'Название группы';
+
+  @override
+  String chatMembers(int count) {
+    return 'Участников: $count';
+  }
+
+  @override
+  String get chatSearchPeople => 'Поиск по имени';
+
+  @override
+  String get chatEmpty => 'Сообщений пока нет — напишите первым';
+
+  @override
+  String get chatNoChats => 'Здесь будут ваши переписки';
+
+  @override
+  String get chatTypeMessage => 'Сообщение';
+
+  @override
+  String get chatPhoto => 'Фото';
+
+  @override
+  String get chatCamera => 'Камера';
+
+  @override
+  String get chatVideo => 'Видео';
+
+  @override
+  String get chatRecordVideo => 'Снять видео';
+
+  @override
+  String get chatFile => 'Файл';
+
+  @override
+  String get chatVoice => 'Голосовое сообщение';
+
+  @override
+  String get chatAudio => 'Аудио';
+
+  @override
+  String get chatHoldToRecord => 'Удерживайте кнопку микрофона, чтобы записать';
+
+  @override
+  String get chatRecording => 'Запись… отпустите — отправится';
+
+  @override
+  String get chatMessageDeleted => 'Сообщение удалено';
+
+  @override
+  String get chatDeleteMessage => 'Удалить сообщение';
+
+  @override
+  String get chatDeleteMessageBody => 'Сообщение исчезнет у всех участников.';
+
+  @override
+  String get chatCopy => 'Копировать';
+
+  @override
+  String get chatCopied => 'Скопировано';
+
+  @override
+  String get chatFileTooLarge => 'Файл больше 50 МБ — его нельзя отправить';
+
+  @override
+  String chatSendingProgress(int percent) {
+    return 'Отправка… $percent%';
+  }
+
+  @override
+  String get chatSendFailed => 'Не отправлено — нажмите, чтобы повторить';
+
+  @override
+  String get chatRead => 'Прочитано';
+
+  @override
+  String get chatLeaveGroup => 'Выйти из группы';
+
+  @override
+  String get chatLeaveGroupBody =>
+      'Вы больше не будете видеть сообщения этой группы.';
+
+  @override
+  String get chatAddMembers => 'Добавить участников';
+
+  @override
+  String get chatRemoveMember => 'Убрать из группы';
+
+  @override
+  String get chatRename => 'Переименовать';
+
+  @override
+  String get chatOwner => 'создатель';
+
+  @override
+  String get chatMicPermission =>
+      'Разрешите доступ к микрофону, чтобы записывать голосовые';
+
+  @override
+  String get chatYou => 'Вы';
+
+  @override
+  String get chatDownloading => 'Загрузка…';
+
+  @override
+  String get chatFileFailed => 'Не удалось загрузить файл';
+
+  @override
+  String get chatCreate => 'Создать';
+
+  @override
+  String get chatGroupInfo => 'О группе';
+
+  @override
+  String get chatToday => 'Сегодня';
+
+  @override
+  String get chatYesterday => 'Вчера';
+
+  @override
+  String get chatCompanyHint => 'Все сотрудники и мастерицы';
+
+  @override
+  String get chatAttach => 'Прикрепить';
+
+  @override
+  String get chatSend => 'Отправить';
 }

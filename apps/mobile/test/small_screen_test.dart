@@ -62,7 +62,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Юсуф'), findsOneWidget); // Обзор greets her
 
-    await tester.tap(find.text('Мастерицы'));
+    await tester.tap(find.byIcon(Icons.groups_rounded).last); // 320 dp: the bar shows icons only
     await tester.pumpAndSettle();
     await tester.tap(find.text('Все').first);
     await tester.pumpAndSettle();
@@ -73,7 +73,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Ещё'));
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded).last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Команда'));
     await tester.pumpAndSettle();

@@ -32,6 +32,8 @@ import '../features/workers/worker_detail_screen.dart';
 import 'shells.dart';
 import '../features/workers/collaterals_screen.dart';
 import '../features/insights/insights_screens.dart';
+import '../features/chat/chat_list_screen.dart';
+import '../features/chat/chat_room_screen.dart';
 
 /// Route table. Redirects are UX only — the server rejects anything the role may not do.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -64,6 +66,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/telegram-pending',
         builder: (_, s) => TelegramPendingScreen(status: s.uri.queryParameters['status'] ?? 'ERROR', reason: s.uri.queryParameters['reason']),
       ),
+      // a conversation (staff and workers alike; the server decides who may read it)
+      GoRoute(path: '/chat/:id', builder: (_, s) => ChatRoomScreen(key: ValueKey(s.pathParameters['id']), roomId: s.pathParameters['id']!)),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       GoRoute(path: '/admin/job-requests', builder: (_, _) => const JobRequestsScreen()),
       GoRoute(path: '/admin/collaterals', builder: (_, _) => const CollateralsScreen()),
@@ -111,6 +115,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [GoRoute(path: '/admin/map', builder: (_, _) => const MapScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/admin/inventory', builder: (_, _) => const InventoryScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/admin/chat', builder: (_, _) => const ChatListScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/admin/more', builder: (_, _) => const MoreScreen())]),
         ],
       ),
@@ -125,6 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ]),
           StatefulShellBranch(routes: [GoRoute(path: '/worker/home', builder: (_, _) => const WorkerHomeScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/worker/chat', builder: (_, _) => const ChatListScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/worker/profile', builder: (_, _) => const ProfileScreen())]),
         ],
       ),

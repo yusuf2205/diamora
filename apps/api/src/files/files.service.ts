@@ -32,9 +32,9 @@ export class FilesService {
   ) {}
 
   /** Real image bytes only (client MIME ignored), EXIF/GPS stripped, orientation fixed, max 2560 px. Nothing stored yet. */
-  async prepareImage(buffer: Buffer): Promise<PreparedImage> {
+  async prepareImage(buffer: Buffer, maxBytes = this.env.MAX_UPLOAD_BYTES): Promise<PreparedImage> {
     if (buffer.length === 0) throw fileRejected('Empty file');
-    if (buffer.length > this.env.MAX_UPLOAD_BYTES) throw fileRejected('File is too large');
+    if (buffer.length > maxBytes) throw fileRejected('File is too large');
     try {
       const input = sharp(buffer, { failOn: 'error', limitInputPixels: 120_000_000 });
       const meta = await input.metadata();
@@ -87,6 +87,17 @@ export class FilesService {
     });
   }
 
+  /** Stores bytes as they are (chat voice/audio/documents). The caller decides the (safe) MIME type it is served with. */
+  async storeRaw(p: { bucket: FileBucket; buffer: Buffer; mimeType: string; ext: string; uploadedById?: string; originalName?: string }): Promise<FileAsset> {
+    if (p.buffer.length === 0) throw fileRejected('Empty file');
+    const now = new Date();
+    const objectKey = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${randomUUID()}.${p.ext}`;
+    await this.storage.put(bucketName(this.env, p.bucket), objectKey, p.buffer, p.mimeType);
+    return this.prisma.fileAsset.create({
+      data: { bucket: p.bucket, objectKey, mimeType: p.mimeType, size: BigInt(p.buffer.length), sha256: createHash('sha256').update(p.buffer).digest('hex'), originalName: p.originalName?.slice(0, 200), uploadedById: p.uploadedById },
+    });
+  }
+
   // ---- signed URLs (bearer capability issued only inside already-authorised responses) ----------------------------
   private sig(fileId: string, variant: FileVariant, exp: number) {
     return createHmac('sha256', this.env.FILE_SIGNING_SECRET).update(`${fileId}.${variant}.${exp}`).digest('base64url');
@@ -130,7 +141,9 @@ export class FilesController {
   @Header('Cache-Control', 'private, max-age=300')
   async get(@Param('id', new ParseUUIDPipe()) id: string, @Param('variant') variant: string, @Query('exp') exp?: string, @Query('sig') sig?: string) {
     const o = await this.files.open(id, this.files.verify(id, variant, exp, sig));
-    return new StreamableFile(o.stream, { type: o.contentType ?? 'application/octet-stream', length: o.size, disposition: 'inline' });
+    const type = o.contentType ?? 'application/octet-stream';
+    const inline = /^(image\/(jpeg|png|webp)|video\/|audio\/)/.test(type);
+    return new StreamableFile(o.stream, { type: inline ? type : 'application/octet-stream', length: o.size, disposition: inline ? 'inline' : 'attachment' });
   }
 }
 

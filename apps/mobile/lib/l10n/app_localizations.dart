@@ -3999,6 +3999,276 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Имя — не меньше 2 букв'**
   String get nameTooShort;
+
+  /// No description provided for @chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат'**
+  String get chat;
+
+  /// No description provided for @chatCompany.
+  ///
+  /// In ru, this message translates to:
+  /// **'Общий чат'**
+  String get chatCompany;
+
+  /// No description provided for @chatNew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый чат'**
+  String get chatNew;
+
+  /// No description provided for @chatNewGroup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новая группа'**
+  String get chatNewGroup;
+
+  /// No description provided for @chatGroupName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название группы'**
+  String get chatGroupName;
+
+  /// No description provided for @chatMembers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участников: {count}'**
+  String chatMembers(int count);
+
+  /// No description provided for @chatSearchPeople.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск по имени'**
+  String get chatSearchPeople;
+
+  /// No description provided for @chatEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщений пока нет — напишите первым'**
+  String get chatEmpty;
+
+  /// No description provided for @chatNoChats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Здесь будут ваши переписки'**
+  String get chatNoChats;
+
+  /// No description provided for @chatTypeMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение'**
+  String get chatTypeMessage;
+
+  /// No description provided for @chatPhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото'**
+  String get chatPhoto;
+
+  /// No description provided for @chatCamera.
+  ///
+  /// In ru, this message translates to:
+  /// **'Камера'**
+  String get chatCamera;
+
+  /// No description provided for @chatVideo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео'**
+  String get chatVideo;
+
+  /// No description provided for @chatRecordVideo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Снять видео'**
+  String get chatRecordVideo;
+
+  /// No description provided for @chatFile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файл'**
+  String get chatFile;
+
+  /// No description provided for @chatVoice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голосовое сообщение'**
+  String get chatVoice;
+
+  /// No description provided for @chatAudio.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аудио'**
+  String get chatAudio;
+
+  /// No description provided for @chatHoldToRecord.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удерживайте кнопку микрофона, чтобы записать'**
+  String get chatHoldToRecord;
+
+  /// No description provided for @chatRecording.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запись… отпустите — отправится'**
+  String get chatRecording;
+
+  /// No description provided for @chatMessageDeleted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение удалено'**
+  String get chatMessageDeleted;
+
+  /// No description provided for @chatDeleteMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить сообщение'**
+  String get chatDeleteMessage;
+
+  /// No description provided for @chatDeleteMessageBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщение исчезнет у всех участников.'**
+  String get chatDeleteMessageBody;
+
+  /// No description provided for @chatCopy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копировать'**
+  String get chatCopy;
+
+  /// No description provided for @chatCopied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скопировано'**
+  String get chatCopied;
+
+  /// No description provided for @chatFileTooLarge.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файл больше 50 МБ — его нельзя отправить'**
+  String get chatFileTooLarge;
+
+  /// No description provided for @chatSendingProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправка… {percent}%'**
+  String chatSendingProgress(int percent);
+
+  /// No description provided for @chatSendFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не отправлено — нажмите, чтобы повторить'**
+  String get chatSendFailed;
+
+  /// No description provided for @chatRead.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прочитано'**
+  String get chatRead;
+
+  /// No description provided for @chatLeaveGroup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти из группы'**
+  String get chatLeaveGroup;
+
+  /// No description provided for @chatLeaveGroupBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы больше не будете видеть сообщения этой группы.'**
+  String get chatLeaveGroupBody;
+
+  /// No description provided for @chatAddMembers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить участников'**
+  String get chatAddMembers;
+
+  /// No description provided for @chatRemoveMember.
+  ///
+  /// In ru, this message translates to:
+  /// **'Убрать из группы'**
+  String get chatRemoveMember;
+
+  /// No description provided for @chatRename.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переименовать'**
+  String get chatRename;
+
+  /// No description provided for @chatOwner.
+  ///
+  /// In ru, this message translates to:
+  /// **'создатель'**
+  String get chatOwner;
+
+  /// No description provided for @chatMicPermission.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешите доступ к микрофону, чтобы записывать голосовые'**
+  String get chatMicPermission;
+
+  /// No description provided for @chatYou.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы'**
+  String get chatYou;
+
+  /// No description provided for @chatDownloading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка…'**
+  String get chatDownloading;
+
+  /// No description provided for @chatFileFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить файл'**
+  String get chatFileFailed;
+
+  /// No description provided for @chatCreate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать'**
+  String get chatCreate;
+
+  /// No description provided for @chatGroupInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'О группе'**
+  String get chatGroupInfo;
+
+  /// No description provided for @chatToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get chatToday;
+
+  /// No description provided for @chatYesterday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вчера'**
+  String get chatYesterday;
+
+  /// No description provided for @chatCompanyHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все сотрудники и мастерицы'**
+  String get chatCompanyHint;
+
+  /// No description provided for @chatAttach.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прикрепить'**
+  String get chatAttach;
+
+  /// No description provided for @chatSend.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get chatSend;
 }
 
 class _AppLocalizationsDelegate

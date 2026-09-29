@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- QR scanner (M2 §12): worker and kit QR codes -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- chat: voice messages (asked the first time the microphone button is held) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- self-update from diamoraa.uz (the app is not in Google Play): hand the downloaded APK to the installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Android 14+: lets Diamoraa update ITSELF without a confirmation (it is the installer of record) -->
