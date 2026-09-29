@@ -66,8 +66,11 @@ class AuthRepository {
   Future<void> changePassword(String current, String next) => _api.postJson('/auth/change-password', body: {'currentPassword': current, 'newPassword': next});
 
   Future<void> logoutAll() async {
-    await _api.postJson('/auth/logout-all');
-    await _tokens.clear();
+    try {
+      await _api.postJson('/auth/logout-all');
+    } finally {
+      await _tokens.clear(); // this device is signed out even if the call failed
+    }
   }
 
   Future<List<DeviceSession>> sessions() async =>

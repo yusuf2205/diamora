@@ -291,6 +291,23 @@ void main() {
     await tearDownDb(tester);
   });
 
+  testWidgets('«Выйти на всех устройствах» signs THIS device out too — even if the server call fails', (tester) async {
+    when(() => api.getJson('/users', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.getList('/auth/sessions')).thenAnswer((_) async => <Object>[]);
+    when(() => api.postJson('/auth/logout-all')).thenThrow(ApiException(code: 'UNAUTHENTICATED', message: 'revoked', status: 401));
+    await openTeam(tester, superAdmin());
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Профиль'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Выйти на всех устройствах'), 200, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.text('Выйти на всех устройствах'));
+    await tester.pumpAndSettle();
+    expect(find.text('Телефон'), findsOneWidget); // back on the sign-in screen
+    verify(() => api.postJson('/auth/logout-all')).called(1);
+    await tearDownDb(tester);
+  });
+
   Map<String, Object?> w(String id, String name, {Map<String, Object?>? manager}) => {
         'id': id, 'code': 'W-$id', 'fullName': name, 'phone': '+99890000000$id', 'secondaryPhone': null, 'status': 'ACTIVE',
         'latitude': null, 'longitude': null, 'locationReceivedAt': null, 'balance': '0', 'manager': manager, 'collateral': null,

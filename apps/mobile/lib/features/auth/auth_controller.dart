@@ -61,12 +61,21 @@ class AuthController extends AsyncNotifier<Session?> {
     state = AsyncData(s);
   }
 
+  /// Always signs THIS device out, whatever the server answers (offline, already revoked, an error): a failed call
+  /// used to leave «Выйти на всех устройствах» doing nothing here. The server side is best effort.
   Future<void> logout({bool everywhere = false}) async {
     final repo = ref.read(authRepositoryProvider);
-    await unregisterPush(ref.read(apiClientProvider)); // while still signed in: this phone stops getting her notifications
-    everywhere ? await repo.logoutAll() : await repo.logout();
-    await _wipe();
-    state = const AsyncData(null);
+    try {
+      await unregisterPush(ref.read(apiClientProvider)); // while still signed in: this phone stops getting her notifications
+      everywhere ? await repo.logoutAll() : await repo.logout();
+    } catch (_) {/* signed out locally below regardless */}
+    await stopNoticeDelivery().catchError((_) {});
+    await ref.read(tokenStoreProvider).clear();
+    try {
+      await _wipe();
+    } finally {
+      state = const AsyncData(null);
+    }
   }
 
   Future<void> sessionExpired() async {
