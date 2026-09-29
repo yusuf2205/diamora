@@ -2367,4 +2367,93 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatEmoji => 'Emoji';
+
+  @override
+  String get chatNewChannel => 'New channel';
+
+  @override
+  String get chatChannelName => 'Channel name';
+
+  @override
+  String get chatDescription => 'Description';
+
+  @override
+  String get chatAudience => 'Who reads it';
+
+  @override
+  String get chatAudienceAll => 'All staff and workers';
+
+  @override
+  String get chatAudienceStaff => 'Staff only';
+
+  @override
+  String get chatAudienceWorkers => 'Workers only';
+
+  @override
+  String get chatAudienceCustom => 'Chosen people';
+
+  @override
+  String chatChoosePeople(int count) {
+    return 'Choose people ($count)';
+  }
+
+  @override
+  String get chatChannelHint =>
+      'Only the channel admins post; readers see the announcements and get notified.';
+
+  @override
+  String get chatChannelReadOnly => 'This is a channel: only its admins post';
+
+  @override
+  String get chatGroupReadOnly => 'Only the group admins can write';
+
+  @override
+  String get chatOnlyAdminsWrite => 'Only admins can write';
+
+  @override
+  String get chatMakeAdmin => 'Make admin';
+
+  @override
+  String get chatRemoveAdmin => 'Remove admin';
+
+  @override
+  String get chatAddAdmin => 'Add an admin';
+
+  @override
+  String get chatAdmin => 'admin';
+
+  @override
+  String get chatChangePhoto => 'Change photo';
+
+  @override
+  String get chatInfo => 'Chat info';
+
+  @override
+  String get chatChannelInfo => 'Channel info';
+
+  @override
+  String get chatTabMembers => 'Members';
+
+  @override
+  String get chatTabMedia => 'Media';
+
+  @override
+  String get chatTabFiles => 'Files';
+
+  @override
+  String get chatTabVoice => 'Voice';
+
+  @override
+  String get chatTabLinks => 'Links';
+
+  @override
+  String get chatNothingYet => 'Nothing yet';
+
+  @override
+  String chatSubscribers(int count) {
+    return 'Channel · subscribers: $count';
+  }
+
+  @override
+  String get chatLeaveChannel => 'Leave channel';
 }

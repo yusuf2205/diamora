@@ -4437,6 +4437,174 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Эмодзи'**
   String get chatEmoji;
+
+  /// No description provided for @chatNewChannel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новый канал'**
+  String get chatNewChannel;
+
+  /// No description provided for @chatChannelName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название канала'**
+  String get chatChannelName;
+
+  /// No description provided for @chatDescription.
+  ///
+  /// In ru, this message translates to:
+  /// **'Описание'**
+  String get chatDescription;
+
+  /// No description provided for @chatAudience.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто читает'**
+  String get chatAudience;
+
+  /// No description provided for @chatAudienceAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все сотрудники и мастерицы'**
+  String get chatAudienceAll;
+
+  /// No description provided for @chatAudienceStaff.
+  ///
+  /// In ru, this message translates to:
+  /// **'Только сотрудники'**
+  String get chatAudienceStaff;
+
+  /// No description provided for @chatAudienceWorkers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Только мастерицы'**
+  String get chatAudienceWorkers;
+
+  /// No description provided for @chatAudienceCustom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбранные люди'**
+  String get chatAudienceCustom;
+
+  /// No description provided for @chatChoosePeople.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать людей ({count})'**
+  String chatChoosePeople(int count);
+
+  /// No description provided for @chatChannelHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Публикуют только администраторы канала; читатели видят объявления и получают уведомления.'**
+  String get chatChannelHint;
+
+  /// No description provided for @chatChannelReadOnly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это канал: публикуют только его администраторы'**
+  String get chatChannelReadOnly;
+
+  /// No description provided for @chatGroupReadOnly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Писать могут только администраторы группы'**
+  String get chatGroupReadOnly;
+
+  /// No description provided for @chatOnlyAdminsWrite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Писать могут только администраторы'**
+  String get chatOnlyAdminsWrite;
+
+  /// No description provided for @chatMakeAdmin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сделать администратором'**
+  String get chatMakeAdmin;
+
+  /// No description provided for @chatRemoveAdmin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Снять администратора'**
+  String get chatRemoveAdmin;
+
+  /// No description provided for @chatAddAdmin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить администратора'**
+  String get chatAddAdmin;
+
+  /// No description provided for @chatAdmin.
+  ///
+  /// In ru, this message translates to:
+  /// **'администратор'**
+  String get chatAdmin;
+
+  /// No description provided for @chatChangePhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить фото'**
+  String get chatChangePhoto;
+
+  /// No description provided for @chatInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Информация о чате'**
+  String get chatInfo;
+
+  /// No description provided for @chatChannelInfo.
+  ///
+  /// In ru, this message translates to:
+  /// **'О канале'**
+  String get chatChannelInfo;
+
+  /// No description provided for @chatTabMembers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Участники'**
+  String get chatTabMembers;
+
+  /// No description provided for @chatTabMedia.
+  ///
+  /// In ru, this message translates to:
+  /// **'Медиа'**
+  String get chatTabMedia;
+
+  /// No description provided for @chatTabFiles.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлы'**
+  String get chatTabFiles;
+
+  /// No description provided for @chatTabVoice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голосовые'**
+  String get chatTabVoice;
+
+  /// No description provided for @chatTabLinks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ссылки'**
+  String get chatTabLinks;
+
+  /// No description provided for @chatNothingYet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока ничего нет'**
+  String get chatNothingYet;
+
+  /// No description provided for @chatSubscribers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Канал · подписчиков: {count}'**
+  String chatSubscribers(int count);
+
+  /// No description provided for @chatLeaveChannel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти из канала'**
+  String get chatLeaveChannel;
 }
 
 class _AppLocalizationsDelegate

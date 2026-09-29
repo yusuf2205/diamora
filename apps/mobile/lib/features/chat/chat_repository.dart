@@ -29,8 +29,27 @@ class ChatRepository {
   Future<ChatRoomDetail> createGroup(String title, List<String> memberIds) async =>
       ChatRoomDetail.fromJson(await _api.postJson('/chat/groups', body: {'title': title, 'memberIds': memberIds}));
 
-  Future<ChatRoomDetail> updateGroup(String id, {String? title, List<String>? addIds, List<String>? removeIds}) async => ChatRoomDetail.fromJson(
-      await _api.patchJson('/chat/rooms/$id', body: {'title': ?title, 'addIds': ?addIds, 'removeIds': ?removeIds}));
+  Future<ChatRoomDetail> updateGroup(String id, {String? title, String? description, List<String>? addIds, List<String>? removeIds, List<String>? adminIds, List<String>? unadminIds, bool? onlyAdminsWrite}) async =>
+      ChatRoomDetail.fromJson(await _api.patchJson('/chat/rooms/$id', body: {
+        'title': ?title, 'description': ?description, 'addIds': ?addIds, 'removeIds': ?removeIds, 'adminIds': ?adminIds, 'unadminIds': ?unadminIds, 'onlyAdminsWrite': ?onlyAdminsWrite,
+      }));
+
+  /// An announcement channel (administrators). [audience]: ALL | STAFF | WORKERS | CUSTOM (then [memberIds]).
+  Future<ChatRoomDetail> createChannel(String title, {String? description, required String audience, List<String> memberIds = const []}) async => ChatRoomDetail.fromJson(
+      await _api.postJson('/chat/channels', body: {'title': title, 'description': ?description, 'audience': audience, 'memberIds': memberIds}));
+
+  Future<ChatRoomDetail> setPhoto(String id, String path) async {
+    try {
+      final res = await _api.dio.post<dynamic>('/chat/rooms/$id/photo', data: FormData.fromMap({'file': await MultipartFile.fromFile(path, filename: 'photo.jpg')}));
+      return ChatRoomDetail.fromJson((res.data as Map).cast<String, dynamic>());
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// media | files | voice | links, newest first.
+  Future<List<ChatMessage>> media(String roomId, String kind) async =>
+      ((await _api.getJson('/chat/rooms/$roomId/media', query: {'kind': kind}))['items'] as List).map((m) => ChatMessage.fromJson((m as Map).cast<String, dynamic>())).toList();
 
   Future<void> leave(String id) => _api.postJson('/chat/rooms/$id/leave');
 

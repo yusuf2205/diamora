@@ -184,6 +184,29 @@ void main() {
     expect(find.text('Сообщения'), findsOneWidget);
   });
 
+  testWidgets('stage 4: a channel reader has no input; «О канале» shows who reads it and the media tabs', (tester) async {
+    when(() => api.getJson('/chat/rooms/ch')).thenAnswer((_) async => {
+          'id': 'ch', 'kind': 'CHANNEL', 'title': 'Объявления', 'memberCount': 40, 'audience': 'WORKERS', 'canWrite': false, 'canManage': false,
+          'description': 'Важное от компании', 'members': <Object>[],
+        });
+    when(() => api.getJson('/chat/rooms/ch/messages', query: {'limit': 40})).thenAnswer((_) async => {'items': [msg('m1', 'С понедельника новые расценки')], 'hasMore': false});
+    when(() => api.postJson('/chat/rooms/ch/read')).thenAnswer((_) async => {'ok': true});
+    when(() => api.getJson('/chat/rooms/ch/media', query: {'kind': 'files'})).thenAnswer((_) async => {'items': [{...msg('f1', '', kind: 'FILE', file: {'url': 'https://x/f', 'name': 'Прайс.pdf', 'size': 20480})}]});
+    await pump(tester, const ChatRoomScreen(roomId: 'ch'));
+    expect(find.byKey(const Key('readOnlyNotice')), findsOneWidget);
+    expect(find.byKey(const Key('chatInput')), findsNothing);
+    expect(find.text('Канал · подписчиков: 40'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('groupInfo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Важное от компании'), findsOneWidget);
+    expect(find.textContaining('Только мастерицы'), findsOneWidget);
+    expect(find.byKey(const Key('groupLeave')), findsNothing); // an audience channel is muted, not left
+    await tester.tap(find.byKey(const Key('tab-files')));
+    await tester.pumpAndSettle();
+    expect(find.text('Прайс.pdf'), findsOneWidget);
+  });
+
   test('a picked file is sent as what it is (by name; the server checks the bytes)', () {
     expect(chatKindForName('IMG_0001.JPG'), 'IMAGE');
     expect(chatKindForName('clip.mov'), 'VIDEO');

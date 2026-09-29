@@ -1124,6 +1124,15 @@ enum ChatKind {
   DIRECT
   GROUP
   COMPANY
+  CHANNEL
+}
+
+/// Who reads a channel: everyone, staff, workers - or only the members added by hand.
+enum ChatAudience {
+  ALL
+  STAFF
+  WORKERS
+  CUSTOM
 }
 
 enum ChatMessageKind {
@@ -1146,6 +1155,12 @@ model ChatRoom {
   lastMessageAt DateTime?     @db.Timestamptz(3)
   /// the one message shown on top of the chat («Закреплённое сообщение»)
   pinnedMessageId String?     @db.Uuid
+  description   String?
+  photoFileId   String?       @db.Uuid
+  /// channels: who reads it (members are joined automatically unless CUSTOM)
+  audience      ChatAudience  @default(CUSTOM)
+  /// groups: only the owner and group admins write (like a channel, but members still see each other)
+  onlyAdminsWrite Boolean     @default(false)
   createdAt     DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
   members       ChatMember[]
@@ -1161,6 +1176,8 @@ model ChatMember {
   userId     String    @db.Uuid
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   isOwner    Boolean   @default(false)
+  /// a group / channel admin (manages members, writes in a channel)
+  isAdmin    Boolean   @default(false)
   lastReadAt DateTime? @db.Timestamptz(3)
   joinedAt   DateTime  @default(now()) @db.Timestamptz(3)
   /// this person keeps the chat on top of their list

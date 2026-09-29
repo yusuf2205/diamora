@@ -1,4 +1,4 @@
-import { COMPANY_ROOM_ID } from '../src/chat/chat.service';
+import { COMPANY_ROOM_ID, ChatService } from '../src/chat/chat.service';
 import { createTestApp, jpeg, staffActor, TestApp } from './support/app';
 
 /** Chat, stage 2: replies, edits, reactions, forwards, a pinned message, pinned / muted chats, search, typing. */
@@ -82,7 +82,7 @@ describe('chat v2', () => {
 
   it('typing: relayed to the other members only, never to outsiders', async () => {
     const { a, b, room } = await pair();
-    const svc = t.app.get((await import('../src/chat/chat.service')).ChatService);
+    const svc = t.app.get(ChatService);
     t.events.length = 0;
     const principal = { id: a.user.id, role: 'ADMIN', fullName: a.user.fullName, sessionId: 's', workerId: null, permissions: [] } as never;
     await svc.typing(principal, room.id, 'voice');

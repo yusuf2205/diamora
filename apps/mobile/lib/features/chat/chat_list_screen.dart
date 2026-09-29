@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -200,7 +201,7 @@ class _RoomTile extends StatelessWidget {
     return ListTile(
       key: Key('room-${room.id}'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false),
+      leading: ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, photo: room.photo),
       title: Row(children: [
         Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: room.unread > 0 ? FontWeight.w700 : FontWeight.w600))),
         if (room.muted) Padding(padding: const EdgeInsets.only(left: 4), child: Icon(Icons.notifications_off_rounded, size: 15, color: scheme.outline)),
@@ -224,24 +225,28 @@ class _RoomTile extends StatelessWidget {
 }
 
 class ChatAvatar extends StatelessWidget {
-  const ChatAvatar({super.key, required this.kind, required this.name, this.online = false, this.radius = 24});
+  const ChatAvatar({super.key, required this.kind, required this.name, this.online = false, this.radius = 24, this.photo});
   final String kind;
   final String name;
   final bool online;
   final double radius;
+  final String? photo;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    if (photo != null) return CircleAvatar(radius: radius, backgroundImage: CachedNetworkImageProvider(photo!));
     final avatar = CircleAvatar(
       radius: radius,
-      backgroundColor: kind == 'COMPANY' ? scheme.primary : kind == 'GROUP' ? scheme.tertiaryContainer : scheme.primaryContainer,
-      foregroundColor: kind == 'COMPANY' ? scheme.onPrimary : kind == 'GROUP' ? scheme.onTertiaryContainer : scheme.onPrimaryContainer,
+      backgroundColor: kind == 'COMPANY' ? scheme.primary : kind == 'GROUP' ? scheme.tertiaryContainer : kind == 'CHANNEL' ? scheme.secondaryContainer : scheme.primaryContainer,
+      foregroundColor: kind == 'COMPANY' ? scheme.onPrimary : kind == 'GROUP' ? scheme.onTertiaryContainer : kind == 'CHANNEL' ? scheme.onSecondaryContainer : scheme.onPrimaryContainer,
       child: kind == 'COMPANY'
           ? Icon(Icons.diamond_rounded, size: radius)
           : kind == 'GROUP'
               ? Icon(Icons.groups_rounded, size: radius)
-              : Text(initials(name), style: TextStyle(fontWeight: FontWeight.w700, fontSize: radius * 0.6)),
+              : kind == 'CHANNEL'
+                  ? Icon(Icons.campaign_rounded, size: radius)
+                  : Text(initials(name), style: TextStyle(fontWeight: FontWeight.w700, fontSize: radius * 0.6)),
     );
     if (!online) return avatar;
     return Stack(children: [
@@ -322,6 +327,7 @@ class _NewChatSheetState extends ConsumerState<NewChatSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final me = ref.watch(authControllerProvider).value;
     final people = _people;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -332,6 +338,17 @@ class _NewChatSheetState extends ConsumerState<NewChatSheet> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(children: [
               Expanded(child: Text(widget.pickOnly ? l.chatAddMembers : _group ? l.chatNewGroup : l.chatNew, style: Theme.of(context).textTheme.titleLarge)),
+              if (!widget.pickOnly && (me?.role == 'SUPER_ADMIN' || me?.role == 'ADMIN'))
+                IconButton(
+                  key: const Key('chatNewChannel'),
+                  tooltip: l.chatNewChannel,
+                  icon: const Icon(Icons.campaign_rounded),
+                  onPressed: () {
+                    final nav = Navigator.of(context);
+                    nav.pop();
+                    showModalBottomSheet<void>(context: nav.context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChannelSheet());
+                  },
+                ),
               if (!widget.pickOnly)
                 TextButton.icon(
                   key: const Key('chatToggleGroup'),
@@ -394,6 +411,86 @@ class _NewChatSheetState extends ConsumerState<NewChatSheet> {
                 ),
               ),
             ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// «Новый канал» (administrators): who reads it; only its admins post.
+class NewChannelSheet extends ConsumerStatefulWidget {
+  const NewChannelSheet({super.key});
+  @override
+  ConsumerState<NewChannelSheet> createState() => _NewChannelSheetState();
+}
+
+class _NewChannelSheetState extends ConsumerState<NewChannelSheet> {
+  final _title = TextEditingController();
+  final _description = TextEditingController();
+  String _audience = 'ALL';
+  List<String> _members = const [];
+  String? _error;
+  var _busy = false;
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    super.dispose();
+  }
+
+  Future<void> _create() async {
+    setState(() { _busy = true; _error = null; });
+    try {
+      final room = await ref.read(chatRepositoryProvider).createChannel(_title.text.trim(),
+          description: _description.text.trim().isEmpty ? null : _description.text.trim(), audience: _audience, memberIds: _members);
+      if (!mounted) return;
+      final router = GoRouter.of(context);
+      Navigator.of(context).pop();
+      ref.invalidate(chatRoomsProvider);
+      router.push('/chat/${room.id}');
+    } catch (e) {
+      if (mounted) setState(() { _busy = false; _error = errorText(context, e); });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final options = {'ALL': l.chatAudienceAll, 'STAFF': l.chatAudienceStaff, 'WORKERS': l.chatAudienceWorkers, 'CUSTOM': l.chatAudienceCustom};
+    return Padding(
+      padding: EdgeInsets.only(left: 16, right: 16, bottom: MediaQuery.of(context).viewInsets.bottom + 16),
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(l.chatNewChannel, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          TextField(key: const Key('channelTitle'), controller: _title, decoration: InputDecoration(labelText: l.chatChannelName), onChanged: (_) => setState(() {})),
+          const SizedBox(height: 8),
+          TextField(controller: _description, decoration: InputDecoration(labelText: l.chatDescription)),
+          const SizedBox(height: 12),
+          Text(l.chatAudience, style: Theme.of(context).textTheme.titleSmall),
+          RadioGroup<String>(
+            groupValue: _audience,
+            onChanged: (v) => setState(() => _audience = v ?? 'ALL'),
+            child: Column(children: [for (final e in options.entries) RadioListTile<String>(key: Key('aud-${e.key}'), value: e.key, title: Text(e.value), contentPadding: EdgeInsets.zero)]),
+          ),
+          if (_audience == 'CUSTOM')
+            OutlinedButton(
+              onPressed: () async {
+                final ids = await showModalBottomSheet<List<String>>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet(pickOnly: true));
+                if (ids != null) setState(() => _members = ids);
+              },
+              child: Text(l.chatChoosePeople(_members.length)),
+            ),
+          const SizedBox(height: 8),
+          Text(l.chatChannelHint, style: Theme.of(context).textTheme.bodySmall),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+          const SizedBox(height: 12),
+          FilledButton(
+            key: const Key('channelCreate'),
+            onPressed: _busy || _title.text.trim().isEmpty || (_audience == 'CUSTOM' && _members.isEmpty) ? null : _create,
+            child: Text(l.chatCreate),
+          ),
         ]),
       ),
     );

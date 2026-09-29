@@ -4,9 +4,9 @@ import { Throttle } from '@nestjs/throttler';
 import type { Socket } from 'socket.io';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { Prisma, type ChatMessage, type ChatRoom } from '@diamoraa/database';
+import { Prisma, type ChatAudience, type ChatMember, type ChatMessage, type ChatRoom } from '@diamoraa/database';
 import {
-  CHAT_MAX_FILE_BYTES, chatContactsQuerySchema, chatDirectSchema, chatEditSchema, chatFileFieldsSchema, chatForwardSchema, chatGroupSchema,
+  CHAT_MAX_FILE_BYTES, chatChannelSchema, chatContactsQuerySchema, chatMediaQuerySchema, chatDirectSchema, chatEditSchema, chatFileFieldsSchema, chatForwardSchema, chatGroupSchema,
   chatGroupUpdateSchema, chatMemberPrefsSchema, chatMessagesQuerySchema, chatPinSchema, chatReactSchema, chatSearchSchema, chatTextSchema, scopeFor,
   type ChatMessageKind,
 } from '@diamoraa/shared';
@@ -20,6 +20,7 @@ import { FilesService } from '../files/files.service';
 import { PushService } from '../notifications/push.service';
 import { PresenceModule, PresenceService } from '../presence/presence.service';
 import { PrismaService } from '../prisma/prisma.module';
+import { AuditService } from '../audit/audit.service';
 
 /** The one chat of everyone: a fixed id, created on first use. */
 export const COMPANY_ROOM_ID = '00000000-0000-4000-8000-00000000c4a7';
@@ -78,7 +79,51 @@ export class ChatService {
     private readonly events: EventBus,
     private readonly push: PushService,
     private readonly presence: PresenceService,
+    private readonly audit: AuditService,
   ) {}
+
+  // ---- channels: an audience reads, admins post --------------------------------------------------------------------------
+  private audienceWhere(a: ChatAudience): Prisma.UserWhereInput | null {
+    if (a === 'ALL') return { status: 'ACTIVE' };
+    if (a === 'STAFF') return { status: 'ACTIVE', role: { not: 'WORKER' } };
+    if (a === 'WORKERS') return { status: 'ACTIVE', role: 'WORKER' };
+    return null; // CUSTOM: the members added by hand
+  }
+  private inAudience(u: AuthUser, a: ChatAudience) {
+    return a === 'ALL' || (a === 'STAFF' && u.role !== 'WORKER') || (a === 'WORKERS' && u.role === 'WORKER');
+  }
+  /** Channels for «everyone» / «staff» / «workers» are joined automatically (read up to now), like the company chat. */
+  private async joinAudienceChannels(u: AuthUser) {
+    const audiences: ChatAudience[] = u.role === 'WORKER' ? ['ALL', 'WORKERS'] : ['ALL', 'STAFF'];
+    const chans = await this.prisma.chatRoom.findMany({ where: { kind: 'CHANNEL', audience: { in: audiences }, members: { none: { userId: u.id } } }, select: { id: true, createdAt: true } });
+    if (!chans.length) return;
+    const since = await this.joinedAt(u);
+    await this.prisma.chatMember.createMany({ data: chans.map((c) => ({ roomId: c.id, userId: u.id, lastReadAt: c.createdAt > since ? c.createdAt : since })), skipDuplicates: true });
+  }
+  /** announcements posted since this person joined the company are unread for them (older ones are just history) */
+  private async joinedAt(u: AuthUser): Promise<Date> {
+    return (await this.prisma.user.findUnique({ where: { id: u.id }, select: { createdAt: true } }))?.createdAt ?? new Date();
+  }
+
+  /** Who may post: anyone in a direct / company chat; in a group everyone unless «only admins write»; in a channel only its admins. */
+  private canWrite(u: AuthUser, room: Pick<ChatRoom, 'kind' | 'onlyAdminsWrite'>, me: Pick<ChatMember, 'isOwner' | 'isAdmin'> | null) {
+    const roomAdmin = !!me && (me.isOwner || me.isAdmin);
+    if (room.kind === 'CHANNEL') return roomAdmin || u.role === 'SUPER_ADMIN';
+    if (room.kind === 'GROUP' && room.onlyAdminsWrite) return roomAdmin || isAdmin(u);
+    return true;
+  }
+  private canManage(u: AuthUser, room: Pick<ChatRoom, 'kind'>, me: Pick<ChatMember, 'isOwner' | 'isAdmin'> | null) {
+    return (room.kind === 'GROUP' || room.kind === 'CHANNEL') && (!!me?.isOwner || !!me?.isAdmin || isAdmin(u));
+  }
+  private async me(u: AuthUser, roomId: string) {
+    return this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } });
+  }
+  /** The room, if this user may post there. */
+  private async writable(u: AuthUser, roomId: string): Promise<ChatRoom> {
+    const room = await this.access(u, roomId);
+    if (!this.canWrite(u, room, await this.me(u, roomId))) throw forbidden('Only the admins write in this chat');
+    return room;
+  }
 
   // ---- rooms ------------------------------------------------------------------------------------------------------------
   private async companyRoom(): Promise<ChatRoom> {
@@ -94,8 +139,10 @@ export class ChatService {
   }
 
   /** Who must hear about something in this room. */
-  private async memberIds(room: Pick<ChatRoom, 'id' | 'kind'>): Promise<string[]> {
+  private async memberIds(room: Pick<ChatRoom, 'id' | 'kind'> & { audience?: ChatAudience }): Promise<string[]> {
     if (room.kind === 'COMPANY') return (await this.prisma.user.findMany({ where: { status: 'ACTIVE' }, select: { id: true } })).map((u) => u.id);
+    const aud = room.kind === 'CHANNEL' ? this.audienceWhere((room as ChatRoom).audience ?? 'CUSTOM') : null;
+    if (aud) return (await this.prisma.user.findMany({ where: aud, select: { id: true } })).map((u) => u.id);
     return (await this.prisma.chatMember.findMany({ where: { roomId: room.id }, select: { userId: true } })).map((m) => m.userId);
   }
 
@@ -106,8 +153,15 @@ export class ChatService {
       return (await this.prisma.chatRoom.findUnique({ where: { id: roomId } }))!;
     }
     const m = await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } }, include: { room: true } });
-    if (!m) throw notFound('Chat');
-    return m.room;
+    if (m) return m.room;
+    // an audience channel this person belongs to by role: joined on first open
+    const room = await this.prisma.chatRoom.findUnique({ where: { id: roomId } });
+    if (room?.kind === 'CHANNEL' && room.audience !== 'CUSTOM' && this.inAudience(u, room.audience)) {
+      const since = await this.joinedAt(u);
+      await this.prisma.chatMember.upsert({ where: { roomId_userId: { roomId, userId: u.id } }, create: { roomId, userId: u.id, lastReadAt: room.createdAt > since ? room.createdAt : since }, update: {} });
+      return room;
+    }
+    throw notFound('Chat');
   }
 
   private async unreadByRoom(userId: string): Promise<Map<string, number>> {
@@ -121,6 +175,7 @@ export class ChatService {
 
   async unread(u: AuthUser) {
     await this.joinCompany(u.id);
+    await this.joinAudienceChannels(u);
     let count = 0;
     for (const n of (await this.unreadByRoom(u.id)).values()) count += n;
     return { count };
@@ -128,6 +183,7 @@ export class ChatService {
 
   async rooms(u: AuthUser) {
     await this.joinCompany(u.id);
+    await this.joinAudienceChannels(u);
     const mine = await this.prisma.chatMember.findMany({ where: { userId: u.id }, include: { room: true } });
     const ids = mine.map((m) => m.roomId);
     const [unread, peers, counts, lasts] = await Promise.all([
@@ -142,6 +198,10 @@ export class ChatService {
     const activeUsers = mine.some((m) => m.roomId === COMPANY_ROOM_ID) ? await this.prisma.user.count({ where: { status: 'ACTIVE' } }) : 0;
     const peerOf = new Map(peers.map((p) => [p.roomId, p]));
     const countOf = new Map(counts.map((c) => [c.roomId, c._count._all]));
+    const audienceCount = new Map<ChatAudience, number>();
+    for (const a of new Set(mine.filter((m) => m.room.kind === 'CHANNEL' && m.room.audience !== 'CUSTOM').map((m) => m.room.audience))) {
+      audienceCount.set(a, await this.prisma.user.count({ where: this.audienceWhere(a)! }));
+    }
     const items = mine.map((m, i) => {
       const peer = peerOf.get(m.roomId);
       const last = lasts[i];
@@ -150,8 +210,9 @@ export class ChatService {
         kind: m.room.kind,
         title: m.room.kind === 'DIRECT' ? (peer?.user.fullName ?? null) : m.room.title,
         peer: peer ? this.person(peer.user, peer.lastReadAt) : null,
-        memberCount: m.room.kind === 'COMPANY' ? activeUsers : (countOf.get(m.roomId) ?? 0),
+        memberCount: m.room.kind === 'COMPANY' ? activeUsers : m.room.kind === 'CHANNEL' && m.room.audience !== 'CUSTOM' ? (audienceCount.get(m.room.audience) ?? 0) : (countOf.get(m.roomId) ?? 0),
         isOwner: m.isOwner,
+        photo: m.room.photoFileId ? this.files.ref(m.room.photoFileId)?.thumbUrl ?? null : null,
         pinned: !!m.pinnedAt,
         pinnedAt: m.pinnedAt?.toISOString() ?? null,
         muted: !!m.mutedUntil && m.mutedUntil > new Date(),
@@ -168,8 +229,11 @@ export class ChatService {
 
   async room(u: AuthUser, roomId: string) {
     const room = await this.access(u, roomId);
+    // an audience channel lists only its admins (everyone of that audience reads it)
+    const audienceChannel = room.kind === 'CHANNEL' && room.audience !== 'CUSTOM';
     const members = room.kind === 'COMPANY' ? [] : await this.prisma.chatMember.findMany({
-      where: { roomId }, include: { user: { select: { id: true, fullName: true, role: true, lastSeenAt: true } } }, orderBy: { joinedAt: 'asc' },
+      where: { roomId, ...(audienceChannel ? { OR: [{ isOwner: true }, { isAdmin: true }] } : {}) },
+      include: { user: { select: { id: true, fullName: true, role: true, lastSeenAt: true } } }, orderBy: { joinedAt: 'asc' },
     });
     const me = members.find((m) => m.userId === u.id) ?? (await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } }));
     const pinned = room.pinnedMessageId ? await this.prisma.chatMessage.findFirst({ where: { id: room.pinnedMessageId, roomId, deletedAt: null }, include: MSG_INCLUDE }) : null;
@@ -178,14 +242,23 @@ export class ChatService {
       id: room.id, kind: room.kind,
       title: room.kind === 'DIRECT' ? (peer?.user.fullName ?? null) : room.title,
       isOwner: me?.isOwner ?? false,
-      canManage: room.kind === 'GROUP' && (me?.isOwner === true || isAdmin(u)),
-      canPin: this.canPin(u, room, me?.isOwner ?? false),
+      isAdmin: !!me?.isAdmin,
+      canManage: this.canManage(u, room, me ?? null),
+      canEditAdmins: (room.kind === 'GROUP' || room.kind === 'CHANNEL') && (!!me?.isOwner || isAdmin(u)),
+      canWrite: this.canWrite(u, room, me ?? null),
+      canPin: this.canPin(u, room, me ?? null),
+      description: room.description,
+      photo: room.photoFileId ? this.files.ref(room.photoFileId) : null,
+      audience: room.kind === 'CHANNEL' ? room.audience : null,
+      onlyAdminsWrite: room.onlyAdminsWrite,
       pinned: !!me?.pinnedAt,
       muted: !!me?.mutedUntil && me.mutedUntil > new Date(),
       pinnedMessage: pinned ? this.dto(pinned, u.id) : null,
-      memberCount: room.kind === 'COMPANY' ? await this.prisma.user.count({ where: { status: 'ACTIVE' } }) : members.length,
+      memberCount: room.kind === 'COMPANY'
+        ? await this.prisma.user.count({ where: { status: 'ACTIVE' } })
+        : audienceChannel ? await this.prisma.user.count({ where: this.audienceWhere(room.audience)! }) : members.length,
       peer: peer ? this.person(peer.user, peer.lastReadAt) : null,
-      members: members.map((m) => ({ ...this.person(m.user, null), isOwner: m.isOwner })),
+      members: members.map((m) => ({ ...this.person(m.user, null), isOwner: m.isOwner, isAdmin: m.isAdmin })),
     };
   }
 
@@ -196,8 +269,8 @@ export class ChatService {
   }
 
   /** the pinned message: anyone in a direct chat, the owner / an administrator in a group, administrators in the company chat */
-  private canPin(u: AuthUser, room: Pick<ChatRoom, 'kind'>, isOwner: boolean) {
-    return room.kind === 'DIRECT' || isAdmin(u) || (room.kind === 'GROUP' && isOwner);
+  private canPin(u: AuthUser, room: Pick<ChatRoom, 'kind'>, me: Pick<ChatMember, 'isOwner' | 'isAdmin'> | null) {
+    return room.kind === 'DIRECT' || isAdmin(u) || ((room.kind === 'GROUP' || room.kind === 'CHANNEL') && (!!me?.isOwner || !!me?.isAdmin));
   }
 
   /**
@@ -269,27 +342,87 @@ export class ChatService {
     return this.room(u, room.id);
   }
 
+  /** An announcement channel (SUPER_ADMIN / ADMIN): its admins post, the audience reads. Audited. */
+  async createChannel(u: AuthUser, b: z.output<typeof chatChannelSchema>) {
+    if (!isAdmin(u)) throw forbidden('Only administrators create channels');
+    const ids = b.audience === 'CUSTOM' ? await this.activeUsers(u, b.memberIds.filter((id) => id !== u.id)) : [];
+    const now = new Date();
+    const room = await this.prisma.$transaction(async (tx) => {
+      const room = await tx.chatRoom.create({
+        data: {
+          kind: 'CHANNEL', title: b.title, description: b.description || null, audience: b.audience, createdById: u.id,
+          members: { create: [{ userId: u.id, isOwner: true, isAdmin: true, lastReadAt: now }, ...ids.map((userId) => ({ userId, lastReadAt: now }))] },
+        },
+      });
+      await this.audit.record({ action: 'chat.channel_created', entity: 'ChatRoom', entityId: room.id, after: { title: b.title, audience: b.audience, members: ids.length } }, tx);
+      return room;
+    });
+    await this.events.publish('chat.room', { roomId: room.id, userIds: await this.memberIds(room) });
+    return this.room(u, room.id);
+  }
+
+  /** Group or channel settings. Members / title / description / «only admins write»: its admins; who is admin: the owner. */
   async updateGroup(u: AuthUser, roomId: string, b: z.output<typeof chatGroupUpdateSchema>) {
     const room = await this.access(u, roomId);
-    if (room.kind !== 'GROUP') throw validationFailed('Only a group can be changed');
-    const me = await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } });
-    if (!me?.isOwner && !isAdmin(u)) throw forbidden('Only the group owner or an administrator can change the group');
+    if (room.kind !== 'GROUP' && room.kind !== 'CHANNEL') throw validationFailed('Only a group or a channel can be changed');
+    const me = await this.me(u, roomId);
+    if (!this.canManage(u, room, me)) throw forbidden('Only the owner or the admins of this chat can change it');
+    const changesAdmins = !!(b.adminIds?.length || b.unadminIds?.length);
+    if (changesAdmins && !me?.isOwner && !isAdmin(u)) throw forbidden('Only the owner chooses the admins');
+    if ((b.addIds?.length || b.removeIds?.length) && room.kind === 'CHANNEL' && room.audience !== 'CUSTOM') throw validationFailed('This channel is read by everyone of its audience');
     const before = await this.memberIds(room);
     const add = b.addIds?.length ? await this.activeUsers(u, b.addIds) : [];
+    const newAdmins = b.adminIds?.length ? await this.activeUsers(u, b.adminIds) : [];
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
-      if (b.title) await tx.chatRoom.update({ where: { id: roomId }, data: { title: b.title } });
+      const data: Prisma.ChatRoomUpdateInput = {};
+      if (b.title) data.title = b.title;
+      if (b.description !== undefined) data.description = b.description || null;
+      if (b.onlyAdminsWrite !== undefined && room.kind === 'GROUP') data.onlyAdminsWrite = b.onlyAdminsWrite;
+      if (Object.keys(data).length) await tx.chatRoom.update({ where: { id: roomId }, data });
       if (add.length) await tx.chatMember.createMany({ data: add.map((userId) => ({ roomId, userId, lastReadAt: now })), skipDuplicates: true });
-      if (b.removeIds?.length) await tx.chatMember.deleteMany({ where: { roomId, userId: { in: b.removeIds.filter((id) => id !== u.id) } } });
+      if (b.removeIds?.length) await tx.chatMember.deleteMany({ where: { roomId, isOwner: false, userId: { in: b.removeIds.filter((id) => id !== u.id) } } });
+      for (const userId of newAdmins) {
+        await tx.chatMember.upsert({ where: { roomId_userId: { roomId, userId } }, create: { roomId, userId, isAdmin: true, lastReadAt: now }, update: { isAdmin: true } });
+      }
+      if (b.unadminIds?.length) await tx.chatMember.updateMany({ where: { roomId, isOwner: false, userId: { in: b.unadminIds } }, data: { isAdmin: false } });
+      if (add.length || b.removeIds?.length || changesAdmins || room.kind === 'CHANNEL') {
+        await this.audit.record({
+          action: 'chat.room_changed', entity: 'ChatRoom', entityId: roomId,
+          after: { title: b.title, description: b.description, added: add.length, removed: b.removeIds?.length ?? 0, admins: newAdmins.length, unadmins: b.unadminIds?.length ?? 0, onlyAdminsWrite: b.onlyAdminsWrite },
+        }, tx);
+      }
     });
-    await this.events.publish('chat.room', { roomId, userIds: [...new Set([...before, ...add])] });
+    await this.events.publish('chat.room', { roomId, userIds: [...new Set([...before, ...add, ...newAdmins])] });
     return this.room(u, roomId);
+  }
+
+  /** A group / channel photo (its admins): a real image, resized, EXIF stripped. */
+  async setPhoto(u: AuthUser, roomId: string, buffer: Buffer) {
+    const room = await this.access(u, roomId);
+    if (!this.canManage(u, room, await this.me(u, roomId))) throw forbidden('Only the admins of this chat can change its photo');
+    const a = await this.files.uploadImage({ bucket: 'chat', buffer, uploadedById: u.id, originalName: 'photo.jpg' });
+    await this.prisma.chatRoom.update({ where: { id: roomId }, data: { photoFileId: a.id } });
+    await this.events.publish('chat.room', { roomId, userIds: await this.memberIds(room) });
+    return this.room(u, roomId);
+  }
+
+  /** «Медиа», «Файлы», «Голосовые», «Ссылки» of a chat (newest first). */
+  async media(u: AuthUser, roomId: string, q: z.output<typeof chatMediaQuerySchema>) {
+    await this.access(u, roomId);
+    const where: Prisma.ChatMessageWhereInput = { roomId, deletedAt: null, ...(q.before ? { id: { lt: q.before } } : {}) };
+    if (q.kind === 'media') where.kind = { in: ['IMAGE', 'VIDEO'] };
+    if (q.kind === 'files') where.kind = { in: ['FILE', 'AUDIO'] };
+    if (q.kind === 'voice') where.kind = 'VOICE';
+    if (q.kind === 'links') where.OR = [{ text: { contains: 'http', mode: 'insensitive' } }, { text: { contains: 'www.', mode: 'insensitive' } }];
+    const rows = await this.prisma.chatMessage.findMany({ where, orderBy: { id: 'desc' }, take: q.limit + 1, include: MSG_INCLUDE });
+    return { items: rows.slice(0, q.limit).map((m) => this.dto(m, u.id)), hasMore: rows.length > q.limit };
   }
 
   /** Leave a group. The owner leaving hands the group to the longest-standing member. */
   async leave(u: AuthUser, roomId: string) {
     const room = await this.access(u, roomId);
-    if (room.kind !== 'GROUP') throw validationFailed('Only a group can be left');
+    if (room.kind !== 'GROUP' && !(room.kind === 'CHANNEL' && room.audience === 'CUSTOM')) throw validationFailed('This chat cannot be left (turn its notifications off instead)');
     const before = await this.memberIds(room);
     await this.prisma.$transaction(async (tx) => {
       const me = await tx.chatMember.delete({ where: { roomId_userId: { roomId, userId: u.id } } });
@@ -368,7 +501,7 @@ export class ChatService {
   }
 
   async sendText(u: AuthUser, roomId: string, b: z.output<typeof chatTextSchema>) {
-    const room = await this.access(u, roomId);
+    const room = await this.writable(u, roomId);
     const again = await this.existing(u, b.clientId);
     if (again) return this.dto(again, u.id); // a retried send (bad connection): the same message, not a second one
     const replyToId = await this.replyTarget(roomId, b.replyToId);
@@ -381,7 +514,7 @@ export class ChatService {
   }
 
   async sendFile(u: AuthUser, roomId: string, b: z.output<typeof chatFileFieldsSchema>, file: { buffer: Buffer; originalName?: string; mimetype?: string }) {
-    const room = await this.access(u, roomId);
+    const room = await this.writable(u, roomId);
     const again = await this.existing(u, b.clientId);
     if (again) return this.dto(again, u.id);
     if (file.buffer.length > CHAT_MAX_FILE_BYTES) throw fileRejected('The file is larger than 50 MB');
@@ -478,7 +611,7 @@ export class ChatService {
     if (!src || src.deletedAt) throw notFound('Message');
     await this.access(u, src.roomId); // I may read the original
     const targets = [];
-    for (const roomId of [...new Set(roomIds)]) targets.push(await this.access(u, roomId)); // and write where it goes
+    for (const roomId of [...new Set(roomIds)]) targets.push(await this.writable(u, roomId)); // and may write where it goes
     const out = [];
     for (const room of targets) {
       const m = await this.prisma.chatMessage.create({
@@ -496,8 +629,7 @@ export class ChatService {
 
   async pin(u: AuthUser, roomId: string, messageId: string | null) {
     const room = await this.access(u, roomId);
-    const me = await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } });
-    if (!this.canPin(u, room, me?.isOwner ?? false)) throw forbidden('You cannot pin messages in this chat');
+    if (!this.canPin(u, room, await this.me(u, roomId))) throw forbidden('You cannot pin messages in this chat');
     if (messageId && !(await this.prisma.chatMessage.findFirst({ where: { id: messageId, roomId, deletedAt: null } }))) throw notFound('Message');
     await this.prisma.chatRoom.update({ where: { id: roomId }, data: { pinnedMessageId: messageId } });
     await this.events.publish('chat.room', { roomId, userIds: await this.memberIds(room) });
@@ -559,8 +691,17 @@ export class ChatService {
     const m = await this.prisma.chatMessage.findUnique({ where: { id } });
     if (!m) throw notFound('Message');
     const room = await this.access(u, m.roomId);
-    if (m.senderId !== u.id && !isAdmin(u)) throw forbidden('You can delete only your own messages');
-    if (!m.deletedAt) await this.prisma.chatMessage.update({ where: { id }, data: { deletedAt: new Date(), text: null } });
+    const own = m.senderId === u.id;
+    if (!own && !isAdmin(u) && !(room.kind !== 'DIRECT' && room.kind !== 'COMPANY' && this.canManage(u, room, await this.me(u, room.id)))) {
+      throw forbidden('You can delete only your own messages');
+    }
+    if (!m.deletedAt) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.chatMessage.update({ where: { id }, data: { deletedAt: new Date(), text: null } });
+        // someone else's message removed by an admin: recorded (who, which chat, whose message) - never its content
+        if (!own) await this.audit.record({ action: 'chat.message_deleted', entity: 'ChatMessage', entityId: id, after: { roomId: m.roomId, senderId: m.senderId } }, tx);
+      });
+    }
     await this.events.publish('chat.message_deleted', { roomId: m.roomId, messageId: id, userIds: await this.memberIds(room) });
     return { ok: true };
   }
@@ -586,6 +727,20 @@ export class ChatController {
 
   @Authenticated() @Post('groups') @ApiZodBody(chatGroupSchema)
   createGroup(@CurrentUser() u: AuthUser, @ZodBody(chatGroupSchema) b: z.output<typeof chatGroupSchema>) { return this.chat.createGroup(u, b); }
+
+  @Authenticated() @Post('channels') @ApiZodBody(chatChannelSchema)
+  createChannel(@CurrentUser() u: AuthUser, @ZodBody(chatChannelSchema) b: z.output<typeof chatChannelSchema>) { return this.chat.createChannel(u, b); }
+
+  @Authenticated() @Get('rooms/:id/media')
+  media(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodQuery(chatMediaQuerySchema) q: z.output<typeof chatMediaQuerySchema>) { return this.chat.media(u, id, q); }
+
+  @Authenticated() @Post('rooms/:id/photo') @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  photo(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @UploadedFile() file?: Express.Multer.File) {
+    if (!file) throw fileRejected('Attach the photo as multipart field "file"');
+    return this.chat.setPhoto(u, id, file.buffer);
+  }
 
   @Authenticated() @Get('rooms/:id')
   room(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.room(u, id); }

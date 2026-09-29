@@ -2256,17 +2256,17 @@ class AppLocalizationsUz extends AppLocalizations {
   String get chatEditing => 'Tahrirlash';
 
   @override
-  String get chatForward => 'Yuborish (forward)';
+  String get chatForward => 'Uzatish';
 
   @override
-  String get chatForwardTo => 'Qayerga yuborish…';
+  String get chatForwardTo => 'Qayerga uzatish…';
 
   @override
-  String get chatForwarded => 'Yuborildi';
+  String get chatForwarded => 'Uzatildi';
 
   @override
   String chatForwardedFrom(String name) {
-    return '$name dan yuborilgan';
+    return '$name dan uzatilgan';
   }
 
   @override
@@ -2336,4 +2336,94 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatEmoji => 'Emoji';
+
+  @override
+  String get chatNewChannel => 'Yangi kanal';
+
+  @override
+  String get chatChannelName => 'Kanal nomi';
+
+  @override
+  String get chatDescription => 'Tavsif';
+
+  @override
+  String get chatAudience => 'Kim o\'qiydi';
+
+  @override
+  String get chatAudienceAll => 'Barcha xodimlar va ustalar';
+
+  @override
+  String get chatAudienceStaff => 'Faqat xodimlar';
+
+  @override
+  String get chatAudienceWorkers => 'Faqat ustalar';
+
+  @override
+  String get chatAudienceCustom => 'Tanlangan odamlar';
+
+  @override
+  String chatChoosePeople(int count) {
+    return 'Odamlarni tanlash ($count)';
+  }
+
+  @override
+  String get chatChannelHint =>
+      'Faqat kanal adminlari e\'lon qiladi; o\'quvchilar e\'lonlarni ko\'radi va bildirishnoma oladi.';
+
+  @override
+  String get chatChannelReadOnly =>
+      'Bu kanal: faqat uning adminlari e\'lon qiladi';
+
+  @override
+  String get chatGroupReadOnly => 'Faqat guruh adminlari yoza oladi';
+
+  @override
+  String get chatOnlyAdminsWrite => 'Faqat adminlar yoza oladi';
+
+  @override
+  String get chatMakeAdmin => 'Admin qilish';
+
+  @override
+  String get chatRemoveAdmin => 'Adminlikdan olish';
+
+  @override
+  String get chatAddAdmin => 'Admin qo\'shish';
+
+  @override
+  String get chatAdmin => 'admin';
+
+  @override
+  String get chatChangePhoto => 'Rasmni o\'zgartirish';
+
+  @override
+  String get chatInfo => 'Chat haqida ma\'lumot';
+
+  @override
+  String get chatChannelInfo => 'Kanal haqida';
+
+  @override
+  String get chatTabMembers => 'A\'zolar';
+
+  @override
+  String get chatTabMedia => 'Media';
+
+  @override
+  String get chatTabFiles => 'Fayllar';
+
+  @override
+  String get chatTabVoice => 'Ovozli';
+
+  @override
+  String get chatTabLinks => 'Havolalar';
+
+  @override
+  String get chatNothingYet => 'Hozircha hech narsa yo\'q';
+
+  @override
+  String chatSubscribers(int count) {
+    return 'Kanal · obunachilar: $count';
+  }
+
+  @override
+  String get chatLeaveChannel => 'Kanaldan chiqish';
 }

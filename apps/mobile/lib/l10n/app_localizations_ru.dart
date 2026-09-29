@@ -2377,4 +2377,94 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatEmoji => 'Эмодзи';
+
+  @override
+  String get chatNewChannel => 'Новый канал';
+
+  @override
+  String get chatChannelName => 'Название канала';
+
+  @override
+  String get chatDescription => 'Описание';
+
+  @override
+  String get chatAudience => 'Кто читает';
+
+  @override
+  String get chatAudienceAll => 'Все сотрудники и мастерицы';
+
+  @override
+  String get chatAudienceStaff => 'Только сотрудники';
+
+  @override
+  String get chatAudienceWorkers => 'Только мастерицы';
+
+  @override
+  String get chatAudienceCustom => 'Выбранные люди';
+
+  @override
+  String chatChoosePeople(int count) {
+    return 'Выбрать людей ($count)';
+  }
+
+  @override
+  String get chatChannelHint =>
+      'Публикуют только администраторы канала; читатели видят объявления и получают уведомления.';
+
+  @override
+  String get chatChannelReadOnly =>
+      'Это канал: публикуют только его администраторы';
+
+  @override
+  String get chatGroupReadOnly => 'Писать могут только администраторы группы';
+
+  @override
+  String get chatOnlyAdminsWrite => 'Писать могут только администраторы';
+
+  @override
+  String get chatMakeAdmin => 'Сделать администратором';
+
+  @override
+  String get chatRemoveAdmin => 'Снять администратора';
+
+  @override
+  String get chatAddAdmin => 'Добавить администратора';
+
+  @override
+  String get chatAdmin => 'администратор';
+
+  @override
+  String get chatChangePhoto => 'Сменить фото';
+
+  @override
+  String get chatInfo => 'Информация о чате';
+
+  @override
+  String get chatChannelInfo => 'О канале';
+
+  @override
+  String get chatTabMembers => 'Участники';
+
+  @override
+  String get chatTabMedia => 'Медиа';
+
+  @override
+  String get chatTabFiles => 'Файлы';
+
+  @override
+  String get chatTabVoice => 'Голосовые';
+
+  @override
+  String get chatTabLinks => 'Ссылки';
+
+  @override
+  String get chatNothingYet => 'Пока ничего нет';
+
+  @override
+  String chatSubscribers(int count) {
+    return 'Канал · подписчиков: $count';
+  }
+
+  @override
+  String get chatLeaveChannel => 'Выйти из канала';
 }

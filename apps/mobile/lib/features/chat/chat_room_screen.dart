@@ -436,13 +436,13 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
   Future<void> _groupInfo() async {
     final room = _room;
-    if (room == null || room.kind != 'GROUP') return;
+    if (room == null) return;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       useSafeArea: true,
-      builder: (_) => _GroupInfoSheet(room: room, onChanged: (r) { if (mounted) setState(() => _room = r); }, onLeft: () { if (mounted) Navigator.of(context).pop(); }),
+      builder: (_) => _RoomInfoSheet(room: room, onChanged: (r) { if (mounted) setState(() => _room = r); }, onLeft: () { if (mounted) Navigator.of(context).pop(); }),
     );
   }
 
@@ -499,7 +499,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                     : peer?.lastSeenAt != null
                         ? l.chatLastSeen(chatWhen(l, peer!.lastSeenAt!))
                         : (peer == null ? null : teamRoleLabel(l, peer.role))
-                : l.chatMembers(room.memberCount));
+                : room.kind == 'CHANNEL'
+                    ? l.chatSubscribers(room.memberCount)
+                    : l.chatMembers(room.memberCount));
     final showSender = room != null && room.kind != 'DIRECT';
     final peerRead = room?.peer?.lastReadAt;
 
@@ -512,9 +514,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       appBar: AppBar(
         titleSpacing: 0,
         title: InkWell(
-          onTap: room?.kind == 'GROUP' ? _groupInfo : null,
+          onTap: room == null ? null : _groupInfo,
           child: Row(children: [
-            if (room != null) ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, radius: 18),
+            if (room != null) ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, radius: 18, photo: room.photoThumb),
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -525,7 +527,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             ),
           ]),
         ),
-        actions: [if (room?.kind == 'GROUP') IconButton(key: const Key('groupInfo'), tooltip: l.chatGroupInfo, icon: const Icon(Icons.info_outline_rounded), onPressed: _groupInfo)],
+        actions: [if (room != null) IconButton(key: const Key('groupInfo'), tooltip: l.chatInfo, icon: const Icon(Icons.info_outline_rounded), onPressed: _groupInfo)],
       ),
       body: Column(children: [
         if (room?.pinnedMessage != null)
@@ -611,6 +613,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               ),
             ),
           ),
+        if (room != null && !room.canWrite)
+          SafeArea(
+            top: false,
+            child: Padding(
+              key: const Key('readOnlyNotice'),
+              padding: const EdgeInsets.all(16),
+              child: Text(room.kind == 'CHANNEL' ? l.chatChannelReadOnly : l.chatGroupReadOnly, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+            ),
+          )
+        else
         _Composer(
           controller: _text,
           onSend: _sendText,
@@ -1006,18 +1018,24 @@ class _ComposerState extends State<_Composer> {
   }
 }
 
-/// «О группе»: members; the owner (or an administrator) renames, adds and removes; anyone leaves.
-class _GroupInfoSheet extends ConsumerStatefulWidget {
-  const _GroupInfoSheet({required this.room, required this.onChanged, required this.onLeft});
+/// «Информация о чате» / «О группе» / «О канале»: photo, name, description, «only admins write», members and admins
+/// (managed by the chat's admins; admins chosen by its owner), and the chat's media, files, voice notes and links.
+class _RoomInfoSheet extends ConsumerStatefulWidget {
+  const _RoomInfoSheet({required this.room, required this.onChanged, required this.onLeft});
   final ChatRoomDetail room;
   final ValueChanged<ChatRoomDetail> onChanged;
   final VoidCallback onLeft;
   @override
-  ConsumerState<_GroupInfoSheet> createState() => _GroupInfoSheetState();
+  ConsumerState<_RoomInfoSheet> createState() => _RoomInfoSheetState();
 }
 
-class _GroupInfoSheetState extends ConsumerState<_GroupInfoSheet> {
+class _RoomInfoSheetState extends ConsumerState<_RoomInfoSheet> {
   late ChatRoomDetail _room = widget.room;
+  late String _tab = _managed ? 'members' : 'media';
+  Future<List<ChatMessage>>? _media;
+
+  bool get _managed => _room.kind == 'GROUP' || _room.kind == 'CHANNEL';
+  bool get _audienceChannel => _room.kind == 'CHANNEL' && _room.audience != 'CUSTOM';
 
   Future<void> _run(Future<ChatRoomDetail> Function() op) async {
     try {
@@ -1030,24 +1048,29 @@ class _GroupInfoSheetState extends ConsumerState<_GroupInfoSheet> {
     }
   }
 
-  Future<void> _rename() async {
+  Future<void> _editText({required String label, required String? value, required Future<ChatRoomDetail> Function(String) save}) async {
     final l = AppLocalizations.of(context);
-    final c = TextEditingController(text: _room.title);
-    final name = await showDialog<String>(
+    final c = TextEditingController(text: value);
+    final v = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l.chatRename),
-        content: TextField(controller: c, autofocus: true, decoration: InputDecoration(labelText: l.chatGroupName)),
+        title: Text(label),
+        content: TextField(controller: c, autofocus: true, maxLines: null, decoration: InputDecoration(labelText: label)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
           TextButton(onPressed: () => Navigator.pop(ctx, c.text.trim()), child: Text(l.save)),
         ],
       ),
     );
-    if (name != null && name.isNotEmpty) await _run(() => ref.read(chatRepositoryProvider).updateGroup(_room.id, title: name));
+    if (v != null) await _run(() => save(v));
   }
 
-  Future<void> _add() async {
+  Future<void> _photo() async {
+    final x = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1024, maxHeight: 1024);
+    if (x != null) await _run(() => ref.read(chatRepositoryProvider).setPhoto(_room.id, x.path));
+  }
+
+  Future<void> _add({bool admins = false}) async {
     final ids = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
@@ -1055,12 +1078,13 @@ class _GroupInfoSheetState extends ConsumerState<_GroupInfoSheet> {
       useSafeArea: true,
       builder: (_) => NewChatSheet(pickOnly: true, exclude: _room.members.map((m) => m.id).toSet()),
     );
-    if (ids != null && ids.isNotEmpty) await _run(() => ref.read(chatRepositoryProvider).updateGroup(_room.id, addIds: ids));
+    if (ids == null || ids.isEmpty) return;
+    await _run(() => admins ? ref.read(chatRepositoryProvider).updateGroup(_room.id, adminIds: ids) : ref.read(chatRepositoryProvider).updateGroup(_room.id, addIds: ids));
   }
 
   Future<void> _leave() async {
     final l = AppLocalizations.of(context);
-    if (!await confirmDelete(context, title: l.chatLeaveGroup, body: l.chatLeaveGroupBody)) return;
+    if (!await confirmDelete(context, title: _room.kind == 'CHANNEL' ? l.chatLeaveChannel : l.chatLeaveGroup, body: l.chatLeaveGroupBody)) return;
     try {
       await ref.read(chatRepositoryProvider).leave(_room.id);
       if (!mounted) return;
@@ -1071,43 +1095,154 @@ class _GroupInfoSheetState extends ConsumerState<_GroupInfoSheet> {
     }
   }
 
+  void _select(String tab) => setState(() {
+        _tab = tab;
+        _media = tab == 'members' ? null : ref.read(chatRepositoryProvider).media(_room.id, tab);
+      });
+
+  @override
+  void initState() {
+    super.initState();
+    if (_tab != 'members') _media = ref.read(chatRepositoryProvider).media(_room.id, _tab);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final me = ref.watch(authControllerProvider).value;
+    final repo = ref.read(chatRepositoryProvider);
+    final title = chatTitle(l, kind: _room.kind, title: _room.title);
+    final tabs = <String, String>{if (_managed) 'members': l.chatTabMembers, 'media': l.chatTabMedia, 'files': l.chatTabFiles, 'voice': l.chatTabVoice, 'links': l.chatTabLinks};
+    final audience = {'ALL': l.chatAudienceAll, 'STAFF': l.chatAudienceStaff, 'WORKERS': l.chatAudienceWorkers, 'CUSTOM': l.chatAudienceCustom};
+    final canLeave = _room.kind == 'GROUP' || (_room.kind == 'CHANNEL' && _room.audience == 'CUSTOM');
     return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.8,
+      height: MediaQuery.sizeOf(context).height * 0.85,
       child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
         Row(children: [
-          Expanded(child: Text(_room.title ?? '', style: Theme.of(context).textTheme.titleLarge)),
-          if (_room.canManage) IconButton(tooltip: l.chatRename, icon: const Icon(Icons.edit_rounded), onPressed: _rename),
+          GestureDetector(
+            onTap: _room.canManage ? _photo : null,
+            child: Stack(children: [
+              ChatAvatar(kind: _room.kind, name: title, radius: 32, photo: _room.photoThumb, online: _room.peer?.online ?? false),
+              if (_room.canManage) Positioned(right: 0, bottom: 0, child: CircleAvatar(radius: 11, child: Icon(Icons.photo_camera_rounded, size: 13, semanticLabel: l.chatChangePhoto))),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              if (_room.kind == 'CHANNEL') Text(l.chatSubscribers(_room.memberCount)) else if (_managed) Text(l.chatMembers(_room.memberCount)),
+            ]),
+          ),
+          if (_room.canManage)
+            IconButton(tooltip: l.chatRename, icon: const Icon(Icons.edit_rounded), onPressed: () => _editText(label: l.chatRename, value: _room.title, save: (v) => repo.updateGroup(_room.id, title: v))),
         ]),
-        Text(l.chatMembers(_room.memberCount)),
-        const SizedBox(height: 8),
-        if (_room.canManage)
-          ListTile(key: const Key('groupAdd'), contentPadding: EdgeInsets.zero, leading: const CircleAvatar(child: Icon(Icons.person_add_rounded)), title: Text(l.chatAddMembers), onTap: _add),
-        for (final m in _room.members)
+        if (_managed) ...[
+          const SizedBox(height: 8),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: ChatAvatar(kind: 'DIRECT', name: m.fullName, online: m.online, radius: 20),
-            title: Text(m.id == me?.id ? '${m.fullName} (${l.chatYou})' : m.fullName),
-            subtitle: Text('${teamRoleLabel(l, m.role)}${m.isOwner ? ' · ${l.chatOwner}' : ''}'),
-            trailing: _room.canManage && m.id != me?.id
-                ? IconButton(
-                    tooltip: l.chatRemoveMember,
-                    icon: const Icon(Icons.remove_circle_outline_rounded),
-                    onPressed: () => _run(() => ref.read(chatRepositoryProvider).updateGroup(_room.id, removeIds: [m.id])),
-                  )
-                : null,
+            leading: const Icon(Icons.notes_rounded),
+            title: Text(_room.description?.isNotEmpty == true ? _room.description! : l.chatDescription, style: _room.description?.isNotEmpty == true ? null : TextStyle(color: Theme.of(context).colorScheme.outline)),
+            onTap: _room.canManage ? () => _editText(label: l.chatDescription, value: _room.description, save: (v) => repo.updateGroup(_room.id, description: v)) : null,
           ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          key: const Key('groupLeave'),
-          style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-          onPressed: _leave,
-          icon: const Icon(Icons.logout_rounded),
-          label: Text(l.chatLeaveGroup),
+          if (_room.kind == 'CHANNEL' && _room.audience != null) ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.visibility_rounded), title: Text('${l.chatAudience}: ${audience[_room.audience] ?? ''}')),
+          if (_room.kind == 'GROUP' && _room.canManage)
+            SwitchListTile(
+              key: const Key('onlyAdminsWrite'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(l.chatOnlyAdminsWrite),
+              value: _room.onlyAdminsWrite,
+              onChanged: (v) => _run(() => repo.updateGroup(_room.id, onlyAdminsWrite: v)),
+            ),
+        ],
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            for (final t in tabs.entries)
+              Padding(padding: const EdgeInsets.only(right: 6), child: ChoiceChip(key: Key('tab-${t.key}'), label: Text(t.value), selected: _tab == t.key, onSelected: (_) => _select(t.key))),
+          ]),
         ),
+        const SizedBox(height: 8),
+        if (_tab == 'members') ...[
+          if (_room.canManage && !_audienceChannel)
+            ListTile(key: const Key('groupAdd'), contentPadding: EdgeInsets.zero, leading: const CircleAvatar(child: Icon(Icons.person_add_rounded)), title: Text(l.chatAddMembers), onTap: _add),
+          if (_room.canEditAdmins && _audienceChannel)
+            ListTile(contentPadding: EdgeInsets.zero, leading: const CircleAvatar(child: Icon(Icons.admin_panel_settings_rounded)), title: Text(l.chatAddAdmin), onTap: () => _add(admins: true)),
+          for (final m in _room.members)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: ChatAvatar(kind: 'DIRECT', name: m.fullName, online: m.online, radius: 20),
+              title: Text(m.id == me?.id ? '${m.fullName} (${l.chatYou})' : m.fullName),
+              subtitle: Text('${teamRoleLabel(l, m.role)}${m.isOwner ? ' · ${l.chatOwner}' : m.isAdmin ? ' · ${l.chatAdmin}' : ''}'),
+              trailing: m.id == me?.id || m.isOwner || !(_room.canManage || _room.canEditAdmins)
+                  ? null
+                  : PopupMenuButton<String>(
+                      key: Key('member-${m.id}'),
+                      onSelected: (v) => _run(() => switch (v) {
+                            'admin' => repo.updateGroup(_room.id, adminIds: [m.id]),
+                            'unadmin' => repo.updateGroup(_room.id, unadminIds: [m.id]),
+                            _ => repo.updateGroup(_room.id, removeIds: [m.id]),
+                          }),
+                      itemBuilder: (_) => [
+                        if (_room.canEditAdmins) PopupMenuItem(value: m.isAdmin ? 'unadmin' : 'admin', child: Text(m.isAdmin ? l.chatRemoveAdmin : l.chatMakeAdmin)),
+                        if (_room.canManage && !_audienceChannel) PopupMenuItem(value: 'remove', child: Text(l.chatRemoveMember)),
+                      ],
+                    ),
+            ),
+        ] else
+          FutureBuilder<List<ChatMessage>>(
+            future: _media,
+            builder: (context, snap) {
+              if (snap.hasError) return Text(errorText(context, snap.error!));
+              final items = snap.data;
+              if (items == null) return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
+              if (items.isEmpty) return Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(l.chatNothingYet)));
+              if (_tab == 'media') {
+                return GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 3,
+                  crossAxisSpacing: 3,
+                  children: [
+                    for (final m in items)
+                      if (m.file != null)
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                              builder: (_) => m.kind == 'IMAGE' ? ChatImageScreen(url: m.file!.url, caption: m.text) : ChatVideoScreen(message: m))),
+                          child: m.kind == 'IMAGE'
+                              ? CachedNetworkImage(imageUrl: m.file!.thumbUrl ?? m.file!.url, fit: BoxFit.cover)
+                              : const ColoredBox(color: Colors.black87, child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 36)),
+                        ),
+                  ],
+                );
+              }
+              return Column(children: [
+                for (final m in items)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(_tab == 'links' ? Icons.link_rounded : _tab == 'voice' ? Icons.mic_rounded : Icons.insert_drive_file_rounded),
+                    title: _tab == 'links'
+                        ? ChatRichText(m.text ?? '', color: Theme.of(context).colorScheme.onSurface)
+                        : _tab == 'voice'
+                            ? ChatAudioBubble(message: m, color: Theme.of(context).colorScheme.onSurface)
+                            : Text(m.file?.name ?? l.chatFile, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    subtitle: Text('${m.sender?.fullName ?? ''} · ${chatWhen(l, m.createdAt)}${_tab == 'files' ? ' · ${formatBytes(m.file?.size)}' : ''}'),
+                    onTap: _tab == 'files' ? () => ChatFiles.open(context, m) : null,
+                  ),
+              ]);
+            },
+          ),
+        if (canLeave) ...[
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            key: const Key('groupLeave'),
+            style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            onPressed: _leave,
+            icon: const Icon(Icons.logout_rounded),
+            label: Text(_room.kind == 'CHANNEL' ? l.chatLeaveChannel : l.chatLeaveGroup),
+          ),
+        ],
       ]),
     );
   }

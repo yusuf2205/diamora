@@ -101,6 +101,24 @@ describe('«Чат» on the web (panel and worker web share it)', () => {
     expect(container.querySelector('img')).toBeNull();
   });
 
+  it('a channel for a reader: no input, «публикуют только его администраторы»; subscribers count', async () => {
+    search = new URLSearchParams('room=ch');
+    signIn(ME);
+    mockFetch({
+      '/auth/me': ME,
+      '/chat/rooms/ch/messages': { items: [msg('0001', 'С понедельника новые расценки', { id: 'a1', fullName: 'Админ', role: 'ADMIN' })], hasMore: false },
+      '/chat/rooms/ch/read': { ok: true },
+      '/chat/rooms/ch': { id: 'ch', kind: 'CHANNEL', title: 'Объявления', isOwner: false, canManage: false, canWrite: false, memberCount: 40, audience: 'WORKERS', peer: null, members: [] },
+      '/chat/rooms': { items: [] },
+      '/chat/unread': { count: 0 },
+    });
+    renderWithProviders(<ChatApp />);
+    expect(await screen.findByText('С понедельника новые расценки')).toBeInTheDocument();
+    expect(screen.getByText('Это канал: публикуют только его администраторы')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Сообщение')).toBeNull();
+    expect(screen.getByText('Канал · подписчиков: 40')).toBeInTheDocument();
+  });
+
   it('previews and file kinds', () => {
     expect(chatPreview({ ...msg('x', ''), kind: 'VOICE' })).toBe('🎤 Голосовое сообщение');
     expect(chatPreview({ ...msg('x', 'подпись'), kind: 'IMAGE' })).toBe('📷 Фото · подпись');

@@ -349,7 +349,7 @@ export const cashPayoutSchema = z.object({
 });
 
 // ---- chat (everyone with everyone: direct, groups, one company-wide chat) -------------------------------------------------
-export const CHAT_KINDS = ['DIRECT', 'GROUP', 'COMPANY'] as const;
+export const CHAT_KINDS = ['DIRECT', 'GROUP', 'COMPANY', 'CHANNEL'] as const;
 export type ChatKind = (typeof CHAT_KINDS)[number];
 export const CHAT_MESSAGE_KINDS = ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE'] as const;
 export type ChatMessageKind = (typeof CHAT_MESSAGE_KINDS)[number];
@@ -362,8 +362,25 @@ export const chatGroupSchema = z.object({
 });
 export const chatGroupUpdateSchema = z.object({
   title: z.string().trim().min(1).max(80).optional(),
+  description: z.string().trim().max(500).nullable().optional(),
   addIds: z.array(z.string().uuid()).max(500).optional(),
   removeIds: z.array(z.string().uuid()).max(500).optional(),
+  /** make / unmake group or channel admins */
+  adminIds: z.array(z.string().uuid()).max(100).optional(),
+  unadminIds: z.array(z.string().uuid()).max(100).optional(),
+  onlyAdminsWrite: z.boolean().optional(),
+});
+export const CHAT_AUDIENCES = ['ALL', 'STAFF', 'WORKERS', 'CUSTOM'] as const;
+export const chatChannelSchema = z.object({
+  title: z.string().trim().min(1).max(80),
+  description: z.string().trim().max(500).optional(),
+  audience: z.enum(CHAT_AUDIENCES),
+  memberIds: z.array(z.string().uuid()).max(500).default([]),
+});
+export const chatMediaQuerySchema = z.object({
+  kind: z.enum(['media', 'files', 'voice', 'links']),
+  before: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(60),
 });
 export const chatTextSchema = z.object({ text: z.string().trim().min(1).max(4000), clientId: z.string().max(64).optional(), replyToId: z.string().uuid().optional() });
 export const chatEditSchema = z.object({ text: z.string().trim().min(1).max(4000) });

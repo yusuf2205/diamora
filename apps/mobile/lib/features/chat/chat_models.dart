@@ -5,7 +5,8 @@ DateTime _dt(Object? v) => DateTime.parse(v as String).toLocal();
 DateTime? _dtn(Object? v) => v == null ? null : DateTime.parse(v as String).toLocal();
 
 class ChatPerson {
-  const ChatPerson({required this.id, required this.fullName, required this.role, this.online = false, this.isOwner = false, this.lastReadAt, this.lastSeenAt});
+  const ChatPerson({required this.id, required this.fullName, required this.role, this.online = false, this.isOwner = false, this.isAdmin = false, this.lastReadAt, this.lastSeenAt});
+  final bool isAdmin;
   final String id;
   final String fullName;
   final String role;
@@ -20,6 +21,7 @@ class ChatPerson {
         role: j['role'] as String? ?? 'WORKER',
         online: j['online'] as bool? ?? false,
         isOwner: j['isOwner'] as bool? ?? false,
+        isAdmin: j['isAdmin'] as bool? ?? false,
         lastReadAt: _dtn(j['lastReadAt']),
         lastSeenAt: _dtn(j['lastSeenAt']),
       );
@@ -133,9 +135,12 @@ class ChatRoomSummary {
     this.lastMessage,
     this.pinned = false,
     this.muted = false,
+    this.photo,
   });
   final bool pinned;
   final bool muted;
+  /// group / channel photo (thumbnail URL)
+  final String? photo;
   final String id;
   final String kind;
   final String? title;
@@ -158,6 +163,7 @@ class ChatRoomSummary {
         lastMessageAt: _dt(j['lastMessageAt']),
         pinned: j['pinned'] as bool? ?? false,
         muted: j['muted'] as bool? ?? false,
+        photo: j['photo'] as String?,
       );
 }
 
@@ -175,7 +181,24 @@ class ChatRoomDetail {
     this.pinned = false,
     this.muted = false,
     this.pinnedMessage,
+    this.description,
+    this.photoUrl,
+    this.photoThumb,
+    this.audience,
+    this.onlyAdminsWrite = false,
+    this.canWrite = true,
+    this.canEditAdmins = false,
+    this.isAdmin = false,
   });
+  final String? description;
+  final String? photoUrl;
+  final String? photoThumb;
+  /// channels: ALL | STAFF | WORKERS | CUSTOM
+  final String? audience;
+  final bool onlyAdminsWrite;
+  final bool canWrite;
+  final bool canEditAdmins;
+  final bool isAdmin;
   final String id;
   final String kind;
   final String? title;
@@ -202,6 +225,14 @@ class ChatRoomDetail {
         pinned: j['pinned'] as bool? ?? false,
         muted: j['muted'] as bool? ?? false,
         pinnedMessage: j['pinnedMessage'] == null ? null : ChatMessage.fromJson((j['pinnedMessage'] as Map).cast<String, dynamic>()),
+        description: j['description'] as String?,
+        photoUrl: (j['photo'] as Map?)?['url'] as String?,
+        photoThumb: (j['photo'] as Map?)?['thumbUrl'] as String?,
+        audience: j['audience'] as String?,
+        onlyAdminsWrite: j['onlyAdminsWrite'] as bool? ?? false,
+        canWrite: j['canWrite'] as bool? ?? true,
+        canEditAdmins: j['canEditAdmins'] as bool? ?? false,
+        isAdmin: j['isAdmin'] as bool? ?? false,
       );
 }
 
