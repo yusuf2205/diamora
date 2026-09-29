@@ -2426,4 +2426,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatLeaveChannel => 'Kanaldan chiqish';
+
+  @override
+  String get chatVideoTooLarge => 'Video 150 MB dan katta — yuborib bo\'lmaydi';
 }

@@ -108,7 +108,7 @@ class ChatVideoScreen extends StatefulWidget {
 
 class _ChatVideoScreenState extends State<ChatVideoScreen> {
   VideoPlayerController? _c;
-  double _progress = 0;
+  final double _progress = 0; // streams now: no whole-file download to wait for
   bool _failed = false;
 
   @override
@@ -119,8 +119,9 @@ class _ChatVideoScreenState extends State<ChatVideoScreen> {
 
   Future<void> _load() async {
     try {
-      final f = await ChatFiles.get(widget.message, onProgress: (p) { if (mounted) setState(() => _progress = p); });
-      final c = VideoPlayerController.file(f);
+      // plays while downloading (the server answers byte ranges); a copy already on the phone plays from there
+      final local = await ChatFiles.cached(widget.message);
+      final c = local != null ? VideoPlayerController.file(local) : VideoPlayerController.networkUrl(Uri.parse(widget.message.file!.url));
       await c.initialize();
       if (!mounted) {
         await c.dispose();
@@ -205,14 +206,15 @@ class _ChatAudioBubbleState extends State<ChatAudioBubble> {
     if (_player == null) {
       setState(() => _loading = true);
       try {
-        final f = await ChatFiles.get(widget.message);
+        // streams right away; a copy already on the phone plays from there
+        final local = await ChatFiles.cached(widget.message);
         final p = AudioPlayer();
         _subs
           ..add(p.onPositionChanged.listen((d) { if (mounted) setState(() => _pos = d); }))
           ..add(p.onDurationChanged.listen((d) { if (mounted) setState(() => _len = d); }))
           ..add(p.onPlayerStateChanged.listen((s) { if (mounted) setState(() => _playing = s == PlayerState.playing); }))
           ..add(p.onPlayerComplete.listen((_) { if (mounted) setState(() => _pos = Duration.zero); }));
-        await p.setSource(DeviceFileSource(f.path));
+        await p.setSource(local != null ? DeviceFileSource(local.path) : UrlSource(widget.message.file!.url));
         _player = p;
       } catch (_) {
         if (mounted) setState(() => _loading = false);

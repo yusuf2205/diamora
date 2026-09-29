@@ -2456,4 +2456,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatLeaveChannel => 'Leave channel';
+
+  @override
+  String get chatVideoTooLarge =>
+      'The video is larger than 150 MB and cannot be sent';
 }

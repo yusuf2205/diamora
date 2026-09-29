@@ -49,6 +49,7 @@ services:
       - ${DATA_ROOT}/postgres:/fix/postgres
       - ${DATA_ROOT}/redis:/fix/redis
       - ${BACKUP_ROOT}/postgres/wal:/fix/wal
+      - ${DATA_ROOT}/chat-uploads:/fix/uploads
     command:
       - sh
       - -c
@@ -60,6 +61,8 @@ services:
             fi
           done
           chmod 700 /fix/postgres
+          # chat files in progress (big videos in parts): the API runs as uid 1000 (node)
+          if [ -n "$$(find /fix/uploads ! -user 1000 -print -quit 2>/dev/null)" ]; then chown -R 1000:1000 /fix/uploads; fi
           touch /tmp/ok 2>/dev/null || true
           sleep 20
         done
@@ -226,9 +229,12 @@ services:
       BACKUP_STATUS_DIR: /backup-status
       APP_VERSION: ${APP_VERSION:-local}
       FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
+      CHAT_UPLOAD_DIR: /uploads
     volumes:
       # «Состояние системы»: when each backup last succeeded (the backup job's status files, read-only)
       - ${BACKUP_ROOT}/status:/backup-status:ro
+      # chat files arriving in parts (videos up to 150 MB): on disk, not in the RAM-backed /tmp
+      - ${DATA_ROOT}/chat-uploads:/uploads
       # instant Android notifications: the Firebase service-account key (never in git; copied to secrets/ on the NAS)
       - ./secrets/firebase-admin.json:/run/firebase/firebase-admin.json:ro
     networks: [edge, data]

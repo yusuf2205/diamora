@@ -59,6 +59,8 @@ export const envSchema = z
     BACKUP_STATUS_DIR: z.string().optional(),
     /** Firebase service-account JSON (read-only mount): instant Android notifications; unset = no push */
     FIREBASE_CREDENTIALS_FILE: z.string().optional(),
+    /** where chat files sent in parts wait until complete (a disk folder; default: the system temp dir) */
+    CHAT_UPLOAD_DIR: z.string().optional(),
     /** the deployed build, shown on «Состояние системы» */
     APP_VERSION: z.string().optional(),
   })

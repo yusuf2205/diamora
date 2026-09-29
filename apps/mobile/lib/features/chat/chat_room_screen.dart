@@ -11,7 +11,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:get_thumbnail_video/index.dart';
+import 'package:get_thumbnail_video/video_thumbnail.dart';
 import 'package:uuid/uuid.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
@@ -20,6 +23,7 @@ import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
 import 'chat_list_screen.dart';
+import 'chat_gallery.dart';
 import 'chat_media.dart';
 import 'chat_models.dart';
 import 'chat_repository.dart';
@@ -39,12 +43,16 @@ String chatKindForName(String name) {
 class _Outgoing {
   _Outgoing({required this.clientId, required this.kind, this.text, this.path, this.filename, this.durationMs, this.replyToId});
   final String clientId;
+  /// a video's first frame (JPEG), shown at once and sent along as its preview
+  Uint8List? thumb;
+  int? width;
+  int? height;
   final String? replyToId;
   final String kind;
   final String? text;
   final String? path;
   final String? filename;
-  final int? durationMs;
+  int? durationMs;
   double progress = 0;
   bool failed = false;
   final createdAt = DateTime.now();
@@ -205,6 +213,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       final m = o.path == null
           ? await _repo.sendText(widget.roomId, o.text!, o.clientId, replyToId: o.replyToId)
           : await _repo.sendFile(widget.roomId, path: o.path!, filename: o.filename!, kind: o.kind, clientId: o.clientId, text: o.text, durationMs: o.durationMs, replyToId: o.replyToId,
+              width: o.width, height: o.height, thumb: o.thumb,
               onProgress: (p) { if (mounted) setState(() => o.progress = p); });
       if (!mounted) return;
       setState(() { _outgoing.remove(o); _merge([m]); });
@@ -239,15 +248,36 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
   Future<void> _sendPath(String path, String filename, String kind, {int? durationMs}) async {
     final l = AppLocalizations.of(context);
-    if (await File(path).length() > chatMaxFileBytes) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatFileTooLarge)));
+    final size = await File(path).length();
+    if (size > (kind == 'VIDEO' ? chatMaxVideoBytes : chatMaxFileBytes)) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(kind == 'VIDEO' ? l.chatVideoTooLarge : l.chatFileTooLarge)));
       return;
     }
+    // shown in the chat at once (like Telegram), then it uploads with a progress ring
     final o = _Outgoing(clientId: _uuid.v4(), kind: kind, path: path, filename: filename, durationMs: durationMs, replyToId: _replyTo?.id);
     if (!mounted) return;
     setState(() { _outgoing.insert(0, o); _replyTo = null; });
     _scrollToBottom();
+    if (kind == 'VIDEO') await _describeVideo(o);
     await _sendOutgoing(o);
+  }
+
+  /// A video's first frame, length and size - made on the phone, so others see a preview before downloading anything.
+  Future<void> _describeVideo(_Outgoing o) async {
+    try {
+      final t = await VideoThumbnail.thumbnailData(video: o.path!, imageFormat: ImageFormat.JPEG, maxWidth: 640, quality: 70);
+      if (mounted) setState(() => o.thumb = t);
+    } catch (_) {/* no preview: the video still goes */}
+    final c = VideoPlayerController.file(File(o.path!));
+    try {
+      await c.initialize();
+      final sz = c.value.size;
+      if (sz.width > 0) { o.width = sz.width.round(); o.height = sz.height.round(); }
+      final ms = c.value.duration.inMilliseconds;
+      if (ms > 0) o.durationMs ??= ms;
+    } catch (_) {} finally {
+      await c.dispose();
+    }
   }
 
   void _scrollToBottom() {
@@ -570,6 +600,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                                     read: peerRead != null && !peerRead.isBefore(row.createdAt),
                                     onLongPress: () => _messageMenu(row, row.sender?.id == me?.id),
                                     onReact: (e) => _react(row, e),
+                                    onOpenMedia: () => ChatGalleryScreen.open(context, _messages.reversed.toList(), row),
                                     onSwipeReply: () => setState(() { _replyTo = row; _editing = null; }),
                                   )
                                 : _OutgoingBubble(o: row as _Outgoing, onRetry: () => _sendOutgoing(row));
@@ -711,7 +742,8 @@ class _ChatRichTextState extends State<ChatRichText> {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine, required this.showSender, required this.read, required this.onLongPress, this.onReact, this.onSwipeReply});
+  const _Bubble({required this.message, required this.mine, required this.showSender, required this.read, required this.onLongPress, this.onReact, this.onSwipeReply, this.onOpenMedia});
+  final VoidCallback? onOpenMedia;
   final ChatMessage message;
   final bool mine;
   final bool showSender;
@@ -739,29 +771,47 @@ class _Bubble extends StatelessWidget {
       final media = switch (m.kind) {
         'IMAGE' when f != null => GestureDetector(
             key: Key('image-${m.id}'),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatImageScreen(url: f.url, caption: m.text))),
+            onTap: onOpenMedia ?? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatImageScreen(url: f.url, caption: m.text))),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 260, maxHeight: 320),
                 child: AspectRatio(
                   aspectRatio: (f.width ?? 4) / (f.height ?? 3),
-                  child: CachedNetworkImage(imageUrl: f.thumbUrl ?? f.url, fit: BoxFit.cover, placeholder: (_, _) => ColoredBox(color: scheme.surfaceContainerHighest)),
+                  child: Hero(
+                    tag: 'chat-media-${m.id}',
+                    child: CachedNetworkImage(imageUrl: f.thumbUrl ?? f.url, fit: BoxFit.cover, placeholder: (_, _) => ColoredBox(color: scheme.surfaceContainerHighest)),
+                  ),
                 ),
               ),
             ),
           ),
-        'VIDEO' when f != null => InkWell(
+        'VIDEO' when f != null => GestureDetector(
             key: Key('video-${m.id}'),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatVideoScreen(message: m))),
-            child: Container(
-              width: 220,
-              height: 140,
-              decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(10)),
-              child: Stack(alignment: Alignment.center, children: [
-                const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 52),
-                Positioned(left: 8, bottom: 6, child: Text('🎬 ${formatBytes(f.size)}', style: const TextStyle(color: Colors.white70, fontSize: 12))),
-              ]),
+            onTap: onOpenMedia ?? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatVideoScreen(message: m))),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 260, maxHeight: 320),
+                child: AspectRatio(
+                  aspectRatio: (f.width ?? 16) / (f.height ?? 9),
+                  child: Stack(fit: StackFit.expand, children: [
+                    if (f.thumbUrl != null)
+                      Hero(tag: 'chat-media-${m.id}', child: CachedNetworkImage(imageUrl: f.thumbUrl!, fit: BoxFit.cover))
+                    else
+                      const ColoredBox(color: Colors.black87),
+                    const Center(child: CircleAvatar(radius: 26, backgroundColor: Colors.black45, child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 34))),
+                    Positioned(
+                      left: 6, bottom: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
+                        child: Text('${f.durationMs != null ? '${formatDuration(Duration(milliseconds: f.durationMs!))} · ' : ''}${formatBytes(f.size)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
             ),
           ),
         'VOICE' || 'AUDIO' when f != null => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -890,6 +940,51 @@ class _OutgoingBubble extends StatelessWidget {
       'FILE' => '📎 ${o.filename ?? l.chatFile}',
       _ => o.text ?? '',
     };
+    final visual = o.kind == 'IMAGE' && o.path != null
+        ? Image.file(File(o.path!), fit: BoxFit.cover, cacheWidth: 600)
+        : o.kind == 'VIDEO' && o.thumb != null
+            ? Image.memory(o.thumb!, fit: BoxFit.cover)
+            : o.kind == 'VIDEO'
+                ? const ColoredBox(color: Colors.black87)
+                : null;
+    if (visual != null) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: GestureDetector(
+          key: Key('outgoing-${o.clientId}'),
+          onTap: o.failed ? onRetry : null,
+          child: Container(
+            margin: const EdgeInsets.only(top: 3, bottom: 3, left: 40),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 260, maxHeight: 320),
+                child: AspectRatio(
+                  aspectRatio: (o.width ?? 4) / (o.height ?? 3),
+                  child: Stack(fit: StackFit.expand, children: [
+                    visual,
+                    Center(
+                      child: CircleAvatar(
+                        radius: 26,
+                        backgroundColor: Colors.black54,
+                        child: o.failed
+                            ? const Icon(Icons.refresh_rounded, color: Colors.white)
+                            : Stack(alignment: Alignment.center, children: [
+                                SizedBox(width: 40, height: 40, child: CircularProgressIndicator(value: o.progress > 0 ? o.progress : null, color: Colors.white, strokeWidth: 3)),
+                                Text('${(o.progress * 100).round()}%', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                              ]),
+                      ),
+                    ),
+                    if (o.failed)
+                      Positioned(left: 0, right: 0, bottom: 0, child: Container(color: Colors.black54, padding: const EdgeInsets.all(4), child: Text(l.chatSendFailed, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12)))),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Align(
       alignment: Alignment.centerRight,
       child: GestureDetector(

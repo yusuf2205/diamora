@@ -1,12 +1,18 @@
-import { Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import { Throttle } from '@nestjs/throttler';
 import type { Socket } from 'socket.io';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { Readable } from 'node:stream';
+import { mkdir, open as openFile, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Prisma, type ChatAudience, type ChatMember, type ChatMessage, type ChatRoom } from '@diamoraa/database';
 import {
-  CHAT_MAX_FILE_BYTES, chatChannelSchema, chatContactsQuerySchema, chatMediaQuerySchema, chatDirectSchema, chatEditSchema, chatFileFieldsSchema, chatForwardSchema, chatGroupSchema,
+  CHAT_CHUNK_BYTES, CHAT_MAX_FILE_BYTES, CHAT_MAX_VIDEO_BYTES, chatUploadStartSchema, chatChannelSchema, chatContactsQuerySchema, chatMediaQuerySchema, chatDirectSchema, chatEditSchema, chatFileFieldsSchema, chatForwardSchema, chatGroupSchema,
   chatGroupUpdateSchema, chatMemberPrefsSchema, chatMessagesQuerySchema, chatPinSchema, chatReactSchema, chatSearchSchema, chatTextSchema, scopeFor,
   type ChatMessageKind,
 } from '@diamoraa/shared';
@@ -21,6 +27,7 @@ import { PushService } from '../notifications/push.service';
 import { PresenceModule, PresenceService } from '../presence/presence.service';
 import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
+import { ENV, Env } from '../config/env';
 
 /** The one chat of everyone: a fixed id, created on first use. */
 export const COMPANY_ROOM_ID = '00000000-0000-4000-8000-00000000c4a7';
@@ -61,6 +68,17 @@ function sniff(buf: Buffer): { family: 'video' | 'audio' | 'mp4'; mime: string; 
   return null;
 }
 
+async function readHead(path: string): Promise<Buffer> {
+  const f = await openFile(path, 'r');
+  try {
+    const buf = Buffer.alloc(64);
+    const { bytesRead } = await f.read(buf, 0, 64, 0);
+    return buf.subarray(0, bytesRead);
+  } finally {
+    await f.close();
+  }
+}
+
 function safeExt(name: string | undefined): string {
   const m = /\.([A-Za-z0-9]{1,8})$/.exec(name ?? '');
   return m ? m[1].toLowerCase() : 'bin';
@@ -80,6 +98,7 @@ export class ChatService {
     private readonly push: PushService,
     private readonly presence: PresenceService,
     private readonly audit: AuditService,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   // ---- channels: an audience reads, admins post --------------------------------------------------------------------------
@@ -438,7 +457,9 @@ export class ChatService {
   // ---- messages ---------------------------------------------------------------------------------------------------------
   dto(m: MessageRow, meId?: string) {
     const deleted = !!m.deletedAt;
-    const file = !deleted && m.fileId ? this.files.ref(m.fileId) : null;
+    // a video / voice note may play (and seek) for long: its link lives 12 h instead of 10 min
+    const playable = m.kind === 'VIDEO' || m.kind === 'VOICE' || m.kind === 'AUDIO';
+    const file = !deleted && m.fileId ? this.files.ref(m.fileId, playable ? 12 * 3600 : undefined) : null;
     const counts = new Map<string, { emoji: string; count: number; mine: boolean }>();
     for (const x of deleted ? [] : (m.reactions ?? [])) {
       const c = counts.get(x.emoji) ?? { emoji: x.emoji, count: 0, mine: false };
@@ -458,7 +479,7 @@ export class ChatService {
       text: deleted ? null : m.text,
       deleted,
       file: file ? {
-        url: file.url, thumbUrl: m.kind === 'IMAGE' ? file.thumbUrl : null, name: m.fileName, size: m.fileSize === null ? null : Number(m.fileSize),
+        url: file.url, thumbUrl: m.kind === 'IMAGE' || (m.kind === 'VIDEO' && m.hasThumb) ? file.thumbUrl : null, name: m.fileName, size: m.fileSize === null ? null : Number(m.fileSize),
         mimeType: m.mimeType, durationMs: m.durationMs, width: m.width, height: m.height,
       } : null,
       createdAt: m.createdAt.toISOString(),
@@ -513,19 +534,38 @@ export class ChatService {
     return this.dto(m, u.id);
   }
 
-  async sendFile(u: AuthUser, roomId: string, b: z.output<typeof chatFileFieldsSchema>, file: { buffer: Buffer; originalName?: string; mimetype?: string }) {
+  /** One file message (multipart ≤ 50 MB). Larger videos come in parts: startUpload / putChunk / completeUpload. */
+  async sendFile(u: AuthUser, roomId: string, b: z.output<typeof chatFileFieldsSchema>, file: { buffer: Buffer; originalName?: string; mimetype?: string; thumb?: Buffer }) {
     const room = await this.writable(u, roomId);
     const again = await this.existing(u, b.clientId);
     if (again) return this.dto(again, u.id);
-    if (file.buffer.length > CHAT_MAX_FILE_BYTES) throw fileRejected('The file is larger than 50 MB');
-    const declared = b.kind ?? (file.mimetype?.startsWith('image/') ? 'IMAGE' : file.mimetype?.startsWith('video/') ? 'VIDEO' : file.mimetype?.startsWith('audio/') ? 'AUDIO' : 'FILE');
-    const name = file.originalName?.slice(0, 200);
-    let kind: ChatMessageKind = 'FILE';
-    let stored: { id: string; mimeType: string; width?: number | null; height?: number | null } | null = null;
+    return this.storeMessage(u, room, b, { buffer: file.buffer, size: file.buffer.length, originalName: file.originalName, mimetype: file.mimetype, thumb: file.thumb });
+  }
 
-    if (declared === 'IMAGE') {
+  /** Real bytes decide what it is; a video may be up to 150 MB, anything else 50 MB. */
+  private async storeMessage(
+    u: AuthUser, room: ChatRoom, b: z.output<typeof chatFileFieldsSchema>,
+    src: { buffer?: Buffer; parts?: string[]; size: number; sha256?: string; originalName?: string; mimetype?: string; thumb?: Buffer },
+  ) {
+    const declared = b.kind ?? (src.mimetype?.startsWith('image/') ? 'IMAGE' : src.mimetype?.startsWith('video/') ? 'VIDEO' : src.mimetype?.startsWith('audio/') ? 'AUDIO' : 'FILE');
+    if (src.size > (declared === 'VIDEO' ? CHAT_MAX_VIDEO_BYTES : CHAT_MAX_FILE_BYTES)) {
+      throw fileRejected(declared === 'VIDEO' ? 'The video is larger than 150 MB' : 'The file is larger than 50 MB');
+    }
+    const head = src.buffer ?? (await readHead(src.parts![0]));
+    const whole = async () => src.buffer ?? Buffer.concat(await Promise.all(src.parts!.map((f) => readFile(f))));
+    // parts on disk -> one stream to storage (a 150 MB video never sits in memory)
+    const partFiles = src.parts;
+    const stream = partFiles ? () => Readable.from((async function* () { for (const f of partFiles) yield* createReadStream(f); })()) : undefined;
+    const name = src.originalName?.slice(0, 200);
+    const raw = (mimeType: string, ext: string, thumb?: Buffer) => this.files.storeRaw({
+      bucket: 'chat', buffer: src.buffer, stream, size: src.size, sha256: src.sha256, mimeType, ext, uploadedById: u.id, originalName: name, thumb,
+    });
+    let kind: ChatMessageKind = 'FILE';
+    let stored: { id: string; mimeType: string; width?: number | null; height?: number | null; hasThumb?: boolean } | null = null;
+
+    if (declared === 'IMAGE' && src.size <= CHAT_MAX_FILE_BYTES) {
       try {
-        const img = await this.files.prepareImage(file.buffer, CHAT_MAX_FILE_BYTES);
+        const img = await this.files.prepareImage(await whole(), CHAT_MAX_FILE_BYTES);
         const a = await this.files.store({ bucket: 'chat', image: img, uploadedById: u.id, originalName: name });
         stored = { id: a.id, mimeType: a.mimeType, width: a.width, height: a.height };
         kind = 'IMAGE';
@@ -534,37 +574,118 @@ export class ChatService {
       }
     }
     if (!stored) {
-      const s = sniff(file.buffer);
+      const s = sniff(head);
       if (s && (declared === 'VIDEO' || declared === 'VOICE' || declared === 'AUDIO')) {
         const audio = declared === 'VOICE' || declared === 'AUDIO';
-        if (audio && s.family !== 'video') {
+        if (audio && s.family !== 'video' && src.size <= CHAT_MAX_FILE_BYTES) {
           kind = declared;
           const mime = s.mime === 'video/mp4' ? 'audio/mp4' : s.mime === 'video/webm' ? 'audio/webm' : s.mime;
-          const ext = s.ext === 'mp4' ? 'm4a' : s.ext;
-          const a = await this.files.storeRaw({ bucket: 'chat', buffer: file.buffer, mimeType: mime, ext, uploadedById: u.id, originalName: name });
+          const a = await raw(mime, s.ext === 'mp4' ? 'm4a' : s.ext);
           stored = { id: a.id, mimeType: mime };
         } else if (!audio && s.family !== 'audio') {
           kind = 'VIDEO';
-          const a = await this.files.storeRaw({ bucket: 'chat', buffer: file.buffer, mimeType: s.mime, ext: s.ext, uploadedById: u.id, originalName: name });
-          stored = { id: a.id, mimeType: s.mime };
+          const a = await raw(s.mime, s.ext, src.thumb);
+          stored = { id: a.id, mimeType: s.mime, width: b.width ?? null, height: b.height ?? null, hasThumb: !!a.thumbKey };
         }
       }
     }
     if (!stored) {
+      if (src.size > CHAT_MAX_FILE_BYTES) throw fileRejected('The file is larger than 50 MB');
       // a document (or anything unrecognised): kept byte-for-byte, always downloaded, never opened in the browser
-      const a = await this.files.storeRaw({ bucket: 'chat', buffer: file.buffer, mimeType: 'application/octet-stream', ext: safeExt(name), uploadedById: u.id, originalName: name });
+      const a = await raw('application/octet-stream', safeExt(name));
       stored = { id: a.id, mimeType: 'application/octet-stream' };
       kind = 'FILE';
     }
     const m = await this.prisma.chatMessage.create({
       data: {
-        roomId, senderId: u.id, kind, text: b.text || null, clientId: b.clientId, fileId: stored.id, fileName: name ?? null, replyToId: await this.replyTarget(roomId, b.replyToId),
-        fileSize: BigInt(file.buffer.length), mimeType: stored.mimeType, durationMs: b.durationMs ?? null, width: stored.width ?? null, height: stored.height ?? null,
+        roomId: room.id, senderId: u.id, kind, text: b.text || null, clientId: b.clientId, fileId: stored.id, fileName: name ?? null, replyToId: await this.replyTarget(room.id, b.replyToId),
+        fileSize: BigInt(src.size), mimeType: stored.mimeType, durationMs: b.durationMs ?? null, width: stored.width ?? null, height: stored.height ?? null, hasThumb: !!stored.hasThumb,
       },
       include: MSG_INCLUDE,
     });
     await this.deliver(u, room, m);
     return this.dto(m, u.id);
+  }
+
+  // ---- files sent in parts (big videos; resumable after a dropped connection) -------------------------------------------
+  private uploadRoot() { return this.env.CHAT_UPLOAD_DIR ?? join(tmpdir(), 'diamoraa-chat-uploads'); }
+  private uploadDir(id: string) { return join(this.uploadRoot(), id); }
+
+  /** Start (or resume: same clientId) a file sent in 5 MB parts. Returns which parts the server already has. */
+  async startUpload(u: AuthUser, roomId: string, b: z.output<typeof chatUploadStartSchema>) {
+    await this.writable(u, roomId);
+    if (b.size > (b.kind === 'VIDEO' ? CHAT_MAX_VIDEO_BYTES : CHAT_MAX_FILE_BYTES)) {
+      throw fileRejected(b.kind === 'VIDEO' ? 'The video is larger than 150 MB' : 'The file is larger than 50 MB');
+    }
+    const again = await this.existing(u, b.clientId);
+    if (again) return { done: true, message: this.dto(again, u.id) };
+    const id = createHash('sha256').update(`${u.id}:${b.clientId}`).digest('hex').slice(0, 32); // the same send resumes the same upload
+    const dir = this.uploadDir(id);
+    await mkdir(dir, { recursive: true });
+    await this.sweepUploads();
+    await writeFile(join(dir, 'meta.json'), JSON.stringify({ ...b, userId: u.id, roomId }));
+    const parts = Math.ceil(b.size / CHAT_CHUNK_BYTES);
+    return { uploadId: id, chunkSize: CHAT_CHUNK_BYTES, parts, received: await this.receivedParts(dir) };
+  }
+
+  private async receivedParts(dir: string) {
+    return (await readdir(dir)).filter((f) => /^\d+\.part$/.test(f)).map((f) => Number(f.split('.')[0])).sort((a, b) => a - b);
+  }
+
+  private async uploadMeta(u: AuthUser, id: string) {
+    if (!/^[0-9a-f]{32}$/.test(id)) throw notFound('Upload');
+    try {
+      const meta = JSON.parse(await readFile(join(this.uploadDir(id), 'meta.json'), 'utf8')) as z.output<typeof chatUploadStartSchema> & { userId: string; roomId: string };
+      if (meta.userId !== u.id) throw notFound('Upload');
+      return meta;
+    } catch (e) {
+      if (e instanceof AppError) throw e;
+      throw notFound('Upload');
+    }
+  }
+
+  async putChunk(u: AuthUser, id: string, index: number, chunk: Buffer) {
+    const meta = await this.uploadMeta(u, id);
+    const parts = Math.ceil(meta.size / CHAT_CHUNK_BYTES);
+    if (!Number.isInteger(index) || index < 0 || index >= parts) throw validationFailed('No such part');
+    const expected = index === parts - 1 ? meta.size - index * CHAT_CHUNK_BYTES : CHAT_CHUNK_BYTES;
+    if (chunk.length !== expected) throw validationFailed(`Part ${index} must be ${expected} bytes`);
+    await writeFile(join(this.uploadDir(id), `${index}.part`), chunk);
+    return { received: (await this.receivedParts(this.uploadDir(id))).length, parts };
+  }
+
+  /** All parts are there: one file again, checked like any other, stored, sent. */
+  async completeUpload(u: AuthUser, id: string, thumb?: Buffer) {
+    const meta = await this.uploadMeta(u, id);
+    const dir = this.uploadDir(id);
+    const again = await this.existing(u, meta.clientId);
+    if (again) { await rm(dir, { recursive: true, force: true }); return this.dto(again, u.id); }
+    const room = await this.writable(u, meta.roomId);
+    const parts = Math.ceil(meta.size / CHAT_CHUNK_BYTES);
+    const have = await this.receivedParts(dir);
+    if (have.length !== parts) throw validationFailed('Some parts are missing', { missing: [...Array(parts).keys()].filter((i) => !have.includes(i)) });
+    const files = [...Array(parts).keys()].map((i) => join(dir, `${i}.part`));
+    const hash = createHash('sha256');
+    let size = 0;
+    for (const f of files) {
+      for await (const c of createReadStream(f)) { hash.update(c as Buffer); size += (c as Buffer).length; }
+    }
+    if (size !== meta.size) throw validationFailed('The file is incomplete');
+    try {
+      return await this.storeMessage(u, room, { kind: meta.kind, text: meta.text, clientId: meta.clientId, durationMs: meta.durationMs, replyToId: meta.replyToId, width: meta.width, height: meta.height },
+        { parts: files, size, sha256: hash.digest('hex'), originalName: meta.name, thumb });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
+  /** Unfinished uploads older than a day are thrown away. */
+  private async sweepUploads() {
+    const root = this.uploadRoot();
+    for (const d of await readdir(root).catch(() => [] as string[])) {
+      const st = await stat(join(root, d)).catch(() => null);
+      if (st && Date.now() - st.mtimeMs > 24 * 3600_000) await rm(join(root, d), { recursive: true, force: true });
+    }
   }
 
   /** a reply must point at a message of the same chat */
@@ -780,13 +901,33 @@ export class ChatController {
 
   @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('rooms/:id/files') @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' }, kind: { type: 'string' }, text: { type: 'string' }, durationMs: { type: 'number' } } } })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: CHAT_MAX_FILE_BYTES } }))
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'file', maxCount: 1 }, { name: 'thumb', maxCount: 1 }], { limits: { fileSize: CHAT_MAX_FILE_BYTES + 1 } }))
   sendFile(
     @CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string,
-    @ZodBody(chatFileFieldsSchema) b: z.output<typeof chatFileFieldsSchema>, @UploadedFile() file?: Express.Multer.File,
+    @ZodBody(chatFileFieldsSchema) b: z.output<typeof chatFileFieldsSchema>, @UploadedFiles() files?: { file?: Express.Multer.File[]; thumb?: Express.Multer.File[] },
   ) {
+    const file = files?.file?.[0];
     if (!file) throw fileRejected('Attach the file as multipart field "file"');
-    return this.chat.sendFile(u, id, b, { buffer: file.buffer, originalName: file.originalname, mimetype: file.mimetype });
+    return this.chat.sendFile(u, id, b, { buffer: file.buffer, originalName: file.originalname, mimetype: file.mimetype, thumb: files?.thumb?.[0]?.buffer });
+  }
+
+  // a big file in 5 MB parts (each request stays far below Cloudflare's 100 MB); resumable with the same clientId
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('rooms/:id/uploads') @HttpCode(200) @ApiZodBody(chatUploadStartSchema)
+  startUpload(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatUploadStartSchema) b: z.output<typeof chatUploadStartSchema>) {
+    return this.chat.startUpload(u, id, b);
+  }
+
+  @Authenticated() @Throttle({ default: { limit: 600, ttl: 60_000 } }) @Post('uploads/:uploadId/parts/:index') @HttpCode(200) @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('chunk', { limits: { fileSize: CHAT_CHUNK_BYTES + 1 } }))
+  putChunk(@CurrentUser() u: AuthUser, @Param('uploadId') uploadId: string, @Param('index') index: string, @UploadedFile() chunk?: Express.Multer.File) {
+    if (!chunk) throw fileRejected('Attach the part as multipart field "chunk"');
+    return this.chat.putChunk(u, uploadId, Number(index), chunk.buffer);
+  }
+
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('uploads/:uploadId/complete') @HttpCode(201) @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('thumb', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  completeUpload(@CurrentUser() u: AuthUser, @Param('uploadId') uploadId: string, @UploadedFile() thumb?: Express.Multer.File) {
+    return this.chat.completeUpload(u, uploadId, thumb?.buffer);
   }
 
   @Authenticated() @Post('rooms/:id/read') @HttpCode(200)

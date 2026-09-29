@@ -1,14 +1,16 @@
-import { Controller, Get, Global, Header, Inject, Injectable, Module, Param, ParseUUIDPipe, Query, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Global, Header, Headers, Inject, Injectable, Module, Param, ParseUUIDPipe, Query, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { FileAsset } from '@diamoraa/database';
 import type { FileBucket } from '@diamoraa/shared';
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import sharp from 'sharp';
+import type { Readable } from 'node:stream';
 import { Public } from '../common/decorators';
 import { AppError, fileRejected, forbidden, notFound } from '../common/errors';
 import { ENV, Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.module';
-import { STORAGE, StoragePort, StoredObject, bucketName } from '../storage/storage.module';
+import { STORAGE, StoragePort, StoredObject, bucketName, type ByteRange } from '../storage/storage.module';
 
 export type FileVariant = 'original' | 'thumb';
 export interface FileRef { id: string; url: string; thumbUrl: string }
@@ -87,14 +89,36 @@ export class FilesService {
     });
   }
 
-  /** Stores bytes as they are (chat voice/audio/documents). The caller decides the (safe) MIME type it is served with. */
-  async storeRaw(p: { bucket: FileBucket; buffer: Buffer; mimeType: string; ext: string; uploadedById?: string; originalName?: string }): Promise<FileAsset> {
-    if (p.buffer.length === 0) throw fileRejected('Empty file');
+  /**
+   * Stores bytes as they are (chat video/voice/audio/documents) - from memory or streamed from a file on disk. The caller
+   * decides the (safe) MIME type it is served with. `thumb`: a preview picture (a real image, resized) for a video.
+   */
+  async storeRaw(p: {
+    bucket: FileBucket; buffer?: Buffer; stream?: () => Readable; size?: number; sha256?: string; mimeType: string; ext: string;
+    uploadedById?: string; originalName?: string; thumb?: Buffer;
+  }): Promise<FileAsset> {
+    const size = p.buffer?.length ?? p.size ?? 0;
+    if (size === 0) throw fileRejected('Empty file');
     const now = new Date();
-    const objectKey = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${randomUUID()}.${p.ext}`;
-    await this.storage.put(bucketName(this.env, p.bucket), objectKey, p.buffer, p.mimeType);
+    const prefix = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const id = randomUUID();
+    const objectKey = `${prefix}/${id}.${p.ext}`;
+    const bucket = bucketName(this.env, p.bucket);
+    if (p.buffer) await this.storage.put(bucket, objectKey, p.buffer, p.mimeType);
+    else await this.storage.putStream(bucket, objectKey, p.stream!(), size, p.mimeType);
+    let thumbKey: string | null = null;
+    if (p.thumb) {
+      try {
+        const t = await this.prepareImage(p.thumb);
+        thumbKey = `${prefix}/${id}_t.jpg`;
+        await this.storage.put(bucket, thumbKey, t.thumb, 'image/jpeg');
+      } catch { thumbKey = null; /* a broken preview never blocks the video */ }
+    }
     return this.prisma.fileAsset.create({
-      data: { bucket: p.bucket, objectKey, mimeType: p.mimeType, size: BigInt(p.buffer.length), sha256: createHash('sha256').update(p.buffer).digest('hex'), originalName: p.originalName?.slice(0, 200), uploadedById: p.uploadedById },
+      data: {
+        bucket: p.bucket, objectKey, thumbKey, mimeType: p.mimeType, size: BigInt(size),
+        sha256: p.sha256 ?? createHash('sha256').update(p.buffer ?? Buffer.alloc(0)).digest('hex'), originalName: p.originalName?.slice(0, 200), uploadedById: p.uploadedById,
+      },
     });
   }
 
@@ -102,12 +126,13 @@ export class FilesService {
   private sig(fileId: string, variant: FileVariant, exp: number) {
     return createHmac('sha256', this.env.FILE_SIGNING_SECRET).update(`${fileId}.${variant}.${exp}`).digest('base64url');
   }
-  signedUrl(fileId: string, variant: FileVariant, now = Date.now()): string {
-    const exp = Math.floor(now / 1000) + this.env.SIGNED_URL_TTL_SECONDS;
+  signedUrl(fileId: string, variant: FileVariant, now = Date.now(), ttlSeconds = this.env.SIGNED_URL_TTL_SECONDS): string {
+    const exp = Math.floor(now / 1000) + ttlSeconds;
     return `${this.env.PUBLIC_API_URL.replace(/\/+$/, '')}/v1/files/${fileId}/${variant}?exp=${exp}&sig=${this.sig(fileId, variant, exp)}`;
   }
-  ref(fileId: string | null | undefined): FileRef | null {
-    return fileId ? { id: fileId, url: this.signedUrl(fileId, 'original'), thumbUrl: this.signedUrl(fileId, 'thumb') } : null;
+  /** `ttlSeconds`: a video / voice note keeps playing (and seeking) for a long time - its link must outlive the default 10 min */
+  ref(fileId: string | null | undefined, ttlSeconds?: number): FileRef | null {
+    return fileId ? { id: fileId, url: this.signedUrl(fileId, 'original', Date.now(), ttlSeconds), thumbUrl: this.signedUrl(fileId, 'thumb', Date.now(), ttlSeconds) } : null;
   }
   verify(fileId: string, variant: string, exp?: string, sig?: string): FileVariant {
     if (variant !== 'original' && variant !== 'thumb') throw notFound('File');
@@ -118,12 +143,14 @@ export class FilesService {
     if (a.length !== b.length || !timingSafeEqual(a, b)) throw forbidden('Link expired or invalid');
     return variant;
   }
-  async open(fileId: string, variant: FileVariant): Promise<StoredObject> {
+  async open(fileId: string, variant: FileVariant, range?: ByteRange): Promise<StoredObject & { fullSize: number }> {
     const asset = await this.prisma.fileAsset.findUnique({ where: { id: fileId } });
     if (!asset) throw notFound('File');
+    const thumb = variant === 'thumb' && asset.thumbKey;
+    const fullSize = thumb ? -1 : Number(asset.size);
     try {
-      const o = await this.storage.get(bucketName(this.env, asset.bucket), variant === 'thumb' ? (asset.thumbKey ?? asset.objectKey) : asset.objectKey);
-      return { ...o, contentType: o.contentType ?? asset.mimeType };
+      const o = await this.storage.get(bucketName(this.env, asset.bucket), thumb ? asset.thumbKey! : asset.objectKey, thumb ? undefined : range);
+      return { ...o, contentType: thumb ? 'image/jpeg' : (o.contentType ?? asset.mimeType), fullSize };
     } catch {
       throw notFound('File content');
     }
@@ -139,10 +166,23 @@ export class FilesController {
   @Get(':id/:variant')
   @Header('X-Content-Type-Options', 'nosniff')
   @Header('Cache-Control', 'private, max-age=300')
-  async get(@Param('id', new ParseUUIDPipe()) id: string, @Param('variant') variant: string, @Query('exp') exp?: string, @Query('sig') sig?: string) {
-    const o = await this.files.open(id, this.files.verify(id, variant, exp, sig));
+  async get(
+    @Param('id', new ParseUUIDPipe()) id: string, @Param('variant') variant: string, @Res({ passthrough: true }) res: Response,
+    @Query('exp') exp?: string, @Query('sig') sig?: string, @Headers('range') rangeHeader?: string,
+  ) {
+    const v = this.files.verify(id, variant, exp, sig);
+    // «bytes=start-end»: a video / voice note plays while it downloads, and seeking fetches only that part
+    const m = rangeHeader ? /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim()) : null;
+    const range = m ? { start: Number(m[1]), end: m[2] ? Number(m[2]) : undefined } : undefined;
+    const o = await this.files.open(id, v, range);
     const type = o.contentType ?? 'application/octet-stream';
     const inline = /^(image\/(jpeg|png|webp)|video\/|audio\/)/.test(type);
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (range && o.total !== undefined && o.fullSize >= 0) {
+      if (range.start >= o.total) { res.status(416).setHeader('Content-Range', `bytes */${o.total}`); o.stream.destroy(); return; }
+      const end = range.start + (o.size ?? 0) - 1;
+      res.status(206).setHeader('Content-Range', `bytes ${range.start}-${end}/${o.total}`);
+    }
     return new StreamableFile(o.stream, { type: inline ? type : 'application/octet-stream', length: o.size, disposition: inline ? 'inline' : 'attachment' });
   }
 }

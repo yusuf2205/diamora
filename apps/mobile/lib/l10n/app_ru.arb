@@ -821,5 +821,6 @@
   "chatNothingYet": "Пока ничего нет",
   "chatSubscribers": "Канал · подписчиков: {count}",
   "@chatSubscribers": {"placeholders": {"count": {"type": "int"}}},
-  "chatLeaveChannel": "Выйти из канала"
+  "chatLeaveChannel": "Выйти из канала",
+  "chatVideoTooLarge": "Видео больше 150 МБ — его нельзя отправить"
 }

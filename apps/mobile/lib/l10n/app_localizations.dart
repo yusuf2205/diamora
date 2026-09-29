@@ -4605,6 +4605,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выйти из канала'**
   String get chatLeaveChannel;
+
+  /// No description provided for @chatVideoTooLarge.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео больше 150 МБ — его нельзя отправить'**
+  String get chatVideoTooLarge;
 }
 
 class _AppLocalizationsDelegate

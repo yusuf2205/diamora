@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,8 +9,11 @@ import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import 'chat_models.dart';
 
-/// The largest file a message may carry (the server refuses more).
+/// The largest file a message may carry (the server refuses more): videos 150 MB, anything else 50 MB.
 const chatMaxFileBytes = 50 * 1024 * 1024;
+const chatMaxVideoBytes = 150 * 1024 * 1024;
+/// above this a file goes in 5 MB parts (Cloudflare takes ≤ 100 MB per request; a dropped connection resumes)
+const chatSingleUploadBytes = 8 * 1024 * 1024;
 
 class ChatRepository {
   ChatRepository(this._api);
@@ -86,8 +92,13 @@ class ChatRepository {
     );
   }
 
-  /// Streams the file from disk (up to 50 MB) with progress; [kind] IMAGE | VIDEO | VOICE | AUDIO | FILE.
-  Future<ChatMessage> sendFile(String roomId, {required String path, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, void Function(double)? onProgress}) async {
+  /// Sends a file with progress: one request when small, otherwise in 5 MB parts that resume after a dropped
+  /// connection (the same [clientId] continues where it stopped). [thumb]: a video's preview picture (JPEG).
+  Future<ChatMessage> sendFile(String roomId, {required String path, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, int? width, int? height, Uint8List? thumb, void Function(double)? onProgress}) async {
+    final size = await File(path).length();
+    if (size > chatSingleUploadBytes) {
+      return _sendInParts(roomId, path: path, size: size, filename: filename, kind: kind, clientId: clientId, text: text, durationMs: durationMs, replyToId: replyToId, width: width, height: height, thumb: thumb, onProgress: onProgress);
+    }
     try {
       final res = await _api.dio.post<dynamic>(
         '/chat/rooms/$roomId/files',
@@ -97,11 +108,60 @@ class ChatRepository {
           if (text != null && text.trim().isNotEmpty) 'text': text.trim(),
           if (durationMs != null) 'durationMs': '$durationMs',
           'replyToId': ?replyToId,
+          if (width != null) 'width': '$width',
+          if (height != null) 'height': '$height',
           'file': await MultipartFile.fromFile(path, filename: filename),
+          if (thumb != null) 'thumb': MultipartFile.fromBytes(thumb, filename: 'thumb.jpg'),
         }),
         options: Options(sendTimeout: const Duration(minutes: 10), receiveTimeout: const Duration(minutes: 2)),
         onSendProgress: (sent, total) { if (total > 0) onProgress?.call(sent / total); },
       );
+      return ChatMessage.fromJson((res.data as Map).cast<String, dynamic>());
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ChatMessage> _sendInParts(String roomId, {required String path, required int size, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, int? width, int? height, Uint8List? thumb, void Function(double)? onProgress}) async {
+    try {
+      final start = await _api.postJson('/chat/rooms/$roomId/uploads', body: {
+        'name': filename, 'size': size, 'kind': kind, 'clientId': clientId, 'text': ?(text?.trim().isEmpty ?? true ? null : text!.trim()),
+        'durationMs': ?durationMs, 'replyToId': ?replyToId, 'width': ?width, 'height': ?height,
+      });
+      if (start['done'] == true) return ChatMessage.fromJson((start['message'] as Map).cast<String, dynamic>());
+      final id = start['uploadId'] as String;
+      final chunk = (start['chunkSize'] as num).toInt();
+      final parts = (start['parts'] as num).toInt();
+      final have = ((start['received'] as List?) ?? const []).map((e) => (e as num).toInt()).toSet();
+      var sent = have.length * chunk;
+      onProgress?.call(sent / size);
+      final raf = await File(path).open();
+      try {
+        for (var i = 0; i < parts; i++) {
+          if (have.contains(i)) continue;
+          await raf.setPosition(i * chunk);
+          final bytes = await raf.read(i == parts - 1 ? size - i * chunk : chunk);
+          for (var attempt = 1;; attempt++) {
+            try {
+              await _api.dio.post<dynamic>('/chat/uploads/$id/parts/$i',
+                  data: FormData.fromMap({'chunk': MultipartFile.fromBytes(bytes, filename: 'part')}),
+                  options: Options(sendTimeout: const Duration(minutes: 2)),
+                  onSendProgress: (s, _) => onProgress?.call(((sent + s) / size).clamp(0, 1)));
+              break;
+            } on DioException {
+              if (attempt >= 3) rethrow; // the next «повторить» resumes from this part
+              await Future<void>.delayed(Duration(seconds: attempt * 2));
+            }
+          }
+          sent += bytes.length;
+          onProgress?.call((sent / size).clamp(0, 1));
+        }
+      } finally {
+        await raf.close();
+      }
+      final res = await _api.dio.post<dynamic>('/chat/uploads/$id/complete',
+          data: FormData.fromMap({if (thumb != null) 'thumb': MultipartFile.fromBytes(thumb, filename: 'thumb.jpg')}),
+          options: Options(receiveTimeout: const Duration(minutes: 3)));
       return ChatMessage.fromJson((res.data as Map).cast<String, dynamic>());
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

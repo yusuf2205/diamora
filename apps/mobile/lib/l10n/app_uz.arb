@@ -781,5 +781,6 @@
   "chatTabLinks": "Havolalar",
   "chatNothingYet": "Hozircha hech narsa yo'q",
   "chatSubscribers": "Kanal · obunachilar: {count}",
-  "chatLeaveChannel": "Kanaldan chiqish"
+  "chatLeaveChannel": "Kanaldan chiqish",
+  "chatVideoTooLarge": "Video 150 MB dan katta — yuborib bo'lmaydi"
 }

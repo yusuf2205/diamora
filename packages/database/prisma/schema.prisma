@@ -1206,6 +1206,8 @@ model ChatMessage {
   durationMs Int?
   width      Int?
   height     Int?
+  /// a video with a preview picture (FileAsset.thumbKey)
+  hasThumb   Boolean         @default(false)
   /// the sender's own id for this message: a retried send never posts it twice
   clientId   String?
   replyToId  String?         @db.Uuid

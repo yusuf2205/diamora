@@ -207,6 +207,35 @@ void main() {
     expect(find.text('Прайс.pdf'), findsOneWidget);
   });
 
+  testWidgets('media: a tap on a photo opens the full-screen viewer (swipe between photo and video, close)', (tester) async {
+    when(() => api.getJson('/chat/rooms/r1')).thenAnswer((_) async => {'id': 'r1', 'kind': 'DIRECT', 'title': 'Нигора', 'memberCount': 2, 'members': <Object>[]});
+    when(() => api.getJson('/chat/rooms/r1/messages', query: {'limit': 40})).thenAnswer((_) async => {
+          'items': [
+            msg('0190a000-0000-7000-8000-000000000002', '', kind: 'VIDEO', file: {'url': 'https://x/v', 'thumbUrl': 'https://x/vt', 'durationMs': 34000, 'size': 12000000, 'width': 1080, 'height': 1920}),
+            msg('0190a000-0000-7000-8000-000000000001', 'образец', kind: 'IMAGE', file: {'url': 'https://x/p', 'thumbUrl': 'https://x/pt', 'width': 800, 'height': 600}),
+          ],
+          'hasMore': false,
+        });
+    await pump(tester, const ChatRoomScreen(roomId: 'r1'));
+    expect(find.text('0:34 · 11.4 MB'), findsOneWidget); // the video bubble: length and size on its preview
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('image-0190a000-0000-7000-8000-000000000001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('image-0190a000-0000-7000-8000-000000000001')));
+    await tester.pump(const Duration(milliseconds: 300));
+    // ignore: avoid_print
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const Key('galleryPages')), findsOneWidget);
+    expect(find.text('1 / 2'), findsOneWidget); // photo first (oldest), the video next to it
+    await tester.tap(find.byKey(const Key('galleryClose')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('galleryPages')), findsNothing);
+  });
+
   test('a picked file is sent as what it is (by name; the server checks the bytes)', () {
     expect(chatKindForName('IMG_0001.JPG'), 'IMAGE');
     expect(chatKindForName('clip.mov'), 'VIDEO');

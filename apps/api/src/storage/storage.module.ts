@@ -7,13 +7,17 @@ import { Readable } from 'node:stream';
 import { ENV, Env } from '../config/env';
 
 export const STORAGE = Symbol('STORAGE');
-export interface StoredObject { stream: Readable; contentType?: string; size?: number }
+/** size = bytes in this response; total = the whole object (differs when a byte range was asked for) */
+export interface StoredObject { stream: Readable; contentType?: string; size?: number; total?: number }
+export interface ByteRange { start: number; end?: number }
 
 /** Object storage port: production = MinIO on the NAS (S3 API), tests = memory. The domain never sees the SDK (D-015). */
 export interface StoragePort {
   ensureBuckets(buckets: readonly string[]): Promise<void>;
   put(bucket: string, key: string, body: Buffer, contentType: string): Promise<void>;
-  get(bucket: string, key: string): Promise<StoredObject>;
+  get(bucket: string, key: string, range?: ByteRange): Promise<StoredObject>;
+  /** stream bytes of a known size (large videos never sit in memory) */
+  putStream(bucket: string, key: string, body: Readable, size: number, contentType: string): Promise<void>;
   ping(): Promise<void>;
 }
 
@@ -23,10 +27,16 @@ export class MemoryStorage implements StoragePort {
   readonly objects = new Map<string, { body: Buffer; contentType: string }>();
   async ensureBuckets() {}
   async put(b: string, k: string, body: Buffer, contentType: string) { this.objects.set(`${b}/${k}`, { body, contentType }); }
-  async get(b: string, k: string): Promise<StoredObject> {
+  async get(b: string, k: string, range?: ByteRange): Promise<StoredObject> {
     const o = this.objects.get(`${b}/${k}`);
     if (!o) throw new Error('NoSuchKey');
-    return { stream: Readable.from(o.body), contentType: o.contentType, size: o.body.length };
+    const body = range ? o.body.subarray(range.start, (range.end ?? o.body.length - 1) + 1) : o.body;
+    return { stream: Readable.from(body), contentType: o.contentType, size: body.length, total: o.body.length };
+  }
+  async putStream(b: string, k: string, body: Readable, _size: number, contentType: string) {
+    const chunks: Buffer[] = [];
+    for await (const c of body) chunks.push(Buffer.from(c as Buffer));
+    await this.put(b, k, Buffer.concat(chunks), contentType);
   }
   async ping() {}
 }
@@ -45,9 +55,14 @@ export class S3Storage implements StoragePort {
     }
   }
   async put(Bucket: string, Key: string, Body: Buffer, ContentType: string) { await this.s3.send(new PutObjectCommand({ Bucket, Key, Body, ContentType })); }
-  async get(Bucket: string, Key: string): Promise<StoredObject> {
-    const o = await this.s3.send(new GetObjectCommand({ Bucket, Key }));
-    return { stream: o.Body as Readable, contentType: o.ContentType, size: o.ContentLength };
+  async get(Bucket: string, Key: string, range?: ByteRange): Promise<StoredObject> {
+    const Range = range ? `bytes=${range.start}-${range.end ?? ''}` : undefined;
+    const o = await this.s3.send(new GetObjectCommand({ Bucket, Key, Range }));
+    const total = o.ContentRange ? Number(/\/(\d+)$/.exec(o.ContentRange)?.[1]) : o.ContentLength;
+    return { stream: o.Body as Readable, contentType: o.ContentType, size: o.ContentLength, total };
+  }
+  async putStream(Bucket: string, Key: string, Body: Readable, size: number, ContentType: string) {
+    await this.s3.send(new PutObjectCommand({ Bucket, Key, Body, ContentLength: size, ContentType }));
   }
   async ping() { await this.s3.send(new HeadBucketCommand({ Bucket: this.probeBucket })); }
 }

@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import { ChatApp, chatKindForFile, chatPreview, RichText, type ChatMessage } from '@/components/chat';
+import { ChatApp, chatKindForFile, chatPreview, MediaViewer, RichText, type ChatMessage } from '@/components/chat';
 import { mockFetch, renderWithProviders, signIn } from './helpers';
 
 let search = new URLSearchParams();
@@ -117,6 +117,21 @@ describe('«Чат» on the web (panel and worker web share it)', () => {
     expect(screen.getByText('Это канал: публикуют только его администраторы')).toBeInTheDocument();
     expect(screen.queryByLabelText('Сообщение')).toBeNull();
     expect(screen.getByText('Канал · подписчиков: 40')).toBeInTheDocument();
+  });
+
+  it('the viewer: a photo and a video side by side, arrows move between them, Esc closes; a video streams with its preview', () => {
+    const photo = { ...msg('p1', 'образец'), kind: 'IMAGE' as const, file: { url: 'https://x/p', thumbUrl: 'https://x/pt', name: null, size: 1, mimeType: 'image/jpeg', durationMs: null, width: 800, height: 600 } };
+    const video = { ...msg('v1', ''), kind: 'VIDEO' as const, file: { url: 'https://x/v', thumbUrl: 'https://x/vt', name: 'v.mp4', size: 12_000_000, mimeType: 'video/mp4', durationMs: 34_000, width: 1080, height: 1920 } };
+    const onClose = vi.fn();
+    const { container } = render(<MediaViewer items={[photo, video]} start={photo} onClose={onClose} />);
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'ArrowRight' });
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    const v = container.querySelector('video')!;
+    expect(v.getAttribute('src')).toBe('https://x/v'); // played straight from the server, no full download first
+    expect(v.getAttribute('poster')).toBe('https://x/vt');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('previews and file kinds', () => {

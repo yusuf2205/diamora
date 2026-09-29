@@ -355,6 +355,10 @@ export const CHAT_MESSAGE_KINDS = ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'AUDIO', '
 export type ChatMessageKind = (typeof CHAT_MESSAGE_KINDS)[number];
 /** the largest file a chat message may carry (photos, videos, voice, documents) */
 export const CHAT_MAX_FILE_BYTES = 50 * 1024 * 1024;
+/** videos may be larger (sent in parts: Cloudflare takes at most 100 MB per request) */
+export const CHAT_MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+/** one part of a resumable upload */
+export const CHAT_CHUNK_BYTES = 5 * 1024 * 1024;
 export const chatDirectSchema = z.object({ userId: z.string().uuid() });
 export const chatGroupSchema = z.object({
   title: z.string().trim().min(1).max(80),
@@ -397,6 +401,20 @@ export const chatFileFieldsSchema = z.object({
   durationMs: z.coerce.number().int().min(0).max(6 * 3600_000).optional(),
   clientId: z.string().max(64).optional(),
   replyToId: z.string().uuid().optional(),
+  width: z.coerce.number().int().min(1).max(20_000).optional(),
+  height: z.coerce.number().int().min(1).max(20_000).optional(),
+});
+/** start (or resume, same clientId) a file sent in parts */
+export const chatUploadStartSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  size: z.coerce.number().int().min(1).max(150 * 1024 * 1024),
+  kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE']),
+  clientId: z.string().min(8).max(64),
+  text: z.string().trim().max(4000).optional(),
+  durationMs: z.coerce.number().int().min(0).max(6 * 3600_000).optional(),
+  replyToId: z.string().uuid().optional(),
+  width: z.coerce.number().int().min(1).max(20_000).optional(),
+  height: z.coerce.number().int().min(1).max(20_000).optional(),
 });
 export const chatMessagesQuerySchema = z.object({
   before: z.string().uuid().optional(),

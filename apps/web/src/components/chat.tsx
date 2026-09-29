@@ -1,7 +1,7 @@
 'use client';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
@@ -25,6 +25,38 @@ export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; tit
 interface ChatSearch { rooms: ChatRoomSummary[]; people: ChatPerson[]; messages: (ChatMessage & { room: { id: string; kind: string; title: string | null } })[] }
 
 export const CHAT_MAX_BYTES = 50 * 1024 * 1024;
+export const CHAT_MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+/** above this a file goes in 5 MB parts (Cloudflare takes ≤ 100 MB per request; a dropped connection resumes) */
+const SINGLE_UPLOAD_BYTES = 8 * 1024 * 1024;
+const fmtDuration = (ms: number) => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+/** A video's first frame, length and size - made in the browser, so others see a preview before downloading anything. */
+export function describeVideo(file: File): Promise<{ thumb?: Blob; durationMs?: number; width?: number; height?: number }> {
+  return new Promise((resolve) => {
+    if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') return resolve({});
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    const done = (x: { thumb?: Blob; durationMs?: number; width?: number; height?: number }) => { URL.revokeObjectURL(url); resolve(x); };
+    const timer = setTimeout(() => done({}), 6_000);
+    v.preload = 'metadata';
+    v.muted = true;
+    v.playsInline = true;
+    v.onloadedmetadata = () => { v.currentTime = Math.min(0.1, (v.duration || 1) / 2); };
+    v.onseeked = () => {
+      const meta = { durationMs: Number.isFinite(v.duration) ? Math.round(v.duration * 1000) : undefined, width: v.videoWidth || undefined, height: v.videoHeight || undefined };
+      try {
+        const c = document.createElement('canvas');
+        const scale = Math.min(1, 640 / (v.videoWidth || 640));
+        c.width = Math.round((v.videoWidth || 640) * scale);
+        c.height = Math.round((v.videoHeight || 360) * scale);
+        c.getContext('2d')?.drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob((b) => { clearTimeout(timer); done({ ...meta, thumb: b ?? undefined }); }, 'image/jpeg', 0.7);
+      } catch { clearTimeout(timer); done(meta); }
+    };
+    v.onerror = () => { clearTimeout(timer); done({}); };
+    v.src = url;
+  });
+}
 
 export const chatTitle = (r: { kind: string; title: string | null }) => (r.kind === 'COMPANY' ? 'Общий чат' : (r.title ?? ''));
 
@@ -280,7 +312,11 @@ function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => 
   );
 }
 
-interface Pending { clientId: string; kind: ChatMessage['kind']; text?: string; file?: File; durationMs?: number; replyToId?: string; progress: number; failed: boolean; createdAt: string }
+interface Pending {
+  clientId: string; kind: ChatMessage['kind']; text?: string; file?: File; durationMs?: number; replyToId?: string; progress: number; failed: boolean; createdAt: string;
+  /** shown at once: the picture itself, or the video's first frame */
+  preview?: string; thumb?: Blob; width?: number; height?: number;
+}
 
 function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () => void; single?: boolean }) {
   const qc = useQueryClient();
@@ -300,6 +336,7 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
   const [typing, setTyping] = useState<Record<string, { name: string; kind: string; until: number }>>({});
   const [emoji, setEmoji] = useState(false);
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [viewing, setViewing] = useState<ChatMessage | null>(null);
   // the unsent text of this chat is kept (a draft)
   useEffect(() => { try { if (text.trim() && !editing) localStorage.setItem(draftKey, text); else localStorage.removeItem(draftKey); } catch { /* private mode */ } }, [text, editing, draftKey]);
   // «печатает…» from the others (live, never stored), expiring after 6 s
@@ -346,13 +383,7 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
     setPending((xs) => xs.map((x) => (x.clientId === p.clientId ? { ...x, failed: false } : x)));
     try {
       if (p.file) {
-        const form = new FormData();
-        form.set('kind', p.kind);
-        form.set('clientId', p.clientId);
-        if (p.durationMs) form.set('durationMs', String(p.durationMs));
-        if (p.replyToId) form.set('replyToId', p.replyToId);
-        form.set('file', p.file, p.file.name);
-        await api.upload(`/chat/rooms/${roomId}/files`, form);
+        await uploadChatFile(roomId, p, (x) => setPending((xs) => xs.map((y) => (y.clientId === p.clientId ? { ...y, progress: x } : y))));
       } else {
         await api.post(`/chat/rooms/${roomId}/messages`, { text: p.text, clientId: p.clientId, replyToId: p.replyToId });
       }
@@ -365,8 +396,18 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
   };
   const queue = (p: Omit<Pending, 'clientId' | 'progress' | 'failed' | 'createdAt' | 'replyToId'>) => {
     const item: Pending = { ...p, replyToId: replyTo?.id, clientId: newId(), progress: 0, failed: false, createdAt: new Date().toISOString() };
+    if (p.file && p.kind === 'IMAGE' && typeof URL.createObjectURL === 'function') item.preview = URL.createObjectURL(p.file);
     setReplyTo(null);
     setPending((xs) => [...xs, item]);
+    if (p.file && p.kind === 'VIDEO') {
+      // the first frame is shown (and sent as the preview) while the video uploads
+      void describeVideo(p.file).then((d) => {
+        const withMeta: Pending = { ...item, ...d, durationMs: item.durationMs ?? d.durationMs, preview: d.thumb && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(d.thumb) : undefined };
+        setPending((xs) => xs.map((x) => (x.clientId === item.clientId ? { ...withMeta, progress: x.progress } : x)));
+        void send(withMeta);
+      });
+      return;
+    }
     void send(item);
   };
   const sendText = () => {
@@ -391,8 +432,12 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
   const sendFiles = (files: FileList | null) => {
     setError(null);
     for (const f of Array.from(files ?? [])) {
-      if (f.size > CHAT_MAX_BYTES) { setError(`«${f.name}» больше 50 МБ — его нельзя отправить`); continue; }
-      queue({ kind: chatKindForFile(f), file: f });
+      const kind = chatKindForFile(f);
+      if (kind === 'VIDEO' ? f.size > CHAT_MAX_VIDEO_BYTES : f.size > CHAT_MAX_BYTES) {
+        setError(kind === 'VIDEO' ? `«${f.name}» больше 150 МБ — видео нельзя отправить` : `«${f.name}» больше 50 МБ — его нельзя отправить`);
+        continue;
+      }
+      queue({ kind, file: f });
     }
     if (fileInput.current) fileInput.current.value = '';
   };
@@ -455,18 +500,31 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
                 onForward={() => setForwarding(m)}
                 onPin={r?.canPin ? () => pin(r.pinnedMessage?.id === m.id ? null : m.id) : undefined}
                 pinned={r?.pinnedMessage?.id === m.id}
+                onOpenMedia={() => setViewing(m)}
               />
             </div>
           );
         })}
-        {pending.map((p) => (
+        {pending.map((p) => (p.file && (p.kind === 'IMAGE' || p.kind === 'VIDEO')) ? (
+          <div key={p.clientId} className="my-1 flex justify-end">
+            <button onClick={() => p.failed && send(p)} className="relative overflow-hidden rounded-2xl bg-black/80" style={{ width: 240, aspectRatio: `${p.width ?? 4} / ${p.height ?? 3}`, maxHeight: 320 }} aria-label={p.failed ? 'Не отправлено — нажмите, чтобы повторить' : 'Отправка'}>
+              {p.preview && <img src={p.preview} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/55 text-xs font-semibold text-white" style={{ background: p.failed ? undefined : `conic-gradient(white ${p.progress * 360}deg, rgba(0,0,0,.55) 0deg)` }}>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/70">{p.failed ? '↻' : `${Math.round(p.progress * 100)}%`}</span>
+                </span>
+              </span>
+              {p.failed && <span className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-center text-xs text-white">Не отправлено — нажмите, чтобы повторить</span>}
+            </button>
+          </div>
+        ) : (
           <div key={p.clientId} className="my-1 flex justify-end">
             <button
               onClick={() => p.failed && send(p)}
               className="max-w-[80%] rounded-2xl bg-primary/10 px-3 py-2 text-left opacity-80"
             >
               <span className="block whitespace-pre-wrap break-words">{p.text ?? `${{ IMAGE: '📷', VIDEO: '🎬', VOICE: '🎤', AUDIO: '🎵', FILE: '📎', TEXT: '' }[p.kind]} ${p.file?.name ?? ''}`}</span>
-              <span className={`block text-right text-xs ${p.failed ? 'font-semibold text-danger' : 'text-muted'}`}>{p.failed ? 'Не отправлено — нажмите, чтобы повторить' : 'Отправка…'}</span>
+              <span className={`block text-right text-xs ${p.failed ? 'font-semibold text-danger' : 'text-muted'}`}>{p.failed ? 'Не отправлено — нажмите, чтобы повторить' : p.file && p.progress > 0 ? `Отправка… ${Math.round(p.progress * 100)}%` : 'Отправка…'}</span>
             </button>
           </div>
         ))}
@@ -512,13 +570,14 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
       )}
       {info && r && <RoomInfo room={r} onClose={() => setInfo(false)} onLeft={() => { setInfo(false); onBack(); }} onOpenMessage={() => setInfo(false)} />}
       {forwarding && <ForwardModal message={forwarding} onClose={() => setForwarding(null)} onDone={() => setForwarding(null)} />}
+      {viewing && <MediaViewer items={messages.filter((m) => !m.deleted && m.file && (m.kind === 'IMAGE' || m.kind === 'VIDEO'))} start={viewing} onClose={() => setViewing(null)} />}
     </>
   );
 }
 
-function Bubble({ m, mine, showSender, read, onDelete, onReply, onEdit, onReact, onForward, onPin, pinned }: {
+function Bubble({ m, mine, showSender, read, onDelete, onReply, onEdit, onReact, onForward, onPin, pinned, onOpenMedia }: {
   m: ChatMessage; mine: boolean; showSender: boolean; read: boolean; onDelete?: () => void;
-  onReply?: () => void; onEdit?: () => void; onReact?: (e: string) => void; onForward?: () => void; onPin?: () => void; pinned?: boolean;
+  onReply?: () => void; onEdit?: () => void; onReact?: (e: string) => void; onForward?: () => void; onPin?: () => void; pinned?: boolean; onOpenMedia?: () => void;
 }) {
   const t = new Date(m.createdAt);
   const f = m.file;
@@ -540,9 +599,15 @@ function Bubble({ m, mine, showSender, read, onDelete, onReply, onEdit, onReact,
         ) : (
           <>
             {m.kind === 'IMAGE' && f && (
-              <a href={f.url} target="_blank" rel="noreferrer"><img src={f.thumbUrl ?? f.url} alt={m.text ?? 'Фото'} className="max-h-72 max-w-full rounded-lg" /></a>
+              <button onClick={onOpenMedia} aria-label="Открыть фото" className="block"><img src={f.thumbUrl ?? f.url} alt={m.text ?? 'Фото'} className="max-h-72 max-w-full rounded-lg" /></button>
             )}
-            {m.kind === 'VIDEO' && f && <video src={f.url} controls preload="metadata" className="max-h-72 max-w-full rounded-lg" />}
+            {m.kind === 'VIDEO' && f && (
+              <button onClick={onOpenMedia} aria-label="Смотреть видео" className="relative block overflow-hidden rounded-lg bg-black" style={{ width: 240, aspectRatio: `${f.width ?? 16} / ${f.height ?? 9}`, maxHeight: 320 }}>
+                {f.thumbUrl && <img src={f.thumbUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+                <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white"><Play size={24} aria-hidden /></span></span>
+                <span className="absolute bottom-1.5 left-1.5 rounded bg-black/55 px-1.5 text-xs text-white">{f.durationMs ? `${fmtDuration(f.durationMs)} · ` : ''}{bytes(f.size)}</span>
+              </button>
+            )}
             {(m.kind === 'VOICE' || m.kind === 'AUDIO') && f && (
               <div>
                 {m.kind === 'AUDIO' && f.name && <p className="mb-1 truncate text-sm font-medium">{f.name}</p>}
@@ -820,5 +885,103 @@ function ForwardModal({ message, onClose, onDone }: { message: ChatMessage; onCl
       </div>
       {fwd.isError && <div className="mt-2"><ErrorState error={fwd.error} /></div>}
     </Modal>
+  );
+}
+
+/** Sends a file: one request when small, otherwise in 5 MB parts that resume (the same clientId continues). */
+async function uploadChatFile(roomId: string, p: Pending, onProgress: (x: number) => void) {
+  const f = p.file!;
+  const meta = { kind: p.kind, clientId: p.clientId, durationMs: p.durationMs, replyToId: p.replyToId, width: p.width, height: p.height };
+  if (f.size <= SINGLE_UPLOAD_BYTES) {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(meta)) if (v !== undefined && v !== null) form.set(k, String(v));
+    form.set('file', f, f.name);
+    if (p.thumb) form.set('thumb', p.thumb, 'thumb.jpg');
+    await api.upload(`/chat/rooms/${roomId}/files`, form);
+    onProgress(1);
+    return;
+  }
+  const start = await api.post<{ done?: boolean; uploadId: string; chunkSize: number; parts: number; received: number[] }>(`/chat/rooms/${roomId}/uploads`, { name: f.name, size: f.size, ...meta });
+  if (start.done) return;
+  const have = new Set(start.received);
+  let sent = have.size * start.chunkSize;
+  onProgress(sent / f.size);
+  for (let i = 0; i < start.parts; i++) {
+    if (have.has(i)) continue;
+    const blob = f.slice(i * start.chunkSize, Math.min(f.size, (i + 1) * start.chunkSize));
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const form = new FormData();
+        form.set('chunk', blob, 'part');
+        await api.upload(`/chat/uploads/${start.uploadId}/parts/${i}`, form);
+        break;
+      } catch (e) {
+        if (attempt >= 3) throw e; // «повторить» resumes from this part
+        await new Promise((r) => setTimeout(r, attempt * 2_000));
+      }
+    }
+    sent += blob.size;
+    onProgress(Math.min(1, sent / f.size));
+  }
+  const done = new FormData();
+  if (p.thumb) done.set('thumb', p.thumb, 'thumb.jpg');
+  await api.upload(`/chat/uploads/${start.uploadId}/complete`, done);
+}
+
+/**
+ * Photos and videos full screen, like in Telegram: the preview at once, the full photo over it; ← → (keys, buttons or a
+ * swipe) to the neighbours; Esc, ✕ or a swipe down closes. A video plays while it downloads (the server answers byte ranges).
+ */
+export function MediaViewer({ items, start, onClose }: { items: ChatMessage[]; start: ChatMessage; onClose: () => void }) {
+  const list = items.length ? items : [start];
+  const [i, setI] = useState(() => Math.max(0, list.findIndex((m) => m.id === start.id)));
+  const [full, setFull] = useState<Record<string, boolean>>({});
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const m = list[i];
+  const f = m.file!;
+  const go = (d: number) => setI((x) => Math.min(list.length - 1, Math.max(0, x + d)));
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft') go(-1); if (e.key === 'ArrowRight') go(1); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  });
+  return (
+    <div
+      role="dialog" aria-modal="true" aria-label="Просмотр"
+      className="fixed inset-0 z-[60] flex flex-col bg-black text-white"
+      onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+      onTouchEnd={(e) => {
+        const t = touch.current; touch.current = null;
+        if (!t) return;
+        const dx = e.changedTouches[0].clientX - t.x; const dy = e.changedTouches[0].clientY - t.y;
+        if (Math.abs(dy) > 120 && Math.abs(dy) > Math.abs(dx)) onClose();
+        else if (Math.abs(dx) > 60) go(dx < 0 ? 1 : -1);
+      }}
+    >
+      <div className="flex items-center gap-3 p-3">
+        <button aria-label="Закрыть" onClick={onClose} className="rounded-full p-2 hover:bg-white/10"><X size={22} aria-hidden /></button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{m.sender?.fullName}</p>
+          {list.length > 1 && <p className="text-xs text-white/70">{i + 1} / {list.length}</p>}
+        </div>
+        <a href={f.url} download={f.name ?? undefined} aria-label="Скачать" className="rounded-full p-2 hover:bg-white/10"><Download size={20} aria-hidden /></a>
+      </div>
+      <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        {i > 0 && <button aria-label="Предыдущее" onClick={() => go(-1)} className="absolute left-2 z-10 hidden rounded-full bg-white/10 p-2 hover:bg-white/20 sm:block"><ChevronLeft size={28} aria-hidden /></button>}
+        {m.kind === 'VIDEO' ? (
+          <video key={m.id} src={f.url} poster={f.thumbUrl ?? undefined} controls autoPlay playsInline preload="auto" className="max-h-full max-w-full" />
+        ) : (
+          <div className="relative flex max-h-full max-w-full items-center justify-center">
+            {!full[m.id] && f.thumbUrl && <img src={f.thumbUrl} alt="" className="max-h-[80vh] max-w-full scale-100 object-contain blur-[1px]" />}
+            <img key={m.id} src={f.url} alt={m.text ?? 'Фото'} onLoad={() => setFull((x) => ({ ...x, [m.id]: true }))}
+              className={`max-h-[80vh] max-w-full object-contain ${full[m.id] ? '' : 'absolute inset-0 m-auto opacity-0'}`} />
+          </div>
+        )}
+        {i < list.length - 1 && <button aria-label="Следующее" onClick={() => go(1)} className="absolute right-2 z-10 hidden rounded-full bg-white/10 p-2 hover:bg-white/20 sm:block"><ChevronRight size={28} aria-hidden /></button>}
+      </div>
+      {m.text && <p className="bg-black/60 p-3 text-sm">{m.text}</p>}
+    </div>
   );
 }

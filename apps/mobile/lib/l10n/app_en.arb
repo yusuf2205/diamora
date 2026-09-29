@@ -750,5 +750,6 @@
   "chatTabLinks": "Links",
   "chatNothingYet": "Nothing yet",
   "chatSubscribers": "Channel · subscribers: {count}",
-  "chatLeaveChannel": "Leave channel"
+  "chatLeaveChannel": "Leave channel",
+  "chatVideoTooLarge": "The video is larger than 150 MB and cannot be sent"
 }
