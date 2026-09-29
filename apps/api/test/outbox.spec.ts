@@ -14,6 +14,8 @@ describe('Telegram outbox (delivery of notifications by the bot process)', () =>
   };
 
   it('delivers pending messages once, marks SENT and wipes login codes from the database', async () => {
+    // the test database is shared by every suite: notices other tests left pending must not crowd out this batch
+    await t.prisma.notification.updateMany({ where: { status: 'PENDING' }, data: { status: 'SENT' } });
     const code = await enqueue('login_code', 'Ваш код входа: 123456');
     const info = await enqueue('worker.approved', 'Вас приняли');
     const sender = fake();
