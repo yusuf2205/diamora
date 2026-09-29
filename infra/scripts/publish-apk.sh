@@ -13,6 +13,8 @@ KEY="${SSH_KEY:-$HOME/.ssh/yusmus_deploy}"
 OUT="apps/mobile/build/app/outputs/flutter-apk"
 SSH="ssh -i $KEY -o BatchMode=yes $HOST"
 
+# after a NAS Docker restart .env belongs to root: give it back first (see nas-fix-owner.sh)
+$SSH "sh -s -- '$DIR'" < infra/scripts/nas-fix-owner.sh >&2 || exit 1
 DATA_ROOT="$($SSH "sed -n 's/^DATA_ROOT=//p' $DIR/.env" | tail -n1)"
 [ -n "$DATA_ROOT" ] || { echo "DATA_ROOT not found in $DIR/.env" >&2; exit 1; }
 $SSH "mkdir -p '$DATA_ROOT/downloads'"

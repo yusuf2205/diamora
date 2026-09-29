@@ -15,6 +15,8 @@ DIR="${2:-/volume1/docker/yusmus}"
 ADDR="${HOST#*@}"
 cd "$(dirname "$0")/../.."
 
+# the NAS re-owns the project folder to root after a Docker restart: give source/config back first (data/ untouched)
+ssh "$HOST" "sh -s -- '$DIR'" < infra/scripts/nas-fix-owner.sh || { echo "deploy aborted: ownership could not be fixed"; exit 1; }
 # ownership/health gate: abort before anything on the NAS is touched
 ssh "$HOST" "sh -s -- '$DIR'" < infra/scripts/nas-preflight.sh || { echo "deploy aborted by preflight"; exit 1; }
 
