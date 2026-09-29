@@ -13,10 +13,11 @@ describe('chat', () => {
   };
 
   it('direct chat: a worker writes to a manager; one room per pair; unread, read receipts, realtime to both', async () => {
-    const admin = await staffActor(t, 'ADMIN');
+    const admin = await staffActor(t, 'ADMIN', ['WORKER_ASSIGN_MANAGER']);
     const mgr = await staffActor(t, 'MANAGER');
     const w = await worker(admin, 'Нигора Азимова');
     const wUser = (await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: w.workerId } })).userId!;
+    await admin.api.post('/v1/workers/manager-bulk', { managerId: mgr.user.id, workerIds: [w.workerId] }).expect(200); // her manager
 
     // contacts: everyone active, names and roles, never phones
     const contacts = (await w.api.get('/v1/chat/contacts').expect(200)).body.items;
@@ -54,6 +55,38 @@ describe('chat', () => {
     const other = await staffActor(t, 'MANAGER');
     await other.api.get(`/v1/chat/rooms/${room.id}/messages`).expect(404);
     await other.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'hi' }).expect(404);
+  });
+
+  it('who sees whom: a worker - administrators and HER manager only; a manager - staff and HIS workers; an admin - every worker', async () => {
+    const owner = await staffActor(t, 'SUPER_ADMIN');
+    const admin = await staffActor(t, 'ADMIN');
+    const mine = await staffActor(t, 'MANAGER');
+    const other = await staffActor(t, 'MANAGER');
+    const w1 = await worker(admin, 'Малика Юсупова');
+    const w2 = await worker(admin, 'Дилноза Каримова');
+    await owner.api.post('/v1/workers/manager-bulk', { managerId: mine.user.id, workerIds: [w1.workerId] }).expect(200);
+    await owner.api.post('/v1/workers/manager-bulk', { managerId: other.user.id, workerIds: [w2.workerId] }).expect(200);
+    const u1 = (await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: w1.workerId } })).userId!;
+    const u2 = (await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: w2.workerId } })).userId!;
+    const ids = async (a: { api: { get: (u: string) => { expect: (s: number) => Promise<{ body: { items: { id: string }[] } }> } } }) =>
+      (await a.api.get('/v1/chat/contacts').expect(200)).body.items.map((c) => c.id);
+
+    const forW1 = await ids(w1);
+    expect(forW1).toEqual(expect.arrayContaining([owner.user.id, admin.user.id, mine.user.id]));
+    expect(forW1).not.toContain(other.user.id); // not her manager
+    expect(forW1).not.toContain(u2); // never other workers
+    await w1.api.post('/v1/chat/direct', { userId: u2 }).expect(403); // checked on the server, not just hidden
+    await w1.api.post('/v1/chat/direct', { userId: other.user.id }).expect(403);
+    await w1.api.post('/v1/chat/direct', { userId: mine.user.id }).expect(200);
+
+    const forMine = await ids(mine);
+    expect(forMine).toContain(u1);
+    expect(forMine).not.toContain(u2);
+    expect(forMine).toEqual(expect.arrayContaining([owner.user.id, admin.user.id, other.user.id])); // staff talk to each other
+    await mine.api.post('/v1/chat/groups', { title: 'Чужие', memberIds: [u2] }).expect(403);
+
+    expect(await ids(admin)).toEqual(expect.arrayContaining([u1, u2]));
+    expect(await ids(owner)).toEqual(expect.arrayContaining([u1, u2]));
   });
 
   it('group: owner creates, adds and removes; members write; a non-owner cannot manage; leaving hands ownership on', async () => {

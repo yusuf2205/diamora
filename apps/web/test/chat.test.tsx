@@ -58,6 +58,16 @@ describe('«Чат» on the web (panel and worker web share it)', () => {
     });
   });
 
+  it('worker web (single pane): the list only, no «Выберите чат слева» beside it', async () => {
+    search = new URLSearchParams();
+    signIn({ ...ME, role: 'WORKER' as never, workerId: 'w1' });
+    mockFetch({ '/auth/me': ME, '/chat/rooms': { items: [{ id: 'c', kind: 'COMPANY', title: null, peer: null, memberCount: 3, isOwner: false, unread: 0, lastMessage: null, lastMessageAt: '2026-09-29T08:00:00Z' }] } });
+    const { container } = renderWithProviders(<ChatApp single />);
+    expect(await screen.findByText('Общий чат')).toBeInTheDocument();
+    expect(screen.getByText('Выберите чат слева').parentElement!.className).toMatch(/(^| )hidden( |$)/);
+    expect(container.innerHTML).not.toContain('md:flex');
+  });
+
   it('previews and file kinds', () => {
     expect(chatPreview({ ...msg('x', ''), kind: 'VOICE' })).toBe('🎤 Голосовое сообщение');
     expect(chatPreview({ ...msg('x', 'подпись'), kind: 'IMAGE' })).toBe('📷 Фото · подпись');

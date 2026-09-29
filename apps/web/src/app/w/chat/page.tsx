@@ -6,5 +6,5 @@ import { Spinner } from '@/components/ui';
 
 /** «Чат» of the worker web version: the same chats as the app. */
 export default function WorkerChatPage() {
-  return <Suspense fallback={<Spinner />}><ChatApp /></Suspense>;
+  return <Suspense fallback={<Spinner />}><ChatApp single /></Suspense>;
 }

@@ -71,19 +71,20 @@ function Avatar({ kind, name, online, size = 40 }: { kind: string; name: string;
 }
 
 // ---- the whole chat: list + conversation (side by side on a wide screen, one at a time on a phone) ------------------------
-export function ChatApp() {
+/** `single`: always one pane (the worker web is phone-width even on a big screen). */
+export function ChatApp({ single = false }: { single?: boolean }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const roomId = params.get('room');
   const open = (id: string | null) => router.push(id ? `${pathname}?room=${id}` : pathname);
   return (
-    <div className="flex h-[calc(100dvh-9rem)] min-h-[420px] overflow-hidden rounded-xl border border-border bg-card lg:h-[calc(100vh-4rem)]">
-      <div className={`${roomId ? 'hidden md:flex' : 'flex'} w-full flex-col border-r border-border md:w-80 md:shrink-0`}>
+    <div className={`flex overflow-hidden rounded-xl border border-border bg-card ${single ? 'h-[calc(100dvh-8.5rem)] min-h-[380px]' : 'h-[calc(100dvh-9rem)] min-h-[420px] lg:h-[calc(100vh-4rem)]'}`}>
+      <div className={`${roomId ? (single ? 'hidden' : 'hidden md:flex') : 'flex'} w-full flex-col ${single ? '' : 'border-r border-border md:w-80 md:shrink-0'}`}>
         <RoomList selected={roomId} onOpen={open} />
       </div>
-      <div className={`${roomId ? 'flex' : 'hidden md:flex'} min-w-0 flex-1 flex-col`}>
-        {roomId ? <Conversation key={roomId} roomId={roomId} onBack={() => open(null)} /> : <div className="m-auto p-6 text-center text-muted">Выберите чат слева</div>}
+      <div className={`${roomId ? 'flex' : single ? 'hidden' : 'hidden md:flex'} min-w-0 flex-1 flex-col`}>
+        {roomId ? <Conversation key={roomId} roomId={roomId} onBack={() => open(null)} single={single} /> : <div className="m-auto p-6 text-center text-muted">Выберите чат слева</div>}
       </div>
     </div>
   );
@@ -190,7 +191,7 @@ function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => 
 
 interface Pending { clientId: string; kind: ChatMessage['kind']; text?: string; file?: File; durationMs?: number; progress: number; failed: boolean; createdAt: string }
 
-function Conversation({ roomId, onBack }: { roomId: string; onBack: () => void }) {
+function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () => void; single?: boolean }) {
   const qc = useQueryClient();
   const { me } = useAuth();
   const room = useQuery({ queryKey: ['chat-room', roomId], queryFn: () => api.get<ChatRoomDetail>(`/chat/rooms/${roomId}`) });
@@ -277,7 +278,7 @@ function Conversation({ roomId, onBack }: { roomId: string; onBack: () => void }
   return (
     <>
       <div className="flex items-center gap-3 border-b border-border px-3 py-2.5">
-        <button aria-label="Назад" className="rounded-lg p-1.5 hover:bg-border/50 md:hidden" onClick={onBack}><ArrowLeft size={20} aria-hidden /></button>
+        <button aria-label="Назад" className={`rounded-lg p-1.5 hover:bg-border/50 ${single ? '' : 'md:hidden'}`} onClick={onBack}><ArrowLeft size={20} aria-hidden /></button>
         {r && <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} size={36} />}
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{r ? chatTitle(r) : ''}</p>

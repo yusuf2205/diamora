@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Prisma, type ChatMessage, type ChatRoom } from '@diamoraa/database';
 import {
   CHAT_MAX_FILE_BYTES, chatContactsQuerySchema, chatDirectSchema, chatFileFieldsSchema, chatGroupSchema, chatGroupUpdateSchema,
-  chatMessagesQuerySchema, chatTextSchema, type ChatMessageKind,
+  chatMessagesQuerySchema, chatTextSchema, scopeFor, type ChatMessageKind,
 } from '@diamoraa/shared';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser } from '../common/decorators';
@@ -166,25 +166,45 @@ export class ChatService {
     };
   }
 
-  /** Everyone active except me (the owner chose «все со всеми»): names and roles only, never phones. */
+  /**
+   * Whom this user may start a chat with (owner's rule):
+   *  - a WORKER: the administrators and her own manager - never other workers;
+   *  - staff: every staff member, plus the workers they may see (all for SUPER_ADMIN / ADMIN, a MANAGER only her own).
+   */
+  private async reachable(u: AuthUser): Promise<Prisma.UserWhereInput> {
+    if (u.role === 'WORKER') {
+      const w = u.workerId ? await this.prisma.workerProfile.findUnique({ where: { id: u.workerId }, select: { assignedManagerId: true } }) : null;
+      return { OR: [{ role: { in: ['SUPER_ADMIN', 'ADMIN'] } }, ...(w?.assignedManagerId ? [{ id: w.assignedManagerId }] : [])] };
+    }
+    const scope = u.role === 'SUPER_ADMIN' ? 'all' : scopeFor(u.permissions, 'WORKER');
+    const workers: Prisma.UserWhereInput = scope === 'all'
+      ? { role: 'WORKER', workerProfile: { deletedAt: null } }
+      : scope === 'assigned'
+        ? { role: 'WORKER', workerProfile: { deletedAt: null, assignedManagerId: u.id } }
+        : { id: { in: [] } };
+    return { OR: [{ role: { not: 'WORKER' } }, workers] };
+  }
+
+  /** Names and roles only, never phones. */
   async contacts(u: AuthUser, q: z.output<typeof chatContactsQuerySchema>) {
     const rows = await this.prisma.user.findMany({
-      where: { status: 'ACTIVE', id: { not: u.id }, ...(q.q ? { fullName: { contains: q.q, mode: 'insensitive' as const } } : {}) },
+      where: { AND: [await this.reachable(u), { status: 'ACTIVE', id: { not: u.id }, ...(q.q ? { fullName: { contains: q.q, mode: 'insensitive' as const } } : {}) }] },
       select: { id: true, fullName: true, role: true }, orderBy: { fullName: 'asc' }, take: 300,
     });
     return { items: rows.map((r) => ({ ...r, online: this.presence.isOnline(r.id) })) };
   }
 
-  private async activeUsers(ids: string[]) {
+  /** Only people this user may reach (see [reachable]) - checked here, not just hidden in the list. */
+  private async activeUsers(u: AuthUser, ids: string[]) {
     const unique = [...new Set(ids)];
-    const found = await this.prisma.user.findMany({ where: { id: { in: unique }, status: 'ACTIVE' }, select: { id: true } });
-    if (found.length !== unique.length) throw validationFailed('Some of these people are not available');
+    const found = await this.prisma.user.findMany({ where: { AND: [await this.reachable(u), { id: { in: unique }, status: 'ACTIVE' }] }, select: { id: true } });
+    if (found.length !== unique.length) throw forbidden('You cannot write to some of these people');
     return unique;
   }
 
   async direct(u: AuthUser, userId: string) {
     if (userId === u.id) throw validationFailed('Choose someone else');
-    await this.activeUsers([userId]);
+    await this.activeUsers(u, [userId]);
     const key = directKey(u.id, userId);
     let room = await this.prisma.chatRoom.findUnique({ where: { directKey: key } });
     if (!room) {
@@ -202,7 +222,7 @@ export class ChatService {
   }
 
   async createGroup(u: AuthUser, b: z.output<typeof chatGroupSchema>) {
-    const ids = await this.activeUsers(b.memberIds.filter((id) => id !== u.id));
+    const ids = await this.activeUsers(u, b.memberIds.filter((id) => id !== u.id));
     if (!ids.length) throw validationFailed('Add at least one person');
     const now = new Date();
     const room = await this.prisma.chatRoom.create({
@@ -221,7 +241,7 @@ export class ChatService {
     const me = await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } });
     if (!me?.isOwner && !isAdmin(u)) throw forbidden('Only the group owner or an administrator can change the group');
     const before = await this.memberIds(room);
-    const add = b.addIds?.length ? await this.activeUsers(b.addIds) : [];
+    const add = b.addIds?.length ? await this.activeUsers(u, b.addIds) : [];
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
       if (b.title) await tx.chatRoom.update({ where: { id: roomId }, data: { title: b.title } });
