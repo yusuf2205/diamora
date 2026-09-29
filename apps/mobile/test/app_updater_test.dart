@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:diamoraa_mobile/core/theme/app_theme.dart';
 import 'package:diamoraa_mobile/core/update/app_updater.dart';
 import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
@@ -47,6 +48,9 @@ class _Platform implements UpdaterPlatform {
   Future<void> openInstallSettings() async => openedSettings = true;
   @override
   Future<void> install(String path) async => installed = path;
+  String? silent;
+  @override
+  Future<bool> installSilent(String path) async { silent = path; return true; }
 }
 
 Map<String, dynamic> manifest({int build = 17, String sha = 'sha-of-NEW'}) => {
@@ -109,6 +113,37 @@ void main() {
     expect(platform.openedSettings, isTrue);
     expect(platform.installed, isNull);
     expect(c.read(updateControllerProvider).stage, UpdateStage.needsPermission);
+  });
+
+  test('she leaves the app with an update downloaded: it is installed quietly (nothing before it is ready)', () async {
+    final server = _Server(manifest(), utf8.encode('NEW'));
+    final platform = _Platform(dir.path);
+    final c = container(server, platform);
+    await c.read(updateControllerProvider.notifier).installInBackground();
+    expect(platform.silent, isNull);
+    await c.read(updateControllerProvider.notifier).check(force: true);
+    await c.read(updateControllerProvider.notifier).installInBackground();
+    expect(platform.silent, '${dir.path}/diamoraa-17.apk');
+    expect(platform.installed, isNull); // no system dialog over another app
+  });
+
+  testWidgets('tablet landscape with the real theme: the strip stays one slim line (the text is not squeezed)', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.light(),
+      locale: const Locale('ru'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: Column(children: [UpdateStrip(
+        state: const UpdateState(stage: UpdateStage.ready, release: AppRelease(version: '1.0.0-rc.27', build: 27, path: '/x', sha256: 's')),
+        onInstall: () {},
+      )])),
+    ));
+    expect(tester.getSize(find.byType(UpdateStrip)).height, lessThan(80));
+    expect(tester.getSize(find.text('Новая версия 1.0.0-rc.27 готова')).width, greaterThan(200));
+    expect(tester.getSize(find.widgetWithText(FilledButton, 'Установить')).width, lessThan(300));
   });
 
   testWidgets('the strip: «Новая версия … готова» + «Установить»', (tester) async {

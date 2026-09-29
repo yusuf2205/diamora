@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <!-- self-update from diamoraa.uz (the app is not in Google Play): hand the downloaded APK to the installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- Android 14+: lets Diamoraa update ITSELF without a confirmation (it is the installer of record) -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="Diamoraa"
@@ -25,6 +27,8 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" />
         </provider>
+        <!-- result of an update install (UpdateInstaller): shows the system confirmation only after a tap -->
+        <receiver android:name=".UpdateResultReceiver" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -13,8 +12,9 @@ import java.security.MessageDigest
 
 /**
  * Self-update (the app is installed from diamoraa.uz, not from Google Play): Dart downloads the new APK in the
- * background into cacheDir/updates; this channel verifies it and hands it to the system installer. Android always
- * asks the person to confirm the install - that single tap is the one thing an app outside the Play Store cannot skip.
+ * background into cacheDir/updates; this channel verifies it and installs it through a PackageInstaller session
+ * (UpdateInstaller): quietly when Android allows it (12+, Diamoraa is the installer of record), otherwise with the
+ * system confirmation after a tap on «Установить».
  */
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -48,12 +48,14 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                     "install" -> {
+                        UpdateInstaller.install(this, File(call.argument<String>("path")!!), silent = false)
+                        result.success(true)
+                    }
+                    "installSilent" -> {
+                        // only where Android can skip the confirmation at all; elsewhere the strip does it with a tap
+                        if (Build.VERSION.SDK_INT < 31 || !packageManager.canRequestPackageInstalls()) { result.success(false); return@setMethodCallHandler }
                         val f = File(call.argument<String>("path")!!)
-                        val uri = FileProvider.getUriForFile(this, "$packageName.updates", f)
-                        startActivity(Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(uri, "application/vnd.android.package-archive")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                        })
+                        Thread { runCatching { UpdateInstaller.install(applicationContext, f, silent = true) } }.start()
                         result.success(true)
                     }
                     else -> result.notImplemented()

@@ -25,6 +25,8 @@ abstract class UpdaterPlatform {
   Future<bool> canInstall();
   Future<void> openInstallSettings();
   Future<void> install(String path);
+  /// Quiet update (Android 12+ when allowed). false = not possible here, the strip stays.
+  Future<bool> installSilent(String path);
 }
 
 class ChannelUpdaterPlatform implements UpdaterPlatform {
@@ -43,6 +45,8 @@ class ChannelUpdaterPlatform implements UpdaterPlatform {
   Future<void> openInstallSettings() => _ch.invokeMethod('openInstallSettings');
   @override
   Future<void> install(String path) => _ch.invokeMethod('install', {'path': path});
+  @override
+  Future<bool> installSilent(String path) async => await _ch.invokeMethod<bool>('installSilent', {'path': path}) ?? false;
 }
 
 enum UpdateStage { idle, downloading, ready, needsPermission }
@@ -115,6 +119,16 @@ class UpdateController extends Notifier<UpdateState> {
     }
   }
 
+  /// The person left the app (another app or the home screen) with an update downloaded: install it quietly now, so the
+  /// next time Diamoraa opens it is already the new version. Never while she is using it.
+  Future<void> installInBackground() async {
+    final file = state.file;
+    if (file == null || state.stage != UpdateStage.ready) return;
+    try {
+      await ref.read(updaterPlatformProvider).installSilent(file);
+    } catch (_) {/* the strip stays: one tap next time */}
+  }
+
   /// One tap: the system «Установить?» dialog. First time only, Android asks to allow installs from Diamoraa.
   Future<void> install() async {
     final file = state.file;
@@ -148,7 +162,10 @@ class _UpdateBannerState extends ConsumerState<UpdateBanner> {
     super.initState();
     if (!UpdateController.supported) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(updateControllerProvider.notifier).check());
-    _life = AppLifecycleListener(onResume: () => ref.read(updateControllerProvider.notifier).check());
+    _life = AppLifecycleListener(
+      onResume: () => ref.read(updateControllerProvider.notifier).check(),
+      onHide: () => ref.read(updateControllerProvider.notifier).installInBackground(),
+    );
   }
 
   @override
@@ -190,10 +207,13 @@ class UpdateStrip extends StatelessWidget {
               child: Text(
                 state.stage == UpdateStage.needsPermission ? l.updateAllowInstall : l.updateReady(state.release?.version ?? ''),
                 style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w700),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: scheme.onPrimary, foregroundColor: scheme.primary),
+              // the app theme makes buttons full-width; inside this row that squeezed the text to one letter per line
+              style: FilledButton.styleFrom(backgroundColor: scheme.onPrimary, foregroundColor: scheme.primary, minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 16)),
               onPressed: onInstall,
               child: Text(l.updateInstall),
             ),
