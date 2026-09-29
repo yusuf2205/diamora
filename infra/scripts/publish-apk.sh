@@ -4,7 +4,7 @@
 # Expects the split release build next to it:  flutter build apk --release --split-per-abi ... (apps/mobile)
 #   app-arm64-v8a-release.apk   -> diamoraa.apk          (almost every phone today; what /download gives)
 #   app-armeabi-v7a-release.apk -> diamoraa-armv7.apk    (old 32-bit phones; linked from the landing page)
-# Upload is atomic (temp file + mv): a phone downloading at that moment never gets half a file.
+# Upload is atomic and verified (temp file + sha256 check + mv): a phone never gets half a file, even if the link drops.
 set -eu
 HOST="${1:?usage: publish-apk.sh <user@nas> <version>}"
 VERSION="${2:?usage: publish-apk.sh <user@nas> <version>}"
@@ -20,8 +20,14 @@ $SSH "mkdir -p '$DATA_ROOT/downloads'"
 put() { # <local file> <published name>
   [ -f "$1" ] || { echo "missing $1 (build with --split-per-abi first)" >&2; exit 1; }
   echo "==> $2 ($(du -h "$1" | cut -f1))"
-  $SSH "cat > '$DATA_ROOT/downloads/.$2.tmp' && mv '$DATA_ROOT/downloads/.$2.tmp' '$DATA_ROOT/downloads/$2'" < "$1"
+  # the temp file replaces the live one ONLY if its checksum matches the local build: a connection that drops mid-way
+  # (the NAS link can be slow) leaves the old file in place instead of publishing a truncated APK
+  sum="$(sha256sum "$1" | cut -d' ' -f1)"
+  tmp="$DATA_ROOT/downloads/.$2.tmp"
+  $SSH "cat > '$tmp' && [ \"\$(sha256sum '$tmp' | cut -d' ' -f1)\" = '$sum' ] && mv '$tmp' '$DATA_ROOT/downloads/$2' || { rm -f '$tmp'; echo 'upload incomplete - live file kept' >&2; exit 1; }" < "$1"
 }
+# a single ssh connection per file with keep-alives: a stalled link fails fast instead of hanging for ever
+SSH="ssh -i $KEY -o BatchMode=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=8 $HOST"
 put "$OUT/app-arm64-v8a-release.apk" diamoraa.apk
 put "$OUT/app-armeabi-v7a-release.apk" diamoraa-armv7.apk
 # The app updates itself from this manifest (apps/mobile/lib/core/update/app_updater.dart): build = the +N of
