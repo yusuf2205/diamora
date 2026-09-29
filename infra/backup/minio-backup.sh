@@ -6,7 +6,7 @@ JOB=minio_mirror
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 PREFIX="${S3_BUCKET_PREFIX:-}"
-BUCKETS="collateral assignments products quality documents avatars"
+BUCKETS="collateral assignments products quality documents avatars chat"
 DEST="$BACKUP_DIR/minio"; mkdir -p "$DEST"
 export MC_CONFIG_DIR="${MC_CONFIG_DIR:-/tmp/.mc}"
 mc alias set src "$S3_ENDPOINT" "$S3_BACKUP_ACCESS_KEY" "$S3_BACKUP_SECRET_KEY" >/dev/null || die "cannot reach object storage"

@@ -54,7 +54,7 @@ Choose the recovery time in UTC just before the mistake. Data created after that
 5. Restore the database: section 3 (dump) or section 4 (PITR). *Empty database needed:* on a fresh install the migrator created the schema — either drop and recreate the database or restore into `${POSTGRES_DB}_restore` and rename as in section 3.
 6. Restore files: `mc mirror` from the backup back into MinIO:
    ```sh
-   docker compose run --rm --entrypoint sh backup -c 'export MC_CONFIG_DIR=/tmp/.mc; mc alias set dst http://minio:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY" && for b in collateral assignments products quality documents avatars; do mc mirror --preserve /backups/minio/$b dst/$b; done'
+   docker compose run --rm --entrypoint sh backup -c 'export MC_CONFIG_DIR=/tmp/.mc; mc alias set dst http://minio:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY" && for b in collateral assignments products quality documents avatars chat; do mc mirror --preserve /backups/minio/$b dst/$b; done'
    ```
    (uses the app identity; add `S3_ACCESS_KEY/S3_SECRET_KEY` to the backup service environment for this one-off, or use the MinIO root credentials.)
 7. `docker compose up -d`, `sh infra/scripts/verify-stack.sh`, then the section 2 checks. Point DNS/port forwarding at the new NAS. Phones reconnect by themselves (JWT sessions are in the database; refresh tokens keep working).

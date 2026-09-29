@@ -3,7 +3,7 @@
 set -eu
 ALIAS=local
 PREFIX="${S3_BUCKET_PREFIX:-}"
-BUCKETS="collateral assignments products quality documents avatars"
+BUCKETS="collateral assignments products quality documents avatars chat"
 VERSIONED="collateral documents quality"
 
 mc alias set "$ALIAS" http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
