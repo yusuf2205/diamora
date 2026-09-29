@@ -94,10 +94,10 @@ class ChatRepository {
 
   /// Sends a file with progress: one request when small, otherwise in 5 MB parts that resume after a dropped
   /// connection (the same [clientId] continues where it stopped). [thumb]: a video's preview picture (JPEG).
-  Future<ChatMessage> sendFile(String roomId, {required String path, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, int? width, int? height, Uint8List? thumb, void Function(double)? onProgress}) async {
+  Future<ChatMessage> sendFile(String roomId, {required String path, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, int? width, int? height, Uint8List? thumb, List<int>? waveform, CancelToken? cancel, void Function(double)? onProgress}) async {
     final size = await File(path).length();
     if (size > chatSingleUploadBytes) {
-      return _sendInParts(roomId, path: path, size: size, filename: filename, kind: kind, clientId: clientId, text: text, durationMs: durationMs, replyToId: replyToId, width: width, height: height, thumb: thumb, onProgress: onProgress);
+      return _sendInParts(roomId, path: path, size: size, filename: filename, kind: kind, clientId: clientId, text: text, durationMs: durationMs, replyToId: replyToId, width: width, height: height, thumb: thumb, waveform: waveform, cancel: cancel, onProgress: onProgress);
     }
     try {
       final res = await _api.dio.post<dynamic>(
@@ -110,10 +110,12 @@ class ChatRepository {
           'replyToId': ?replyToId,
           if (width != null) 'width': '$width',
           if (height != null) 'height': '$height',
+          if (waveform != null && waveform.isNotEmpty) 'waveform': waveform.join(','),
           'file': await MultipartFile.fromFile(path, filename: filename),
           if (thumb != null) 'thumb': MultipartFile.fromBytes(thumb, filename: 'thumb.jpg'),
         }),
         options: Options(sendTimeout: const Duration(minutes: 10), receiveTimeout: const Duration(minutes: 2)),
+        cancelToken: cancel,
         onSendProgress: (sent, total) { if (total > 0) onProgress?.call(sent / total); },
       );
       return ChatMessage.fromJson((res.data as Map).cast<String, dynamic>());
@@ -122,11 +124,12 @@ class ChatRepository {
     }
   }
 
-  Future<ChatMessage> _sendInParts(String roomId, {required String path, required int size, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, int? width, int? height, Uint8List? thumb, void Function(double)? onProgress}) async {
+  Future<ChatMessage> _sendInParts(String roomId, {required String path, required int size, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, int? width, int? height, Uint8List? thumb, List<int>? waveform, CancelToken? cancel, void Function(double)? onProgress}) async {
     try {
       final start = await _api.postJson('/chat/rooms/$roomId/uploads', body: {
         'name': filename, 'size': size, 'kind': kind, 'clientId': clientId, 'text': ?(text?.trim().isEmpty ?? true ? null : text!.trim()),
         'durationMs': ?durationMs, 'replyToId': ?replyToId, 'width': ?width, 'height': ?height,
+        if (waveform != null && waveform.isNotEmpty) 'waveform': waveform.join(','),
       });
       if (start['done'] == true) return ChatMessage.fromJson((start['message'] as Map).cast<String, dynamic>());
       final id = start['uploadId'] as String;
@@ -146,10 +149,11 @@ class ChatRepository {
               await _api.dio.post<dynamic>('/chat/uploads/$id/parts/$i',
                   data: FormData.fromMap({'chunk': MultipartFile.fromBytes(bytes, filename: 'part')}),
                   options: Options(sendTimeout: const Duration(minutes: 2)),
+                  cancelToken: cancel,
                   onSendProgress: (s, _) => onProgress?.call(((sent + s) / size).clamp(0, 1)));
               break;
             } on DioException {
-              if (attempt >= 3) rethrow; // the next «повторить» resumes from this part
+              if (attempt >= 3 || (cancel?.isCancelled ?? false)) rethrow; // the next «повторить» resumes from this part
               await Future<void>.delayed(Duration(seconds: attempt * 2));
             }
           }
@@ -163,6 +167,38 @@ class ChatRepository {
           data: FormData.fromMap({if (thumb != null) 'thumb': MultipartFile.fromBytes(thumb, filename: 'thumb.jpg')}),
           options: Options(receiveTimeout: const Duration(minutes: 3)));
       return ChatMessage.fromJson((res.data as Map).cast<String, dynamic>());
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ChatProfile> profile(String userId) async => ChatProfile.fromJson(await _api.getJson('/chat/users/$userId'));
+  Future<List<ChatPerson>> reads(String messageId) async =>
+      ((await _api.getJson('/chat/messages/$messageId/reads'))['items'] as List).map((j) => ChatPerson.fromJson((j as Map).cast<String, dynamic>())).toList();
+  Future<List<ChatMessage>> searchIn(String roomId, String q) async =>
+      ((await _api.getJson('/chat/rooms/$roomId/search', query: {'q': q}))['items'] as List).map((j) => ChatMessage.fromJson((j as Map).cast<String, dynamic>())).toList();
+  Future<void> clearHistory(String roomId) => _api.postJson('/chat/rooms/$roomId/clear');
+  Future<void> deleteChat(String roomId) => _api.delete('/chat/rooms/$roomId');
+  Future<ChatRoomDetail> protect(String roomId, bool on) async => ChatRoomDetail.fromJson(await _api.postJson('/chat/rooms/$roomId/protect', body: {'on': on}));
+  /// The chat as plain text (to share / save).
+  Future<String> exportHistory(String roomId) async {
+    try {
+      final res = await _api.dio.get<String>('/chat/rooms/$roomId/export', options: Options(responseType: ResponseType.plain));
+      return res.data ?? '';
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  // ---- my profile: photo, «о себе», @username
+  Future<MyProfile> myProfile() async => MyProfile.fromJson(await _api.getJson('/auth/me'));
+  Future<MyProfile> updateMyProfile({String? bio, String? username}) async =>
+      MyProfile.fromJson(await _api.patchJson('/auth/me', body: {'bio': ?bio, 'username': ?username}));
+  Future<MyProfile> setAvatar(String? path) async {
+    try {
+      if (path == null) return MyProfile.fromJson(await _api.deleteJson('/auth/me/avatar'));
+      final res = await _api.dio.post<dynamic>('/auth/me/avatar', data: FormData.fromMap({'file': await MultipartFile.fromFile(path, filename: 'avatar.jpg')}));
+      return MyProfile.fromJson((res.data as Map).cast<String, dynamic>());
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

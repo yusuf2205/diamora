@@ -2470,4 +2470,111 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatVideoTooLarge => 'Видео больше 150 МБ — его нельзя отправить';
+
+  @override
+  String get chatMyProfile => 'Мой профиль';
+
+  @override
+  String get chatBio => 'О себе';
+
+  @override
+  String get chatBioHint =>
+      'Любые подробности, например: должность, район или график работы.';
+
+  @override
+  String get chatUsername => 'Имя пользователя';
+
+  @override
+  String get chatUsernameHint =>
+      'Латиница, цифры и _, от 5 символов. По нему вас найдут в чате.';
+
+  @override
+  String get chatUsernameTaken => 'Это имя пользователя уже занято';
+
+  @override
+  String get chatPhone => 'Телефон';
+
+  @override
+  String get chatRole => 'Роль';
+
+  @override
+  String get chatChangeAvatar => 'Сменить фото профиля';
+
+  @override
+  String get chatRemoveAvatar => 'Удалить фото';
+
+  @override
+  String chatReadAt(String time) {
+    return 'прочитано в $time';
+  }
+
+  @override
+  String get chatNotReadYet => 'ещё не прочитано';
+
+  @override
+  String get chatWhoRead => 'Кто прочитал';
+
+  @override
+  String get chatNobodyYet => 'Пока никто';
+
+  @override
+  String get chatClearHistory => 'Очистить историю';
+
+  @override
+  String get chatClearHistoryBody => 'Сообщения исчезнут только у вас.';
+
+  @override
+  String get chatDeleteChat => 'Удалить чат';
+
+  @override
+  String get chatDeleteChatBody => 'Переписка исчезнет только у вас.';
+
+  @override
+  String get chatProtectOn => 'Запретить копирование';
+
+  @override
+  String get chatProtectOff => 'Разрешить копирование';
+
+  @override
+  String get chatProtected => 'Копирование и пересылка в этом чате запрещены';
+
+  @override
+  String get chatExport => 'Экспорт истории чата';
+
+  @override
+  String get chatSearchInChat => 'Поиск в этом чате';
+
+  @override
+  String get chatOlderMessage => 'Это сообщение выше — прокрутите вверх';
+
+  @override
+  String get chatCancelUpload => 'Отменить отправку';
+
+  @override
+  String chatCountPhotos(int count) {
+    return 'Фото: $count';
+  }
+
+  @override
+  String chatCountVideos(int count) {
+    return 'Видео: $count';
+  }
+
+  @override
+  String chatCountFiles(int count) {
+    return 'Файлы: $count';
+  }
+
+  @override
+  String chatCountVoice(int count) {
+    return 'Голосовые: $count';
+  }
+
+  @override
+  String chatCountLinks(int count) {
+    return 'Ссылки: $count';
+  }
+
+  @override
+  String get chatShowProfile => 'Показать профиль';
 }

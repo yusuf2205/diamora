@@ -201,7 +201,7 @@ class _RoomTile extends StatelessWidget {
     return ListTile(
       key: Key('room-${room.id}'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, photo: room.photo),
+      leading: ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, photo: room.photo ?? room.peer?.avatar),
       title: Row(children: [
         Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: room.unread > 0 ? FontWeight.w700 : FontWeight.w600))),
         if (room.muted) Padding(padding: const EdgeInsets.only(left: 4), child: Icon(Icons.notifications_off_rounded, size: 15, color: scheme.outline)),
@@ -379,7 +379,7 @@ class _NewChatSheetState extends ConsumerState<NewChatSheet> {
                     itemCount: people.length,
                     itemBuilder: (context, i) {
                       final p = people[i];
-                      final avatar = ChatAvatar(kind: 'DIRECT', name: p.fullName, online: p.online, radius: 20);
+                      final avatar = ChatAvatar(kind: 'DIRECT', name: p.fullName, online: p.online, radius: 20, photo: p.avatar);
                       final role = Text(teamRoleLabel(l, p.role));
                       if (!_group) {
                         return ListTile(key: Key('contact-${p.id}'), leading: avatar, title: Text(p.fullName), subtitle: role, enabled: !_busy, onTap: () => _openDirect(p));

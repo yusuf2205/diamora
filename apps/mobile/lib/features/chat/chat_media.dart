@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'chat_models.dart';
+import 'chat_profile.dart' show Waveform, barsFor;
 
 /// Files of messages are fetched once into the app's cache (signed links expire; the file is still there next time).
 class ChatFiles {
@@ -76,7 +77,7 @@ class ChatFiles {
 String formatBytes(int? b) {
   if (b == null) return '';
   if (b < 1024) return '$b B';
-  if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(0)} KB';
+  if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(1)} KB';
   return '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
 }
 
@@ -229,22 +230,39 @@ class _ChatAudioBubbleState extends State<ChatAudioBubble> {
   Widget build(BuildContext context) {
     final total = _len ?? Duration(milliseconds: widget.message.file?.durationMs ?? 0);
     final value = total.inMilliseconds > 0 ? (_pos.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0) : 0.0;
+    final accent = Theme.of(context).colorScheme.primary;
+    String two(int v) => v.toString().padLeft(2, '0');
+    final shown = _playing || _pos > Duration.zero ? _pos : total;
+    final size = widget.message.file?.size;
+    // like Telegram: a round ▶, the waveform (played part filled; tap to seek), «00:02, 8.8 KB»
     return SizedBox(
-      width: 220,
+      width: 250,
       child: Row(children: [
-        IconButton(
+        GestureDetector(
           key: Key('play-${widget.message.id}'),
-          color: widget.color,
-          onPressed: _loading ? null : _toggle,
-          icon: _loading
-              ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: widget.color))
-              : Icon(_playing ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 30),
+          onTap: _loading ? null : _toggle,
+          child: CircleAvatar(
+            radius: 22,
+            backgroundColor: accent,
+            child: _loading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Icon(_playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 28),
+          ),
         ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            LinearProgressIndicator(value: value, color: widget.color, backgroundColor: widget.color.withValues(alpha: 0.25), minHeight: 3),
-            const SizedBox(height: 4),
-            Text(formatDuration(_playing || _pos > Duration.zero ? _pos : total), style: TextStyle(fontSize: 12, color: widget.color)),
+            Waveform(
+              bars: barsFor(widget.message.waveform, widget.message.id),
+              progress: value,
+              color: accent,
+              onSeek: (f) async {
+                if (_player == null) await _toggle();
+                if (total.inMilliseconds > 0) await _player?.seek(Duration(milliseconds: (total.inMilliseconds * f).round()));
+              },
+            ),
+            const SizedBox(height: 2),
+            Text('${two(shown.inMinutes)}:${two(shown.inSeconds % 60)}${size != null ? ', ${formatBytes(size)}' : ''}', style: TextStyle(fontSize: 12, color: widget.color.withValues(alpha: 0.75))),
           ]),
         ),
       ]),

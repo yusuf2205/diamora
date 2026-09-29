@@ -5,8 +5,13 @@ DateTime _dt(Object? v) => DateTime.parse(v as String).toLocal();
 DateTime? _dtn(Object? v) => v == null ? null : DateTime.parse(v as String).toLocal();
 
 class ChatPerson {
-  const ChatPerson({required this.id, required this.fullName, required this.role, this.online = false, this.isOwner = false, this.isAdmin = false, this.lastReadAt, this.lastSeenAt});
+  const ChatPerson({required this.id, required this.fullName, required this.role, this.online = false, this.isOwner = false, this.isAdmin = false, this.lastReadAt, this.lastSeenAt, this.avatar, this.username, this.readAt});
   final bool isAdmin;
+  /// profile photo (thumbnail URL)
+  final String? avatar;
+  final String? username;
+  /// «прочитано когда?»
+  final DateTime? readAt;
   final String id;
   final String fullName;
   final String role;
@@ -24,6 +29,9 @@ class ChatPerson {
         isAdmin: j['isAdmin'] as bool? ?? false,
         lastReadAt: _dtn(j['lastReadAt']),
         lastSeenAt: _dtn(j['lastSeenAt']),
+        avatar: j['avatar'] as String?,
+        username: j['username'] as String?,
+        readAt: _dtn(j['readAt']),
       );
 }
 
@@ -87,7 +95,10 @@ class ChatMessage {
     this.forwardedFrom,
     this.editedAt,
     this.reactions = const [],
+    this.waveform,
   });
+  /// a voice message's loudness: bars 0-31
+  final List<int>? waveform;
   final String id;
   final String roomId;
   final String kind;
@@ -116,6 +127,7 @@ class ChatMessage {
         forwardedFrom: j['forwardedFrom'] as String?,
         editedAt: _dtn(j['editedAt']),
         reactions: ((j['reactions'] as List?) ?? const []).map((r) => ChatReaction.fromJson((r as Map).cast<String, dynamic>())).toList(),
+        waveform: (j['waveform'] as String?)?.split(',').map((x) => int.tryParse(x) ?? 1).toList(),
       );
 
   ChatMessage asDeleted() => ChatMessage(id: id, roomId: roomId, kind: 'TEXT', createdAt: createdAt, sender: sender, deleted: true, clientId: clientId);
@@ -189,7 +201,12 @@ class ChatRoomDetail {
     this.canWrite = true,
     this.canEditAdmins = false,
     this.isAdmin = false,
+    this.protectContent = false,
+    this.canProtect = false,
   });
+  /// «Запретить копирование»
+  final bool protectContent;
+  final bool canProtect;
   final String? description;
   final String? photoUrl;
   final String? photoThumb;
@@ -233,6 +250,41 @@ class ChatRoomDetail {
         canWrite: j['canWrite'] as bool? ?? true,
         canEditAdmins: j['canEditAdmins'] as bool? ?? false,
         isAdmin: j['isAdmin'] as bool? ?? false,
+        protectContent: j['protectContent'] as bool? ?? false,
+        canProtect: j['canProtect'] as bool? ?? false,
+      );
+}
+
+/// A person's card («Показать профиль»): photo, «о себе», @username, phone (for staff), counts of the shared chat.
+class ChatProfile {
+  const ChatProfile({required this.person, this.avatarFull, this.bio, this.phone, this.counts});
+  final ChatPerson person;
+  final String? avatarFull;
+  final String? bio;
+  final String? phone;
+  final Map<String, int>? counts;
+  factory ChatProfile.fromJson(Map<String, dynamic> j) => ChatProfile(
+        person: ChatPerson.fromJson(j),
+        avatarFull: j['avatarFull'] as String?,
+        bio: j['bio'] as String?,
+        phone: j['phone'] as String?,
+        counts: (j['counts'] as Map?)?.map((k, v) => MapEntry(k as String, (v as num).toInt())),
+      );
+}
+
+/// My own profile card (GET /auth/me).
+class MyProfile {
+  const MyProfile({required this.fullName, required this.phone, this.avatar, this.avatarFull, this.bio, this.username});
+  final String fullName;
+  final String phone;
+  final String? avatar;
+  final String? avatarFull;
+  final String? bio;
+  final String? username;
+  factory MyProfile.fromJson(Map<String, dynamic> j) => MyProfile(
+        fullName: j['fullName'] as String? ?? '', phone: j['phone'] as String? ?? '',
+        avatar: (j['avatar'] as Map?)?['thumbUrl'] as String?, avatarFull: (j['avatar'] as Map?)?['url'] as String?,
+        bio: j['bio'] as String?, username: j['username'] as String?,
       );
 }
 

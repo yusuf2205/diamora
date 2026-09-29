@@ -2460,4 +2460,109 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatVideoTooLarge =>
       'The video is larger than 150 MB and cannot be sent';
+
+  @override
+  String get chatMyProfile => 'My profile';
+
+  @override
+  String get chatBio => 'Bio';
+
+  @override
+  String get chatBioHint => 'Any details: your role, area or working hours.';
+
+  @override
+  String get chatUsername => 'Username';
+
+  @override
+  String get chatUsernameHint => 'Latin letters, digits and _, 5+ characters.';
+
+  @override
+  String get chatUsernameTaken => 'This username is taken';
+
+  @override
+  String get chatPhone => 'Phone';
+
+  @override
+  String get chatRole => 'Role';
+
+  @override
+  String get chatChangeAvatar => 'Change profile photo';
+
+  @override
+  String get chatRemoveAvatar => 'Remove photo';
+
+  @override
+  String chatReadAt(String time) {
+    return 'read at $time';
+  }
+
+  @override
+  String get chatNotReadYet => 'not read yet';
+
+  @override
+  String get chatWhoRead => 'Who read it';
+
+  @override
+  String get chatNobodyYet => 'Nobody yet';
+
+  @override
+  String get chatClearHistory => 'Clear history';
+
+  @override
+  String get chatClearHistoryBody => 'Messages disappear only for you.';
+
+  @override
+  String get chatDeleteChat => 'Delete chat';
+
+  @override
+  String get chatDeleteChatBody => 'The conversation disappears only for you.';
+
+  @override
+  String get chatProtectOn => 'Restrict saving content';
+
+  @override
+  String get chatProtectOff => 'Allow saving content';
+
+  @override
+  String get chatProtected => 'Copying and forwarding are off in this chat';
+
+  @override
+  String get chatExport => 'Export chat history';
+
+  @override
+  String get chatSearchInChat => 'Search in this chat';
+
+  @override
+  String get chatOlderMessage => 'This message is further up — scroll up';
+
+  @override
+  String get chatCancelUpload => 'Cancel sending';
+
+  @override
+  String chatCountPhotos(int count) {
+    return 'Photos: $count';
+  }
+
+  @override
+  String chatCountVideos(int count) {
+    return 'Videos: $count';
+  }
+
+  @override
+  String chatCountFiles(int count) {
+    return 'Files: $count';
+  }
+
+  @override
+  String chatCountVoice(int count) {
+    return 'Voice messages: $count';
+  }
+
+  @override
+  String chatCountLinks(int count) {
+    return 'Links: $count';
+  }
+
+  @override
+  String get chatShowProfile => 'View profile';
 }

@@ -4611,6 +4611,192 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Видео больше 150 МБ — его нельзя отправить'**
   String get chatVideoTooLarge;
+
+  /// No description provided for @chatMyProfile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой профиль'**
+  String get chatMyProfile;
+
+  /// No description provided for @chatBio.
+  ///
+  /// In ru, this message translates to:
+  /// **'О себе'**
+  String get chatBio;
+
+  /// No description provided for @chatBioHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Любые подробности, например: должность, район или график работы.'**
+  String get chatBioHint;
+
+  /// No description provided for @chatUsername.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя пользователя'**
+  String get chatUsername;
+
+  /// No description provided for @chatUsernameHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Латиница, цифры и _, от 5 символов. По нему вас найдут в чате.'**
+  String get chatUsernameHint;
+
+  /// No description provided for @chatUsernameTaken.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это имя пользователя уже занято'**
+  String get chatUsernameTaken;
+
+  /// No description provided for @chatPhone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Телефон'**
+  String get chatPhone;
+
+  /// No description provided for @chatRole.
+  ///
+  /// In ru, this message translates to:
+  /// **'Роль'**
+  String get chatRole;
+
+  /// No description provided for @chatChangeAvatar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить фото профиля'**
+  String get chatChangeAvatar;
+
+  /// No description provided for @chatRemoveAvatar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить фото'**
+  String get chatRemoveAvatar;
+
+  /// No description provided for @chatReadAt.
+  ///
+  /// In ru, this message translates to:
+  /// **'прочитано в {time}'**
+  String chatReadAt(String time);
+
+  /// No description provided for @chatNotReadYet.
+  ///
+  /// In ru, this message translates to:
+  /// **'ещё не прочитано'**
+  String get chatNotReadYet;
+
+  /// No description provided for @chatWhoRead.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто прочитал'**
+  String get chatWhoRead;
+
+  /// No description provided for @chatNobodyYet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пока никто'**
+  String get chatNobodyYet;
+
+  /// No description provided for @chatClearHistory.
+  ///
+  /// In ru, this message translates to:
+  /// **'Очистить историю'**
+  String get chatClearHistory;
+
+  /// No description provided for @chatClearHistoryBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения исчезнут только у вас.'**
+  String get chatClearHistoryBody;
+
+  /// No description provided for @chatDeleteChat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить чат'**
+  String get chatDeleteChat;
+
+  /// No description provided for @chatDeleteChatBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переписка исчезнет только у вас.'**
+  String get chatDeleteChatBody;
+
+  /// No description provided for @chatProtectOn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запретить копирование'**
+  String get chatProtectOn;
+
+  /// No description provided for @chatProtectOff.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить копирование'**
+  String get chatProtectOff;
+
+  /// No description provided for @chatProtected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Копирование и пересылка в этом чате запрещены'**
+  String get chatProtected;
+
+  /// No description provided for @chatExport.
+  ///
+  /// In ru, this message translates to:
+  /// **'Экспорт истории чата'**
+  String get chatExport;
+
+  /// No description provided for @chatSearchInChat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск в этом чате'**
+  String get chatSearchInChat;
+
+  /// No description provided for @chatOlderMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это сообщение выше — прокрутите вверх'**
+  String get chatOlderMessage;
+
+  /// No description provided for @chatCancelUpload.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить отправку'**
+  String get chatCancelUpload;
+
+  /// No description provided for @chatCountPhotos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото: {count}'**
+  String chatCountPhotos(int count);
+
+  /// No description provided for @chatCountVideos.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео: {count}'**
+  String chatCountVideos(int count);
+
+  /// No description provided for @chatCountFiles.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлы: {count}'**
+  String chatCountFiles(int count);
+
+  /// No description provided for @chatCountVoice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голосовые: {count}'**
+  String chatCountVoice(int count);
+
+  /// No description provided for @chatCountLinks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ссылки: {count}'**
+  String chatCountLinks(int count);
+
+  /// No description provided for @chatShowProfile.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать профиль'**
+  String get chatShowProfile;
 }
 
 class _AppLocalizationsDelegate

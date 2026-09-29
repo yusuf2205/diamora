@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart' show CancelToken;
+import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +26,7 @@ import '../auth/auth_controller.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
 import 'chat_list_screen.dart';
 import 'chat_gallery.dart';
+import 'chat_profile.dart';
 import 'chat_media.dart';
 import 'chat_models.dart';
 import 'chat_repository.dart';
@@ -47,6 +50,9 @@ class _Outgoing {
   Uint8List? thumb;
   int? width;
   int? height;
+  List<int>? waveform;
+  /// ✕ cancels the upload
+  final cancel = CancelToken();
   final String? replyToId;
   final String kind;
   final String? text;
@@ -92,6 +98,15 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   bool _recording = false;
   DateTime? _recStarted;
   Timer? _recTick;
+  StreamSubscription<Amplitude>? _ampSub;
+  final _amps = <double>[];
+  // search in this chat; message positions to jump to
+  bool _searching = false;
+  final _searchCtrl = TextEditingController();
+  Timer? _searchDebounce;
+  List<ChatMessage>? _found;
+  final _keys = <String, GlobalKey>{};
+  String? _flash;
 
   ChatRepository get _repo => ref.read(chatRepositoryProvider);
 
@@ -141,6 +156,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     _text.dispose();
     _scroll.dispose();
     _recTick?.cancel();
+    _ampSub?.cancel();
+    _searchDebounce?.cancel();
+    _searchCtrl.dispose();
     _recorder.dispose();
     super.dispose();
   }
@@ -213,12 +231,13 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       final m = o.path == null
           ? await _repo.sendText(widget.roomId, o.text!, o.clientId, replyToId: o.replyToId)
           : await _repo.sendFile(widget.roomId, path: o.path!, filename: o.filename!, kind: o.kind, clientId: o.clientId, text: o.text, durationMs: o.durationMs, replyToId: o.replyToId,
-              width: o.width, height: o.height, thumb: o.thumb,
+              width: o.width, height: o.height, thumb: o.thumb, waveform: o.waveform, cancel: o.cancel,
               onProgress: (p) { if (mounted) setState(() => o.progress = p); });
       if (!mounted) return;
       setState(() { _outgoing.remove(o); _merge([m]); });
     } catch (e) {
       if (!mounted) return;
+      if (o.cancel.isCancelled) return setState(() => _outgoing.remove(o)); // ✕ pressed
       setState(() => o.failed = true);
       if (e is ApiException && e.code == 'FILE_REJECTED') {
         setState(() => _outgoing.remove(o));
@@ -246,7 +265,12 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     _scrollToBottom();
   }
 
-  Future<void> _sendPath(String path, String filename, String kind, {int? durationMs}) async {
+  void _cancelOutgoing(_Outgoing o) {
+    o.cancel.cancel();
+    setState(() => _outgoing.remove(o));
+  }
+
+  Future<void> _sendPath(String path, String filename, String kind, {int? durationMs, List<int>? waveform}) async {
     final l = AppLocalizations.of(context);
     final size = await File(path).length();
     if (size > (kind == 'VIDEO' ? chatMaxVideoBytes : chatMaxFileBytes)) {
@@ -254,7 +278,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       return;
     }
     // shown in the chat at once (like Telegram), then it uploads with a progress ring
-    final o = _Outgoing(clientId: _uuid.v4(), kind: kind, path: path, filename: filename, durationMs: durationMs, replyToId: _replyTo?.id);
+    final o = _Outgoing(clientId: _uuid.v4(), kind: kind, path: path, filename: filename, durationMs: durationMs, replyToId: _replyTo?.id)..waveform = waveform;
     if (!mounted) return;
     setState(() { _outgoing.insert(0, o); _replyTo = null; });
     _scrollToBottom();
@@ -349,6 +373,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final path = '${(await getTemporaryDirectory()).path}/voice-${DateTime.now().millisecondsSinceEpoch}.m4a';
     await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 64000, sampleRate: 44100, numChannels: 1), path: path);
     HapticFeedback.mediumImpact();
+    _amps.clear();
+    _ampSub = _recorder.onAmplitudeChanged(const Duration(milliseconds: 80)).listen((a) => _amps.add(((a.current + 50) / 50).clamp(0.0, 1.0)));
     setState(() { _recording = true; _recStarted = DateTime.now(); });
     _sendTyping('voice');
     _recTick = Timer.periodic(const Duration(milliseconds: 250), (_) {
@@ -360,12 +386,13 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   Future<void> _stopRecording({bool send = true}) async {
     if (!_recording) return;
     _recTick?.cancel();
+    await _ampSub?.cancel();
     final started = _recStarted;
     final path = await _recorder.stop();
     setState(() => _recording = false);
     final ms = started == null ? 0 : DateTime.now().difference(started).inMilliseconds;
     if (!send || path == null || ms < 700) return; // a tap, not a recording
-    await _sendPath(path, 'voice.m4a', 'VOICE', durationMs: ms);
+    await _sendPath(path, 'voice.m4a', 'VOICE', durationMs: ms, waveform: toBars(_amps)); // the bars others see
   }
 
   // ---- message actions ------------------------------------------------------------------------------------------------------
@@ -396,9 +423,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           ),
           const Divider(),
           ListTile(key: const Key('msgReply'), leading: const Icon(Icons.reply_rounded), title: Text(l.chatReply), onTap: () => Navigator.pop(ctx, 'reply')),
-          if ((m.text ?? '').isNotEmpty) ListTile(leading: const Icon(Icons.copy_rounded), title: Text(l.chatCopy), onTap: () => Navigator.pop(ctx, 'copy')),
+          if ((m.text ?? '').isNotEmpty && !(_room?.protectContent ?? false)) ListTile(leading: const Icon(Icons.copy_rounded), title: Text(l.chatCopy), onTap: () => Navigator.pop(ctx, 'copy')),
           if (canEdit) ListTile(key: const Key('msgEdit'), leading: const Icon(Icons.edit_rounded), title: Text(l.chatEdit), onTap: () => Navigator.pop(ctx, 'edit')),
-          ListTile(key: const Key('msgForward'), leading: const Icon(Icons.forward_rounded), title: Text(l.chatForward), onTap: () => Navigator.pop(ctx, 'forward')),
+          if (!(_room?.protectContent ?? false)) ListTile(key: const Key('msgForward'), leading: const Icon(Icons.forward_rounded), title: Text(l.chatForward), onTap: () => Navigator.pop(ctx, 'forward')),
           if (_room?.canPin ?? false)
             ListTile(key: const Key('msgPin'), leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded), title: Text(isPinned ? l.chatUnpin : l.chatPin), onTap: () => Navigator.pop(ctx, 'pin')),
           if (canDelete)
@@ -408,6 +435,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               title: Text(l.chatDeleteMessage, style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
               onTap: () => Navigator.pop(ctx, 'delete'),
             ),
+          if (mine) _ReadInfo(message: m, direct: _room?.kind == 'DIRECT'),
         ]),
       ),
     );
@@ -461,6 +489,56 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       if (mounted) setState(() => _merge([updated]));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+    }
+  }
+
+  /// Scroll to a message (search result, a quoted message) and flash it.
+  void _jumpTo(String id) {
+    final ctx = _keys[id]?.currentContext;
+    if (ctx == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).chatOlderMessage)));
+      return;
+    }
+    Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 300), alignment: 0.5);
+    setState(() => _flash = id);
+    Future<void>.delayed(const Duration(milliseconds: 1500), () { if (mounted) setState(() => _flash = null); });
+  }
+
+  Future<void> _roomAction(String a) async {
+    final l = AppLocalizations.of(context);
+    final room = _room;
+    if (room == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      switch (a) {
+        case 'mute':
+          await _repo.prefs(widget.roomId, muted: !room.muted);
+          final r2 = await _repo.room(widget.roomId);
+          if (mounted) setState(() => _room = r2);
+        case 'info':
+          await _groupInfo();
+        case 'protect':
+          final r2 = await _repo.protect(widget.roomId, !room.protectContent);
+          if (mounted) setState(() => _room = r2);
+        case 'export':
+          final text = await _repo.exportHistory(widget.roomId);
+          final dir = await getTemporaryDirectory();
+          final f = File('${dir.path}/diamoraa-chat-${DateTime.now().millisecondsSinceEpoch}.txt');
+          await f.writeAsString(text);
+          await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: chatTitle(l, kind: room.kind, title: room.title)));
+        case 'clear':
+          if (!mounted || !await confirmDelete(context, title: l.chatClearHistory, body: l.chatClearHistoryBody)) return;
+          await _repo.clearHistory(widget.roomId);
+          if (mounted) setState(() => _messages.clear());
+          ref.invalidate(chatRoomsProvider);
+        case 'delete':
+          if (!mounted || !await confirmDelete(context, title: l.chatDeleteChat, body: l.chatDeleteChatBody)) return;
+          await _repo.deleteChat(widget.roomId);
+          ref.invalidate(chatRoomsProvider);
+          if (mounted) Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) messenger.showSnackBar(SnackBar(content: Text(errorText(context, e))));
     }
   }
 
@@ -538,15 +616,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     // the list, newest first (reverse: true), with a date line where the day changes
     final rows = <Object>[
       ..._outgoing,
-      ..._messages,
+      ...albumRows(_messages), // photos / videos sent together -> one grid
     ];
+    final groupChat = room != null && room.kind != 'DIRECT' && room.kind != 'CHANNEL';
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
         title: InkWell(
           onTap: room == null ? null : _groupInfo,
           child: Row(children: [
-            if (room != null) ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, radius: 18, photo: room.photoThumb),
+            if (room != null) ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false, radius: 18, photo: room.photoThumb ?? room.peer?.avatar),
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -557,9 +636,70 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             ),
           ]),
         ),
-        actions: [if (room != null) IconButton(key: const Key('groupInfo'), tooltip: l.chatInfo, icon: const Icon(Icons.info_outline_rounded), onPressed: _groupInfo)],
+        actions: [
+          if (room != null) IconButton(key: const Key('chatSearchIn'), tooltip: l.chatSearchInChat, icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded), onPressed: () => setState(() { _searching = !_searching; _searchCtrl.clear(); _found = null; })),
+          if (room != null) IconButton(key: const Key('groupInfo'), tooltip: l.chatInfo, icon: const Icon(Icons.info_outline_rounded), onPressed: _groupInfo),
+          if (room != null)
+            PopupMenuButton<String>(
+              key: const Key('chatMore'),
+              onSelected: _roomAction,
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'mute', child: Text(room.muted ? l.chatUnmute : l.chatMute)),
+                PopupMenuItem(value: 'info', child: Text(room.kind == 'DIRECT' ? l.chatShowProfile : l.chatInfo)),
+                if (room.canProtect) PopupMenuItem(value: 'protect', child: Text(room.protectContent ? l.chatProtectOff : l.chatProtectOn)),
+                if (!room.protectContent || room.canProtect) PopupMenuItem(value: 'export', child: Text(l.chatExport)),
+                PopupMenuItem(value: 'clear', child: Text(l.chatClearHistory)),
+                if (room.kind == 'DIRECT') PopupMenuItem(value: 'delete', child: Text(l.chatDeleteChat, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+              ],
+            ),
+        ],
       ),
       body: Column(children: [
+        if (_searching)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+            child: TextField(
+              key: const Key('chatSearchInField'),
+              controller: _searchCtrl,
+              autofocus: true,
+              decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: l.chatSearchInChat, isDense: true),
+              onChanged: (v) {
+                _searchDebounce?.cancel();
+                _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+                  if (v.trim().length < 2) { if (mounted) setState(() => _found = null); return; }
+                  final found = await _repo.searchIn(widget.roomId, v.trim()).catchError((_) => <ChatMessage>[]);
+                  if (mounted) setState(() => _found = found);
+                });
+              },
+            ),
+          ),
+        if (_searching && _found != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: Material(
+              elevation: 2,
+              child: _found!.isEmpty
+                  ? Padding(padding: const EdgeInsets.all(16), child: Text(l.chatNothingFound))
+                  : ListView(shrinkWrap: true, children: [
+                      for (final m in _found!)
+                        ListTile(
+                          key: Key('found-in-${m.id}'),
+                          dense: true,
+                          title: Text(m.sender?.fullName ?? '', maxLines: 1),
+                          subtitle: Text(m.text ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                          trailing: Text(chatWhen(l, m.createdAt), style: Theme.of(context).textTheme.bodySmall),
+                          onTap: () { setState(() { _searching = false; _found = null; }); _jumpTo(m.id); },
+                        ),
+                    ]),
+            ),
+          ),
+        if (room != null && room.protectContent)
+          Container(
+            width: double.infinity,
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Text('🔒 ${l.chatProtected}', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+          ),
         if (room?.pinnedMessage != null)
           Material(
             key: const Key('pinnedBar'),
@@ -588,9 +728,18 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                           itemCount: rows.length,
                           itemBuilder: (context, i) {
                             final row = rows[i];
-                            final at = row is ChatMessage ? row.createdAt : (row as _Outgoing).createdAt;
+                            DateTime atOf(Object x) => x is ChatMessage ? x.createdAt : x is List<ChatMessage> ? x.last.createdAt : (x as _Outgoing).createdAt;
+                            final at = atOf(row);
                             final older = i + 1 < rows.length ? rows[i + 1] : null;
-                            final olderAt = older == null ? null : older is ChatMessage ? older.createdAt : (older as _Outgoing).createdAt;
+                            final olderAt = older == null ? null : atOf(older);
+                            if (row is List<ChatMessage>) {
+                              final first = row.last; // newest-first list: the oldest is last
+                              final mineA = first.sender?.id == me?.id;
+                              return Column(key: _keys.putIfAbsent(row.first.id, GlobalKey.new), children: [
+                                if (!DateUtils.isSameDay(at, olderAt ?? DateTime(1970))) _DayLine(at: at),
+                                _AlbumBubble(items: row.reversed.toList(), mine: mineA, onOpen: (m) => ChatGalleryScreen.open(context, _messages.reversed.toList(), m), onLongPress: () => _messageMenu(row.first, mineA)),
+                              ]);
+                            }
                             final newDay = olderAt == null || !DateUtils.isSameDay(at, olderAt);
                             final bubble = row is ChatMessage
                                 ? _Bubble(
@@ -603,8 +752,25 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                                     onOpenMedia: () => ChatGalleryScreen.open(context, _messages.reversed.toList(), row),
                                     onSwipeReply: () => setState(() { _replyTo = row; _editing = null; }),
                                   )
-                                : _OutgoingBubble(o: row as _Outgoing, onRetry: () => _sendOutgoing(row));
-                            return Column(children: [if (newDay) _DayLine(at: at), bubble]);
+                                : _OutgoingBubble(o: row as _Outgoing, onRetry: () => _sendOutgoing(row), onCancel: () => _cancelOutgoing(row));
+                            final other = row is ChatMessage && groupChat && row.sender?.id != me?.id;
+                            final newer = i > 0 ? rows[i - 1] : null;
+                            final newerSender = newer is ChatMessage ? newer.sender?.id : newer is List<ChatMessage> ? newer.first.sender?.id : null;
+                            final lastOfRun = row is ChatMessage && newerSender != row.sender?.id;
+                            final withAvatar = other
+                                ? Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                    if (lastOfRun) PersonPhoto(name: row.sender?.fullName ?? '', url: row.sender?.avatar, radius: 15) else const SizedBox(width: 30),
+                                    const SizedBox(width: 6),
+                                    Expanded(child: bubble),
+                                  ])
+                                : bubble;
+                            final flashing = row is ChatMessage && _flash == row.id;
+                            return AnimatedContainer(
+                              key: row is ChatMessage ? _keys.putIfAbsent(row.id, GlobalKey.new) : null,
+                              duration: const Duration(milliseconds: 300),
+                              color: flashing ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.18) : Colors.transparent,
+                              child: Column(children: [if (newDay) _DayLine(at: at), withAvatar]),
+                            );
                           },
                         ),
         ),
@@ -925,9 +1091,10 @@ class _Bubble extends StatelessWidget {
 }
 
 class _OutgoingBubble extends StatelessWidget {
-  const _OutgoingBubble({required this.o, required this.onRetry});
+  const _OutgoingBubble({required this.o, required this.onRetry, this.onCancel});
   final _Outgoing o;
   final VoidCallback onRetry;
+  final VoidCallback? onCancel;
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -964,15 +1131,19 @@ class _OutgoingBubble extends StatelessWidget {
                   child: Stack(fit: StackFit.expand, children: [
                     visual,
                     Center(
-                      child: CircleAvatar(
+                      child: GestureDetector(
+                        key: Key('cancel-${o.clientId}'),
+                        onTap: o.failed ? onRetry : onCancel, // ✕ stops it, like Telegram
+                        child: CircleAvatar(
                         radius: 26,
                         backgroundColor: Colors.black54,
                         child: o.failed
                             ? const Icon(Icons.refresh_rounded, color: Colors.white)
                             : Stack(alignment: Alignment.center, children: [
-                                SizedBox(width: 40, height: 40, child: CircularProgressIndicator(value: o.progress > 0 ? o.progress : null, color: Colors.white, strokeWidth: 3)),
-                                Text('${(o.progress * 100).round()}%', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                SizedBox(width: 44, height: 44, child: CircularProgressIndicator(value: o.progress > 0 ? o.progress : null, color: Colors.white, strokeWidth: 3)),
+                                Icon(Icons.close_rounded, color: Colors.white, semanticLabel: l.chatCancelUpload),
                               ]),
+                      ),
                       ),
                     ),
                     if (o.failed)
@@ -1213,6 +1384,10 @@ class _RoomInfoSheetState extends ConsumerState<_RoomInfoSheet> {
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.85,
       child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+        // a direct chat: the person's card (photo, status, phone, @username, «о себе», counts)
+        if (_room.kind == 'DIRECT' && _room.peer != null)
+          PersonProfileView(userId: _room.peer!.id, onOpenTab: _select)
+        else
         Row(children: [
           GestureDetector(
             onTap: _room.canManage ? _photo : null,
@@ -1370,6 +1545,100 @@ class _ForwardSheet extends ConsumerWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+/// Newest-first messages with photos / videos of one sender sent together (within 2 min, no caption) grouped.
+List<Object> albumRows(List<ChatMessage> newestFirst) {
+  final out = <Object>[];
+  var cur = <ChatMessage>[];
+  bool media(ChatMessage m) => !m.deleted && m.file != null && (m.kind == 'IMAGE' || m.kind == 'VIDEO');
+  void flush() {
+    if (cur.length > 1) { out.add(List<ChatMessage>.of(cur)); } else if (cur.length == 1) { out.add(cur.first); }
+    cur = [];
+  }
+  for (final m in newestFirst) {
+    final prev = cur.isEmpty ? null : cur.last;
+    final joins = prev != null && media(m) && (m.text ?? '').isEmpty && (prev.text ?? '').isEmpty && prev.sender?.id == m.sender?.id &&
+        prev.createdAt.difference(m.createdAt).inSeconds.abs() < 120 && cur.length < 10;
+    if (joins) { cur.add(m); continue; }
+    flush();
+    if (media(m)) { cur = [m]; } else { out.add(m); }
+  }
+  flush();
+  return out;
+}
+
+/// Photos / videos sent together: one grid, like Telegram's albums.
+class _AlbumBubble extends StatelessWidget {
+  const _AlbumBubble({required this.items, required this.mine, required this.onOpen, required this.onLongPress});
+  final List<ChatMessage> items;
+  final bool mine;
+  final ValueChanged<ChatMessage> onOpen;
+  final VoidCallback onLongPress;
+  @override
+  Widget build(BuildContext context) {
+    final cols = items.length == 2 || items.length == 4 ? 2 : 3;
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: GestureDetector(
+        onLongPress: onLongPress,
+        child: Container(
+          width: 270,
+          margin: const EdgeInsets.symmetric(vertical: 3),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: GridView.count(
+              crossAxisCount: cols,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 2,
+              crossAxisSpacing: 2,
+              children: [
+                for (final m in items)
+                  GestureDetector(
+                    key: Key('album-${m.id}'),
+                    onTap: () => onOpen(m),
+                    child: Stack(fit: StackFit.expand, children: [
+                      if (m.file?.thumbUrl != null || m.kind == 'IMAGE')
+                        CachedNetworkImage(imageUrl: m.file!.thumbUrl ?? m.file!.url, fit: BoxFit.cover)
+                      else
+                        const ColoredBox(color: Colors.black87),
+                      if (m.kind == 'VIDEO') const Center(child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 34)),
+                    ]),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «прочитано когда?» in the message menu (my own messages).
+class _ReadInfo extends ConsumerWidget {
+  const _ReadInfo({required this.message, required this.direct});
+  final ChatMessage message;
+  final bool direct;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    String hm(DateTime t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    return FutureBuilder<List<ChatPerson>>(
+      future: ref.read(chatRepositoryProvider).reads(message.id),
+      builder: (context, snap) {
+        final items = snap.data;
+        final text = items == null
+            ? '…'
+            : direct
+                ? (items.isEmpty ? l.chatNotReadYet : l.chatReadAt(hm(items.first.readAt!)))
+                : items.isEmpty
+                    ? '${l.chatWhoRead}: ${l.chatNobodyYet}'
+                    : '${l.chatWhoRead}: ${items.map((p) => '${p.fullName.split(' ').first} ${hm(p.readAt!)}').join(', ')}';
+        return ListTile(key: const Key('readInfo'), dense: true, leading: Icon(Icons.done_all_rounded, color: Theme.of(context).colorScheme.primary), title: Text(text, maxLines: 3));
+      },
     );
   }
 }

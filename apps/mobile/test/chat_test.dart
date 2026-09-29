@@ -8,6 +8,8 @@ import 'package:diamoraa_mobile/core/providers.dart';
 import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
 import 'package:diamoraa_mobile/features/auth/auth_controller.dart';
 import 'package:diamoraa_mobile/features/chat/chat_list_screen.dart';
+import 'package:diamoraa_mobile/features/chat/chat_models.dart';
+import 'package:diamoraa_mobile/features/chat/chat_profile.dart';
 import 'package:diamoraa_mobile/features/chat/chat_room_screen.dart';
 import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 
@@ -234,6 +236,52 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const Key('galleryPages')), findsNothing);
+  });
+
+  testWidgets('Telegram-like: voice with a waveform and «00:02, 8.8 KB»; ⋮ menu; «прочитано в …» in my message menu', (tester) async {
+    when(() => api.getJson('/chat/rooms/r1')).thenAnswer((_) async => {'id': 'r1', 'kind': 'DIRECT', 'title': 'Нигора', 'memberCount': 2, 'canProtect': true, 'members': <Object>[],
+        'peer': {'id': 'u2', 'fullName': 'Нигора', 'role': 'WORKER', 'online': true}});
+    when(() => api.getJson('/chat/rooms/r1/messages', query: {'limit': 40})).thenAnswer((_) async => {
+          'items': [
+            {...msg('0190a000-0000-7000-8000-000000000002', 'Мой ответ', sender: 'me', name: 'Я')},
+            {...msg('0190a000-0000-7000-8000-000000000001', '', kind: 'VOICE', file: {'url': 'https://x/v.m4a', 'durationMs': 2000, 'size': 9011}), 'waveform': '5,10,31,20'},
+          ],
+          'hasMore': false,
+        });
+    when(() => api.getJson('/chat/messages/0190a000-0000-7000-8000-000000000002/reads')).thenAnswer((_) async => {'items': [{'id': 'u2', 'fullName': 'Нигора', 'role': 'WORKER', 'readAt': '2026-09-30T09:05:00Z'}]});
+    await pump(tester, const ChatRoomScreen(roomId: 'r1'));
+    expect(find.text('00:02, 8.8 KB'), findsOneWidget);
+    expect(find.byType(Waveform), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('chatMore')));
+    await tester.pumpAndSettle();
+    for (final t in ['Без уведомлений', 'Показать профиль', 'Запретить копирование', 'Экспорт истории чата', 'Очистить историю', 'Удалить чат']) {
+      expect(find.text(t), findsOneWidget);
+    }
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('Мой ответ'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('readInfo')), findsOneWidget);
+    expect(find.textContaining('прочитано в'), findsOneWidget);
+  });
+
+  test('albums: photos of one sender sent together are one row; a caption or another sender breaks it', () {
+    ChatMessage img(String id, String sender, int sec, [String? text]) => ChatMessage.fromJson({
+          ...msg(id, text ?? '', sender: sender, kind: 'IMAGE', file: {'url': 'u', 'thumbUrl': 't'}),
+          'text': text,
+          'createdAt': DateTime.utc(2026, 9, 30, 10, 0, sec).toIso8601String(),
+        });
+    // newest first, as the screen keeps them
+    final rows = albumRows([img('5', 'b', 4, 'подпись'), img('4', 'b', 3), img('3', 'a', 2), img('2', 'a', 1), img('1', 'a', 0)]);
+    expect(rows.map((r) => r is List<ChatMessage> ? r.map((m) => m.id).join('+') : (r as ChatMessage).id).toList(), ['5', '4', '3+2+1']);
+  });
+
+  test('waveform: recorded loudness -> 48 bars 0-31; a stable pattern for audio without one', () {
+    expect(toBars([0, 0.5, 1, 0.25], n: 4), [1, 16, 31, 8]);
+    expect(barsFor(null, 'abc'), barsFor(null, 'abc'));
+    expect(barsFor([1, 31], 'x', n: 4), [1, 1, 31, 31]);
   });
 
   test('a picked file is sent as what it is (by name; the server checks the bytes)', () {

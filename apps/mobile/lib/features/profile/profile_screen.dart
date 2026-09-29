@@ -9,6 +9,7 @@ import '../auth/auth_controller.dart';
 import '../auth/models.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
 import 'locale_controller.dart';
+import '../chat/chat_profile.dart';
 
 final _sessionsProvider = FutureProvider.autoDispose<List<DeviceSession>>((ref) => ref.watch(authRepositoryProvider).sessions());
 
@@ -23,7 +24,17 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l.profile)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        Card(child: ListTile(leading: CircleAvatar(child: Text(initials(me?.fullName ?? ''))), title: Text(me?.fullName ?? ''), subtitle: Text('${me?.phone ?? ''} · ${me == null ? '' : teamRoleLabel(l, me.role)}'))),
+        Card(
+          child: ListTile(
+            key: const Key('myProfileCard'),
+            leading: PersonPhoto(name: me?.fullName ?? '', url: ref.watch(myProfileProvider).value?.avatar, radius: 24),
+            title: Text(me?.fullName ?? ''),
+            subtitle: Text([me?.phone ?? '', if (me != null) teamRoleLabel(l, me.role), if (ref.watch(myProfileProvider).value?.username != null) '@${ref.watch(myProfileProvider).value!.username}'].join(' · ')),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            // photo, «о себе», @username - like Telegram's «Информация»
+            onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const MyProfileSheet()),
+          ),
+        ),
         const SizedBox(height: 8),
         Card(
           child: ListTile(

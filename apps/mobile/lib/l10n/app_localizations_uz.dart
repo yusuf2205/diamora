@@ -2429,4 +2429,110 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatVideoTooLarge => 'Video 150 MB dan katta — yuborib bo\'lmaydi';
+
+  @override
+  String get chatMyProfile => 'Mening profilim';
+
+  @override
+  String get chatBio => 'O\'zim haqimda';
+
+  @override
+  String get chatBioHint => 'Istalgan tafsilot: lavozim, tuman yoki ish vaqti.';
+
+  @override
+  String get chatUsername => 'Foydalanuvchi nomi';
+
+  @override
+  String get chatUsernameHint =>
+      'Lotin harflari, raqamlar va _, kamida 5 belgi.';
+
+  @override
+  String get chatUsernameTaken => 'Bu nom band';
+
+  @override
+  String get chatPhone => 'Telefon';
+
+  @override
+  String get chatRole => 'Rol';
+
+  @override
+  String get chatChangeAvatar => 'Profil rasmini o\'zgartirish';
+
+  @override
+  String get chatRemoveAvatar => 'Rasmni o\'chirish';
+
+  @override
+  String chatReadAt(String time) {
+    return '$time da o\'qildi';
+  }
+
+  @override
+  String get chatNotReadYet => 'hali o\'qilmagan';
+
+  @override
+  String get chatWhoRead => 'Kim o\'qidi';
+
+  @override
+  String get chatNobodyYet => 'Hali hech kim';
+
+  @override
+  String get chatClearHistory => 'Tarixni tozalash';
+
+  @override
+  String get chatClearHistoryBody => 'Xabarlar faqat sizda o\'chadi.';
+
+  @override
+  String get chatDeleteChat => 'Chatni o\'chirish';
+
+  @override
+  String get chatDeleteChatBody => 'Yozishma faqat sizda o\'chadi.';
+
+  @override
+  String get chatProtectOn => 'Nusxalashni taqiqlash';
+
+  @override
+  String get chatProtectOff => 'Nusxalashga ruxsat berish';
+
+  @override
+  String get chatProtected => 'Bu chatda nusxalash va uzatish taqiqlangan';
+
+  @override
+  String get chatExport => 'Chat tarixini eksport qilish';
+
+  @override
+  String get chatSearchInChat => 'Shu chatda qidirish';
+
+  @override
+  String get chatOlderMessage => 'Bu xabar yuqorida — yuqoriga suring';
+
+  @override
+  String get chatCancelUpload => 'Yuborishni bekor qilish';
+
+  @override
+  String chatCountPhotos(int count) {
+    return 'Rasmlar: $count';
+  }
+
+  @override
+  String chatCountVideos(int count) {
+    return 'Videolar: $count';
+  }
+
+  @override
+  String chatCountFiles(int count) {
+    return 'Fayllar: $count';
+  }
+
+  @override
+  String chatCountVoice(int count) {
+    return 'Ovozli: $count';
+  }
+
+  @override
+  String chatCountLinks(int count) {
+    return 'Havolalar: $count';
+  }
+
+  @override
+  String get chatShowProfile => 'Profilni ko\'rsatish';
 }
