@@ -2086,4 +2086,19 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get backupRestore => 'Tiklash';
+
+  @override
+  String get editName => 'Ismni o\'zgartirish';
+
+  @override
+  String get firstName => 'Ism';
+
+  @override
+  String get lastName => 'Familiya';
+
+  @override
+  String get nameSaved => 'Ism saqlandi';
+
+  @override
+  String get nameTooShort => 'Ism kamida 2 harf bo\'lsin';
 }

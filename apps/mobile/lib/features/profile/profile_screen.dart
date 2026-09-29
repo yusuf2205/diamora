@@ -24,6 +24,16 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l.profile)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(child: ListTile(leading: CircleAvatar(child: Text(initials(me?.fullName ?? ''))), title: Text(me?.fullName ?? ''), subtitle: Text('${me?.phone ?? ''} · ${me == null ? '' : teamRoleLabel(l, me.role)}'))),
+        const SizedBox(height: 8),
+        Card(
+          child: ListTile(
+            key: const Key('editName'),
+            leading: const Icon(Icons.edit_rounded),
+            title: Text(l.editName),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => EditNameSheet(fullName: me?.fullName ?? '')),
+          ),
+        ),
         if (me?.isStaff ?? false) ...[
           const SizedBox(height: 8),
           Card(
@@ -126,6 +136,71 @@ class _ChangePasswordSheetState extends ConsumerState<ChangePasswordSheet> {
           FilledButton(onPressed: _busy ? null : _save, child: Text(l.changePassword)),
         ]),
       ),
+    );
+  }
+}
+
+/// First name + surname on editing (split on the first space), one fullName on the server.
+(String, String) splitFullName(String fullName) {
+  final s = fullName.trim();
+  final i = s.indexOf(' ');
+  return i < 0 ? (s, '') : (s.substring(0, i), s.substring(i + 1).trim());
+}
+
+/// «Изменить имя»: anyone changes their OWN first name and surname.
+class EditNameSheet extends ConsumerStatefulWidget {
+  const EditNameSheet({super.key, required this.fullName});
+  final String fullName;
+  @override
+  ConsumerState<EditNameSheet> createState() => _EditNameSheetState();
+}
+
+class _EditNameSheetState extends ConsumerState<EditNameSheet> {
+  late final _first = TextEditingController(text: splitFullName(widget.fullName).$1);
+  late final _last = TextEditingController(text: splitFullName(widget.fullName).$2);
+  String? _error;
+  var _busy = false;
+
+  @override
+  void dispose() {
+    _first.dispose();
+    _last.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final l = AppLocalizations.of(context);
+    if (_first.text.trim().length < 2) return setState(() => _error = l.nameTooShort);
+    final fullName = '${_first.text.trim()} ${_last.text.trim()}'.trim().replaceAll(RegExp(r'\s+'), ' ');
+    setState(() { _busy = true; _error = null; });
+    try {
+      await ref.read(authControllerProvider.notifier).rename(fullName);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(SnackBar(content: Text(l.nameSaved)));
+    } catch (e) {
+      if (mounted) setState(() => _error = errorText(context, e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: EdgeInsets.only(left: 20, right: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(l.editName, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+        TextField(key: const Key('firstName'), controller: _first, textCapitalization: TextCapitalization.words, autofillHints: const [AutofillHints.givenName], decoration: InputDecoration(labelText: l.firstName)),
+        const SizedBox(height: 12),
+        TextField(key: const Key('lastName'), controller: _last, textCapitalization: TextCapitalization.words, autofillHints: const [AutofillHints.familyName], decoration: InputDecoration(labelText: l.lastName)),
+        if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+        const SizedBox(height: 16),
+        FilledButton(key: const Key('saveName'), onPressed: _busy ? null : _save, child: Text(l.save)),
+      ]),
     );
   }
 }

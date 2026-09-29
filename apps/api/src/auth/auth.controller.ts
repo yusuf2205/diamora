@@ -1,8 +1,8 @@
-import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe, Patch, Post, Req } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramPollSchema, telegramSessionSchema, workerCodeRequestSchema } from '@diamoraa/shared';
+import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramPollSchema, telegramSessionSchema, updateOwnProfileSchema, workerCodeRequestSchema } from '@diamoraa/shared';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser, Public } from '../common/decorators';
@@ -55,6 +55,10 @@ export class AuthController {
 
   @Authenticated() @ApiBearerAuth() @Get('me')
   me(@CurrentUser() u: AuthUser) { return this.auth.me(u); }
+
+  @Authenticated() @ApiBearerAuth() @Patch('me') @ApiZodBody(updateOwnProfileSchema)
+  @ApiOperation({ summary: 'Change your OWN first name and surname (every role)' })
+  updateMe(@CurrentUser() u: AuthUser, @ZodBody(updateOwnProfileSchema) b: z.output<typeof updateOwnProfileSchema>) { return this.auth.updateOwnName(u, b.fullName); }
 
   @Authenticated() @ApiBearerAuth() @Get('sessions')
   sessions(@CurrentUser() u: AuthUser) { return this.auth.listSessions(u); }

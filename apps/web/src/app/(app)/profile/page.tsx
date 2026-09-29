@@ -6,8 +6,9 @@ import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { roleLabel } from '@/lib/format';
 import { Button, Card, ErrorState, Field, Input, PageHeader } from '@/components/ui';
+import { OwnNameForm } from '@/components/own-name-form';
 
-/** «Мой профиль»: who I am and my own password. Changing it signs out my OTHER devices; this one stays signed in. */
+/** «Мой профиль»: who I am, my own name and my own password. Changing it signs out my OTHER devices; this one stays signed in. */
 export default function ProfilePage() {
   const { me, logout } = useAuth();
   const [current, setCurrent] = useState('');
@@ -25,6 +26,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-xl space-y-4 sm:space-y-6">
       <PageHeader title="Мой профиль" subtitle={me ? `${me.fullName} · ${roleLabel(me.role)} · ${me.phone}` : undefined} />
+      <OwnNameForm fullName={me?.fullName} invalidate={[['me']]} />
       <Card className="space-y-3">
         <h2 className="font-medium">Сменить пароль</h2>
         <Field label="Текущий пароль" htmlFor="pw-cur"><Input id="pw-cur" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>

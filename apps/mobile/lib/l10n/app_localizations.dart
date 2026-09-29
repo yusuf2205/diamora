@@ -3969,6 +3969,36 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Восстановление'**
   String get backupRestore;
+
+  /// No description provided for @editName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить имя'**
+  String get editName;
+
+  /// No description provided for @firstName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя'**
+  String get firstName;
+
+  /// No description provided for @lastName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фамилия'**
+  String get lastName;
+
+  /// No description provided for @nameSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя сохранено'**
+  String get nameSaved;
+
+  /// No description provided for @nameTooShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя — не меньше 2 букв'**
+  String get nameTooShort;
 }
 
 class _AppLocalizationsDelegate

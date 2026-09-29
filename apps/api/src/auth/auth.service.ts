@@ -4,6 +4,7 @@ import type { User, UserSession, WorkerProfile } from '@diamoraa/database';
 import { isStaffRole, type Permission, type Role } from '@diamoraa/shared';
 import { createHash, randomBytes } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
+import { EventBus } from '../events/event-bus';
 import { accountDisabled, AppError, invalidCredentials, notFound, rateLimited, sessionRevoked, ticketInvalid, unauthenticated, userNotFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { ENV, Env } from '../config/env';
@@ -28,6 +29,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly sessionAuth: SessionAuthService,
     private readonly audit: AuditService,
+    private readonly events: EventBus,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -228,6 +230,22 @@ export class AuthService {
     const u = await this.prisma.user.findUnique({ where: { id: user.id }, include: { workerProfile: { select: { id: true } } } });
     if (!u) throw notFound('User');
     return { id: u.id, fullName: u.fullName, phone: u.phone, role: u.role as Role, workerId: u.workerProfile?.id ?? null, permissions: user.permissions };
+  }
+
+  /** Your own name (every role). A worker's card and her account keep the same name. Audited. */
+  async updateOwnName(user: AuthUser, fullName: string): Promise<MeDto> {
+    const u = await this.prisma.user.findUnique({ where: { id: user.id }, include: { workerProfile: { select: { id: true, assignedManagerId: true, status: true } } } });
+    if (!u) throw notFound('User');
+    if (u.fullName !== fullName) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({ where: { id: u.id }, data: { fullName } });
+        if (u.workerProfile) await tx.workerProfile.update({ where: { id: u.workerProfile.id }, data: { fullName } });
+        await this.audit.record({ action: 'user.name_change', entity: 'User', entityId: u.id, before: { fullName: u.fullName }, after: { fullName } }, tx);
+      });
+      const w = u.workerProfile;
+      if (w) await this.events.publish('worker.updated', { workerId: w.id, status: w.status, managerId: w.assignedManagerId });
+    }
+    return this.me({ ...user, fullName });
   }
 
   /** ADMIN unlocks a phone after a login lockout (a synthetic success row resets the failure counter). */

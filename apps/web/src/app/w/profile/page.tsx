@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { api, clearTokens } from '@/lib/api';
 import { Button, Card } from '@/components/ui';
+import { OwnNameForm } from '@/components/own-name-form';
 
-/** Her profile on the web: name, phone, a link to the Android app, sign out. */
+/** Her profile on the web: name (she can change it), phone, a link to the Android app, sign out. */
 export default function WorkerProfile() {
   const router = useRouter();
   const qc = useQueryClient();
@@ -23,6 +24,7 @@ export default function WorkerProfile() {
         <p className="text-lg font-bold">{data?.fullName}</p>
         <p className="text-sm text-muted">{data?.code} · {data?.phone}</p>
       </Card>
+      <OwnNameForm fullName={data?.fullName} invalidate={[['w-me'], ['me']]} />
       <Card>
         <p className="text-sm">Есть Android? Приложение работает чуть удобнее:</p>
         <a href="/download" className="mt-2 block rounded-xl bg-primary py-3 text-center font-bold text-white">Скачать приложение</a>

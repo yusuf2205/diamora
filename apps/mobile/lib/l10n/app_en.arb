@@ -644,5 +644,10 @@
   "backupFiles": "Photos and files",
   "backupConfig": "Settings",
   "backupVerify": "Restore check",
-  "backupRestore": "Restore"
+  "backupRestore": "Restore",
+  "editName": "Change name",
+  "firstName": "First name",
+  "lastName": "Surname",
+  "nameSaved": "Name saved",
+  "nameTooShort": "The first name needs at least 2 letters"
 }

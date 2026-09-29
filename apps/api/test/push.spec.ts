@@ -20,7 +20,7 @@ describe('push notifications', () => {
 
   beforeAll(async () => {
     t = await createTestApp({ FIREBASE_CREDENTIALS_FILE: file });
-    global.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
       if (!url.startsWith('https://')) return realFetch(input, init); // supertest talks to the local app
       calls.push({ url, body: String(init?.body ?? ''), auth: (init?.headers as Record<string, string> | undefined)?.Authorization });

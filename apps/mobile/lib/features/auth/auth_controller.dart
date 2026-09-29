@@ -54,6 +54,13 @@ class AuthController extends AsyncNotifier<Session?> {
     await ref.read(realtimeClientProvider).connect();
   }
 
+  /// My own name changed on the server: show it everywhere at once (and in the offline copy).
+  Future<void> rename(String fullName) async {
+    final s = await ref.read(authRepositoryProvider).updateName(fullName);
+    await ref.read(sharedPrefsProvider).setString(_cachedSessionKey, jsonEncode(s.toJson()));
+    state = AsyncData(s);
+  }
+
   Future<void> logout({bool everywhere = false}) async {
     final repo = ref.read(authRepositoryProvider);
     await unregisterPush(ref.read(apiClientProvider)); // while still signed in: this phone stops getting her notifications

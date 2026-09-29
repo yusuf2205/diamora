@@ -270,6 +270,27 @@ void main() {
     await tearDownDb(tester);
   });
 
+  testWidgets('«Изменить имя» in the profile: first name + surname, PATCH /auth/me, the new name shows at once', (tester) async {
+    when(() => api.getJson('/users', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.getList('/auth/sessions')).thenAnswer((_) async => <Object>[]);
+    final me = superAdmin();
+    when(() => api.patchJson('/auth/me', body: any(named: 'body'))).thenAnswer((_) async => {...me.toJson(), 'fullName': 'Юсуф Каримов'});
+    await openTeam(tester, me);
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Профиль'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('editName')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('firstName')), 'Юсуф');
+    await tester.enterText(find.byKey(const Key('lastName')), '  Каримов ');
+    await tester.tap(find.byKey(const Key('saveName')));
+    await tester.pumpAndSettle();
+    verify(() => api.patchJson('/auth/me', body: {'fullName': 'Юсуф Каримов'})).called(1);
+    expect(find.text('Юсуф Каримов'), findsOneWidget);
+    await tearDownDb(tester);
+  });
+
   Map<String, Object?> w(String id, String name, {Map<String, Object?>? manager}) => {
         'id': id, 'code': 'W-$id', 'fullName': name, 'phone': '+99890000000$id', 'secondaryPhone': null, 'status': 'ACTIVE',
         'latitude': null, 'longitude': null, 'locationReceivedAt': null, 'balance': '0', 'manager': manager, 'collateral': null,

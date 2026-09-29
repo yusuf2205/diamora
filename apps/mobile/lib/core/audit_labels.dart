@@ -8,6 +8,7 @@ const auditLabelsRu = <String, String>{
   "user.permission_change": "Изменены права",
   "user.password_reset": "Пароль задан администратором",
   "user.password_change": "Сменил(а) свой пароль",
+  "user.name_change": "Изменил(а) своё имя",
   "user.location_visibility": "Изменена видимость на карте",
   "user.bootstrap": "Создан первый администратор",
   "audit.clear": "Журнал очищен",

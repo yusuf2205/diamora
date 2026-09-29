@@ -96,6 +96,8 @@ export const updateUserSchema = z
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
 export const changeRoleSchema = z.object({ role: z.enum(STAFF_ROLE_VALUES) });
 /** Anyone with a password changes their OWN: the current one proves it is really them. */
+/** «Мой профиль»: anyone may change their OWN first name and surname (stored together as fullName) */
+export const updateOwnProfileSchema = z.object({ fullName: z.string().transform((v) => v.trim().replace(/\s+/g, ' ')).pipe(z.string().min(2).max(120)) });
 export const changeOwnPasswordSchema = z.object({ currentPassword: z.string().min(1).max(200), newPassword: passwordSchema });
 /** Set someone's password to exactly this (PASSWORD_SET: SUPER_ADMIN always, an ADMIN only if granted). */
 export const resetPasswordSchema = z.object({ password: passwordSchema });

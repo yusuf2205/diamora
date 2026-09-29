@@ -706,5 +706,10 @@
   "backupFiles": "Фото и файлы",
   "backupConfig": "Настройки",
   "backupVerify": "Проверка восстановления",
-  "backupRestore": "Восстановление"
+  "backupRestore": "Восстановление",
+  "editName": "Изменить имя",
+  "firstName": "Имя",
+  "lastName": "Фамилия",
+  "nameSaved": "Имя сохранено",
+  "nameTooShort": "Имя — не меньше 2 букв"
 }

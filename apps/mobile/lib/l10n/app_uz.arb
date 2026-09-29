@@ -675,5 +675,10 @@
   "backupFiles": "Rasmlar va fayllar",
   "backupConfig": "Sozlamalar",
   "backupVerify": "Tiklashni tekshirish",
-  "backupRestore": "Tiklash"
+  "backupRestore": "Tiklash",
+  "editName": "Ismni o'zgartirish",
+  "firstName": "Ism",
+  "lastName": "Familiya",
+  "nameSaved": "Ism saqlandi",
+  "nameTooShort": "Ism kamida 2 harf bo'lsin"
 }

@@ -2127,4 +2127,19 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get backupRestore => 'Восстановление';
+
+  @override
+  String get editName => 'Изменить имя';
+
+  @override
+  String get firstName => 'Имя';
+
+  @override
+  String get lastName => 'Фамилия';
+
+  @override
+  String get nameSaved => 'Имя сохранено';
+
+  @override
+  String get nameTooShort => 'Имя — не меньше 2 букв';
 }

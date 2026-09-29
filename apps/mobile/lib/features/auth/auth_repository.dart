@@ -59,6 +59,9 @@ class AuthRepository {
     await _tokens.clear();
   }
 
+  /// My own first name + surname (every role); returns the updated me.
+  Future<Session> updateName(String fullName) async => Session.fromJson(await _api.patchJson('/auth/me', body: {'fullName': fullName}));
+
   /// My own password. Other devices are signed out by the server; this one stays signed in.
   Future<void> changePassword(String current, String next) => _api.postJson('/auth/change-password', body: {'currentPassword': current, 'newPassword': next});
 

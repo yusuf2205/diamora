@@ -2116,4 +2116,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupRestore => 'Restore';
+
+  @override
+  String get editName => 'Change name';
+
+  @override
+  String get firstName => 'First name';
+
+  @override
+  String get lastName => 'Surname';
+
+  @override
+  String get nameSaved => 'Name saved';
+
+  @override
+  String get nameTooShort => 'The first name needs at least 2 letters';
 }
