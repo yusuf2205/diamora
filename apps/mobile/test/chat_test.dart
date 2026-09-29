@@ -117,6 +117,73 @@ void main() {
     expect(find.text('Удерживайте кнопку микрофона, чтобы записать'), findsOneWidget);
   });
 
+  testWidgets('stage 2: pinned message on top, a reply quote, reactions (tap = toggle), «печатает…», reply from the menu', (tester) async {
+    when(() => api.getJson('/chat/rooms/r1')).thenAnswer((_) async => {
+          'id': 'r1', 'kind': 'DIRECT', 'title': 'Нигора Азимова', 'memberCount': 2, 'canPin': true, 'members': <Object>[],
+          'peer': {'id': 'u2', 'fullName': 'Нигора Азимова', 'role': 'WORKER', 'online': false, 'lastSeenAt': DateTime.now().toUtc().toIso8601String()},
+          'pinnedMessage': msg('p1', 'Адрес: Чиланзар 5'),
+        });
+    final answer = {
+      ...msg('0190a000-0000-7000-8000-000000000002', '12 метров'),
+      'replyTo': {'id': '0190a000-0000-7000-8000-000000000001', 'sender': 'Юсуф', 'preview': 'Сколько осталось?'},
+      'reactions': [{'emoji': '👍', 'count': 2, 'mine': false}],
+      'editedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+    when(() => api.getJson('/chat/rooms/r1/messages', query: {'limit': 40})).thenAnswer((_) async => {'items': [answer], 'hasMore': false});
+    await pump(tester, const ChatRoomScreen(roomId: 'r1'));
+
+    expect(find.byKey(const Key('pinnedBar')), findsOneWidget);
+    expect(find.text('Адрес: Чиланзар 5'), findsOneWidget);
+    expect(find.text('Сколько осталось?'), findsOneWidget); // the quote
+    expect(find.textContaining('изменено'), findsOneWidget);
+    expect(find.textContaining('был(а) в сети'), findsOneWidget);
+
+    when(() => api.postJson('/chat/messages/0190a000-0000-7000-8000-000000000002/reactions', body: {'emoji': '👍'}))
+        .thenAnswer((_) async => {...answer, 'reactions': [{'emoji': '👍', 'count': 3, 'mine': true}]});
+    await tester.tap(find.byKey(const Key('reaction-0190a000-0000-7000-8000-000000000002-👍')));
+    await tester.pumpAndSettle();
+    expect(find.text('👍 3'), findsOneWidget);
+
+    events.add(RealtimeEvent(id: 't', type: 'chat.typing', occurredAt: DateTime.now(), data: {'roomId': 'r1', 'userId': 'u2', 'name': 'Нигора Азимова', 'kind': 'voice'}));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('записывает голосовое…'), findsOneWidget);
+
+    await tester.longPress(find.text('12 метров'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('msgReply')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('composerContext')), findsOneWidget);
+    when(() => api.postJson('/chat/rooms/r1/messages', body: any(named: 'body'))).thenAnswer((i) async => msg('0190a000-0000-7000-8000-000000000009', 'ок'));
+    await tester.enterText(find.byKey(const Key('chatInput')), 'Хорошо');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('chatSend')));
+    await tester.pumpAndSettle();
+    final body = verify(() => api.postJson('/chat/rooms/r1/messages', body: captureAny(named: 'body'))).captured.single as Map;
+    expect(body['replyToId'], '0190a000-0000-7000-8000-000000000002');
+    expect(find.byKey(const Key('composerContext')), findsNothing);
+    await tester.pump(const Duration(seconds: 8)); // the typing indicator expires
+  });
+
+  testWidgets('search: chats, people and messages; a found message opens its chat', (tester) async {
+    when(() => api.getJson('/chat/rooms')).thenAnswer((_) async => {'items': <Object>[]});
+    when(() => api.getJson('/chat/search', query: {'q': 'круж'})).thenAnswer((_) async => {
+          'rooms': <Object>[],
+          'people': [{'id': 'u5', 'fullName': 'Кружкова Анна', 'role': 'MANAGER'}],
+          'messages': [{...msg('m9', 'Кружево бежевое'), 'room': {'id': 'r1', 'kind': 'DIRECT', 'title': 'Нигора Азимова'}}],
+        });
+    await pump(tester, const ChatListScreen());
+    await tester.tap(find.byKey(const Key('chatSearch')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('chatSearchField')), 'круж');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(find.text('Кружкова Анна'), findsOneWidget);
+    expect(find.textContaining('Кружево бежевое'), findsOneWidget);
+    expect(find.text('Люди'), findsOneWidget);
+    expect(find.text('Сообщения'), findsOneWidget);
+  });
+
   test('a picked file is sent as what it is (by name; the server checks the bytes)', () {
     expect(chatKindForName('IMG_0001.JPG'), 'IMAGE');
     expect(chatKindForName('clip.mov'), 'VIDEO');

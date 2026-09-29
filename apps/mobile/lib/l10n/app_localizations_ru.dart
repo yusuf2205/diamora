@@ -2283,4 +2283,98 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatSend => 'Отправить';
+
+  @override
+  String get chatReply => 'Ответить';
+
+  @override
+  String get chatEdit => 'Изменить';
+
+  @override
+  String get chatEdited => 'изменено';
+
+  @override
+  String get chatEditing => 'Редактирование';
+
+  @override
+  String get chatForward => 'Переслать';
+
+  @override
+  String get chatForwardTo => 'Переслать в…';
+
+  @override
+  String get chatForwarded => 'Переслано';
+
+  @override
+  String chatForwardedFrom(String name) {
+    return 'Переслано от $name';
+  }
+
+  @override
+  String get chatPin => 'Закрепить';
+
+  @override
+  String get chatUnpin => 'Открепить';
+
+  @override
+  String get chatPinned => 'Закреплённое сообщение';
+
+  @override
+  String get chatPinChat => 'Закрепить чат';
+
+  @override
+  String get chatUnpinChat => 'Открепить чат';
+
+  @override
+  String get chatMute => 'Без уведомлений';
+
+  @override
+  String get chatUnmute => 'Включить уведомления';
+
+  @override
+  String get chatSearch => 'Поиск';
+
+  @override
+  String get chatSearchHint => 'Чаты, люди, сообщения';
+
+  @override
+  String get chatSectionChats => 'Чаты';
+
+  @override
+  String get chatSectionPeople => 'Люди';
+
+  @override
+  String get chatSectionMessages => 'Сообщения';
+
+  @override
+  String get chatNothingFound => 'Ничего не найдено';
+
+  @override
+  String get chatTyping => 'печатает…';
+
+  @override
+  String chatTypingName(String name) {
+    return '$name печатает…';
+  }
+
+  @override
+  String get chatRecordingVoice => 'записывает голосовое…';
+
+  @override
+  String chatRecordingVoiceName(String name) {
+    return '$name записывает голосовое…';
+  }
+
+  @override
+  String chatLastSeen(String time) {
+    return 'был(а) в сети $time';
+  }
+
+  @override
+  String chatReplyTo(String name) {
+    return 'Ответ: $name';
+  }
+
+  @override
+  String get chatEmoji => 'Эмодзи';
 }

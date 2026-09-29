@@ -78,6 +78,10 @@ export interface EventMap {
   'chat.message_deleted': { roomId: string; messageId: string; userIds: string[] };
   'chat.room': { roomId: string; userIds: string[] };
   'chat.read': { roomId: string; userId: string; userIds: string[] };
+  /** edited text, a reaction: the app refetches that message */
+  'chat.message_updated': { roomId: string; messageId: string; userIds: string[] };
+  /** «печатает…» / «записывает голосовое…» (never stored) */
+  'chat.typing': { roomId: string; userId: string; name: string; kind: 'text' | 'voice'; userIds: string[] };
 }
 export type EventType = keyof EventMap;
 
@@ -159,6 +163,8 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'chat.message_deleted': { users: true },
   'chat.room': { users: true },
   'chat.read': { users: true },
+  'chat.message_updated': { users: true },
+  'chat.typing': { users: true },
 };
 
 export interface RealtimeEnvelope<T extends EventType = EventType> {

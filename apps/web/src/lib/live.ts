@@ -12,6 +12,21 @@ import { accessToken, api, apiOrigin } from './api';
  *  2) their browser position (only if the browser allows it) — so people who work from the web show up on the map too.
  * Nothing here is required: a denied geolocation or a dropped socket just means no dot / a slightly older screen.
  */
+type LiveEvent = { type: string; data: Record<string, unknown> };
+const listeners = new Set<(e: LiveEvent) => void>();
+let liveSocket: Socket | null = null;
+
+/** Listen to raw realtime events (e.g. «печатает…», which is never stored and never refetched). */
+export function onLiveEvent(handler: (e: LiveEvent) => void): () => void {
+  listeners.add(handler);
+  return () => { listeners.delete(handler); };
+}
+
+/** A small signal to the server over the open socket (dropped while offline). */
+export function emitLive(event: string, data: unknown) {
+  if (liveSocket?.connected) liveSocket.emit(event, data);
+}
+
 export function useLivePanel(enabled: boolean) {
   const qc = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
@@ -26,14 +41,17 @@ export function useLivePanel(enabled: boolean) {
       reconnectionDelay: 2_000,
       reconnectionDelayMax: 30_000,
     });
-    socket.on('event', () => {
+    socket.on('event', (e: LiveEvent) => {
+      for (const l of listeners) { try { l(e); } catch { /* a listener must not break the others */ } }
+      if (e?.type === 'chat.typing') return; // nothing to refetch
       if (refreshTimer) return;
       refreshTimer = setTimeout(() => { refreshTimer = null; qc.invalidateQueries(); }, 800);
     });
     // a rejected handshake (expired token): a cheap authenticated call refreshes the token, then try again
     socket.on('unauthorized', () => { api.get('/auth/me').catch(() => undefined).finally(() => setTimeout(() => socket.connect(), 1_000)); });
     socketRef.current = socket;
-    return () => { if (refreshTimer) clearTimeout(refreshTimer); socket.close(); socketRef.current = null; };
+    liveSocket = socket;
+    return () => { if (refreshTimer) clearTimeout(refreshTimer); socket.close(); socketRef.current = null; if (liveSocket === socket) liveSocket = null; };
   }, [enabled, qc]);
 
   useEffect(() => {

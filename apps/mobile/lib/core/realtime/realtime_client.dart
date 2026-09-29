@@ -35,6 +35,9 @@ class RealtimeClient {
   Stream<bool> get connection => _connected.stream;
   bool get isConnected => _socket?.connected ?? false;
 
+  /// A small signal to the server (e.g. «печатает…»); dropped silently while offline.
+  void emit(String event, Object data) { if (isConnected) _socket?.emit(event, data); }
+
   Future<void> connect() async {
     await disconnect();
     final token = await _tokens.readAccess();

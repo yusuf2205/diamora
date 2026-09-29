@@ -2242,4 +2242,98 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatSend => 'Yuborish';
+
+  @override
+  String get chatReply => 'Javob berish';
+
+  @override
+  String get chatEdit => 'O\'zgartirish';
+
+  @override
+  String get chatEdited => 'o\'zgartirildi';
+
+  @override
+  String get chatEditing => 'Tahrirlash';
+
+  @override
+  String get chatForward => 'Yuborish (forward)';
+
+  @override
+  String get chatForwardTo => 'Qayerga yuborish…';
+
+  @override
+  String get chatForwarded => 'Yuborildi';
+
+  @override
+  String chatForwardedFrom(String name) {
+    return '$name dan yuborilgan';
+  }
+
+  @override
+  String get chatPin => 'Qadash';
+
+  @override
+  String get chatUnpin => 'Qadashni olish';
+
+  @override
+  String get chatPinned => 'Qadalgan xabar';
+
+  @override
+  String get chatPinChat => 'Chatni qadash';
+
+  @override
+  String get chatUnpinChat => 'Chatni qadashdan olish';
+
+  @override
+  String get chatMute => 'Bildirishnomasiz';
+
+  @override
+  String get chatUnmute => 'Bildirishnomalarni yoqish';
+
+  @override
+  String get chatSearch => 'Qidiruv';
+
+  @override
+  String get chatSearchHint => 'Chatlar, odamlar, xabarlar';
+
+  @override
+  String get chatSectionChats => 'Chatlar';
+
+  @override
+  String get chatSectionPeople => 'Odamlar';
+
+  @override
+  String get chatSectionMessages => 'Xabarlar';
+
+  @override
+  String get chatNothingFound => 'Hech narsa topilmadi';
+
+  @override
+  String get chatTyping => 'yozmoqda…';
+
+  @override
+  String chatTypingName(String name) {
+    return '$name yozmoqda…';
+  }
+
+  @override
+  String get chatRecordingVoice => 'ovozli xabar yozmoqda…';
+
+  @override
+  String chatRecordingVoiceName(String name) {
+    return '$name ovozli xabar yozmoqda…';
+  }
+
+  @override
+  String chatLastSeen(String time) {
+    return '$time da tarmoqda edi';
+  }
+
+  @override
+  String chatReplyTo(String name) {
+    return 'Javob: $name';
+  }
+
+  @override
+  String get chatEmoji => 'Emoji';
 }

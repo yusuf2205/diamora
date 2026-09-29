@@ -2273,4 +2273,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatSend => 'Send';
+
+  @override
+  String get chatReply => 'Reply';
+
+  @override
+  String get chatEdit => 'Edit';
+
+  @override
+  String get chatEdited => 'edited';
+
+  @override
+  String get chatEditing => 'Editing';
+
+  @override
+  String get chatForward => 'Forward';
+
+  @override
+  String get chatForwardTo => 'Forward to…';
+
+  @override
+  String get chatForwarded => 'Forwarded';
+
+  @override
+  String chatForwardedFrom(String name) {
+    return 'Forwarded from $name';
+  }
+
+  @override
+  String get chatPin => 'Pin';
+
+  @override
+  String get chatUnpin => 'Unpin';
+
+  @override
+  String get chatPinned => 'Pinned message';
+
+  @override
+  String get chatPinChat => 'Pin chat';
+
+  @override
+  String get chatUnpinChat => 'Unpin chat';
+
+  @override
+  String get chatMute => 'Mute';
+
+  @override
+  String get chatUnmute => 'Unmute';
+
+  @override
+  String get chatSearch => 'Search';
+
+  @override
+  String get chatSearchHint => 'Chats, people, messages';
+
+  @override
+  String get chatSectionChats => 'Chats';
+
+  @override
+  String get chatSectionPeople => 'People';
+
+  @override
+  String get chatSectionMessages => 'Messages';
+
+  @override
+  String get chatNothingFound => 'Nothing found';
+
+  @override
+  String get chatTyping => 'typing…';
+
+  @override
+  String chatTypingName(String name) {
+    return '$name is typing…';
+  }
+
+  @override
+  String get chatRecordingVoice => 'recording a voice message…';
+
+  @override
+  String chatRecordingVoiceName(String name) {
+    return '$name is recording a voice message…';
+  }
+
+  @override
+  String chatLastSeen(String time) {
+    return 'last seen $time';
+  }
+
+  @override
+  String chatReplyTo(String name) {
+    return 'Reply to $name';
+  }
+
+  @override
+  String get chatEmoji => 'Emoji';
 }

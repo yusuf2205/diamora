@@ -40,11 +40,35 @@ class ChatRepository {
     return ChatPage(((j['items'] as List).map((m) => ChatMessage.fromJson((m as Map).cast<String, dynamic>()))).toList(), j['hasMore'] as bool? ?? false);
   }
 
-  Future<ChatMessage> sendText(String roomId, String text, String clientId) async =>
-      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/messages', body: {'text': text, 'clientId': clientId}));
+  Future<ChatMessage> sendText(String roomId, String text, String clientId, {String? replyToId}) async =>
+      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/messages', body: {'text': text, 'clientId': clientId, 'replyToId': ?replyToId}));
+
+  Future<ChatMessage> edit(String id, String text) async => ChatMessage.fromJson(await _api.patchJson('/chat/messages/$id', body: {'text': text}));
+
+  Future<ChatMessage> react(String id, String emoji) async => ChatMessage.fromJson(await _api.postJson('/chat/messages/$id/reactions', body: {'emoji': emoji}));
+
+  Future<void> forward(String id, List<String> roomIds) => _api.postJson('/chat/messages/$id/forward', body: {'roomIds': roomIds});
+
+  Future<ChatRoomDetail> pin(String roomId, String? messageId) async => ChatRoomDetail.fromJson(await _api.postJson('/chat/rooms/$roomId/pin', body: {'messageId': messageId}));
+
+  /// My own settings for a chat (keep on top / no notifications).
+  Future<void> prefs(String roomId, {bool? pinned, bool? muted}) => _api.patchJson('/chat/rooms/$roomId/me', body: {'pinned': ?pinned, 'muted': ?muted});
+
+  Future<ChatSearchResult> search(String q) async {
+    final j = await _api.getJson('/chat/search', query: {'q': q});
+    Map<String, dynamic> m(Object? x) => (x as Map).cast<String, dynamic>();
+    return ChatSearchResult(
+      rooms: (j['rooms'] as List).map((x) => ChatRoomSummary.fromJson(m(x))).toList(),
+      people: (j['people'] as List).map((x) => ChatPerson.fromJson(m(x))).toList(),
+      messages: (j['messages'] as List).map((x) {
+        final room = m(m(x)['room']);
+        return ChatSearchHit(ChatMessage.fromJson(m(x)), room['id'] as String, room['kind'] as String? ?? 'DIRECT', room['title'] as String?);
+      }).toList(),
+    );
+  }
 
   /// Streams the file from disk (up to 50 MB) with progress; [kind] IMAGE | VIDEO | VOICE | AUDIO | FILE.
-  Future<ChatMessage> sendFile(String roomId, {required String path, required String filename, required String kind, required String clientId, String? text, int? durationMs, void Function(double)? onProgress}) async {
+  Future<ChatMessage> sendFile(String roomId, {required String path, required String filename, required String kind, required String clientId, String? text, int? durationMs, String? replyToId, void Function(double)? onProgress}) async {
     try {
       final res = await _api.dio.post<dynamic>(
         '/chat/rooms/$roomId/files',
@@ -53,6 +77,7 @@ class ChatRepository {
           'clientId': clientId,
           if (text != null && text.trim().isNotEmpty) 'text': text.trim(),
           if (durationMs != null) 'durationMs': '$durationMs',
+          'replyToId': ?replyToId,
           'file': await MultipartFile.fromFile(path, filename: filename),
         }),
         options: Options(sendTimeout: const Duration(minutes: 10), receiveTimeout: const Duration(minutes: 2)),

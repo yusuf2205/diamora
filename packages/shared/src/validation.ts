@@ -365,12 +365,21 @@ export const chatGroupUpdateSchema = z.object({
   addIds: z.array(z.string().uuid()).max(500).optional(),
   removeIds: z.array(z.string().uuid()).max(500).optional(),
 });
-export const chatTextSchema = z.object({ text: z.string().trim().min(1).max(4000), clientId: z.string().max(64).optional() });
+export const chatTextSchema = z.object({ text: z.string().trim().min(1).max(4000), clientId: z.string().max(64).optional(), replyToId: z.string().uuid().optional() });
+export const chatEditSchema = z.object({ text: z.string().trim().min(1).max(4000) });
+/** the reactions offered (a fixed, safe set) */
+export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'] as const;
+export const chatReactSchema = z.object({ emoji: z.enum(CHAT_REACTIONS) });
+export const chatForwardSchema = z.object({ roomIds: z.array(z.string().uuid()).min(1).max(20) });
+export const chatPinSchema = z.object({ messageId: z.string().uuid().nullable() });
+export const chatMemberPrefsSchema = z.object({ pinned: z.boolean().optional(), muted: z.boolean().optional() });
+export const chatSearchSchema = z.object({ q: z.string().trim().min(2).max(80) });
 export const chatFileFieldsSchema = z.object({
   kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE']).optional(),
   text: z.string().trim().max(4000).optional(),
   durationMs: z.coerce.number().int().min(0).max(6 * 3600_000).optional(),
   clientId: z.string().max(64).optional(),
+  replyToId: z.string().uuid().optional(),
 });
 export const chatMessagesQuerySchema = z.object({
   before: z.string().uuid().optional(),

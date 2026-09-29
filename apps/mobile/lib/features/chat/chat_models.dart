@@ -5,13 +5,14 @@ DateTime _dt(Object? v) => DateTime.parse(v as String).toLocal();
 DateTime? _dtn(Object? v) => v == null ? null : DateTime.parse(v as String).toLocal();
 
 class ChatPerson {
-  const ChatPerson({required this.id, required this.fullName, required this.role, this.online = false, this.isOwner = false, this.lastReadAt});
+  const ChatPerson({required this.id, required this.fullName, required this.role, this.online = false, this.isOwner = false, this.lastReadAt, this.lastSeenAt});
   final String id;
   final String fullName;
   final String role;
   final bool online;
   final bool isOwner;
   final DateTime? lastReadAt;
+  final DateTime? lastSeenAt;
 
   factory ChatPerson.fromJson(Map<String, dynamic> j) => ChatPerson(
         id: j['id'] as String,
@@ -20,8 +21,30 @@ class ChatPerson {
         online: j['online'] as bool? ?? false,
         isOwner: j['isOwner'] as bool? ?? false,
         lastReadAt: _dtn(j['lastReadAt']),
+        lastSeenAt: _dtn(j['lastSeenAt']),
       );
 }
+
+class ChatReply {
+  const ChatReply({required this.id, this.sender, this.preview, this.deleted = false});
+  final String id;
+  final String? sender;
+  final String? preview;
+  final bool deleted;
+  factory ChatReply.fromJson(Map<String, dynamic> j) =>
+      ChatReply(id: j['id'] as String, sender: j['sender'] as String?, preview: j['preview'] as String?, deleted: j['deleted'] as bool? ?? false);
+}
+
+class ChatReaction {
+  const ChatReaction({required this.emoji, required this.count, required this.mine});
+  final String emoji;
+  final int count;
+  final bool mine;
+  factory ChatReaction.fromJson(Map<String, dynamic> j) => ChatReaction(emoji: j['emoji'] as String, count: (j['count'] as num).toInt(), mine: j['mine'] as bool? ?? false);
+}
+
+/// The reactions offered (same fixed set as the server).
+const chatReactions = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'];
 
 class ChatFile {
   const ChatFile({required this.url, this.thumbUrl, this.name, this.size, this.mimeType, this.durationMs, this.width, this.height});
@@ -58,10 +81,18 @@ class ChatMessage {
     this.file,
     this.deleted = false,
     this.clientId,
+    this.replyTo,
+    this.forwardedFrom,
+    this.editedAt,
+    this.reactions = const [],
   });
   final String id;
   final String roomId;
   final String kind;
+  final ChatReply? replyTo;
+  final String? forwardedFrom;
+  final DateTime? editedAt;
+  final List<ChatReaction> reactions;
   final ChatPerson? sender;
   final String? text;
   final ChatFile? file;
@@ -79,6 +110,10 @@ class ChatMessage {
         deleted: j['deleted'] as bool? ?? false,
         createdAt: _dt(j['createdAt']),
         clientId: j['clientId'] as String?,
+        replyTo: j['replyTo'] == null ? null : ChatReply.fromJson((j['replyTo'] as Map).cast<String, dynamic>()),
+        forwardedFrom: j['forwardedFrom'] as String?,
+        editedAt: _dtn(j['editedAt']),
+        reactions: ((j['reactions'] as List?) ?? const []).map((r) => ChatReaction.fromJson((r as Map).cast<String, dynamic>())).toList(),
       );
 
   ChatMessage asDeleted() => ChatMessage(id: id, roomId: roomId, kind: 'TEXT', createdAt: createdAt, sender: sender, deleted: true, clientId: clientId);
@@ -96,7 +131,11 @@ class ChatRoomSummary {
     this.isOwner = false,
     this.unread = 0,
     this.lastMessage,
+    this.pinned = false,
+    this.muted = false,
   });
+  final bool pinned;
+  final bool muted;
   final String id;
   final String kind;
   final String? title;
@@ -117,6 +156,8 @@ class ChatRoomSummary {
         unread: (j['unread'] as num?)?.toInt() ?? 0,
         lastMessage: j['lastMessage'] == null ? null : ChatMessage.fromJson((j['lastMessage'] as Map).cast<String, dynamic>()),
         lastMessageAt: _dt(j['lastMessageAt']),
+        pinned: j['pinned'] as bool? ?? false,
+        muted: j['muted'] as bool? ?? false,
       );
 }
 
@@ -130,12 +171,20 @@ class ChatRoomDetail {
     this.memberCount = 0,
     this.peer,
     this.members = const [],
+    this.canPin = false,
+    this.pinned = false,
+    this.muted = false,
+    this.pinnedMessage,
   });
   final String id;
   final String kind;
   final String? title;
   final bool isOwner;
   final bool canManage;
+  final bool canPin;
+  final bool pinned;
+  final bool muted;
+  final ChatMessage? pinnedMessage;
   final int memberCount;
   final ChatPerson? peer;
   final List<ChatPerson> members;
@@ -149,7 +198,27 @@ class ChatRoomDetail {
         memberCount: (j['memberCount'] as num?)?.toInt() ?? 0,
         peer: j['peer'] == null ? null : ChatPerson.fromJson((j['peer'] as Map).cast<String, dynamic>()),
         members: ((j['members'] as List?) ?? const []).map((m) => ChatPerson.fromJson((m as Map).cast<String, dynamic>())).toList(),
+        canPin: j['canPin'] as bool? ?? false,
+        pinned: j['pinned'] as bool? ?? false,
+        muted: j['muted'] as bool? ?? false,
+        pinnedMessage: j['pinnedMessage'] == null ? null : ChatMessage.fromJson((j['pinnedMessage'] as Map).cast<String, dynamic>()),
       );
+}
+
+/// A search hit inside a message, with the chat it is in.
+class ChatSearchHit {
+  const ChatSearchHit(this.message, this.roomId, this.roomKind, this.roomTitle);
+  final ChatMessage message;
+  final String roomId;
+  final String roomKind;
+  final String? roomTitle;
+}
+
+class ChatSearchResult {
+  const ChatSearchResult({this.rooms = const [], this.people = const [], this.messages = const []});
+  final List<ChatRoomSummary> rooms;
+  final List<ChatPerson> people;
+  final List<ChatSearchHit> messages;
 }
 
 class ChatPage {

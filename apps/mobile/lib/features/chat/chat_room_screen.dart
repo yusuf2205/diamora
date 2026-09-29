@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_exception.dart';
@@ -35,8 +37,9 @@ String chatKindForName(String name) {
 
 /// A message on its way out: shown at once, then replaced by the server's copy (or marked «не отправлено»).
 class _Outgoing {
-  _Outgoing({required this.clientId, required this.kind, this.text, this.path, this.filename, this.durationMs});
+  _Outgoing({required this.clientId, required this.kind, this.text, this.path, this.filename, this.durationMs, this.replyToId});
   final String clientId;
+  final String? replyToId;
   final String kind;
   final String? text;
   final String? path;
@@ -66,6 +69,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   Object? _error;
   bool _loaded = false;
 
+  /// the message the next one answers / the one being edited (shown above the input)
+  ChatMessage? _replyTo;
+  ChatMessage? _editing;
+  /// who is typing / recording right now: userId -> (name, kind, until)
+  final _typing = <String, (String, String, DateTime)>{};
+  Timer? _typingSweep;
+  DateTime _typingSentAt = DateTime(2000);
+
+  String get _draftKey => 'chat_draft_${widget.roomId}';
+
   // voice
   final _recorder = AudioRecorder();
   bool _recording = false;
@@ -81,12 +94,42 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     _scroll.addListener(() {
       if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 400) _loadOlder();
     });
+    // the unsent text of this chat is kept (a draft), like in Telegram
+    try {
+      _text.text = ref.read(sharedPrefsProvider).getString(_draftKey) ?? '';
+    } catch (_) {/* no prefs in some tests */}
+    _text.addListener(_onTextChanged);
     _load();
+  }
+
+  void _onTextChanged() {
+    if (_text.text.trim().isNotEmpty) _sendTyping('text');
+  }
+
+  /// «печатает…» to the others, at most every 2 s.
+  void _sendTyping(String kind) {
+    final now = DateTime.now();
+    if (now.difference(_typingSentAt) < const Duration(seconds: 2)) return;
+    _typingSentAt = now;
+    try {
+      ref.read(realtimeClientProvider).emit('chat:typing', {'roomId': widget.roomId, 'kind': kind});
+    } catch (_) {/* no socket (tests) */}
+  }
+
+  void _saveDraft() {
+    try {
+      final prefs = ref.read(sharedPrefsProvider);
+      final t = _text.text;
+      t.trim().isEmpty || _editing != null ? prefs.remove(_draftKey) : prefs.setString(_draftKey, t);
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     if (openChatRoomId == widget.roomId) openChatRoomId = null;
+    _saveDraft();
+    _typingSweep?.cancel();
+    _text.removeListener(_onTextChanged);
     _text.dispose();
     _scroll.dispose();
     _recTick?.cancel();
@@ -133,6 +176,14 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     } catch (_) {/* the next event or reopen refetches */}
   }
 
+  /// An edit or a reaction: the newest page again (where it almost always is) and the pinned message.
+  Future<void> _refreshRecent() async {
+    try {
+      final page = await _repo.messages(widget.roomId);
+      if (mounted) setState(() => _merge(page.items));
+    } catch (_) {}
+  }
+
   /// Adds messages by id (a socket hint and my own send can deliver the same one), newest first.
   void _merge(List<ChatMessage> items) {
     final byId = {for (final m in _messages) m.id: m};
@@ -152,8 +203,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     setState(() { o.failed = false; o.progress = 0; });
     try {
       final m = o.path == null
-          ? await _repo.sendText(widget.roomId, o.text!, o.clientId)
-          : await _repo.sendFile(widget.roomId, path: o.path!, filename: o.filename!, kind: o.kind, clientId: o.clientId, text: o.text, durationMs: o.durationMs,
+          ? await _repo.sendText(widget.roomId, o.text!, o.clientId, replyToId: o.replyToId)
+          : await _repo.sendFile(widget.roomId, path: o.path!, filename: o.filename!, kind: o.kind, clientId: o.clientId, text: o.text, durationMs: o.durationMs, replyToId: o.replyToId,
               onProgress: (p) { if (mounted) setState(() => o.progress = p); });
       if (!mounted) return;
       setState(() { _outgoing.remove(o); _merge([m]); });
@@ -171,8 +222,17 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final text = _text.text.trim();
     if (text.isEmpty) return;
     _text.clear();
-    final o = _Outgoing(clientId: _uuid.v4(), kind: 'TEXT', text: text);
-    setState(() => _outgoing.insert(0, o));
+    final editing = _editing;
+    if (editing != null) {
+      setState(() => _editing = null);
+      _repo.edit(editing.id, text).then((m) { if (mounted) setState(() => _merge([m])); }).catchError((Object e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+      });
+      return;
+    }
+    final o = _Outgoing(clientId: _uuid.v4(), kind: 'TEXT', text: text, replyToId: _replyTo?.id);
+    setState(() { _outgoing.insert(0, o); _replyTo = null; });
+    _saveDraft();
     _sendOutgoing(o);
     _scrollToBottom();
   }
@@ -183,9 +243,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatFileTooLarge)));
       return;
     }
-    final o = _Outgoing(clientId: _uuid.v4(), kind: kind, path: path, filename: filename, durationMs: durationMs);
+    final o = _Outgoing(clientId: _uuid.v4(), kind: kind, path: path, filename: filename, durationMs: durationMs, replyToId: _replyTo?.id);
     if (!mounted) return;
-    setState(() => _outgoing.insert(0, o));
+    setState(() { _outgoing.insert(0, o); _replyTo = null; });
     _scrollToBottom();
     await _sendOutgoing(o);
   }
@@ -260,7 +320,11 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 64000, sampleRate: 44100, numChannels: 1), path: path);
     HapticFeedback.mediumImpact();
     setState(() { _recording = true; _recStarted = DateTime.now(); });
-    _recTick = Timer.periodic(const Duration(milliseconds: 250), (_) { if (mounted) setState(() {}); });
+    _sendTyping('voice');
+    _recTick = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted) setState(() {});
+      _sendTyping('voice');
+    });
   }
 
   Future<void> _stopRecording({bool send = true}) async {
@@ -279,13 +343,34 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final l = AppLocalizations.of(context);
     final me = ref.read(authControllerProvider).value;
     final canDelete = mine || me?.role == 'SUPER_ADMIN' || me?.role == 'ADMIN';
+    final canEdit = mine && (m.text ?? '').isNotEmpty && m.forwardedFrom == null && DateTime.now().difference(m.createdAt) < const Duration(hours: 48);
+    final isPinned = _room?.pinnedMessage?.id == m.id;
     if (m.deleted) return;
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
+          // one tap = a reaction
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              for (final e in chatReactions)
+                InkWell(
+                  key: Key('react-$e'),
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => Navigator.pop(ctx, 'react:$e'),
+                  child: Padding(padding: const EdgeInsets.all(6), child: Text(e, style: const TextStyle(fontSize: 26))),
+                ),
+            ]),
+          ),
+          const Divider(),
+          ListTile(key: const Key('msgReply'), leading: const Icon(Icons.reply_rounded), title: Text(l.chatReply), onTap: () => Navigator.pop(ctx, 'reply')),
           if ((m.text ?? '').isNotEmpty) ListTile(leading: const Icon(Icons.copy_rounded), title: Text(l.chatCopy), onTap: () => Navigator.pop(ctx, 'copy')),
+          if (canEdit) ListTile(key: const Key('msgEdit'), leading: const Icon(Icons.edit_rounded), title: Text(l.chatEdit), onTap: () => Navigator.pop(ctx, 'edit')),
+          ListTile(key: const Key('msgForward'), leading: const Icon(Icons.forward_rounded), title: Text(l.chatForward), onTap: () => Navigator.pop(ctx, 'forward')),
+          if (_room?.canPin ?? false)
+            ListTile(key: const Key('msgPin'), leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded), title: Text(isPinned ? l.chatUnpin : l.chatPin), onTap: () => Navigator.pop(ctx, 'pin')),
           if (canDelete)
             ListTile(
               key: const Key('deleteMessage'),
@@ -296,18 +381,56 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ]),
       ),
     );
-    if (!mounted) return;
-    if (choice == 'copy') {
+    if (!mounted || choice == null) return;
+    void fail(Object e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e)))); }
+    if (choice.startsWith('react:')) {
+      await _react(m, choice.substring(6));
+    } else if (choice == 'reply') {
+      setState(() { _replyTo = m; _editing = null; });
+    } else if (choice == 'edit') {
+      setState(() { _editing = m; _replyTo = null; _text.text = m.text ?? ''; });
+    } else if (choice == 'copy') {
       await Clipboard.setData(ClipboardData(text: m.text ?? ''));
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatCopied)));
+    } else if (choice == 'forward') {
+      final to = await showModalBottomSheet<String>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (_) => const _ForwardSheet(),
+      );
+      if (to == null) return;
+      try {
+        await _repo.forward(m.id, [to]);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatForwarded)));
+      } catch (e) {
+        fail(e);
+      }
+    } else if (choice == 'pin') {
+      try {
+        final r = await _repo.pin(widget.roomId, isPinned ? null : m.id);
+        if (mounted) setState(() => _room = r);
+      } catch (e) {
+        fail(e);
+      }
     } else if (choice == 'delete') {
       if (!await confirmDelete(context, title: l.chatDeleteMessage, body: l.chatDeleteMessageBody)) return;
       try {
         await _repo.deleteMessage(m.id);
         if (mounted) setState(() => _merge([m.asDeleted()]));
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+        fail(e);
       }
+    }
+  }
+
+  Future<void> _react(ChatMessage m, String emoji) async {
+    try {
+      final updated = await _repo.react(m.id, emoji);
+      if (mounted) setState(() => _merge([updated]));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
     }
   }
 
@@ -332,7 +455,20 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       if (e == null || e.data['roomId'] != widget.roomId) return;
       switch (e.type) {
         case 'chat.message':
+          _typing.remove(e.data['senderId']);
           _fetchNew();
+        case 'chat.message_updated':
+          _refreshRecent();
+        case 'chat.typing':
+          final uid = e.data['userId'] as String?;
+          if (uid == null) return;
+          setState(() => _typing[uid] = (e.data['name'] as String? ?? '', e.data['kind'] as String? ?? 'text', DateTime.now().add(const Duration(seconds: 6))));
+          _typingSweep ??= Timer.periodic(const Duration(seconds: 1), (t) {
+            if (!mounted) return t.cancel();
+            final now = DateTime.now();
+            if (_typing.values.any((x) => x.$3.isBefore(now))) setState(() => _typing.removeWhere((_, x) => x.$3.isBefore(now)));
+            if (_typing.isEmpty) { t.cancel(); _typingSweep = null; }
+          });
         case 'chat.message_deleted':
           final id = e.data['messageId'];
           final i = _messages.indexWhere((m) => m.id == id);
@@ -346,11 +482,24 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
     final room = _room;
     final title = room == null ? '' : chatTitle(l, kind: room.kind, title: room.title);
+    final typing = _typing.values.toList();
+    String? typingText;
+    if (typing.isNotEmpty) {
+      final t = typing.first;
+      final direct = room?.kind == 'DIRECT';
+      typingText = t.$2 == 'voice' ? (direct ? l.chatRecordingVoice : l.chatRecordingVoiceName(t.$1.split(' ').first)) : (direct ? l.chatTyping : l.chatTypingName(t.$1.split(' ').first));
+    }
+    final peer = room?.peer;
     final subtitle = room == null
         ? null
-        : room.kind == 'DIRECT'
-            ? (room.peer?.online ?? false) ? l.onlineNow : (room.peer == null ? null : teamRoleLabel(l, room.peer!.role))
-            : l.chatMembers(room.memberCount);
+        : typingText ??
+            (room.kind == 'DIRECT'
+                ? (peer?.online ?? false)
+                    ? l.onlineNow
+                    : peer?.lastSeenAt != null
+                        ? l.chatLastSeen(chatWhen(l, peer!.lastSeenAt!))
+                        : (peer == null ? null : teamRoleLabel(l, peer.role))
+                : l.chatMembers(room.memberCount));
     final showSender = room != null && room.kind != 'DIRECT';
     final peerRead = room?.peer?.lastReadAt;
 
@@ -370,7 +519,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                 Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (subtitle != null) Text(subtitle, style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (subtitle != null)
+                  Text(subtitle, key: const Key('chatSubtitle'), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: typingText != null ? Theme.of(context).colorScheme.primary : null), maxLines: 1, overflow: TextOverflow.ellipsis),
               ]),
             ),
           ]),
@@ -378,6 +528,20 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         actions: [if (room?.kind == 'GROUP') IconButton(key: const Key('groupInfo'), tooltip: l.chatGroupInfo, icon: const Icon(Icons.info_outline_rounded), onPressed: _groupInfo)],
       ),
       body: Column(children: [
+        if (room?.pinnedMessage != null)
+          Material(
+            key: const Key('pinnedBar'),
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            child: ListTile(
+              dense: true,
+              leading: Icon(Icons.push_pin_rounded, color: Theme.of(context).colorScheme.primary),
+              title: Text(l.chatPinned, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
+              subtitle: Text(chatPreview(l, room!.pinnedMessage!), maxLines: 1, overflow: TextOverflow.ellipsis),
+              trailing: room.canPin
+                  ? IconButton(tooltip: l.chatUnpin, icon: const Icon(Icons.close_rounded), onPressed: () => _repo.pin(widget.roomId, null).then((r) { if (mounted) setState(() => _room = r); }).catchError((_) {}))
+                  : null,
+            ),
+          ),
         Expanded(
           child: !_loaded
               ? const Center(child: CircularProgressIndicator())
@@ -403,6 +567,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                                     showSender: showSender && row.sender?.id != me?.id,
                                     read: peerRead != null && !peerRead.isBefore(row.createdAt),
                                     onLongPress: () => _messageMenu(row, row.sender?.id == me?.id),
+                                    onReact: (e) => _react(row, e),
+                                    onSwipeReply: () => setState(() { _replyTo = row; _editing = null; }),
                                   )
                                 : _OutgoingBubble(o: row as _Outgoing, onRetry: () => _sendOutgoing(row));
                             return Column(children: [if (newDay) _DayLine(at: at), bubble]);
@@ -422,6 +588,28 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               const SizedBox(width: 12),
               Expanded(child: Text(l.chatRecording, maxLines: 2)),
             ]),
+          ),
+        if (_replyTo != null || _editing != null)
+          Material(
+            key: const Key('composerContext'),
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            child: ListTile(
+              dense: true,
+              leading: Icon(_editing != null ? Icons.edit_rounded : Icons.reply_rounded, color: Theme.of(context).colorScheme.primary),
+              title: Text(
+                _editing != null ? l.chatEditing : l.chatReplyTo(_replyTo!.sender?.fullName ?? ''),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(chatPreview(l, (_editing ?? _replyTo)!), maxLines: 1, overflow: TextOverflow.ellipsis),
+              trailing: IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() {
+                  if (_editing != null) _text.clear();
+                  _editing = null;
+                  _replyTo = null;
+                }),
+              ),
+            ),
           ),
         _Composer(
           controller: _text,
@@ -462,13 +650,63 @@ class _DayLine extends StatelessWidget {
   }
 }
 
+/// Text with tappable links (https://…, www.…) and highlighted @mentions.
+class ChatRichText extends StatefulWidget {
+  const ChatRichText(this.text, {super.key, required this.color});
+  final String text;
+  final Color color;
+  static final _pattern = RegExp(r'(https?://[^\s]+|www\.[^\s]+|@[\p{L}\p{N}_]+)', unicode: true);
+  @override
+  State<ChatRichText> createState() => _ChatRichTextState();
+}
+
+class _ChatRichTextState extends State<ChatRichText> {
+  final _recognizers = <TapGestureRecognizer>[];
+
+  @override
+  void dispose() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
+    final scheme = Theme.of(context).colorScheme;
+    final spans = <InlineSpan>[];
+    var last = 0;
+    for (final m in ChatRichText._pattern.allMatches(widget.text)) {
+      if (m.start > last) spans.add(TextSpan(text: widget.text.substring(last, m.start)));
+      final token = m.group(0)!;
+      if (token.startsWith('@')) {
+        spans.add(TextSpan(text: token, style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w700)));
+      } else {
+        final url = token.startsWith('www.') ? 'https://$token' : token;
+        final rec = TapGestureRecognizer()..onTap = () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        _recognizers.add(rec);
+        spans.add(TextSpan(text: token, style: TextStyle(color: scheme.primary, decoration: TextDecoration.underline), recognizer: rec));
+      }
+      last = m.end;
+    }
+    if (last < widget.text.length) spans.add(TextSpan(text: widget.text.substring(last)));
+    return Text.rich(TextSpan(style: TextStyle(color: widget.color, fontSize: 15.5), children: spans));
+  }
+}
+
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine, required this.showSender, required this.read, required this.onLongPress});
+  const _Bubble({required this.message, required this.mine, required this.showSender, required this.read, required this.onLongPress, this.onReact, this.onSwipeReply});
   final ChatMessage message;
   final bool mine;
   final bool showSender;
   final bool read;
   final VoidCallback onLongPress;
+  final ValueChanged<String>? onReact;
+  final VoidCallback? onSwipeReply;
 
   @override
   Widget build(BuildContext context) {
@@ -485,7 +723,7 @@ class _Bubble extends StatelessWidget {
       content = Text(l.chatMessageDeleted, style: TextStyle(fontStyle: FontStyle.italic, color: fg.withValues(alpha: 0.7)));
     } else {
       final f = m.file;
-      final text = (m.text ?? '').isEmpty ? null : SelectableText(m.text!, style: TextStyle(color: fg, fontSize: 15.5));
+      final text = (m.text ?? '').isEmpty ? null : ChatRichText(m.text!, color: fg);
       final media = switch (m.kind) {
         'IMAGE' when f != null => GestureDetector(
             key: Key('image-${m.id}'),
@@ -537,7 +775,24 @@ class _Bubble extends StatelessWidget {
           ),
         _ => null,
       };
+      final reply = m.replyTo;
       content = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        if (m.forwardedFrom != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(l.chatForwardedFrom(m.forwardedFrom!), style: TextStyle(color: fg.withValues(alpha: 0.75), fontSize: 12.5, fontStyle: FontStyle.italic)),
+          ),
+        if (reply != null)
+          Container(
+            key: Key('quote-${m.id}'),
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+            decoration: BoxDecoration(color: fg.withValues(alpha: 0.08), border: Border(left: BorderSide(color: scheme.primary, width: 3)), borderRadius: BorderRadius.circular(6)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              if (reply.sender != null) Text(reply.sender!, style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w700, fontSize: 12.5)),
+              Text(reply.deleted ? l.chatMessageDeleted : (reply.preview ?? ''), maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg.withValues(alpha: 0.8), fontSize: 13)),
+            ]),
+          ),
         ?media,
         if (media != null && text != null) const SizedBox(height: 6),
         ?text,
@@ -550,6 +805,7 @@ class _Bubble extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8),
         child: GestureDetector(
           onLongPress: onLongPress,
+          onHorizontalDragEnd: onSwipeReply == null || m.deleted ? null : (d) { if ((d.primaryVelocity ?? 0) > 250) onSwipeReply!(); },
           child: Container(
             key: Key('msg-${m.id}'),
             margin: EdgeInsets.only(top: 3, bottom: 3, left: mine ? 40 : 0, right: mine ? 0 : 40),
@@ -568,8 +824,30 @@ class _Bubble extends StatelessWidget {
                   child: Text(m.sender!.fullName, style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w700, fontSize: 13)),
                 ),
               content,
+              if (m.reactions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Wrap(spacing: 4, runSpacing: 4, children: [
+                    for (final r in m.reactions)
+                      InkWell(
+                        key: Key('reaction-${m.id}-${r.emoji}'),
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: onReact == null ? null : () => onReact!(r.emoji),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: r.mine ? scheme.primary.withValues(alpha: 0.2) : fg.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: r.mine ? Border.all(color: scheme.primary) : null,
+                          ),
+                          child: Text('${r.emoji} ${r.count}', style: TextStyle(fontSize: 13, color: fg)),
+                        ),
+                      ),
+                  ]),
+                ),
               const SizedBox(height: 2),
               Row(mainAxisSize: MainAxisSize.min, children: [
+                if (m.editedAt != null && !m.deleted) Text('${l.chatEdited} ', style: TextStyle(fontSize: 11, color: fg.withValues(alpha: 0.6))),
                 Text(time, style: TextStyle(fontSize: 11, color: fg.withValues(alpha: 0.6))),
                 if (mine && !m.deleted) ...[
                   const SizedBox(width: 4),
@@ -653,6 +931,30 @@ class _ComposerState extends State<_Composer> {
 
   void _changed() => setState(() {});
 
+  static const _emojis = ['😀', '😂', '😊', '😍', '🥰', '😘', '😉', '😎', '🤔', '😅', '😢', '😭', '😡', '😱', '🙈', '👍', '👎', '👌', '🙏', '👏',
+    '💪', '🤝', '❤️', '💔', '🔥', '✨', '🎉', '🌸', '🌹', '💎', '✅', '❌', '⏰', '📦', '🧵', '✂️', '📍', '🚗', '☕', '🍰'];
+
+  Future<void> _pickEmoji(BuildContext context) async {
+    final e = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: GridView.count(
+          crossAxisCount: 8,
+          shrinkWrap: true,
+          padding: const EdgeInsets.all(8),
+          children: [for (final e in _emojis) InkWell(onTap: () => Navigator.pop(ctx, e), child: Center(child: Text(e, style: const TextStyle(fontSize: 26))))],
+        ),
+      ),
+    );
+    if (e == null) return;
+    final c = widget.controller;
+    final sel = c.selection;
+    final at = sel.isValid ? sel.start : c.text.length;
+    final end = sel.isValid ? sel.end : c.text.length;
+    c.value = TextEditingValue(text: c.text.replaceRange(at, end, e), selection: TextSelection.collapsed(offset: at + e.length));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -667,6 +969,7 @@ class _ComposerState extends State<_Composer> {
           padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
           child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
             IconButton(key: const Key('chatAttach'), tooltip: l.chatAttach, icon: const Icon(Icons.attach_file_rounded), onPressed: widget.onAttach),
+            IconButton(key: const Key('chatEmoji'), tooltip: l.chatEmoji, icon: const Icon(Icons.emoji_emotions_outlined), onPressed: () => _pickEmoji(context)),
             Expanded(
               child: TextField(
                 key: const Key('chatInput'),
@@ -804,6 +1107,37 @@ class _GroupInfoSheetState extends ConsumerState<_GroupInfoSheet> {
           onPressed: _leave,
           icon: const Icon(Icons.logout_rounded),
           label: Text(l.chatLeaveGroup),
+        ),
+      ]),
+    );
+  }
+}
+
+/// «Переслать в…»: one of my chats.
+class _ForwardSheet extends ConsumerWidget {
+  const _ForwardSheet();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final rooms = ref.watch(chatRoomsProvider);
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.7,
+      child: Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: Align(alignment: Alignment.centerLeft, child: Text(l.chatForwardTo, style: Theme.of(context).textTheme.titleLarge))),
+        Expanded(
+          child: rooms.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text(errorText(context, e))),
+            data: (items) => ListView(children: [
+              for (final r in items)
+                ListTile(
+                  key: Key('fwd-${r.id}'),
+                  leading: ChatAvatar(kind: r.kind, name: chatTitle(l, kind: r.kind, title: r.title), radius: 20),
+                  title: Text(chatTitle(l, kind: r.kind, title: r.title)),
+                  onTap: () => Navigator.pop(context, r.id),
+                ),
+            ]),
+          ),
         ),
       ]),
     );

@@ -1,20 +1,26 @@
 'use client';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, CheckCheck, Download, FileText, Info, Mic, Paperclip, Plus, Send, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { emitLive, onLiveEvent } from '@/lib/live';
 import { useAuth } from '@/lib/auth';
 import { errorMessage, initials, roleLabel } from '@/lib/format';
 import { Button, ErrorState, Input, Modal, Spinner } from '@/components/ui';
 
 // ---- types (GET /v1/chat/...) ------------------------------------------------------------------------------------------
-export interface ChatPerson { id: string; fullName: string; role: string; online?: boolean; isOwner?: boolean; lastReadAt?: string | null }
+export interface ChatPerson { id: string; fullName: string; role: string; online?: boolean; isOwner?: boolean; lastReadAt?: string | null; lastSeenAt?: string | null }
+export interface ChatReaction { emoji: string; count: number; mine: boolean }
+export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'] as const;
 export interface ChatFile { url: string; thumbUrl: string | null; name: string | null; size: number | null; mimeType: string | null; durationMs: number | null; width: number | null; height: number | null }
-export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null }
-export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY'; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string }
-export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[] }
+export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null;
+  replyTo?: { id: string; sender: string | null; preview: string | null; deleted: boolean } | null; forwardedFrom?: string | null; editedAt?: string | null; reactions?: ChatReaction[] }
+export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY'; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean }
+export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[];
+  canPin?: boolean; pinned?: boolean; muted?: boolean; pinnedMessage?: ChatMessage | null }
+interface ChatSearch { rooms: ChatRoomSummary[]; people: ChatPerson[]; messages: (ChatMessage & { room: { id: string; kind: string; title: string | null } })[] }
 
 export const CHAT_MAX_BYTES = 50 * 1024 * 1024;
 
@@ -52,6 +58,24 @@ const dayLabel = (iso: string) => {
 };
 const bytes = (b: number | null) => (b == null ? '' : b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+
+/** Links become tappable (new tab, no referrer), @mentions stand out; everything is plain React text (no HTML). */
+export function RichText({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s]+|www\.[^\s]+|@[\p{L}\p{N}_]+)/u);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (i % 2 === 0) return part;
+        if (part.startsWith('@')) return <b key={i} className="text-primary">{part}</b>;
+        const href = part.startsWith('www.') ? `https://${part}` : part;
+        return <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all">{part}</a>;
+      })}
+    </>
+  );
+}
+
+const lastSeen = (iso: string) => `был(а) в сети ${chatWhen(iso)}`;
+const EMOJIS = ['😀', '😂', '😊', '😍', '🥰', '😉', '😎', '🤔', '😅', '😢', '😭', '😡', '🙈', '👍', '👎', '👌', '🙏', '👏', '💪', '🤝', '❤️', '🔥', '✨', '🎉', '🌸', '💎', '✅', '❌', '⏰', '📦', '🧵', '✂️', '📍', '☕'];
 
 /** The unread count for the menu badge (refetched by the live socket like everything else). */
 export function useChatUnread(enabled = true) {
@@ -92,14 +116,61 @@ export function ChatApp({ single = false }: { single?: boolean }) {
 
 function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: string) => void }) {
   const { me } = useAuth();
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['chat-rooms'], queryFn: () => api.get<{ items: ChatRoomSummary[] }>('/chat/rooms') });
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
+  useEffect(() => { const id = setTimeout(() => setDebounced(search.trim()), 300); return () => clearTimeout(id); }, [search]);
+  const found = useQuery({ queryKey: ['chat-search', debounced], queryFn: () => api.get<ChatSearch>('/chat/search', { q: debounced }), enabled: debounced.length >= 2 });
+  const prefs = useMutation({
+    mutationFn: ({ id, ...b }: { id: string; pinned?: boolean; muted?: boolean }) => api.patch(`/chat/rooms/${id}/me`, b),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['chat-rooms'] }),
+  });
+  const direct = useMutation({ mutationFn: (userId: string) => api.post<ChatRoomDetail>('/chat/direct', { userId }), onSuccess: (r) => { setSearch(''); onOpen(r.id); } });
+  const [menu, setMenu] = useState<string | null>(null);
   return (
     <>
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <h2 className="text-lg font-semibold">Чат</h2>
         <Button className="min-h-9 px-3 py-1.5 text-sm" onClick={() => setCreating(true)}><Plus size={16} aria-hidden /> Новый чат</Button>
       </div>
+      <div className="border-b border-border px-3 py-2">
+        <label className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5">
+          <Search size={16} className="text-muted" aria-hidden />
+          <input aria-label="Поиск: чаты, люди, сообщения" placeholder="Поиск: чаты, люди, сообщения" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" />
+          {search && <button aria-label="Очистить поиск" onClick={() => setSearch('')}><X size={14} aria-hidden /></button>}
+        </label>
+      </div>
+      {debounced.length >= 2 ? (
+        <div className="flex-1 overflow-y-auto">
+          {found.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
+          {found.data && !found.data.rooms.length && !found.data.people.length && !found.data.messages.length && <p className="p-6 text-center text-muted">Ничего не найдено</p>}
+          {!!found.data?.rooms.length && <p className="px-4 pt-3 text-xs font-semibold uppercase text-primary">Чаты</p>}
+          {found.data?.rooms.map((r) => (
+            <button key={r.id} onClick={() => { setSearch(''); onOpen(r.id); }} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-border/40">
+              <Avatar kind={r.kind} name={chatTitle(r)} size={34} /><span className="truncate font-medium">{chatTitle(r)}</span>
+            </button>
+          ))}
+          {!!found.data?.people.length && <p className="px-4 pt-3 text-xs font-semibold uppercase text-primary">Люди</p>}
+          {found.data?.people.map((p) => (
+            <button key={p.id} onClick={() => direct.mutate(p.id)} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-border/40">
+              <Avatar kind="DIRECT" name={p.fullName} online={p.online} size={34} />
+              <span className="min-w-0"><span className="block truncate font-medium">{p.fullName}</span><span className="block text-xs text-muted">{roleLabel(p.role)}</span></span>
+            </button>
+          ))}
+          {!!found.data?.messages.length && <p className="px-4 pt-3 text-xs font-semibold uppercase text-primary">Сообщения</p>}
+          {found.data?.messages.map((m) => (
+            <button key={m.id} onClick={() => { setSearch(''); onOpen(m.room.id); }} className="flex w-full items-start gap-3 px-4 py-2 text-left hover:bg-border/40">
+              <Avatar kind={m.room.kind} name={chatTitle(m.room)} size={34} />
+              <span className="min-w-0 flex-1">
+                <span className="flex justify-between gap-2"><span className="truncate font-medium">{chatTitle(m.room)}</span><span className="shrink-0 text-xs text-muted">{chatWhen(m.createdAt)}</span></span>
+                <span className="line-clamp-2 text-sm text-muted">{m.sender?.fullName.split(' ')[0]}: {chatPreview(m)}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
       <div className="flex-1 overflow-y-auto">
         {q.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
         {q.isError && <div className="p-3"><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>}
@@ -108,26 +179,39 @@ function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: 
           const who = !last || r.kind === 'DIRECT' || !last.sender ? '' : last.sender.id === me?.id ? 'Вы: ' : `${last.sender.fullName.split(' ')[0]}: `;
           const sub = last ? `${who}${chatPreview(last)}` : r.kind === 'COMPANY' ? 'Все сотрудники и мастерицы' : `Участников: ${r.memberCount}`;
           return (
+            <div key={r.id} className={`group relative flex items-center hover:bg-border/40 ${selected === r.id ? 'bg-primary/10' : ''}`}>
             <button
-              key={r.id}
               onClick={() => onOpen(r.id)}
-              className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-border/40 ${selected === r.id ? 'bg-primary/10' : ''}`}
+              className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
             >
               <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} />
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline justify-between gap-2">
-                  <span className={`truncate ${r.unread ? 'font-bold' : 'font-medium'}`}>{chatTitle(r)}</span>
+                  <span className={`flex min-w-0 items-center gap-1 truncate ${r.unread ? 'font-bold' : 'font-medium'}`}>
+                    <span className="truncate">{chatTitle(r)}</span>
+                    {r.muted && <BellOff size={13} className="shrink-0 text-muted" aria-label="Без уведомлений" />}
+                    {r.pinned && <Pin size={13} className="shrink-0 text-muted" aria-label="Закреплён" />}
+                  </span>
                   {last && <span className={`shrink-0 text-xs ${r.unread ? 'text-primary' : 'text-muted'}`}>{chatWhen(last.createdAt)}</span>}
                 </span>
                 <span className="flex items-center justify-between gap-2">
                   <span className="truncate text-sm text-muted">{sub}</span>
-                  {r.unread > 0 && <span className="shrink-0 rounded-full bg-primary px-2 text-xs font-bold text-white">{r.unread}</span>}
+                  {r.unread > 0 && <span className={`shrink-0 rounded-full px-2 text-xs font-bold text-white ${r.muted ? 'bg-muted' : 'bg-primary'}`}>{r.unread}</span>}
                 </span>
               </span>
             </button>
+            <button aria-label={`Действия: ${chatTitle(r)}`} onClick={() => setMenu(menu === r.id ? null : r.id)} className="mr-1 rounded p-1.5 text-muted opacity-60 hover:bg-border/60 group-hover:opacity-100"><MoreVertical size={16} aria-hidden /></button>
+            {menu === r.id && (
+              <div className="absolute right-2 top-12 z-20 w-56 rounded-lg border border-border bg-card p-1 text-sm shadow-lg">
+                <button className="flex w-full items-center gap-2 rounded px-3 py-2 hover:bg-border/40" onClick={() => { setMenu(null); prefs.mutate({ id: r.id, pinned: !r.pinned }); }}><Pin size={15} aria-hidden />{r.pinned ? 'Открепить чат' : 'Закрепить чат'}</button>
+                <button className="flex w-full items-center gap-2 rounded px-3 py-2 hover:bg-border/40" onClick={() => { setMenu(null); prefs.mutate({ id: r.id, muted: !r.muted }); }}><BellOff size={15} aria-hidden />{r.muted ? 'Включить уведомления' : 'Без уведомлений'}</button>
+              </div>
+            )}
+            </div>
           );
         })}
       </div>
+      )}
       {creating && <NewChatModal onClose={() => setCreating(false)} onOpen={(id) => { setCreating(false); onOpen(id); }} />}
     </>
   );
@@ -189,7 +273,7 @@ function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => 
   );
 }
 
-interface Pending { clientId: string; kind: ChatMessage['kind']; text?: string; file?: File; durationMs?: number; progress: number; failed: boolean; createdAt: string }
+interface Pending { clientId: string; kind: ChatMessage['kind']; text?: string; file?: File; durationMs?: number; replyToId?: string; progress: number; failed: boolean; createdAt: string }
 
 function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () => void; single?: boolean }) {
   const qc = useQueryClient();
@@ -202,7 +286,33 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
     getNextPageParam: (last) => (last.hasMore ? last.items[last.items.length - 1]?.id : undefined),
   });
   const [pending, setPending] = useState<Pending[]>([]);
-  const [text, setText] = useState('');
+  const draftKey = `chat-draft-${roomId}`;
+  const [text, setText] = useState(() => { try { return localStorage.getItem(draftKey) ?? ''; } catch { return ''; } });
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editing, setEditing] = useState<ChatMessage | null>(null);
+  const [typing, setTyping] = useState<Record<string, { name: string; kind: string; until: number }>>({});
+  const [emoji, setEmoji] = useState(false);
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  // the unsent text of this chat is kept (a draft)
+  useEffect(() => { try { if (text.trim() && !editing) localStorage.setItem(draftKey, text); else localStorage.removeItem(draftKey); } catch { /* private mode */ } }, [text, editing, draftKey]);
+  // «печатает…» from the others (live, never stored), expiring after 6 s
+  useEffect(() => onLiveEvent((e) => {
+    if (e.data?.roomId !== roomId) return;
+    const uid = e.data.userId as string | undefined;
+    if (e.type === 'chat.typing' && uid) setTyping((t) => ({ ...t, [uid]: { name: String(e.data.name ?? ''), kind: String(e.data.kind ?? 'text'), until: Date.now() + 6_000 } }));
+    if (e.type === 'chat.message') setTyping((t) => { const n = { ...t }; delete n[String(e.data.senderId)]; return n; });
+  }), [roomId]);
+  useEffect(() => {
+    if (!Object.keys(typing).length) return;
+    const id = setInterval(() => setTyping((t) => Object.fromEntries(Object.entries(t).filter(([, v]) => v.until > Date.now()))), 1_000);
+    return () => clearInterval(id);
+  }, [typing]);
+  const lastTypingSent = useRef(0);
+  const sendTyping = (kind: 'text' | 'voice') => {
+    if (Date.now() - lastTypingSent.current < 2_000) return;
+    lastTypingSent.current = Date.now();
+    emitLive('chat:typing', { roomId, kind });
+  };
   const [info, setInfo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -233,10 +343,11 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
         form.set('kind', p.kind);
         form.set('clientId', p.clientId);
         if (p.durationMs) form.set('durationMs', String(p.durationMs));
+        if (p.replyToId) form.set('replyToId', p.replyToId);
         form.set('file', p.file, p.file.name);
         await api.upload(`/chat/rooms/${roomId}/files`, form);
       } else {
-        await api.post(`/chat/rooms/${roomId}/messages`, { text: p.text, clientId: p.clientId });
+        await api.post(`/chat/rooms/${roomId}/messages`, { text: p.text, clientId: p.clientId, replyToId: p.replyToId });
       }
       await qc.invalidateQueries({ queryKey: ['chat-msgs', roomId] });
       setPending((xs) => xs.filter((x) => x.clientId !== p.clientId));
@@ -245,8 +356,9 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
       setError(errorMessage(e));
     }
   };
-  const queue = (p: Omit<Pending, 'clientId' | 'progress' | 'failed' | 'createdAt'>) => {
-    const item: Pending = { ...p, clientId: newId(), progress: 0, failed: false, createdAt: new Date().toISOString() };
+  const queue = (p: Omit<Pending, 'clientId' | 'progress' | 'failed' | 'createdAt' | 'replyToId'>) => {
+    const item: Pending = { ...p, replyToId: replyTo?.id, clientId: newId(), progress: 0, failed: false, createdAt: new Date().toISOString() };
+    setReplyTo(null);
     setPending((xs) => [...xs, item]);
     void send(item);
   };
@@ -254,8 +366,21 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
     const t = text.trim();
     if (!t) return;
     setText('');
+    if (editing) {
+      const id = editing.id;
+      setEditing(null);
+      api.patch(`/chat/messages/${id}`, { text: t }).then(() => qc.invalidateQueries({ queryKey: ['chat-msgs', roomId] })).catch((e) => setError(errorMessage(e)));
+      return;
+    }
     queue({ kind: 'TEXT', text: t });
   };
+  const act = useMutation({
+    mutationFn: ({ path, body, method = 'post' }: { path: string; body?: unknown; method?: 'post' | 'patch' }) => (method === 'post' ? api.post(path, body) : api.patch(path, body)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-msgs', roomId] }); qc.invalidateQueries({ queryKey: ['chat-room', roomId] }); },
+    onError: (e) => setError(errorMessage(e)),
+  });
+  const react = (m: ChatMessage, e: string) => act.mutate({ path: `/chat/messages/${m.id}/reactions`, body: { emoji: e } });
+  const pin = (id: string | null) => act.mutate({ path: `/chat/rooms/${roomId}/pin`, body: { messageId: id } });
   const sendFiles = (files: FileList | null) => {
     setError(null);
     for (const f of Array.from(files ?? [])) {
@@ -272,7 +397,9 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
   const canDeleteAny = me?.role === 'SUPER_ADMIN' || me?.role === 'ADMIN';
 
   const r = room.data;
-  const subtitle = !r ? '' : r.kind === 'DIRECT' ? (r.peer?.online ? 'в сети' : r.peer ? roleLabel(r.peer.role) : '') : `Участников: ${r.memberCount}`;
+  const typer = Object.values(typing)[0];
+  const typingText = typer ? `${r?.kind === 'DIRECT' ? '' : `${typer.name.split(' ')[0]} `}${typer.kind === 'voice' ? 'записывает голосовое…' : 'печатает…'}` : null;
+  const subtitle = typingText ?? (!r ? '' : r.kind === 'DIRECT' ? (r.peer?.online ? 'в сети' : r.peer?.lastSeenAt ? lastSeen(r.peer.lastSeenAt) : r.peer ? roleLabel(r.peer.role) : '') : `Участников: ${r.memberCount}`);
   const peerRead = r?.peer?.lastReadAt ? new Date(r.peer.lastReadAt).getTime() : 0;
 
   return (
@@ -282,11 +409,18 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
         {r && <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} size={36} />}
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{r ? chatTitle(r) : ''}</p>
-          <p className="truncate text-xs text-muted">{subtitle}</p>
+          <p className={`truncate text-xs ${typingText ? 'text-primary' : 'text-muted'}`}>{subtitle}</p>
         </div>
         {r?.kind === 'GROUP' && <button aria-label="О группе" className="rounded-lg p-2 hover:bg-border/50" onClick={() => setInfo(true)}><Info size={20} aria-hidden /></button>}
       </div>
 
+      {r?.pinnedMessage && (
+        <div className="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-1.5 text-sm">
+          <Pin size={15} className="shrink-0 text-primary" aria-hidden />
+          <span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-primary">Закреплённое сообщение</span><span className="block truncate">{chatPreview(r.pinnedMessage)}</span></span>
+          {r.canPin && <button aria-label="Открепить" className="rounded p-1 hover:bg-border/50" onClick={() => pin(null)}><X size={15} aria-hidden /></button>}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto bg-background/60 px-3 py-3">
         {msgs.hasNextPage && (
           <div className="mb-2 text-center">
@@ -308,6 +442,12 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
                 showSender={!!r && r.kind !== 'DIRECT' && !mine}
                 read={mine && peerRead >= new Date(m.createdAt).getTime()}
                 onDelete={!m.deleted && (mine || canDeleteAny) ? () => { if (confirm('Удалить сообщение? Оно исчезнет у всех участников.')) del.mutate(m.id); } : undefined}
+                onReply={() => { setReplyTo(m); setEditing(null); }}
+                onEdit={mine && m.text && !m.forwardedFrom && Date.now() - new Date(m.createdAt).getTime() < 48 * 3600_000 ? () => { setEditing(m); setReplyTo(null); setText(m.text ?? ''); } : undefined}
+                onReact={(e) => react(m, e)}
+                onForward={() => setForwarding(m)}
+                onPin={r?.canPin ? () => pin(r.pinnedMessage?.id === m.id ? null : m.id) : undefined}
+                pinned={r?.pinnedMessage?.id === m.id}
               />
             </div>
           );
@@ -327,34 +467,63 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
       </div>
 
       {error && <div className="flex items-center justify-between gap-2 bg-danger/10 px-3 py-1.5 text-sm text-danger" role="alert">{error}<button aria-label="Закрыть" onClick={() => setError(null)}><X size={16} aria-hidden /></button></div>}
+      {(replyTo || editing) && (
+        <div className="flex items-center gap-2 border-t border-border bg-primary/5 px-3 py-1.5 text-sm">
+          {editing ? <Pencil size={15} className="text-primary" aria-hidden /> : <Reply size={15} className="text-primary" aria-hidden />}
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold text-primary">{editing ? 'Редактирование' : `Ответ: ${replyTo?.sender?.fullName ?? ''}`}</span>
+            <span className="block truncate">{chatPreview((editing ?? replyTo)!)}</span>
+          </span>
+          <button aria-label="Отменить" onClick={() => { if (editing) setText(''); setEditing(null); setReplyTo(null); }}><X size={16} aria-hidden /></button>
+        </div>
+      )}
+      {emoji && (
+        <div className="grid grid-cols-9 gap-1 border-t border-border p-2" role="listbox" aria-label="Эмодзи">
+          {EMOJIS.map((e) => <button key={e} className="rounded p-1 text-xl hover:bg-border/50" onClick={() => { setText((t) => t + e); setEmoji(false); }}>{e}</button>)}
+        </div>
+      )}
       <div className="flex items-end gap-2 border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <input ref={fileInput} type="file" multiple className="hidden" aria-label="Файлы" onChange={(e) => sendFiles(e.target.files)} />
         <button aria-label="Прикрепить" title="Фото, видео, файл" className="rounded-full p-2.5 hover:bg-border/50" onClick={() => fileInput.current?.click()}><Paperclip size={20} aria-hidden /></button>
+        <button aria-label="Эмодзи" className="rounded-full p-2.5 hover:bg-border/50" onClick={() => setEmoji(!emoji)}><Smile size={20} aria-hidden /></button>
         <textarea
           aria-label="Сообщение"
           placeholder="Сообщение"
           rows={1}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => { setText(e.target.value); if (e.target.value.trim()) sendTyping('text'); }}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); } }}
           className="max-h-40 min-h-10 flex-1 resize-none rounded-2xl border border-border bg-background px-4 py-2.5 outline-none focus:border-primary"
         />
         {text.trim()
           ? <button aria-label="Отправить" className="rounded-full bg-primary p-2.5 text-white" onClick={sendText}><Send size={20} aria-hidden /></button>
-          : <VoiceButton onRecorded={(file, durationMs) => queue({ kind: 'VOICE', file, durationMs })} onError={setError} />}
+          : <VoiceButton onRecorded={(file, durationMs) => queue({ kind: 'VOICE', file, durationMs })} onError={setError} onRecording={() => sendTyping('voice')} />}
       </div>
       {info && r && <GroupInfo room={r} onClose={() => setInfo(false)} onLeft={() => { setInfo(false); onBack(); }} />}
+      {forwarding && <ForwardModal message={forwarding} onClose={() => setForwarding(null)} onDone={() => setForwarding(null)} />}
     </>
   );
 }
 
-function Bubble({ m, mine, showSender, read, onDelete }: { m: ChatMessage; mine: boolean; showSender: boolean; read: boolean; onDelete?: () => void }) {
+function Bubble({ m, mine, showSender, read, onDelete, onReply, onEdit, onReact, onForward, onPin, pinned }: {
+  m: ChatMessage; mine: boolean; showSender: boolean; read: boolean; onDelete?: () => void;
+  onReply?: () => void; onEdit?: () => void; onReact?: (e: string) => void; onForward?: () => void; onPin?: () => void; pinned?: boolean;
+}) {
   const t = new Date(m.createdAt);
   const f = m.file;
+  const [menu, setMenu] = useState(false);
+  const copy = () => { void navigator.clipboard?.writeText(m.text ?? ''); setMenu(false); };
   return (
     <div className={`group my-1 flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div className={`relative max-w-[80%] rounded-2xl px-3 py-2 ${mine ? 'rounded-br-md bg-primary/15' : 'rounded-bl-md bg-card shadow-sm ring-1 ring-border'}`}>
         {showSender && m.sender && <p className="mb-0.5 text-xs font-bold text-primary">{m.sender.fullName}</p>}
+        {!m.deleted && m.forwardedFrom && <p className="mb-1 text-xs italic text-muted">Переслано от {m.forwardedFrom}</p>}
+        {!m.deleted && m.replyTo && (
+          <div className="mb-1.5 rounded-md border-l-[3px] border-primary bg-border/40 px-2 py-1 text-sm">
+            {m.replyTo.sender && <p className="text-xs font-bold text-primary">{m.replyTo.sender}</p>}
+            <p className="line-clamp-2 text-muted">{m.replyTo.deleted ? 'Сообщение удалено' : m.replyTo.preview}</p>
+          </div>
+        )}
         {m.deleted ? (
           <p className="italic text-muted">Сообщение удалено</p>
         ) : (
@@ -379,17 +548,39 @@ function Bubble({ m, mine, showSender, read, onDelete }: { m: ChatMessage; mine:
                 <Download size={18} className="shrink-0 text-muted" aria-hidden />
               </a>
             )}
-            {m.text && <p className={`whitespace-pre-wrap break-words ${f ? 'mt-1' : ''}`}>{m.text}</p>}
+            {m.text && <p className={`whitespace-pre-wrap break-words ${f ? 'mt-1' : ''}`}><RichText text={m.text} /></p>}
           </>
         )}
+        {!m.deleted && !!m.reactions?.length && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {m.reactions.map((x) => (
+              <button key={x.emoji} onClick={() => onReact?.(x.emoji)} aria-pressed={x.mine} className={`rounded-full px-2 py-0.5 text-xs ${x.mine ? 'bg-primary/20 ring-1 ring-primary' : 'bg-border/50'}`}>{x.emoji} {x.count}</button>
+            ))}
+          </div>
+        )}
         <p className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted">
+          {m.editedAt && !m.deleted && <span>изменено</span>}
+          {pinned && <Pin size={11} aria-label="Закреплено" />}
           {two(t.getHours())}:{two(t.getMinutes())}
           {mine && !m.deleted && (read ? <CheckCheck size={14} className="text-primary" aria-label="Прочитано" /> : <Check size={14} aria-hidden />)}
         </p>
-        {onDelete && (
-          <button aria-label="Удалить сообщение" onClick={onDelete} className="absolute -top-2 right-1 hidden rounded-full bg-card p-1 text-danger shadow ring-1 ring-border group-hover:block">
-            <Trash2 size={14} aria-hidden />
+        {!m.deleted && (
+          <button aria-label="Действия с сообщением" onClick={() => setMenu(!menu)} className={`absolute -top-2 ${mine ? 'left-1' : 'right-1'} rounded-full bg-card p-1 text-muted shadow ring-1 ring-border opacity-0 group-hover:opacity-100 focus:opacity-100 ${menu ? 'opacity-100' : ''}`}>
+            <MoreVertical size={14} aria-hidden />
           </button>
+        )}
+        {menu && (
+          <div className={`absolute top-5 z-20 w-56 rounded-lg border border-border bg-card p-1 text-sm shadow-lg ${mine ? 'right-0' : 'left-0'}`} role="menu">
+            <div className="flex justify-between px-1 pb-1">
+              {CHAT_REACTIONS.map((e) => <button key={e} aria-label={`Реакция ${e}`} className="rounded p-0.5 text-lg hover:bg-border/50" onClick={() => { setMenu(false); onReact?.(e); }}>{e}</button>)}
+            </div>
+            <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onReply?.(); }}><Reply size={15} aria-hidden />Ответить</button>
+            {m.text && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={copy}><Copy size={15} aria-hidden />Копировать</button>}
+            {onEdit && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onEdit(); }}><Pencil size={15} aria-hidden />Изменить</button>}
+            <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onForward?.(); }}><Forward size={15} aria-hidden />Переслать</button>
+            {onPin && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onPin(); }}><Pin size={15} aria-hidden />{pinned ? 'Открепить' : 'Закрепить'}</button>}
+            {onDelete && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-danger hover:bg-danger/10" onClick={() => { setMenu(false); onDelete(); }}><Trash2 size={15} aria-hidden />Удалить</button>}
+          </div>
         )}
       </div>
     </div>
@@ -397,12 +588,12 @@ function Bubble({ m, mine, showSender, read, onDelete }: { m: ChatMessage; mine:
 }
 
 /** Click to start recording, click again to send (a browser has no «hold»); the microphone permission is asked once. */
-function VoiceButton({ onRecorded, onError }: { onRecorded: (f: File, durationMs: number) => void; onError: (m: string) => void }) {
+function VoiceButton({ onRecorded, onError, onRecording }: { onRecorded: (f: File, durationMs: number) => void; onError: (m: string) => void; onRecording?: () => void }) {
   const [rec, setRec] = useState<{ r: MediaRecorder; started: number } | null>(null);
   const [, tick] = useState(0);
   useEffect(() => {
     if (!rec) return;
-    const id = setInterval(() => tick((x) => x + 1), 500);
+    const id = setInterval(() => { tick((x) => x + 1); onRecording?.(); }, 500);
     return () => clearInterval(id);
   }, [rec]);
   const start = async () => {
@@ -481,6 +672,24 @@ function GroupInfo({ room, onClose, onLeft }: { room: ChatRoomDetail; onClose: (
           pick={(ids) => { setAdding(false); update.mutate({ addIds: ids }); }}
         />
       )}
+    </Modal>
+  );
+}
+
+/** «Переслать в…»: one of my chats. */
+function ForwardModal({ message, onClose, onDone }: { message: ChatMessage; onClose: () => void; onDone: () => void }) {
+  const rooms = useQuery({ queryKey: ['chat-rooms'], queryFn: () => api.get<{ items: ChatRoomSummary[] }>('/chat/rooms') });
+  const fwd = useMutation({ mutationFn: (roomId: string) => api.post(`/chat/messages/${message.id}/forward`, { roomIds: [roomId] }), onSuccess: onDone });
+  return (
+    <Modal title="Переслать в…" onClose={onClose}>
+      <div className="max-h-[55vh] overflow-y-auto">
+        {rooms.data?.items.map((r) => (
+          <button key={r.id} disabled={fwd.isPending} onClick={() => fwd.mutate(r.id)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-border/40">
+            <Avatar kind={r.kind} name={chatTitle(r)} size={34} /><span className="truncate font-medium">{chatTitle(r)}</span>
+          </button>
+        ))}
+      </div>
+      {fwd.isError && <div className="mt-2"><ErrorState error={fwd.error} /></div>}
     </Modal>
   );
 }

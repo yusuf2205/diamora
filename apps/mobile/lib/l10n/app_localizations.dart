@@ -4269,6 +4269,174 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Отправить'**
   String get chatSend;
+
+  /// No description provided for @chatReply.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответить'**
+  String get chatReply;
+
+  /// No description provided for @chatEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить'**
+  String get chatEdit;
+
+  /// No description provided for @chatEdited.
+  ///
+  /// In ru, this message translates to:
+  /// **'изменено'**
+  String get chatEdited;
+
+  /// No description provided for @chatEditing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактирование'**
+  String get chatEditing;
+
+  /// No description provided for @chatForward.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переслать'**
+  String get chatForward;
+
+  /// No description provided for @chatForwardTo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переслать в…'**
+  String get chatForwardTo;
+
+  /// No description provided for @chatForwarded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переслано'**
+  String get chatForwarded;
+
+  /// No description provided for @chatForwardedFrom.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переслано от {name}'**
+  String chatForwardedFrom(String name);
+
+  /// No description provided for @chatPin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрепить'**
+  String get chatPin;
+
+  /// No description provided for @chatUnpin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открепить'**
+  String get chatUnpin;
+
+  /// No description provided for @chatPinned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закреплённое сообщение'**
+  String get chatPinned;
+
+  /// No description provided for @chatPinChat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрепить чат'**
+  String get chatPinChat;
+
+  /// No description provided for @chatUnpinChat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открепить чат'**
+  String get chatUnpinChat;
+
+  /// No description provided for @chatMute.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без уведомлений'**
+  String get chatMute;
+
+  /// No description provided for @chatUnmute.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включить уведомления'**
+  String get chatUnmute;
+
+  /// No description provided for @chatSearch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск'**
+  String get chatSearch;
+
+  /// No description provided for @chatSearchHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чаты, люди, сообщения'**
+  String get chatSearchHint;
+
+  /// No description provided for @chatSectionChats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чаты'**
+  String get chatSectionChats;
+
+  /// No description provided for @chatSectionPeople.
+  ///
+  /// In ru, this message translates to:
+  /// **'Люди'**
+  String get chatSectionPeople;
+
+  /// No description provided for @chatSectionMessages.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения'**
+  String get chatSectionMessages;
+
+  /// No description provided for @chatNothingFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ничего не найдено'**
+  String get chatNothingFound;
+
+  /// No description provided for @chatTyping.
+  ///
+  /// In ru, this message translates to:
+  /// **'печатает…'**
+  String get chatTyping;
+
+  /// No description provided for @chatTypingName.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} печатает…'**
+  String chatTypingName(String name);
+
+  /// No description provided for @chatRecordingVoice.
+  ///
+  /// In ru, this message translates to:
+  /// **'записывает голосовое…'**
+  String get chatRecordingVoice;
+
+  /// No description provided for @chatRecordingVoiceName.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} записывает голосовое…'**
+  String chatRecordingVoiceName(String name);
+
+  /// No description provided for @chatLastSeen.
+  ///
+  /// In ru, this message translates to:
+  /// **'был(а) в сети {time}'**
+  String chatLastSeen(String time);
+
+  /// No description provided for @chatReplyTo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответ: {name}'**
+  String chatReplyTo(String name);
+
+  /// No description provided for @chatEmoji.
+  ///
+  /// In ru, this message translates to:
+  /// **'Эмодзи'**
+  String get chatEmoji;
 }
 
 class _AppLocalizationsDelegate

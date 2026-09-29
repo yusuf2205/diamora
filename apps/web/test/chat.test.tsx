@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ChatApp, chatKindForFile, chatPreview, type ChatMessage } from '@/components/chat';
+import { render } from '@testing-library/react';
+import { ChatApp, chatKindForFile, chatPreview, RichText, type ChatMessage } from '@/components/chat';
 import { mockFetch, renderWithProviders, signIn } from './helpers';
 
 let search = new URLSearchParams();
@@ -66,6 +67,38 @@ describe('«Чат» on the web (panel and worker web share it)', () => {
     expect(await screen.findByText('Общий чат')).toBeInTheDocument();
     expect(screen.getByText('Выберите чат слева').parentElement!.className).toMatch(/(^| )hidden( |$)/);
     expect(container.innerHTML).not.toContain('md:flex');
+  });
+
+  it('stage 2: a reply quote, «изменено», reactions (click = toggle), the pinned message on top', async () => {
+    search = new URLSearchParams('room=r1');
+    signIn(ME);
+    const answer = { ...msg('0002', '12 метров'), replyTo: { id: '0001', sender: 'Юсуф', preview: 'Сколько осталось?', deleted: false }, editedAt: new Date().toISOString(), reactions: [{ emoji: '👍', count: 2, mine: false }] };
+    const fetch = mockFetch({
+      '/auth/me': ME,
+      '/chat/messages/0002/reactions': { ...answer, reactions: [{ emoji: '👍', count: 3, mine: true }] },
+      '/chat/rooms/r1/messages': { items: [answer], hasMore: false },
+      '/chat/rooms/r1/read': { ok: true },
+      '/chat/rooms/r1': { id: 'r1', kind: 'DIRECT', title: 'Нигора Азимова', isOwner: false, canManage: false, canPin: true, memberCount: 2, peer: { id: 'u2', fullName: 'Нигора Азимова', role: 'WORKER', online: false, lastSeenAt: new Date().toISOString() }, members: [], pinnedMessage: msg('p1', 'Адрес: Чиланзар 5') },
+      '/chat/rooms': { items: [] },
+      '/chat/unread': { count: 0 },
+    });
+    renderWithProviders(<ChatApp />);
+    expect(await screen.findByText('Сколько осталось?')).toBeInTheDocument();
+    expect(screen.getByText('изменено')).toBeInTheDocument();
+    expect(screen.getByText('Закреплённое сообщение')).toBeInTheDocument();
+    expect(screen.getByText('Адрес: Чиланзар 5')).toBeInTheDocument();
+    expect(screen.getByText(/был\(а\) в сети/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('👍 2'));
+    await waitFor(() => expect(fetch.mock.calls.some(([u, init]) => String(u).endsWith('/chat/messages/0002/reactions') && init?.method === 'POST')).toBe(true));
+  });
+
+  it('links open in a new tab without a referrer; @mentions stand out; HTML stays text', () => {
+    const { container } = render(<RichText text={'Смотри https://diamoraa.uz/w и @Нигора <img src=x onerror=alert(1)>'} />);
+    const a = container.querySelector('a')!;
+    expect(a.getAttribute('href')).toBe('https://diamoraa.uz/w');
+    expect(a.getAttribute('rel')).toContain('noreferrer');
+    expect(container.querySelector('b')!.textContent).toBe('@Нигора');
+    expect(container.querySelector('img')).toBeNull();
   });
 
   it('previews and file kinds', () => {

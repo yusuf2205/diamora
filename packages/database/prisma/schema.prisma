@@ -185,6 +185,7 @@ model User {
   pushTokens      PushToken[]
   chatMembers     ChatMember[]
   chatMessages    ChatMessage[]       @relation("ChatSender")
+  chatReactions   ChatReaction[]
 
   @@index([role, status])
   @@map("users")
@@ -1143,6 +1144,8 @@ model ChatRoom {
   directKey     String?       @unique
   createdById   String?       @db.Uuid
   lastMessageAt DateTime?     @db.Timestamptz(3)
+  /// the one message shown on top of the chat («Закреплённое сообщение»)
+  pinnedMessageId String?     @db.Uuid
   createdAt     DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
   members       ChatMember[]
@@ -1160,6 +1163,10 @@ model ChatMember {
   isOwner    Boolean   @default(false)
   lastReadAt DateTime? @db.Timestamptz(3)
   joinedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  /// this person keeps the chat on top of their list
+  pinnedAt   DateTime? @db.Timestamptz(3)
+  /// no push for this person until then (far future = muted for good)
+  mutedUntil DateTime? @db.Timestamptz(3)
 
   @@id([roomId, userId])
   @@index([userId])
@@ -1184,12 +1191,33 @@ model ChatMessage {
   height     Int?
   /// the sender's own id for this message: a retried send never posts it twice
   clientId   String?
+  replyToId  String?         @db.Uuid
+  replyTo    ChatMessage?    @relation("ChatReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    ChatMessage[]   @relation("ChatReply")
+  editedAt   DateTime?       @db.Timestamptz(3)
+  /// «Переслано от …» (the original sender's name at the time)
+  forwardedFrom String?
+  reactions  ChatReaction[]
   createdAt  DateTime        @default(now()) @db.Timestamptz(3)
   deletedAt  DateTime?       @db.Timestamptz(3)
 
   @@unique([senderId, clientId])
   @@index([roomId, createdAt])
+  @@index([text(ops: raw("gin_trgm_ops"))], type: Gin, map: "chat_messages_text_trgm")
   @@map("chat_messages")
+}
+
+/// One reaction per person per message (choosing another emoji replaces it).
+model ChatReaction {
+  messageId String      @db.Uuid
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String      @db.Uuid
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@id([messageId, userId])
+  @@map("chat_reactions")
 }
 
 model FileAsset {

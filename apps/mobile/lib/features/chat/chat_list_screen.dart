@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,17 +40,48 @@ String chatPreview(AppLocalizations l, ChatMessage m) {
 
 String chatTitle(AppLocalizations l, {required String kind, String? title}) => kind == 'COMPANY' ? l.chatCompany : (title ?? '');
 
-/// «Чат»: the company chat on top, then every conversation, newest first, with unread counts.
-class ChatListScreen extends ConsumerWidget {
+/// «Чат»: my pinned chats, the company chat, then every conversation (newest first) with unread counts; search on top.
+class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
+  @override
+  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
+}
+
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+  bool _searching = false;
+  final _q = TextEditingController();
+  Timer? _debounce;
+  Future<ChatSearchResult>? _results;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    _debounce?.cancel();
+    _q.dispose();
+    super.dispose();
+  }
+
+  void _closeSearch() => setState(() { _searching = false; _q.clear(); _results = null; });
+
+  void _onQuery(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      final next = v.trim().length < 2 ? null : ref.read(chatRepositoryProvider).search(v.trim());
+      setState(() { _results = next; });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final rooms = ref.watch(chatRoomsProvider);
     final me = ref.watch(authControllerProvider).value;
+    if (_searching) return _searchScaffold(context, l);
     return Scaffold(
-      appBar: AppBar(title: Text(l.chat)),
+      appBar: AppBar(
+        title: Text(l.chat),
+        actions: [IconButton(key: const Key('chatSearch'), tooltip: l.chatSearch, icon: const Icon(Icons.search_rounded), onPressed: () => setState(() => _searching = true))],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('chatNew'),
         onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet()),
@@ -66,7 +99,7 @@ class ChatListScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 96),
                   itemCount: items.length,
                   separatorBuilder: (_, _) => const Divider(height: 1, indent: 76),
-                  itemBuilder: (context, i) => _RoomTile(room: items[i], meId: me?.id),
+                  itemBuilder: (context, i) => _RoomTile(room: items[i], meId: me?.id, onLongPress: () => _roomMenu(items[i])),
                 ),
               ),
       ),
@@ -74,10 +107,87 @@ class ChatListScreen extends ConsumerWidget {
   }
 }
 
+extension on _ChatListScreenState {
+  Future<void> _roomMenu(ChatRoomSummary room) async {
+    final l = AppLocalizations.of(context);
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Wrap(children: [
+          ListTile(key: const Key('roomPin'), leading: Icon(room.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded), title: Text(room.pinned ? l.chatUnpinChat : l.chatPinChat), onTap: () => Navigator.pop(ctx, 'pin')),
+          ListTile(key: const Key('roomMute'), leading: Icon(room.muted ? Icons.notifications_active_rounded : Icons.notifications_off_rounded), title: Text(room.muted ? l.chatUnmute : l.chatMute), onTap: () => Navigator.pop(ctx, 'mute')),
+        ]),
+      ),
+    );
+    if (choice == null) return;
+    try {
+      await ref.read(chatRepositoryProvider).prefs(room.id, pinned: choice == 'pin' ? !room.pinned : null, muted: choice == 'mute' ? !room.muted : null);
+      ref.invalidate(chatRoomsProvider);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+    }
+  }
+
+  Widget _searchScaffold(BuildContext context, AppLocalizations l) {
+    final header = Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary);
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: _closeSearch),
+        title: TextField(key: const Key('chatSearchField'), controller: _q, autofocus: true, decoration: InputDecoration(hintText: l.chatSearchHint, border: InputBorder.none, filled: false), onChanged: _onQuery),
+      ),
+      body: _results == null
+          ? const SizedBox.shrink()
+          : FutureBuilder<ChatSearchResult>(
+              future: _results,
+              builder: (context, snap) {
+                if (snap.hasError) return EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, snap.error!));
+                final r = snap.data;
+                if (r == null) return const Center(child: CircularProgressIndicator());
+                if (r.rooms.isEmpty && r.people.isEmpty && r.messages.isEmpty) return EmptyState(icon: Icons.search_off_rounded, title: l.chatNothingFound);
+                return ListView(children: [
+                  if (r.rooms.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(l.chatSectionChats, style: header)),
+                  for (final room in r.rooms)
+                    ListTile(
+                      leading: ChatAvatar(kind: room.kind, name: chatTitle(l, kind: room.kind, title: room.title), radius: 20),
+                      title: Text(chatTitle(l, kind: room.kind, title: room.title)),
+                      onTap: () => context.push('/chat/${room.id}'),
+                    ),
+                  if (r.people.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(l.chatSectionPeople, style: header)),
+                  for (final p in r.people)
+                    ListTile(
+                      key: Key('found-person-${p.id}'),
+                      leading: ChatAvatar(kind: 'DIRECT', name: p.fullName, online: p.online, radius: 20),
+                      title: Text(p.fullName),
+                      subtitle: Text(teamRoleLabel(l, p.role)),
+                      onTap: () async {
+                        final router = GoRouter.of(context);
+                        final room = await ref.read(chatRepositoryProvider).direct(p.id);
+                        router.push('/chat/${room.id}');
+                      },
+                    ),
+                  if (r.messages.isNotEmpty) Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Text(l.chatSectionMessages, style: header)),
+                  for (final h in r.messages)
+                    ListTile(
+                      key: Key('found-msg-${h.message.id}'),
+                      leading: ChatAvatar(kind: h.roomKind, name: chatTitle(l, kind: h.roomKind, title: h.roomTitle), radius: 20),
+                      title: Text(chatTitle(l, kind: h.roomKind, title: h.roomTitle), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      subtitle: Text('${h.message.sender?.fullName.split(' ').first ?? ''}: ${chatPreview(l, h.message)}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                      trailing: Text(chatWhen(l, h.message.createdAt), style: Theme.of(context).textTheme.bodySmall),
+                      onTap: () => context.push('/chat/${h.roomId}'),
+                    ),
+                ]);
+              },
+            ),
+    );
+  }
+}
+
 class _RoomTile extends StatelessWidget {
-  const _RoomTile({required this.room, required this.meId});
+  const _RoomTile({required this.room, required this.meId, this.onLongPress});
   final ChatRoomSummary room;
   final String? meId;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -91,19 +201,24 @@ class _RoomTile extends StatelessWidget {
       key: Key('room-${room.id}'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: ChatAvatar(kind: room.kind, name: title, online: room.peer?.online ?? false),
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: room.unread > 0 ? FontWeight.w700 : FontWeight.w600)),
+      title: Row(children: [
+        Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: room.unread > 0 ? FontWeight.w700 : FontWeight.w600))),
+        if (room.muted) Padding(padding: const EdgeInsets.only(left: 4), child: Icon(Icons.notifications_off_rounded, size: 15, color: scheme.outline)),
+      ]),
       subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
         if (last != null) Text(chatWhen(l, last.createdAt), style: TextStyle(fontSize: 12, color: room.unread > 0 ? scheme.primary : scheme.outline)),
         const SizedBox(height: 4),
+        if (room.unread == 0 && room.pinned) Icon(Icons.push_pin_rounded, size: 16, color: scheme.outline),
         if (room.unread > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(color: scheme.primary, borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: room.muted ? scheme.outline : scheme.primary, borderRadius: BorderRadius.circular(10)),
             child: Text('${room.unread}', style: TextStyle(color: scheme.onPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
           ),
       ]),
       onTap: () => context.push('/chat/${room.id}'),
+      onLongPress: onLongPress,
     );
   }
 }
