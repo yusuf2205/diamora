@@ -182,6 +182,7 @@ model User {
   handoffsStarted AssignmentHandoff[] @relation("HandoffStaff")
   permissions     UserPermission[]
   liveLocation    UserLiveLocation?
+  pushTokens      PushToken[]
 
   @@index([role, status])
   @@map("users")
@@ -1100,6 +1101,20 @@ model AuditClear {
 
   @@index([clearedAt])
   @@map("audit_clears")
+}
+
+/// A signed-in device that gets instant notifications (Firebase Cloud Messaging token).
+model PushToken {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String   @default("android")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("push_tokens")
 }
 
 model FileAsset {

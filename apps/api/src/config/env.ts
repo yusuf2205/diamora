@@ -57,6 +57,8 @@ export const envSchema = z
     TELEGRAM_HANDOFF_TICKET_TTL_MINUTES: z.coerce.number().int().min(1).default(5),
     /** the backup job's status files (read-only mount), shown on «Состояние системы»; unset = not visible here */
     BACKUP_STATUS_DIR: z.string().optional(),
+    /** Firebase service-account JSON (read-only mount): instant Android notifications; unset = no push */
+    FIREBASE_CREDENTIALS_FILE: z.string().optional(),
     /** the deployed build, shown on «Состояние системы» */
     APP_VERSION: z.string().optional(),
   })

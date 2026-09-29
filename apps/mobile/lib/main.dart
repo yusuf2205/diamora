@@ -6,6 +6,7 @@ import 'package:yandex_maps_mapkit_lite/init.dart' as mapkit_init;
 import 'app/app.dart';
 import 'core/config.dart';
 import 'core/notifications/app_notifications.dart';
+import 'core/notifications/push.dart';
 import 'core/providers.dart';
 
 Future<void> main() async {
@@ -14,6 +15,7 @@ Future<void> main() async {
   // hard-coded. Without one the map screen shows a plain "not configured" message instead of a blank/crashing native view.
   if (AppConfig.yandexMapKitKey.isNotEmpty) await mapkit_init.initMapkit(apiKey: AppConfig.yandexMapKitKey);
   await initSystemNotifications().catchError((_) {});
+  await initPush();
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(overrides: [sharedPrefsProvider.overrideWithValue(prefs)], child: const DiamoraaApp()));
 }

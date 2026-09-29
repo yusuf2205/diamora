@@ -225,9 +225,12 @@ services:
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       BACKUP_STATUS_DIR: /backup-status
       APP_VERSION: ${APP_VERSION:-local}
+      FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
     volumes:
       # «Состояние системы»: when each backup last succeeded (the backup job's status files, read-only)
       - ${BACKUP_ROOT}/status:/backup-status:ro
+      # instant Android notifications: the Firebase service-account key (never in git; copied to secrets/ on the NAS)
+      - ./secrets/firebase-admin.json:/run/firebase/firebase-admin.json:ro
     networks: [edge, data]
     read_only: true
     tmpfs: [/tmp]
@@ -270,6 +273,10 @@ services:
       PUBLIC_API_URL: ${PUBLIC_URL:?set PUBLIC_URL in .env (no trailing slash)}
       WORKER_HEALTH_PORT: "3100"
       TZ: UTC
+      FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
+    volumes:
+      # deadline / summary notices are pushed from here too (the same read-only key as the API)
+      - ./secrets/firebase-admin.json:/run/firebase/firebase-admin.json:ro
     networks: [data, egress]
     read_only: true
     tmpfs: [/tmp]

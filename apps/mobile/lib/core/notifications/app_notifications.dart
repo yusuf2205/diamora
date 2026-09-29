@@ -13,6 +13,7 @@ import '../network/api_client.dart';
 import '../providers.dart';
 import '../storage/token_store.dart';
 import '../ui/widgets.dart';
+import 'push.dart';
 
 /// One entry of the bell (mirrors AppNotifier.list on the API).
 class AppNotice {
@@ -52,7 +53,7 @@ const _prefForeground = 'app.foregroundAt';
 const _taskName = 'diamoraa.notices';
 final _plugin = FlutterLocalNotificationsPlugin();
 const _details = NotificationDetails(
-  android: AndroidNotificationDetails('diamoraa_main', 'Diamoraa', channelDescription: 'Работа, выплаты, склад', importance: Importance.high, priority: Priority.high),
+  android: AndroidNotificationDetails('diamoraa_main', 'Diamoraa', channelDescription: 'Работа, выплаты, склад', importance: Importance.high, priority: Priority.high, onlyAlertOnce: true),
 );
 
 bool get _supported => !kIsWeb && Platform.isAndroid;
@@ -60,8 +61,13 @@ bool get _supported => !kIsWeb && Platform.isAndroid;
 /// Where a tap on a system notification should go (set once the router exists).
 void Function(String link)? onNoticeTap;
 
-Future<void> initSystemNotifications() async {
+Future<void> initSystemNotifications({bool background = false}) async {
   if (!_supported) return;
+  if (background) {
+    // a push arrived while the app is closed: just be able to show it (taps are handled when the app opens)
+    await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')));
+    return;
+  }
   await _plugin.initialize(
     settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')),
     onDidReceiveNotificationResponse: (r) { final link = r.payload; if (link != null && link.isNotEmpty) onNoticeTap?.call(link); },
@@ -232,6 +238,7 @@ class _NoticeDeliveryState extends ConsumerState<NoticeDelivery> {
     super.initState();
     final prefs = ref.read(sharedPrefsProvider);
     startNoticeDelivery(prefs).catchError((_) {});
+    registerPush(ref.read(apiClientProvider)); // instant notifications for this phone (no-op without Firebase)
     _life = AppLifecycleListener(onResume: () => markForeground(prefs), onShow: () => markForeground(prefs));
   }
 

@@ -113,5 +113,5 @@ class ApiClient {
       );
 
   Future<void> delete(String path) => _run(() => dio.delete<dynamic>(path), (_) {});
-  Future<Map<String, dynamic>> deleteJson(String path) => _run(() => dio.delete<dynamic>(path), (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{});
+  Future<Map<String, dynamic>> deleteJson(String path, {Object? body}) => _run(() => dio.delete<dynamic>(path, data: body), (d) => d is Map ? d.cast<String, dynamic>() : <String, dynamic>{});
 }

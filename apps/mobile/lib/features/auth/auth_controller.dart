@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import 'models.dart';
+import '../../core/notifications/push.dart';
 
 const _cachedSessionKey = 'cached_session';
 
@@ -55,6 +56,7 @@ class AuthController extends AsyncNotifier<Session?> {
 
   Future<void> logout({bool everywhere = false}) async {
     final repo = ref.read(authRepositoryProvider);
+    await unregisterPush(ref.read(apiClientProvider)); // while still signed in: this phone stops getting her notifications
     everywhere ? await repo.logoutAll() : await repo.logout();
     await _wipe();
     state = const AsyncData(null);

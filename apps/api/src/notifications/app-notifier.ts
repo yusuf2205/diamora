@@ -1,7 +1,7 @@
-import { Controller, Get, Global, HttpCode, Injectable, Logger, Module, OnModuleInit, Post } from '@nestjs/common';
+import { Controller, Delete, Get, Global, HttpCode, Injectable, Logger, Module, OnModuleInit, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
-  effectivePermissions, listNotificationsSchema, markNotificationsReadSchema, scopeFor,
+  effectivePermissions, listNotificationsSchema, markNotificationsReadSchema, pushTokenSchema, scopeFor,
   type Permission, type RealtimeEnvelope, type Role, type WorkerCategory,
 } from '@diamoraa/shared';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import type { AuthUser } from '../common/request-context';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
+import { PushService } from './push.service';
 
 interface Notice { type: string; title: string; body?: string | null; link?: string | null; dedupe?: string }
 
@@ -35,7 +36,7 @@ const ACTIVE = ['READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS'] as const;
 @Injectable()
 export class AppNotifier implements OnModuleInit {
   private readonly log = new Logger('AppNotifier');
-  constructor(private readonly prisma: PrismaService, private readonly bus: EventBus) {}
+  constructor(private readonly prisma: PrismaService, private readonly bus: EventBus, private readonly push: PushService) {}
 
   onModuleInit() { this.bus.onPublished((e) => this.handle(e)); }
 
@@ -50,6 +51,8 @@ export class AppNotifier implements OnModuleInit {
           },
         });
         await this.bus.publish('notification.created', { userId, notificationId: row.id, title: n.title, body: n.body ?? null, link: n.link ?? null });
+        // instantly to her phone too, even with the app closed (no-op without Firebase credentials)
+        void this.push.send(userId, { id: row.id, title: n.title, body: n.body, link: n.link });
       } catch (e) {
         if ((e as { code?: string }).code !== 'P2002') this.log.warn(`notify ${n.type}: ${(e as Error).message}`); // P2002 = already sent (dedupe)
       }
@@ -264,12 +267,26 @@ export class AppNotificationsController {
   read(@CurrentUser() u: AuthUser, @ZodBody(markNotificationsReadSchema) b: z.output<typeof markNotificationsReadSchema>) { return this.notifier.markRead(u, b); }
 }
 
+/** «This phone gets instant notifications»: the app registers its Firebase token after sign-in, removes it on sign-out. */
+@ApiTags('notifications')
+@ApiBearerAuth()
+@Controller('me/push-token')
+export class PushTokenController {
+  constructor(private readonly push: PushService) {}
+
+  @Authenticated() @Post() @HttpCode(200) @ApiZodBody(pushTokenSchema)
+  register(@CurrentUser() u: AuthUser, @ZodBody(pushTokenSchema) b: z.output<typeof pushTokenSchema>) { return this.push.register(u.id, b.token, b.platform); }
+
+  @Authenticated() @Delete() @HttpCode(200) @ApiZodBody(pushTokenSchema)
+  unregister(@CurrentUser() u: AuthUser, @ZodBody(pushTokenSchema) b: z.output<typeof pushTokenSchema>) { return this.push.unregister(u.id, b.token); }
+}
+
 /** The notifier itself runs in every process that publishes events (API and bot worker). */
 @Global()
-@Module({ providers: [AppNotifier], exports: [AppNotifier] })
+@Module({ providers: [AppNotifier, PushService], exports: [AppNotifier, PushService] })
 export class AppNotifierModule {}
 
 /** The bell endpoints (API process only). */
-@Module({ controllers: [AppNotificationsController] })
+@Module({ controllers: [AppNotificationsController, PushTokenController] })
 export class AppNotificationsApiModule {}
 

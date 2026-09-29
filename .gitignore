@@ -36,3 +36,7 @@ apps/mobile/build/
 apps/mobile/android/local.properties
 apps/mobile/android/key.properties
 apps/mobile/android/.gradle/
+
+# Firebase service-account keys (server push) — never committed; copied to the NAS by hand
+/secrets/
+*firebase-adminsdk*.json

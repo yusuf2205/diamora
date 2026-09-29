@@ -277,6 +277,7 @@ export class WorkersService {
       await tx.notification.deleteMany({ where: { workerId: id } });
       await tx.workerInvitation.updateMany({ where: { workerId: id }, data: { workerId: null } });
       if (w.userId) await tx.userSession.deleteMany({ where: { userId: w.userId } });
+      if (w.userId) await tx.pushToken.deleteMany({ where: { userId: w.userId } });
 
       if (!hasHistory) {
         await tx.qrEntity.deleteMany({ where: { workerId: id } });

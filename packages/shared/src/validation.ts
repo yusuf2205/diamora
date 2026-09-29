@@ -182,6 +182,8 @@ export const updateMaterialSchema = z
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
 // ---- owner's analytics: sales and expenses feed «Прибыль» -------------------------------------------------------------------
+/** «this phone gets instant notifications»: the Firebase token of a signed-in device */
+export const pushTokenSchema = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios', 'web']).default('android') });
 export const insightsMonthsSchema = z.object({ months: z.coerce.number().int().min(1).max(24).default(6) });
 export const createSaleSchema = z.object({
   total: uzsSchema.refine((v) => v > 0n, 'Amount must be above zero'),

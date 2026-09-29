@@ -7,6 +7,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase (instant notifications): google-services.json is git-ignored and kept only on the build machine. Without it
+// the app still builds and falls back to the 15-minute background check.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 // Release signing (pilot release, 2026-09-22): apps/mobile/android/key.properties is git-ignored, never committed.
 // Missing locally (e.g. a fresh checkout) -> release build falls back to debug signing so `flutter build` still works.
 val keystoreProperties = Properties()
