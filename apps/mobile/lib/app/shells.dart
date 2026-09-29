@@ -52,20 +52,16 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       if (next.value == true) _sync();
     });
 
-    return Scaffold(
+    return AdaptiveShell(
+      shell: widget.shell,
       body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: widget.shell))),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.shell.currentIndex,
-        onDestinationSelected: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
-        labelBehavior: MediaQuery.sizeOf(context).width < 400 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.dashboard_rounded), selectedIcon: const Icon(Icons.dashboard_rounded), label: l.dashboardTab),
-          NavigationDestination(icon: const Icon(Icons.groups_rounded), selectedIcon: const Icon(Icons.groups_rounded), label: l.workers),
-          NavigationDestination(icon: const Icon(Icons.map_rounded), selectedIcon: const Icon(Icons.map_rounded), label: l.map),
-          NavigationDestination(icon: const Icon(Icons.inventory_2_rounded), selectedIcon: const Icon(Icons.inventory_2_rounded), label: l.inventory),
-          NavigationDestination(icon: const Icon(Icons.more_horiz_rounded), selectedIcon: const Icon(Icons.more_horiz_rounded), label: l.more),
-        ],
-      ),
+      destinations: [
+        (Icons.dashboard_rounded, Icons.dashboard_rounded, l.dashboardTab),
+        (Icons.groups_rounded, Icons.groups_rounded, l.workers),
+        (Icons.map_rounded, Icons.map_rounded, l.map),
+        (Icons.inventory_2_rounded, Icons.inventory_2_rounded, l.inventory),
+        (Icons.more_horiz_rounded, Icons.more_horiz_rounded, l.more),
+      ],
     );
   }
 }
@@ -78,17 +74,64 @@ class WorkerShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Scaffold(
+    return AdaptiveShell(
+      shell: shell,
       body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: shell))),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.auto_awesome_rounded), selectedIcon: const Icon(Icons.auto_awesome_rounded), label: l.catalog),
-          NavigationDestination(icon: const Icon(Icons.home_rounded), selectedIcon: const Icon(Icons.home_rounded), label: l.home),
-          NavigationDestination(icon: const Icon(Icons.person_outline_rounded), selectedIcon: const Icon(Icons.person_rounded), label: l.profile),
-        ],
-      ),
+      destinations: [
+        (Icons.auto_awesome_rounded, Icons.auto_awesome_rounded, l.catalog),
+        (Icons.home_rounded, Icons.home_rounded, l.home),
+        (Icons.person_outline_rounded, Icons.person_rounded, l.profile),
+      ],
+    );
+  }
+}
+
+/// Phone: bottom bar (labels hidden only on very narrow screens). Tablet (>= 600 dp): a side rail with every label
+/// written out, widened to icon + text in landscape (>= 1000 dp), and the content kept to a readable width.
+class AdaptiveShell extends StatelessWidget {
+  const AdaptiveShell({super.key, required this.shell, required this.body, required this.destinations});
+  final StatefulNavigationShell shell;
+  final Widget body;
+  final List<(IconData, IconData, String)> destinations;
+
+  static const tabletWidth = 600.0;
+  static bool isTablet(BuildContext context) => MediaQuery.sizeOf(context).width >= tabletWidth;
+
+  void _go(int i) => shell.goBranch(i, initialLocation: i == shell.currentIndex);
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width < tabletWidth) {
+      return Scaffold(
+        body: body,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: _go,
+          labelBehavior: width < 400 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: [for (final d in destinations) NavigationDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: d.$3)],
+        ),
+      );
+    }
+    final extended = width >= 1000;
+    return Scaffold(
+      body: Row(children: [
+        SafeArea(
+          right: false,
+          child: NavigationRail(
+            key: const Key('tabletRail'),
+            selectedIndex: shell.currentIndex,
+            onDestinationSelected: _go,
+            extended: extended,
+            minExtendedWidth: 200,
+            labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+            groupAlignment: -0.9,
+            destinations: [for (final d in destinations) NavigationRailDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: Text(d.$3))],
+          ),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(child: body),
+      ]),
     );
   }
 }

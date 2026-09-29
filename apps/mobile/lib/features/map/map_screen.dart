@@ -81,6 +81,10 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   ymk.MapWindow? _mapWindow;
   final _placemarks = <ymk.PlacemarkMapObject, LiveLocationRow>{};
+  // MapKit does NOT retain tap listeners (see MapObject.addTapListener): without these strong references they get
+  // garbage-collected and a tap on a person silently does nothing.
+  final _tapListeners = <_TapListener>[];
+  LiveLocationRow? _selected;
   final _markerImages = <String, Future<ymk.ImageProvider>>{};
   bool _centered = false;
   AppLifecycleListener? _life;
@@ -91,6 +95,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _refilter() {
     final rows = ref.read(liveLocationsProvider).value;
     if (rows != null) _applyMarkers(_visible(rows));
+  }
+
+  /// the open card follows fresh data (position, online, work) and closes when the person is filtered out
+  void _syncSelected(List<LiveLocationRow> visible) {
+    final s = _selected;
+    if (s == null || !mounted) return;
+    setState(() => _selected = visible.where((r) => r.userId == s.userId && r.isHome == s.isHome).firstOrNull);
   }
 
   // MapKit draws only its empty grid ("squares") until it is STARTED: onStart while the map is on screen, onStop when
@@ -172,6 +183,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ),
               ),
               if (async.isLoading) const Positioned(top: 12, left: 0, right: 0, child: Center(child: LinearProgressIndicator())),
+              if (_selected != null)
+                Positioned(
+                  left: 12, bottom: 12,
+                  right: MediaQuery.sizeOf(context).width >= 600 ? null : 12,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: _PersonCard(key: const Key('mapPersonCard'), row: _selected!, onClose: () => setState(() => _selected = null)),
+                  ),
+                ),
               if (async.hasValue && async.value!.isEmpty)
                 Positioned(bottom: 24, left: 24, right: 24, child: Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(l.mapEmpty)))),
             ]),
@@ -190,6 +210,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final collection = window.map.mapObjects;
     collection.clear();
     _placemarks.clear();
+    _tapListeners.clear();
     final scheme = Theme.of(context).colorScheme;
     for (final row in rows) {
       final color = markerColor(row, scheme);
@@ -198,13 +219,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ymk.Point(latitude: row.latitude, longitude: row.longitude), image,
         const ymk.IconStyle(scale: 1.0, zIndex: 1),
       );
-      placemark.setText(row.fullName);
-      placemark.addTapListener(_TapListener((_, _) {
+      // the name under the dot, readable on any background
+      placemark.setTextWithStyle(const ymk.TextStyle(size: 11, placement: ymk.TextStylePlacement.Bottom, outlineWidth: 2), text: row.fullName);
+      final listener = _TapListener((_, _) {
         _onTap(row);
         return true;
-      }));
+      });
+      _tapListeners.add(listener);
+      placemark.addTapListener(listener);
       _placemarks[placemark] = row;
     }
+    _syncSelected(rows);
     if (!_centered && rows.isNotEmpty) {
       _centered = true;
       window.map.move(ymk.CameraPosition(ymk.Point(latitude: rows.first.latitude, longitude: rows.first.longitude), zoom: 11, azimuth: 0, tilt: 0));
@@ -228,48 +253,64 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _onTap(LiveLocationRow row) {
+    if (!mounted) return;
+    setState(() => _selected = row);
+  }
+}
+
+/// Who it is, right away: role, online / how fresh the point is, what is waiting at her place, and call / route /
+/// profile — shown over the map at once on a tap (no extra loading).
+class _PersonCard extends StatelessWidget {
+  const _PersonCard({super.key, required this.row, required this.onClose});
+  final LiveLocationRow row;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(row.fullName, style: Theme.of(ctx).textTheme.titleMedium),
-            Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}'),
-            const SizedBox(height: 4),
-            if (row.isHome)
-              Text(l.mapAtHome, style: TextStyle(color: Theme.of(ctx).colorScheme.outline))
-            else
-              Row(children: [
-                Icon(Icons.circle_rounded, size: 10, color: row.online ? AppTokens.ok : Theme.of(ctx).colorScheme.outline),
-                const SizedBox(width: 6),
-                Text(row.online ? l.onlineNow : l.offlineNow),
-                const SizedBox(width: 12),
-                Flexible(child: Text(freshnessLabel(l, row), style: TextStyle(color: row.freshness == LocationFreshness.stale ? Theme.of(ctx).colorScheme.error : null))),
-              ]),
-            if (row.toDeliver) Text('● ${l.mapFilterToDeliver}', style: const TextStyle(color: workDeliverColor, fontWeight: FontWeight.w600)),
-            if (row.toPickup) Text('● ${l.mapFilterToPickup}', style: const TextStyle(color: workPickupColor, fontWeight: FontWeight.w600)),
-            if (row.overdue) Text('● ${l.mapFilterOverdue}', style: const TextStyle(color: workOverdueColor, fontWeight: FontWeight.w600)),
-            if (row.phone != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(row.phone!)),
-            const SizedBox(height: 12),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.call)),
-              OutlinedButton.icon(
-                onPressed: () => openRoute(row.latitude, row.longitude),
-                icon: const Icon(Icons.directions_rounded), label: Text(l.route),
-              ),
-              if (row.workerId != null)
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/admin/workers/${row.workerId}');
-                  },
-                  icon: const Icon(Icons.badge_rounded), label: Text(l.mapOpenProfile),
-                ),
-            ]),
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 6,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            CircleAvatar(radius: 8, backgroundColor: markerColor(row, scheme)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(row.fullName, style: Theme.of(context).textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis)),
+            IconButton(key: const Key('mapPersonClose'), icon: const Icon(Icons.close_rounded), tooltip: MaterialLocalizations.of(context).closeButtonTooltip, onPressed: onClose),
           ]),
-        ),
+          Text('${teamRoleLabel(l, row.role)}${row.workerCode != null ? ' · ${row.workerCode}' : ''}'),
+          const SizedBox(height: 4),
+          if (row.isHome)
+            Text(l.mapAtHome, style: TextStyle(color: scheme.outline))
+          else
+            Row(children: [
+              Icon(Icons.circle_rounded, size: 10, color: row.online ? AppTokens.ok : scheme.outline),
+              const SizedBox(width: 6),
+              Text(row.online ? l.onlineNow : l.offlineNow),
+              const SizedBox(width: 12),
+              Flexible(child: Text(freshnessLabel(l, row), style: TextStyle(color: row.freshness == LocationFreshness.stale ? scheme.error : null))),
+            ]),
+          if (row.toDeliver) Text('● ${l.mapFilterToDeliver}', style: const TextStyle(color: workDeliverColor, fontWeight: FontWeight.w600)),
+          if (row.toPickup) Text('● ${l.mapFilterToPickup}', style: const TextStyle(color: workPickupColor, fontWeight: FontWeight.w600)),
+          if (row.overdue) Text('● ${l.mapFilterOverdue}', style: const TextStyle(color: workOverdueColor, fontWeight: FontWeight.w600)),
+          if (row.phone != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(row.phone!)),
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.call)),
+            OutlinedButton.icon(
+              onPressed: () => openRoute(row.latitude, row.longitude),
+              icon: const Icon(Icons.directions_rounded), label: Text(l.route),
+            ),
+            if (row.workerId != null)
+              FilledButton.icon(
+                onPressed: () => context.push('/admin/workers/${row.workerId}'),
+                icon: const Icon(Icons.badge_rounded), label: Text(l.mapOpenProfile),
+              ),
+          ]),
+        ]),
       ),
     );
   }
