@@ -11,8 +11,9 @@
   --ok: #1b7f4b;
   --danger: #c62828;
 }
+/* «Ночной режим»: follows the phone / computer unless chosen by hand (data-theme on <html>) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --background: #171213;
     --foreground: #f2eaeb;
     --card: #211a1c;
@@ -22,6 +23,16 @@
     --ok: #4cc38a;
     --danger: #ff6b6b;
   }
+}
+:root[data-theme='dark'] {
+  --background: #171213;
+  --foreground: #f2eaeb;
+  --card: #211a1c;
+  --border: #372c2e;
+  --muted: #a99a9d;
+  --primary: #e26d8a;
+  --ok: #4cc38a;
+  --danger: #ff6b6b;
 }
 @theme inline {
   --color-background: var(--background);

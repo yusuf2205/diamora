@@ -10,6 +10,7 @@ import { Logo } from '@/components/ui';
 import { MessageCircle, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 import { useChatUnread } from '@/components/chat';
+import { HeaderBadges } from '@/components/header-badges';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
   { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
@@ -67,8 +68,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen lg:flex lg:h-screen lg:overflow-hidden">
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
         <button aria-label="Меню" onClick={() => setMenuOpen(true)} className="-ml-1 rounded-lg p-2 hover:bg-border/50"><Menu size={22} aria-hidden /></button>
-        <p className="truncate text-base font-semibold">{current}</p>
-        {unread > 0 && pathname !== '/chat' && <Link href="/chat" className="ml-auto rounded-full bg-danger px-2 text-xs font-bold text-white" aria-label={`Чат: непрочитанных ${unread}`}>💬 {unread}</Link>}
+        <p className="flex-1 truncate text-base font-semibold">{current}</p>
+        <HeaderBadges chatUnread={unread} />
       </header>
       {menuOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMenuOpen(false)} />}
       <aside
@@ -95,6 +96,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-4 border-t border-border pt-4">
+          <div className="mb-2 hidden lg:block"><HeaderBadges chatUnread={unread} /></div>
           <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-border/50" title="Мой профиль и пароль">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs font-semibold">{initials(me.fullName)}</span>
             <div className="min-w-0">

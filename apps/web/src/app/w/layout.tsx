@@ -60,7 +60,7 @@ export default function WorkerWebLayout({ children }: { children: ReactNode }) {
             return (
               <Link key={n.href} href={n.href} className={`relative flex flex-col items-center gap-0.5 py-2 text-xs ${active ? 'font-bold text-primary' : 'text-muted'}`}>
                 <n.icon size={22} aria-hidden />
-                {n.href === '/w/chat' && unread > 0 && <span className="absolute right-[22%] top-1 rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">{unread}</span>}
+                {n.href === "/w/chat" && unread > 0 && <span className="absolute right-[18%] top-0.5 min-w-5 rounded-full bg-danger px-1.5 text-center text-xs font-bold leading-5 text-white ring-2 ring-card">{unread}</span>}
                 {n.label}
               </Link>
             );

@@ -157,6 +157,7 @@ export const ERROR_CODES = [
   'OPEN_WORK',
   /** a material still held by a worker or used in a live kit recipe */
   'IN_USE',
+  'USERNAME_TAKEN',
   /** a real, live QR of a worker/work outside the scanner's scope (a MANAGER scanning another manager's worker) */
   'QR_NOT_YOURS',
   /** a QR that no longer works: the work was completed or cancelled, or the worker was deleted */

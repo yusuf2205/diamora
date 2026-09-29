@@ -1,27 +1,29 @@
 'use client';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
+import { Bell, ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Menu, PanelRight, ShieldOff, Shield, Eraser, FileDown, Wallpaper, CheckSquare, User as UserIcon, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { accessToken, api, apiOrigin } from '@/lib/api';
+const apiBaseUrl = () => (typeof window === 'undefined' ? '' : apiOrigin());
 import { emitLive, onLiveEvent } from '@/lib/live';
+import { ChatMainMenu, FloatingMenu, MenuItem, MyProfileModal, PersonAvatar, ProfileCard, VoicePlayer, WALLPAPERS, albumsOf, useWallpaper, waveformRecorder } from './chat-extras';
 import { useAuth } from '@/lib/auth';
 import { errorMessage, initials, roleLabel } from '@/lib/format';
 import { Button, ErrorState, Input, Modal, Spinner } from '@/components/ui';
 
 // ---- types (GET /v1/chat/...) ------------------------------------------------------------------------------------------
-export interface ChatPerson { id: string; fullName: string; role: string; online?: boolean; isOwner?: boolean; lastReadAt?: string | null; lastSeenAt?: string | null; isAdmin?: boolean }
+export interface ChatPerson { id: string; fullName: string; role: string; online?: boolean; isOwner?: boolean; lastReadAt?: string | null; lastSeenAt?: string | null; isAdmin?: boolean; avatar?: string | null; username?: string | null }
 export interface ChatReaction { emoji: string; count: number; mine: boolean }
 export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'] as const;
 export interface ChatFile { url: string; thumbUrl: string | null; name: string | null; size: number | null; mimeType: string | null; durationMs: number | null; width: number | null; height: number | null }
-export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null;
+export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null; waveform?: string | null;
   replyTo?: { id: string; sender: string | null; preview: string | null; deleted: boolean } | null; forwardedFrom?: string | null; editedAt?: string | null; reactions?: ChatReaction[] }
 export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY' | 'CHANNEL'; photo?: string | null; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean }
 export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[];
   canPin?: boolean; pinned?: boolean; muted?: boolean; pinnedMessage?: ChatMessage | null;
   description?: string | null; photo?: { url: string; thumbUrl: string } | null; audience?: 'ALL' | 'STAFF' | 'WORKERS' | 'CUSTOM' | null;
-  onlyAdminsWrite?: boolean; canWrite?: boolean; canEditAdmins?: boolean; isAdmin?: boolean }
+  onlyAdminsWrite?: boolean; canWrite?: boolean; canEditAdmins?: boolean; isAdmin?: boolean; protectContent?: boolean; canProtect?: boolean }
 interface ChatSearch { rooms: ChatRoomSummary[]; people: ChatPerson[]; messages: (ChatMessage & { room: { id: string; kind: string; title: string | null } })[] }
 
 export const CHAT_MAX_BYTES = 50 * 1024 * 1024;
@@ -137,10 +139,15 @@ export function ChatApp({ single = false }: { single?: boolean }) {
   const pathname = usePathname();
   const roomId = params.get('room');
   const open = (id: string | null) => router.push(id ? `${pathname}?room=${id}` : pathname);
+  // «Скрыть имена чатов»: the list shrinks to photos (remembered on this device)
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => { try { setCollapsed(localStorage.getItem('chat-collapsed') === '1'); } catch { /* ignore */ } }, []);
+  const toggleCollapsed = () => setCollapsed((c) => { try { localStorage.setItem('chat-collapsed', c ? '0' : '1'); } catch { /* ignore */ } return !c; });
+  const narrow = collapsed && !single;
   return (
     <div className={`flex overflow-hidden rounded-xl border border-border bg-card ${single ? 'h-[calc(100dvh-8.5rem)] min-h-[380px]' : 'h-[calc(100dvh-9rem)] min-h-[420px] lg:h-[calc(100vh-4rem)]'}`}>
-      <div className={`${roomId ? (single ? 'hidden' : 'hidden md:flex') : 'flex'} w-full flex-col ${single ? '' : 'border-r border-border md:w-80 md:shrink-0'}`}>
-        <RoomList selected={roomId} onOpen={open} />
+      <div className={`${roomId ? (single ? 'hidden' : 'hidden md:flex') : 'flex'} w-full flex-col ${single ? '' : `border-r border-border md:shrink-0 ${narrow ? 'md:w-[76px]' : 'md:w-80'}`}`}>
+        <RoomList selected={roomId} onOpen={open} collapsed={narrow && !!roomId} onToggleCollapsed={single ? undefined : toggleCollapsed} />
       </div>
       <div className={`${roomId ? 'flex' : single ? 'hidden' : 'hidden md:flex'} min-w-0 flex-1 flex-col`}>
         {roomId ? <Conversation key={roomId} roomId={roomId} onBack={() => open(null)} single={single} /> : <div className="m-auto p-6 text-center text-muted">Выберите чат слева</div>}
@@ -149,8 +156,12 @@ export function ChatApp({ single = false }: { single?: boolean }) {
   );
 }
 
-function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: string) => void }) {
+function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { selected: string | null; onOpen: (id: string) => void; collapsed?: boolean; onToggleCollapsed?: () => void }) {
   const { me } = useAuth();
+  const [mainMenu, setMainMenu] = useState(false);
+  const [profile, setProfile] = useState(false);
+  const [newMode, setNewMode] = useState<null | 'chat' | 'group' | 'channel'>(null);
+  const admin = me?.role === 'SUPER_ADMIN' || me?.role === 'ADMIN';
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['chat-rooms'], queryFn: () => api.get<{ items: ChatRoomSummary[] }>('/chat/rooms') });
   const [creating, setCreating] = useState(false);
@@ -166,17 +177,32 @@ function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: 
   const [menu, setMenu] = useState<string | null>(null);
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="text-lg font-semibold">Чат</h2>
-        <Button className="min-h-9 px-3 py-1.5 text-sm" onClick={() => setCreating(true)}><Plus size={16} aria-hidden /> Новый чат</Button>
+      {mainMenu && (
+        <ChatMainMenu
+          onClose={() => setMainMenu(false)}
+          onProfile={() => setProfile(true)}
+          onGroup={() => setNewMode('group')}
+          onChannel={admin ? () => setNewMode('channel') : undefined}
+          onContacts={() => setNewMode('chat')}
+          collapsed={collapsed}
+          onCollapse={() => onToggleCollapsed?.()}
+        />
+      )}
+      {profile && <MyProfileModal onClose={() => setProfile(false)} />}
+      {newMode === 'channel' && <NewChannelModal onClose={() => setNewMode(null)} onOpen={(id) => { setNewMode(null); onOpen(id); }} />}
+      {(newMode === 'chat' || newMode === 'group') && <NewChatModal initialGroup={newMode === 'group'} onClose={() => setNewMode(null)} onOpen={(id) => { setNewMode(null); onOpen(id); }} />}
+      <div className={`flex items-center gap-2 border-b border-border py-2.5 ${collapsed ? 'flex-col px-2' : 'px-3'}`}>
+        <button aria-label="Меню" onClick={() => setMainMenu(true)} className="rounded-full p-2 text-muted hover:bg-border/50"><Menu size={22} aria-hidden /></button>
+        {!collapsed && <h2 className="flex-1 text-lg font-semibold">Чат</h2>}
+        <button aria-label="Новый чат" title="Новый чат" onClick={() => setCreating(true)} className="rounded-full bg-primary p-2 text-white shadow hover:opacity-90"><Pencil size={18} aria-hidden /></button>
       </div>
-      <div className="border-b border-border px-3 py-2">
+      {!collapsed && <div className="border-b border-border px-3 py-2">
         <label className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5">
           <Search size={16} className="text-muted" aria-hidden />
           <input aria-label="Поиск: чаты, люди, сообщения" placeholder="Поиск: чаты, люди, сообщения" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" />
           {search && <button aria-label="Очистить поиск" onClick={() => setSearch('')}><X size={14} aria-hidden /></button>}
         </label>
-      </div>
+      </div>}
       {debounced.length >= 2 ? (
         <div className="flex-1 overflow-y-auto">
           {found.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
@@ -190,7 +216,7 @@ function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: 
           {!!found.data?.people.length && <p className="px-4 pt-3 text-xs font-semibold uppercase text-primary">Люди</p>}
           {found.data?.people.map((p) => (
             <button key={p.id} onClick={() => direct.mutate(p.id)} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-border/40">
-              <Avatar kind="DIRECT" name={p.fullName} online={p.online} size={34} />
+              <Avatar kind="DIRECT" name={p.fullName} online={p.online} size={34} photo={p.avatar} />
               <span className="min-w-0"><span className="block truncate font-medium">{p.fullName}</span><span className="block text-xs text-muted">{roleLabel(p.role)}</span></span>
             </button>
           ))}
@@ -209,7 +235,13 @@ function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: 
       <div className="flex-1 overflow-y-auto">
         {q.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
         {q.isError && <div className="p-3"><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>}
-        {q.data?.items.map((r) => {
+        {collapsed && q.data?.items.map((r) => (
+          <button key={r.id} title={chatTitle(r)} aria-label={chatTitle(r)} onClick={() => onOpen(r.id)} className={`relative flex w-full justify-center py-2 hover:bg-border/40 ${selected === r.id ? 'bg-primary/15' : ''}`}>
+            <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} photo={r.photo ?? r.peer?.avatar} size={48} />
+            {r.unread > 0 && <span className={`absolute right-2 top-1 rounded-full px-1.5 text-[11px] font-bold text-white ${r.muted ? 'bg-muted' : 'bg-primary'}`}>{r.unread}</span>}
+          </button>
+        ))}
+        {!collapsed && q.data?.items.map((r) => {
           const last = r.lastMessage;
           const who = !last || r.kind === 'DIRECT' || !last.sender ? '' : last.sender.id === me?.id ? 'Вы: ' : `${last.sender.fullName.split(' ')[0]}: `;
           const sub = last ? `${who}${chatPreview(last)}` : r.kind === 'COMPANY' ? 'Все сотрудники и мастерицы' : `Участников: ${r.memberCount}`;
@@ -219,7 +251,7 @@ function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: 
               onClick={() => onOpen(r.id)}
               className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
             >
-              <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} photo={r.photo} />
+              <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} photo={r.photo ?? r.peer?.avatar} size={48} />
               <span className="min-w-0 flex-1">
                 <span className="flex items-baseline justify-between gap-2">
                   <span className={`flex min-w-0 items-center gap-1 truncate ${r.unread ? 'font-bold' : 'font-medium'}`}>
@@ -253,12 +285,12 @@ function RoomList({ selected, onOpen }: { selected: string | null; onOpen: (id: 
 }
 
 /** «Новый чат»: one person (a direct chat) or several with a name (a group). With `pick` it only returns the chosen ids. */
-function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => void; onOpen?: (id: string) => void; pick?: (ids: string[]) => void; exclude?: string[] }) {
+function NewChatModal({ onClose, onOpen, pick, exclude = [], initialGroup = false }: { onClose: () => void; onOpen?: (id: string) => void; pick?: (ids: string[]) => void; exclude?: string[]; initialGroup?: boolean }) {
   const qc = useQueryClient();
   const { me } = useAuth();
   const [channel, setChannel] = useState(false);
   const [search, setSearch] = useState('');
-  const [group, setGroup] = useState(!!pick);
+  const [group, setGroup] = useState(!!pick || initialGroup);
   const [title, setTitle] = useState('');
   const [ticked, setTicked] = useState<string[]>([]);
   const people = useQuery({ queryKey: ['chat-contacts', search], queryFn: () => api.get<{ items: ChatPerson[] }>('/chat/contacts', { q: search || undefined }) });
@@ -273,12 +305,22 @@ function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => 
   const list = (people.data?.items ?? []).filter((p) => !exclude.includes(p.id));
   return (
     <Modal title={pick ? 'Добавить участников' : group ? 'Новая группа' : 'Новый чат'} onClose={onClose}>
-      {!pick && (
-        <div className="mb-3 flex flex-wrap gap-3 text-sm font-medium text-primary">
-          <button className="underline" onClick={() => { setGroup(!group); setTicked([]); }}>{group ? 'Написать одному человеку' : 'Создать группу'}</button>
-          {(me?.role === 'SUPER_ADMIN' || me?.role === 'ADMIN') && <button className="underline" onClick={() => setChannel(true)}>Создать канал</button>}
+      {!pick && !group && (
+        <div className="-mx-2 mb-3">
+          <button onClick={() => { setGroup(true); setTicked([]); }} className="flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-left hover:bg-border/40">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary"><Users size={20} aria-hidden /></span>
+            <span className="font-medium">Создать группу</span>
+          </button>
+          {(me?.role === 'SUPER_ADMIN' || me?.role === 'ADMIN') && (
+            <button onClick={() => setChannel(true)} className="flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-left hover:bg-border/40">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sky-800"><Megaphone size={20} aria-hidden /></span>
+              <span className="font-medium">Создать канал</span>
+            </button>
+          )}
+          <p className="px-3 pt-2 text-xs font-semibold uppercase text-muted">Контакты</p>
         </div>
       )}
+      {!pick && group && <button onClick={() => { setGroup(false); setTicked([]); }} className="mb-2 flex items-center gap-1 text-sm text-primary"><ArrowLeft size={15} aria-hidden /> Назад</button>}
       {channel && <NewChannelModal onClose={() => setChannel(false)} onOpen={(id) => { setChannel(false); onOpen?.(id); }} />}
       {group && !pick && <Input aria-label="Название группы" placeholder="Название группы" value={title} onChange={(e) => setTitle(e.target.value)} className="mb-2" />}
       <Input aria-label="Поиск по имени" placeholder="Поиск по имени" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -289,7 +331,7 @@ function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => 
             {group
               ? <input type="checkbox" checked={ticked.includes(p.id)} onChange={(e) => setTicked(e.target.checked ? [...ticked, p.id] : ticked.filter((x) => x !== p.id))} />
               : null}
-            <Avatar kind="DIRECT" name={p.fullName} online={p.online} size={34} />
+            <Avatar kind="DIRECT" name={p.fullName} online={p.online} size={40} photo={p.avatar} />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{p.fullName}</span>
               <span className="block text-xs text-muted">{roleLabel(p.role)}</span>
@@ -315,7 +357,9 @@ function NewChatModal({ onClose, onOpen, pick, exclude = [] }: { onClose: () => 
 interface Pending {
   clientId: string; kind: ChatMessage['kind']; text?: string; file?: File; durationMs?: number; replyToId?: string; progress: number; failed: boolean; createdAt: string;
   /** shown at once: the picture itself, or the video's first frame */
-  preview?: string; thumb?: Blob; width?: number; height?: number;
+  preview?: string; thumb?: Blob; width?: number; height?: number; waveform?: string;
+  /** ✕ cancels the upload */
+  abort?: AbortController;
 }
 
 function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () => void; single?: boolean }) {
@@ -337,6 +381,26 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
   const [emoji, setEmoji] = useState(false);
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
   const [viewing, setViewing] = useState<ChatMessage | null>(null);
+  // Telegram-like tools: right panel, search in the chat, ⋮ menu, right-click menu, «Выделить», wallpaper
+  const [panel, setPanel] = useState(false);
+  const [panelTab, setPanelTab] = useState<'info' | 'media' | 'files' | 'voice' | 'links'>('info');
+  const [searching, setSearching] = useState(false);
+  const [sq, setSq] = useState('');
+  const [sqd, setSqd] = useState('');
+  useEffect(() => { const id = setTimeout(() => setSqd(sq.trim()), 300); return () => clearTimeout(id); }, [sq]);
+  const inChat = useQuery({ queryKey: ['chat-room-search', roomId, sqd], queryFn: () => api.get<{ items: ChatMessage[] }>(`/chat/rooms/${roomId}/search`, { q: sqd }), enabled: searching && sqd.length >= 2 });
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [ctx, setCtx] = useState<{ m: ChatMessage; x: number; y: number } | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [wall, setWall] = useWallpaper(roomId);
+  const [wallPick, setWallPick] = useState(false);
+  const [forwardMany, setForwardMany] = useState<ChatMessage[] | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+  const jumpTo = (id: string) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); setFlash(id); setTimeout(() => setFlash(null), 1600); }
+    else setError('Это сообщение выше — прокрутите вверх («Показать раньше»)');
+  };
   // the unsent text of this chat is kept (a draft)
   useEffect(() => { try { if (text.trim() && !editing) localStorage.setItem(draftKey, text); else localStorage.removeItem(draftKey); } catch { /* private mode */ } }, [text, editing, draftKey]);
   // «печатает…» from the others (live, never stored), expiring after 6 s
@@ -390,12 +454,15 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
       await qc.invalidateQueries({ queryKey: ['chat-msgs', roomId] });
       setPending((xs) => xs.filter((x) => x.clientId !== p.clientId));
     } catch (e) {
+      if (p.abort?.signal.aborted) { setPending((xs) => xs.filter((x) => x.clientId !== p.clientId)); return; } // ✕ pressed
       setPending((xs) => xs.map((x) => (x.clientId === p.clientId ? { ...x, failed: true } : x)));
       setError(errorMessage(e));
     }
   };
+  /** ✕ on a photo / video being sent: stop and forget it (like Telegram) */
+  const cancel = (p: Pending) => { p.abort?.abort(); setPending((xs) => xs.filter((x) => x.clientId !== p.clientId)); };
   const queue = (p: Omit<Pending, 'clientId' | 'progress' | 'failed' | 'createdAt' | 'replyToId'>) => {
-    const item: Pending = { ...p, replyToId: replyTo?.id, clientId: newId(), progress: 0, failed: false, createdAt: new Date().toISOString() };
+    const item: Pending = { ...p, replyToId: replyTo?.id, clientId: newId(), progress: 0, failed: false, createdAt: new Date().toISOString(), abort: p.file ? new AbortController() : undefined };
     if (p.file && p.kind === 'IMAGE' && typeof URL.createObjectURL === 'function') item.preview = URL.createObjectURL(p.file);
     setReplyTo(null);
     setPending((xs) => [...xs, item]);
@@ -427,6 +494,26 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-msgs', roomId] }); qc.invalidateQueries({ queryKey: ['chat-room', roomId] }); },
     onError: (e) => setError(errorMessage(e)),
   });
+  const [selecting, setSelecting] = useState(false);
+  const canEdit = (m: ChatMessage) => m.sender?.id === me?.id && !!m.text && !m.forwardedFrom && !m.deleted && Date.now() - new Date(m.createdAt).getTime() < 48 * 3600_000;
+  const canDelete = (m: ChatMessage) => !m.deleted && (m.sender?.id === me?.id || me?.role === 'SUPER_ADMIN' || me?.role === 'ADMIN' || !!room.data?.canManage);
+  const toggleMute = () => act.mutate({ path: `/chat/rooms/${roomId}/me`, method: 'patch', body: { muted: !room.data?.muted } });
+  const openInfo = () => { if (typeof window !== 'undefined' && window.innerWidth >= 1280) { setPanelTab('info'); setPanel(true); } else setInfo(true); };
+  const exportHistory = async () => {
+    try {
+      const res = await fetch(`${apiBaseUrl()}/v1/chat/rooms/${roomId}/export`, { headers: { Authorization: `Bearer ${accessToken() ?? ''}` } });
+      if (!res.ok) throw new Error(res.status === 403 ? 'Сохранение истории в этом чате запрещено' : 'Не удалось выгрузить историю');
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a'); a.href = url; a.download = `diamoraa-chat-${new Date().toISOString().slice(0, 10)}.txt`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5_000);
+    } catch (e) { setError(errorMessage(e)); }
+  };
+  const deleteChat = async () => {
+    const r0 = room.data;
+    if (!r0) return;
+    if (!confirm(r0.kind === 'DIRECT' ? 'Удалить чат? Переписка исчезнет только у вас.' : 'Покинуть? Вы больше не будете видеть сообщения.')) return;
+    try { await api.delete(`/chat/rooms/${roomId}`); await qc.invalidateQueries({ queryKey: ['chat-rooms'] }); onBack(); } catch (e) { setError(errorMessage(e)); }
+  };
   const react = (m: ChatMessage, e: string) => act.mutate({ path: `/chat/messages/${m.id}/reactions`, body: { emoji: e } });
   const pin = (id: string | null) => act.mutate({ path: `/chat/rooms/${roomId}/pin`, body: { messageId: id } });
   const sendFiles = (files: FileList | null) => {
@@ -455,7 +542,8 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
   const peerRead = r?.peer?.lastReadAt ? new Date(r.peer.lastReadAt).getTime() : 0;
 
   return (
-    <>
+    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="flex min-w-0 flex-1 flex-col">
       <div className="flex items-center gap-3 border-b border-border px-3 py-2.5">
         <button aria-label="Назад" className={`rounded-lg p-1.5 hover:bg-border/50 ${single ? '' : 'md:hidden'}`} onClick={onBack}><ArrowLeft size={20} aria-hidden /></button>
         {r && <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} size={36} photo={r.photo?.thumbUrl} />}
@@ -463,8 +551,42 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
           <p className="truncate font-semibold">{r ? chatTitle(r) : ''}</p>
           <p className={`truncate text-xs ${typingText ? 'text-primary' : 'text-muted'}`}>{subtitle}</p>
         </div>
-        {r && <button aria-label="Информация о чате" className="rounded-lg p-2 hover:bg-border/50" onClick={() => setInfo(true)}><Info size={20} aria-hidden /></button>}
+        {r && <button aria-label="Поиск в чате" title="Поиск" className="rounded-full p-2 text-muted hover:bg-border/50" onClick={() => { setSearching(!searching); setSq(''); }}><Search size={20} aria-hidden /></button>}
+        {r && <button aria-label="Информация о чате" title="Информация" className={`rounded-full p-2 hover:bg-border/50 ${panel ? 'text-primary' : 'text-muted'}`} onClick={() => (panel ? setPanel(false) : openInfo())}><PanelRight size={20} aria-hidden /></button>}
+        {r && <button aria-label="Ещё" title="Ещё" className="rounded-full p-2 text-muted hover:bg-border/50" onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); setMenuAt({ x: b.right - 240, y: b.bottom + 4 }); }}><MoreVertical size={20} aria-hidden /></button>}
       </div>
+      {selecting && (
+        <div className="flex items-center gap-2 border-b border-border bg-primary/10 px-3 py-2 text-sm">
+          <span className="flex-1 font-semibold">Выбрано: {selected.length}</span>
+          {!r?.protectContent && <Button variant="outline" className="min-h-8 px-3 py-1 text-sm" disabled={!selected.length} onClick={() => setForwardMany(messages.filter((m) => selected.includes(m.id)))}><Forward size={15} aria-hidden /> Переслать</Button>}
+          <Button variant="outline" className="min-h-8 px-3 py-1 text-sm text-danger" disabled={!selected.length || !messages.filter((m) => selected.includes(m.id)).every(canDelete)}
+            onClick={() => { if (confirm(`Удалить ${selected.length} сообщ.? Они исчезнут у всех.`)) { for (const id of selected) del.mutate(id); setSelected([]); setSelecting(false); } }}>
+            <Trash2 size={15} aria-hidden /> Удалить
+          </Button>
+          <button aria-label="Отменить выделение" className="rounded-full p-1.5 hover:bg-border/50" onClick={() => { setSelecting(false); setSelected([]); }}><X size={18} aria-hidden /></button>
+        </div>
+      )}
+      {searching && (
+        <div className="relative border-b border-border px-3 py-2">
+          <label className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5">
+            <Search size={16} className="text-muted" aria-hidden />
+            <input autoFocus aria-label="Поиск в этом чате" placeholder="Поиск в этом чате" value={sq} onChange={(e) => setSq(e.target.value)} className="w-full bg-transparent text-sm outline-none" />
+            <button aria-label="Закрыть поиск" onClick={() => { setSearching(false); setSq(''); }}><X size={14} aria-hidden /></button>
+          </label>
+          {sqd.length >= 2 && (
+            <div className="absolute inset-x-3 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+              {inChat.isLoading && <div className="flex justify-center p-3"><Spinner /></div>}
+              {inChat.data && !inChat.data.items.length && <p className="p-3 text-center text-sm text-muted">Ничего не найдено</p>}
+              {inChat.data?.items.map((m) => (
+                <button key={m.id} onClick={() => { setSearching(false); jumpTo(m.id); }} className="block w-full px-3 py-2 text-left text-sm hover:bg-border/40">
+                  <span className="flex justify-between gap-2"><b className="truncate">{m.sender?.fullName}</b><span className="shrink-0 text-xs text-muted">{chatWhen(m.createdAt)}</span></span>
+                  <span className="line-clamp-2 text-muted">{m.text}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {r?.pinnedMessage && (
         <div className="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-1.5 text-sm">
@@ -473,7 +595,7 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
           {r.canPin && <button aria-label="Открепить" className="rounded p-1 hover:bg-border/50" onClick={() => pin(null)}><X size={15} aria-hidden /></button>}
         </div>
       )}
-      <div className="flex-1 overflow-y-auto bg-background/60 px-3 py-3">
+      <div className="flex-1 overflow-y-auto bg-background/60 px-3 py-3" style={WALLPAPERS[wall]?.css ? { background: WALLPAPERS[wall].css } : undefined}>
         {msgs.hasNextPage && (
           <div className="mb-2 text-center">
             <button className="text-sm text-primary underline" onClick={() => msgs.fetchNextPage()} disabled={msgs.isFetchingNextPage}>Показать раньше</button>
@@ -482,26 +604,45 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
         {(room.isError || msgs.isError) && <ErrorState error={room.error ?? msgs.error} />}
         {msgs.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
         {msgs.isSuccess && messages.length === 0 && pending.length === 0 && <p className="mt-10 text-center text-muted">Сообщений пока нет — напишите первым</p>}
-        {messages.map((m, i) => {
-          const mine = m.sender?.id === me?.id;
-          const newDay = i === 0 || new Date(messages[i - 1].createdAt).toDateString() !== new Date(m.createdAt).toDateString();
+        {albumsOf(messages).map((item, i, all) => {
+          const first = Array.isArray(item) ? item[0] : item;
+          const last = Array.isArray(item) ? item[item.length - 1] : item;
+          const prev = i > 0 ? all[i - 1] : null;
+          const prevLast = prev ? (Array.isArray(prev) ? prev[prev.length - 1] : prev) : null;
+          const mine = first.sender?.id === me?.id;
+          const newDay = !prevLast || new Date(prevLast.createdAt).toDateString() !== new Date(first.createdAt).toDateString();
+          const group = !!r && r.kind !== 'DIRECT' && r.kind !== 'CHANNEL';
+          const nextFirst = i + 1 < all.length ? (Array.isArray(all[i + 1]) ? (all[i + 1] as ChatMessage[])[0] : (all[i + 1] as ChatMessage)) : null;
+          const lastOfRun = !nextFirst || nextFirst.sender?.id !== first.sender?.id;
+          const ids = Array.isArray(item) ? item.map((x) => x.id) : [item.id];
+          const isSel = ids.some((id) => selected.includes(id));
+          const openCtx = (e: { clientX: number; clientY: number; preventDefault?: () => void }) => { e.preventDefault?.(); if (!last.deleted) setCtx({ m: last, x: e.clientX, y: e.clientY }); };
           return (
-            <div key={m.id}>
-              {newDay && <div className="my-3 text-center"><span className="rounded-full bg-border/70 px-3 py-1 text-xs">{dayLabel(m.createdAt)}</span></div>}
-              <Bubble
-                m={m}
-                mine={mine}
-                showSender={!!r && r.kind !== 'DIRECT' && !mine}
-                read={mine && peerRead >= new Date(m.createdAt).getTime()}
-                onDelete={!m.deleted && (mine || canDeleteAny) ? () => { if (confirm('Удалить сообщение? Оно исчезнет у всех участников.')) del.mutate(m.id); } : undefined}
-                onReply={() => { setReplyTo(m); setEditing(null); }}
-                onEdit={mine && m.text && !m.forwardedFrom && Date.now() - new Date(m.createdAt).getTime() < 48 * 3600_000 ? () => { setEditing(m); setReplyTo(null); setText(m.text ?? ''); } : undefined}
-                onReact={(e) => react(m, e)}
-                onForward={() => setForwarding(m)}
-                onPin={r?.canPin ? () => pin(r.pinnedMessage?.id === m.id ? null : m.id) : undefined}
-                pinned={r?.pinnedMessage?.id === m.id}
-                onOpenMedia={() => setViewing(m)}
-              />
+            <div key={first.id} id={`msg-${last.id}`} className={`rounded-lg transition ${flash && ids.includes(flash) ? 'bg-primary/20' : ''}`}>
+              {newDay && <div className="my-3 text-center"><span className="rounded-full bg-card/80 px-3 py-1 text-xs shadow-sm">{dayLabel(first.createdAt)}</span></div>}
+              <div className={`flex items-end gap-2 ${selecting ? 'cursor-pointer' : ''}`} onClick={selecting ? () => setSelected((xs) => (isSel ? xs.filter((x) => !ids.includes(x)) : [...xs, ...ids])) : undefined}>
+                {selecting && <input type="checkbox" readOnly checked={isSel} aria-label="Выбрать сообщение" className="mb-3 h-4 w-4 shrink-0 accent-primary" />}
+                {group && !mine && (lastOfRun ? <PersonAvatar name={first.sender?.fullName ?? ''} photo={first.sender?.avatar} size={32} /> : <span className="w-8 shrink-0" />)}
+                <div className="min-w-0 flex-1">
+                  {Array.isArray(item) ? (
+                    <Album items={item} mine={mine} showSender={group && !mine} onOpen={(m) => setViewing(m)} onContext={openCtx} protect={!!r?.protectContent}
+                      read={mine && peerRead >= new Date(last.createdAt).getTime()} />
+                  ) : (
+                    <Bubble
+                      m={item}
+                      mine={mine}
+                      showSender={group && !mine}
+                      read={mine && peerRead >= new Date(item.createdAt).getTime()}
+                      onReact={(e) => react(item, e)}
+                      pinned={r?.pinnedMessage?.id === item.id}
+                      onOpenMedia={() => setViewing(item)}
+                      onContext={openCtx}
+                      onJump={jumpTo}
+                      protect={!!r?.protectContent}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
@@ -516,6 +657,7 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
               </span>
               {p.failed && <span className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-center text-xs text-white">Не отправлено — нажмите, чтобы повторить</span>}
             </button>
+            {!p.failed && <button aria-label="Отменить отправку" onClick={() => cancel(p)} className="-ml-9 mt-2 h-7 w-7 self-start rounded-full bg-black/60 text-white hover:bg-black/80"><X size={16} className="mx-auto" aria-hidden /></button>}
           </div>
         ) : (
           <div key={p.clientId} className="my-1 flex justify-end">
@@ -565,106 +707,217 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
         />
         {text.trim()
           ? <button aria-label="Отправить" className="rounded-full bg-primary p-2.5 text-white" onClick={sendText}><Send size={20} aria-hidden /></button>
-          : <VoiceButton onRecorded={(file, durationMs) => queue({ kind: 'VOICE', file, durationMs })} onError={setError} onRecording={() => sendTyping('voice')} />}
+          : <VoiceButton onRecorded={(file, durationMs, waveform) => queue({ kind: 'VOICE', file, durationMs, waveform })} onError={setError} onRecording={() => sendTyping('voice')} />}
       </div>
       )}
-      {info && r && <RoomInfo room={r} onClose={() => setInfo(false)} onLeft={() => { setInfo(false); onBack(); }} onOpenMessage={() => setInfo(false)} />}
+      {info && r && (r.kind === 'DIRECT' && r.peer
+        ? <Modal title="Информация" onClose={() => setInfo(false)}><ProfileCard userId={r.peer.id} muted={r.muted} onToggleMute={() => toggleMute()} onOpenTab={(t) => { setInfo(false); setPanelTab(t); setPanel(true); }} /></Modal>
+        : <RoomInfo room={r} onClose={() => setInfo(false)} onLeft={() => { setInfo(false); onBack(); }} onOpenMessage={() => setInfo(false)} />)}
+      {menuAt && r && (
+        <FloatingMenu x={menuAt.x} y={menuAt.y} onClose={() => setMenuAt(null)}>
+          <MenuItem icon={r.muted ? <Bell size={16} aria-hidden /> : <BellOff size={16} aria-hidden />} label={r.muted ? 'Включить уведомления' : 'Выключить уведомления'} onClick={() => { setMenuAt(null); toggleMute(); }} />
+          <MenuItem icon={<UserIcon size={16} aria-hidden />} label={r.kind === 'DIRECT' ? 'Показать профиль' : 'Информация'} onClick={() => { setMenuAt(null); openInfo(); }} />
+          <MenuItem icon={<Wallpaper size={16} aria-hidden />} label="Установить обои" onClick={() => { setMenuAt(null); setWallPick(true); }} />
+          {r.canProtect && <MenuItem icon={r.protectContent ? <ShieldOff size={16} aria-hidden /> : <Shield size={16} aria-hidden />} label={r.protectContent ? 'Разрешить копирование' : 'Запретить копирование'} onClick={() => { setMenuAt(null); act.mutate({ path: `/chat/rooms/${roomId}/protect`, body: { on: !r.protectContent } }); }} />}
+          {(!r.protectContent || r.canProtect) && <MenuItem icon={<FileDown size={16} aria-hidden />} label="Экспорт истории чата" onClick={() => { setMenuAt(null); void exportHistory(); }} />}
+          <MenuItem icon={<CheckSquare size={16} aria-hidden />} label="Выделить сообщения" onClick={() => { setMenuAt(null); setSelected([]); setSelecting(true); }} />
+          <MenuItem icon={<Eraser size={16} aria-hidden />} label="Очистить историю" onClick={() => { setMenuAt(null); if (confirm('Очистить историю? Сообщения исчезнут только у вас.')) act.mutate({ path: `/chat/rooms/${roomId}/clear` }); }} />
+          {r.kind !== 'COMPANY' && !(r.kind === 'CHANNEL' && r.audience !== 'CUSTOM') && (
+            <MenuItem danger icon={<Trash2 size={16} aria-hidden />} label={r.kind === 'DIRECT' ? 'Удалить чат' : r.kind === 'CHANNEL' ? 'Покинуть канал' : 'Покинуть группу'} onClick={() => { setMenuAt(null); void deleteChat(); }} />
+          )}
+        </FloatingMenu>
+      )}
+      {ctx && (
+        <FloatingMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}>
+          <div className="flex justify-between gap-0.5 border-b border-border px-2 pb-1.5 pt-1">
+            {CHAT_REACTIONS.map((e) => <button key={e} aria-label={`Реакция ${e}`} className="rounded-full p-1 text-xl transition hover:scale-125 hover:bg-border/50" onClick={() => { react(ctx.m, e); setCtx(null); }}>{e}</button>)}
+          </div>
+          <MenuItem icon={<Reply size={16} aria-hidden />} label="Ответить" onClick={() => { setReplyTo(ctx.m); setEditing(null); setCtx(null); }} />
+          {canEdit(ctx.m) && <MenuItem icon={<Pencil size={16} aria-hidden />} label="Изменить" onClick={() => { setEditing(ctx.m); setReplyTo(null); setText(ctx.m.text ?? ''); setCtx(null); }} />}
+          {r?.canPin && <MenuItem icon={<Pin size={16} aria-hidden />} label={r.pinnedMessage?.id === ctx.m.id ? 'Открепить' : 'Закрепить'} onClick={() => { pin(r.pinnedMessage?.id === ctx.m.id ? null : ctx.m.id); setCtx(null); }} />}
+          {ctx.m.text && !r?.protectContent && <MenuItem icon={<Copy size={16} aria-hidden />} label="Копировать текст" onClick={() => { void navigator.clipboard?.writeText(ctx.m.text ?? ''); setCtx(null); }} />}
+          {!r?.protectContent && <MenuItem icon={<Forward size={16} aria-hidden />} label="Переслать" onClick={() => { setForwarding(ctx.m); setCtx(null); }} />}
+          {canDelete(ctx.m) && <MenuItem danger icon={<Trash2 size={16} aria-hidden />} label="Удалить" onClick={() => { const id = ctx.m.id; setCtx(null); if (confirm('Удалить сообщение? Оно исчезнет у всех участников.')) del.mutate(id); }} />}
+          <MenuItem icon={<CheckSquare size={16} aria-hidden />} label="Выделить" onClick={() => { setSelecting(true); setSelected([ctx.m.id]); setCtx(null); }} />
+          {ctx.m.sender?.id === me?.id && <ReadInfo message={ctx.m} room={r} />}
+        </FloatingMenu>
+      )}
+      {wallPick && (
+        <Modal title="Обои чата" onClose={() => setWallPick(false)}>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(WALLPAPERS).map(([k, w]) => (
+              <button key={k} onClick={() => { setWall(k); setWallPick(false); }} className={`h-24 rounded-lg border text-xs font-medium ${wall === k ? 'border-primary ring-2 ring-primary' : 'border-border'}`} style={{ background: w.css || undefined }}>{w.label}</button>
+            ))}
+          </div>
+        </Modal>
+      )}
+      {forwardMany && <ForwardModal messages={forwardMany} onClose={() => setForwardMany(null)} onDone={() => { setForwardMany(null); setSelecting(false); setSelected([]); }} />}
       {forwarding && <ForwardModal message={forwarding} onClose={() => setForwarding(null)} onDone={() => setForwarding(null)} />}
-      {viewing && <MediaViewer items={messages.filter((m) => !m.deleted && m.file && (m.kind === 'IMAGE' || m.kind === 'VIDEO'))} start={viewing} onClose={() => setViewing(null)} />}
-    </>
+      {viewing && <MediaViewer items={messages.filter((m) => !m.deleted && m.file && (m.kind === 'IMAGE' || m.kind === 'VIDEO'))} start={viewing} onClose={() => setViewing(null)} protect={!!r?.protectContent} />}
+    </div>
+    {panel && r && (
+      <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-border bg-card xl:flex" aria-label="Информация">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          {panelTab !== 'info' && <button aria-label="Назад" onClick={() => setPanelTab('info')} className="rounded-full p-1 hover:bg-border/50"><ArrowLeft size={18} aria-hidden /></button>}
+          <p className="flex-1 font-semibold">{panelTab === 'info' ? 'Информация' : { media: 'Медиа', files: 'Файлы', voice: 'Голосовые', links: 'Ссылки' }[panelTab]}</p>
+          <button aria-label="Закрыть панель" onClick={() => setPanel(false)} className="rounded-full p-1 hover:bg-border/50"><X size={18} aria-hidden /></button>
+        </div>
+        {panelTab === 'info' && r.kind === 'DIRECT' && r.peer
+          ? <ProfileCard userId={r.peer.id} muted={r.muted} onToggleMute={toggleMute} onOpenTab={setPanelTab} />
+          : <RoomInfo panel room={r} initialTab={panelTab === 'info' ? undefined : panelTab} onClose={() => setPanel(false)} onLeft={() => { setPanel(false); onBack(); }} onOpenMessage={() => undefined} />}
+      </aside>
+    )}
+    </div>
   );
 }
 
-function Bubble({ m, mine, showSender, read, onDelete, onReply, onEdit, onReact, onForward, onPin, pinned, onOpenMedia }: {
-  m: ChatMessage; mine: boolean; showSender: boolean; read: boolean; onDelete?: () => void;
-  onReply?: () => void; onEdit?: () => void; onReact?: (e: string) => void; onForward?: () => void; onPin?: () => void; pinned?: boolean; onOpenMedia?: () => void;
-}) {
+/** A photo's full size starts loading as soon as the bubble is on screen, so opening it is instant. */
+function usePreload(url: string | undefined) {
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!url || !el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { const img = new Image(); img.src = url; io.disconnect(); } }, { rootMargin: '400px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [url]);
+  return ref;
+}
+
+function Stamp({ m, mine, read, pinned, light }: { m: ChatMessage; mine: boolean; read: boolean; pinned?: boolean; light?: boolean }) {
   const t = new Date(m.createdAt);
-  const f = m.file;
-  const [menu, setMenu] = useState(false);
-  const copy = () => { void navigator.clipboard?.writeText(m.text ?? ''); setMenu(false); };
   return (
-    <div className={`group my-1 flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <div className={`relative max-w-[80%] rounded-2xl px-3 py-2 ${mine ? 'rounded-br-md bg-primary/15' : 'rounded-bl-md bg-card shadow-sm ring-1 ring-border'}`}>
-        {showSender && m.sender && <p className="mb-0.5 text-xs font-bold text-primary">{m.sender.fullName}</p>}
+    <span className={`flex items-center justify-end gap-1 text-[11px] ${light ? 'text-white' : 'text-muted'}`}>
+      {m.editedAt && !m.deleted && <span>изменено</span>}
+      {pinned && <Pin size={11} aria-label="Закреплено" />}
+      {two(t.getHours())}:{two(t.getMinutes())}
+      {mine && !m.deleted && (read ? <CheckCheck size={14} className={light ? '' : 'text-primary'} aria-label="Прочитано" /> : <Check size={14} aria-hidden />)}
+    </span>
+  );
+}
+
+function Bubble({ m, mine, showSender, read, onReact, pinned, onOpenMedia, onContext, onJump, protect }: {
+  m: ChatMessage; mine: boolean; showSender: boolean; read: boolean; onReact?: (e: string) => void; pinned?: boolean; onOpenMedia?: () => void;
+  onContext: (e: { clientX: number; clientY: number; preventDefault?: () => void }) => void; onJump?: (id: string) => void; protect?: boolean;
+}) {
+  const f = m.file;
+  const preload = usePreload(m.kind === 'IMAGE' ? f?.url : undefined);
+  const mediaOnly = !m.deleted && !m.text && !m.replyTo && !m.forwardedFrom && (m.kind === 'IMAGE' || m.kind === 'VIDEO');
+  return (
+    <div className={`group my-0.5 flex ${mine ? 'justify-end' : 'justify-start'}`} onContextMenu={onContext}>
+      <div className={`relative max-w-[80%] ${mediaOnly ? 'overflow-hidden rounded-2xl' : `rounded-2xl px-3 py-2 ${mine ? 'rounded-br-md bg-primary/15' : 'rounded-bl-md bg-card shadow-sm ring-1 ring-border'}`} ${protect ? 'select-none' : ''}`}>
+        {showSender && m.sender && !mediaOnly && <p className="mb-0.5 text-xs font-bold text-primary">{m.sender.fullName}</p>}
         {!m.deleted && m.forwardedFrom && <p className="mb-1 text-xs italic text-muted">Переслано от {m.forwardedFrom}</p>}
         {!m.deleted && m.replyTo && (
-          <div className="mb-1.5 rounded-md border-l-[3px] border-primary bg-border/40 px-2 py-1 text-sm">
+          <button onClick={() => onJump?.(m.replyTo!.id)} className="mb-1.5 block w-full rounded-md border-l-[3px] border-primary bg-border/40 px-2 py-1 text-left text-sm hover:bg-border/60">
             {m.replyTo.sender && <p className="text-xs font-bold text-primary">{m.replyTo.sender}</p>}
             <p className="line-clamp-2 text-muted">{m.replyTo.deleted ? 'Сообщение удалено' : m.replyTo.preview}</p>
-          </div>
+          </button>
         )}
         {m.deleted ? (
           <p className="italic text-muted">Сообщение удалено</p>
         ) : (
           <>
             {m.kind === 'IMAGE' && f && (
-              <button onClick={onOpenMedia} aria-label="Открыть фото" className="block"><img src={f.thumbUrl ?? f.url} alt={m.text ?? 'Фото'} className="max-h-72 max-w-full rounded-lg" /></button>
+              <button ref={preload} onClick={onOpenMedia} aria-label="Открыть фото" className="relative block">
+                <img src={f.thumbUrl ?? f.url} alt={m.text ?? 'Фото'} draggable={!protect} className={`max-h-80 max-w-full object-cover ${mediaOnly ? '' : 'rounded-lg'}`} style={{ aspectRatio: f.width && f.height ? `${f.width} / ${f.height}` : undefined, minWidth: 160 }} />
+                {mediaOnly && <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-0.5"><Stamp m={m} mine={mine} read={read} pinned={pinned} light /></span>}
+              </button>
             )}
             {m.kind === 'VIDEO' && f && (
-              <button onClick={onOpenMedia} aria-label="Смотреть видео" className="relative block overflow-hidden rounded-lg bg-black" style={{ width: 240, aspectRatio: `${f.width ?? 16} / ${f.height ?? 9}`, maxHeight: 320 }}>
+              <button onClick={onOpenMedia} aria-label="Смотреть видео" className={`relative block overflow-hidden bg-black ${mediaOnly ? '' : 'rounded-lg'}`} style={{ width: 260, aspectRatio: `${f.width ?? 16} / ${f.height ?? 9}`, maxHeight: 340 }}>
                 {f.thumbUrl && <img src={f.thumbUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
                 <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white"><Play size={24} aria-hidden /></span></span>
-                <span className="absolute bottom-1.5 left-1.5 rounded bg-black/55 px-1.5 text-xs text-white">{f.durationMs ? `${fmtDuration(f.durationMs)} · ` : ''}{bytes(f.size)}</span>
+                <span className="absolute left-1.5 top-1.5 rounded bg-black/55 px-1.5 text-xs text-white">{f.durationMs ? `${fmtDuration(f.durationMs)} · ` : ''}{bytes(f.size)}</span>
+                {mediaOnly && <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-0.5"><Stamp m={m} mine={mine} read={read} pinned={pinned} light /></span>}
               </button>
             )}
             {(m.kind === 'VOICE' || m.kind === 'AUDIO') && f && (
-              <div>
-                {m.kind === 'AUDIO' && f.name && <p className="mb-1 truncate text-sm font-medium">{f.name}</p>}
-                <audio src={f.url} controls preload="none" className="h-10 w-64 max-w-full" />
-              </div>
+              <VoicePlayer id={m.id} url={f.url} waveform={m.waveform} durationMs={f.durationMs} size={f.size} name={m.kind === 'AUDIO' ? f.name : null} mine={mine} />
             )}
             {m.kind === 'FILE' && f && (
-              <a href={f.url} download={f.name ?? undefined} className="flex items-center gap-3 rounded-lg p-1 hover:bg-border/40">
-                <FileText size={28} className="shrink-0 text-primary" aria-hidden />
+              <a href={protect ? undefined : f.url} download={protect ? undefined : (f.name ?? undefined)} className="flex items-center gap-3 rounded-lg p-1 hover:bg-border/40">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-white"><FileText size={22} aria-hidden /></span>
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{f.name ?? 'Файл'}</span>
-                  <span className="block text-xs text-muted">{bytes(f.size)}</span>
+                  <span className="block text-xs text-muted">{bytes(f.size)}{protect ? ' · скачивание запрещено' : ''}</span>
                 </span>
-                <Download size={18} className="shrink-0 text-muted" aria-hidden />
+                {!protect && <Download size={18} className="shrink-0 text-muted" aria-hidden />}
               </a>
             )}
             {m.text && <p className={`whitespace-pre-wrap break-words ${f ? 'mt-1' : ''}`}><RichText text={m.text} /></p>}
           </>
         )}
         {!m.deleted && !!m.reactions?.length && (
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className={`mt-1 flex flex-wrap gap-1 ${mediaOnly ? 'absolute left-1.5 bottom-1.5' : ''}`}>
             {m.reactions.map((x) => (
-              <button key={x.emoji} onClick={() => onReact?.(x.emoji)} aria-pressed={x.mine} className={`rounded-full px-2 py-0.5 text-xs ${x.mine ? 'bg-primary/20 ring-1 ring-primary' : 'bg-border/50'}`}>{x.emoji} {x.count}</button>
+              <button key={x.emoji} onClick={() => onReact?.(x.emoji)} aria-pressed={x.mine} className={`rounded-full px-2 py-0.5 text-xs ${x.mine ? 'bg-primary/20 ring-1 ring-primary' : 'bg-border/60'}`}>{x.emoji} {x.count}</button>
             ))}
           </div>
         )}
-        <p className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted">
-          {m.editedAt && !m.deleted && <span>изменено</span>}
-          {pinned && <Pin size={11} aria-label="Закреплено" />}
-          {two(t.getHours())}:{two(t.getMinutes())}
-          {mine && !m.deleted && (read ? <CheckCheck size={14} className="text-primary" aria-label="Прочитано" /> : <Check size={14} aria-hidden />)}
-        </p>
+        {!mediaOnly && <p className="mt-0.5"><Stamp m={m} mine={mine} read={read} pinned={pinned} /></p>}
         {!m.deleted && (
-          <button aria-label="Действия с сообщением" onClick={() => setMenu(!menu)} className={`absolute -top-2 ${mine ? 'left-1' : 'right-1'} rounded-full bg-card p-1 text-muted shadow ring-1 ring-border opacity-0 group-hover:opacity-100 focus:opacity-100 ${menu ? 'opacity-100' : ''}`}>
+          <button aria-label="Действия с сообщением" onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); onContext({ clientX: b.left, clientY: b.bottom }); }}
+            className={`absolute -top-2 ${mine ? 'left-1' : 'right-1'} rounded-full bg-card p-1 text-muted opacity-0 shadow ring-1 ring-border group-hover:opacity-100 focus:opacity-100`}>
             <MoreVertical size={14} aria-hidden />
           </button>
-        )}
-        {menu && (
-          <div className={`absolute top-5 z-20 w-56 rounded-lg border border-border bg-card p-1 text-sm shadow-lg ${mine ? 'right-0' : 'left-0'}`} role="menu">
-            <div className="flex justify-between px-1 pb-1">
-              {CHAT_REACTIONS.map((e) => <button key={e} aria-label={`Реакция ${e}`} className="rounded p-0.5 text-lg hover:bg-border/50" onClick={() => { setMenu(false); onReact?.(e); }}>{e}</button>)}
-            </div>
-            <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onReply?.(); }}><Reply size={15} aria-hidden />Ответить</button>
-            {m.text && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={copy}><Copy size={15} aria-hidden />Копировать</button>}
-            {onEdit && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onEdit(); }}><Pencil size={15} aria-hidden />Изменить</button>}
-            <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onForward?.(); }}><Forward size={15} aria-hidden />Переслать</button>
-            {onPin && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 hover:bg-border/40" onClick={() => { setMenu(false); onPin(); }}><Pin size={15} aria-hidden />{pinned ? 'Открепить' : 'Закрепить'}</button>}
-            {onDelete && <button role="menuitem" className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-danger hover:bg-danger/10" onClick={() => { setMenu(false); onDelete(); }}><Trash2 size={15} aria-hidden />Удалить</button>}
-          </div>
         )}
       </div>
     </div>
   );
 }
 
+/** Photos / videos sent together: one tidy grid, like Telegram's albums. */
+function Album({ items, mine, showSender, onOpen, onContext, protect, read }: {
+  items: ChatMessage[]; mine: boolean; showSender: boolean; onOpen: (m: ChatMessage) => void;
+  onContext: (e: { clientX: number; clientY: number; preventDefault?: () => void }) => void; protect: boolean; read: boolean;
+}) {
+  const n = items.length;
+  const cols = n === 2 || n === 4 ? 2 : 3;
+  const last = items[n - 1];
+  return (
+    <div className={`my-0.5 flex ${mine ? 'justify-end' : 'justify-start'}`} onContextMenu={onContext}>
+      <div className={`relative w-[min(360px,80%)] overflow-hidden rounded-2xl ${protect ? 'select-none' : ''}`}>
+        {showSender && items[0].sender && <p className="bg-card px-3 py-1 text-xs font-bold text-primary">{items[0].sender.fullName}</p>}
+        <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          {items.map((m) => (
+            <button key={m.id} onClick={() => onOpen(m)} aria-label={m.kind === 'VIDEO' ? 'Смотреть видео' : 'Открыть фото'} className="relative aspect-square overflow-hidden bg-black/80">
+              {(m.file?.thumbUrl || m.kind === 'IMAGE') && <img src={m.file?.thumbUrl ?? m.file?.url} alt="" draggable={!protect} className="h-full w-full object-cover" />}
+              {m.kind === 'VIDEO' && <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white"><Play size={18} aria-hidden /></span></span>}
+            </button>
+          ))}
+        </div>
+        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-0.5"><Stamp m={last} mine={mine} read={read} light /></span>
+      </div>
+    </div>
+  );
+}
+
+/** «прочитано когда?» (my own messages): the time in a direct chat, who read it in a group. */
+function ReadInfo({ message, room }: { message: ChatMessage; room: ChatRoomDetail | undefined }) {
+  const [open, setOpen] = useState(false);
+  const q = useQuery({ queryKey: ['chat-reads', message.id], queryFn: () => api.get<{ items: (ChatPerson & { readAt: string })[] }>(`/chat/messages/${message.id}/reads`), enabled: open || room?.kind === 'DIRECT' });
+  const hm = (iso: string) => { const d = new Date(iso); return `${two(d.getHours())}:${two(d.getMinutes())}`; };
+  if (room?.kind === 'DIRECT') {
+    const r0 = q.data?.items[0];
+    return <p className="flex items-center gap-2 border-t border-border px-4 py-2 text-xs text-muted"><CheckCheck size={14} className="text-primary" aria-hidden />{r0 ? `прочитано в ${hm(r0.readAt)}` : q.isLoading ? '…' : 'ещё не прочитано'}</p>;
+  }
+  return (
+    <div className="border-t border-border">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-muted hover:bg-border/40"><CheckCheck size={14} className="text-primary" aria-hidden />Кто прочитал</button>
+      {open && (
+        <div className="max-h-40 overflow-y-auto pb-1">
+          {q.isLoading && <p className="px-4 py-1 text-xs text-muted">…</p>}
+          {q.data?.items.length === 0 && <p className="px-4 py-1 text-xs text-muted">Пока никто</p>}
+          {q.data?.items.map((p) => <p key={p.id} className="flex justify-between gap-2 px-4 py-1 text-xs"><span className="truncate">{p.fullName}</span><span className="text-muted">{hm(p.readAt)}</span></p>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Click to start recording, click again to send (a browser has no «hold»); the microphone permission is asked once. */
-function VoiceButton({ onRecorded, onError, onRecording }: { onRecorded: (f: File, durationMs: number) => void; onError: (m: string) => void; onRecording?: () => void }) {
+function VoiceButton({ onRecorded, onError, onRecording }: { onRecorded: (f: File, durationMs: number, waveform?: string) => void; onError: (m: string) => void; onRecording?: () => void }) {
   const [rec, setRec] = useState<{ r: MediaRecorder; started: number } | null>(null);
   const [, tick] = useState(0);
   useEffect(() => {
@@ -679,6 +932,7 @@ function VoiceButton({ onRecorded, onError, onRecording }: { onRecorded: (f: Fil
       const r = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
       const chunks: Blob[] = [];
       const started = Date.now();
+      const wave = waveformRecorder(stream); // the bars other people will see on this voice message
       r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
       r.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
@@ -686,7 +940,7 @@ function VoiceButton({ onRecorded, onError, onRecording }: { onRecorded: (f: Fil
         if (ms < 700) return;
         const mime = r.mimeType || 'audio/webm';
         const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm';
-        onRecorded(new File(chunks, `voice.${ext}`, { type: mime.split(';')[0] }), ms);
+        onRecorded(new File(chunks, `voice.${ext}`, { type: mime.split(';')[0] }), ms, wave.finish());
       };
       r.start();
       setRec({ r, started });
@@ -745,14 +999,16 @@ function NewChannelModal({ onClose, onOpen }: { onClose: () => void; onOpen: (id
 const AUDIENCE_LABEL = { ALL: 'все сотрудники и мастерицы', STAFF: 'только сотрудники', WORKERS: 'только мастерицы', CUSTOM: 'выбранные люди' } as const;
 
 /** «Информация о чате»: members and admins, description, photo, settings; media, files, voice and links. */
-function RoomInfo({ room, onClose, onLeft }: { room: ChatRoomDetail; onClose: () => void; onLeft: () => void; onOpenMessage: () => void }) {
+function RoomInfo({ room, onClose, onLeft, panel = false, initialTab }: { room: ChatRoomDetail; onClose: () => void; onLeft: () => void; onOpenMessage: () => void; panel?: boolean; initialTab?: 'media' | 'files' | 'voice' | 'links' }) {
   const qc = useQueryClient();
   const { me } = useAuth();
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState(room.title ?? '');
   const [description, setDescription] = useState(room.description ?? '');
   const managed = room.kind === 'GROUP' || room.kind === 'CHANNEL';
-  const [tab, setTab] = useState<'members' | 'media' | 'files' | 'voice' | 'links'>(managed ? 'members' : 'media');
+  const [tab, setTab] = useState<'members' | 'media' | 'files' | 'voice' | 'links'>(initialTab ?? (managed ? 'members' : 'media'));
+  useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
+  const Frame = panel ? PanelFrame : Modal;
   const refresh = () => { qc.invalidateQueries({ queryKey: ['chat-room', room.id] }); qc.invalidateQueries({ queryKey: ['chat-rooms'] }); };
   const update = useMutation({ mutationFn: (b: Record<string, unknown>) => api.patch(`/chat/rooms/${room.id}`, b), onSuccess: refresh });
   const leave = useMutation({ mutationFn: () => api.post(`/chat/rooms/${room.id}/leave`), onSuccess: () => { refresh(); onLeft(); } });
@@ -770,7 +1026,7 @@ function RoomInfo({ room, onClose, onLeft }: { room: ChatRoomDetail; onClose: ()
   type Tab = 'members' | 'media' | 'files' | 'voice' | 'links';
   const tabs: [Tab, string][] = [...(managed ? [['members', 'Участники'] as [Tab, string]] : []), ['media', 'Медиа'], ['files', 'Файлы'], ['voice', 'Голосовые'], ['links', 'Ссылки']];
   return (
-    <Modal title={room.kind === 'CHANNEL' ? 'О канале' : room.kind === 'GROUP' ? 'О группе' : 'Информация о чате'} onClose={onClose}>
+    <Frame title={room.kind === 'CHANNEL' ? 'О канале' : room.kind === 'GROUP' ? 'О группе' : 'Информация о чате'} onClose={onClose}>
       {managed && (
         <div className="mb-3 flex items-center gap-3">
           <Avatar kind={room.kind} name={room.title ?? ''} size={56} photo={room.photo?.thumbUrl} />
@@ -866,14 +1122,22 @@ function RoomInfo({ room, onClose, onLeft }: { room: ChatRoomDetail; onClose: ()
           pick={(ids) => { setAdding(false); update.mutate(room.kind === 'CHANNEL' && room.audience !== 'CUSTOM' ? { adminIds: ids } : { addIds: ids }); }}
         />
       )}
-    </Modal>
+    </Frame>
   );
 }
 
+function PanelFrame({ children }: { title: string; onClose: () => void; children: ReactNode }) {
+  return <div className="p-4">{children}</div>;
+}
+
 /** «Переслать в…»: one of my chats. */
-function ForwardModal({ message, onClose, onDone }: { message: ChatMessage; onClose: () => void; onDone: () => void }) {
+function ForwardModal({ message, messages, onClose, onDone }: { message?: ChatMessage; messages?: ChatMessage[]; onClose: () => void; onDone: () => void }) {
   const rooms = useQuery({ queryKey: ['chat-rooms'], queryFn: () => api.get<{ items: ChatRoomSummary[] }>('/chat/rooms') });
-  const fwd = useMutation({ mutationFn: (roomId: string) => api.post(`/chat/messages/${message.id}/forward`, { roomIds: [roomId] }), onSuccess: onDone });
+  const list = messages ?? (message ? [message] : []);
+  const fwd = useMutation({
+    mutationFn: async (roomId: string) => { for (const m of list) await api.post(`/chat/messages/${m.id}/forward`, { roomIds: [roomId] }); },
+    onSuccess: onDone,
+  });
   return (
     <Modal title="Переслать в…" onClose={onClose}>
       <div className="max-h-[55vh] overflow-y-auto">
@@ -891,13 +1155,14 @@ function ForwardModal({ message, onClose, onDone }: { message: ChatMessage; onCl
 /** Sends a file: one request when small, otherwise in 5 MB parts that resume (the same clientId continues). */
 async function uploadChatFile(roomId: string, p: Pending, onProgress: (x: number) => void) {
   const f = p.file!;
-  const meta = { kind: p.kind, clientId: p.clientId, durationMs: p.durationMs, replyToId: p.replyToId, width: p.width, height: p.height };
+  const meta = { kind: p.kind, clientId: p.clientId, durationMs: p.durationMs, replyToId: p.replyToId, width: p.width, height: p.height, waveform: p.waveform };
+  const signal = p.abort?.signal;
   if (f.size <= SINGLE_UPLOAD_BYTES) {
     const form = new FormData();
     for (const [k, v] of Object.entries(meta)) if (v !== undefined && v !== null) form.set(k, String(v));
     form.set('file', f, f.name);
     if (p.thumb) form.set('thumb', p.thumb, 'thumb.jpg');
-    await api.upload(`/chat/rooms/${roomId}/files`, form);
+    await api.upload(`/chat/rooms/${roomId}/files`, form, { signal });
     onProgress(1);
     return;
   }
@@ -913,10 +1178,11 @@ async function uploadChatFile(roomId: string, p: Pending, onProgress: (x: number
       try {
         const form = new FormData();
         form.set('chunk', blob, 'part');
-        await api.upload(`/chat/uploads/${start.uploadId}/parts/${i}`, form);
+        if (signal?.aborted) throw new DOMException('cancelled', 'AbortError');
+        await api.upload(`/chat/uploads/${start.uploadId}/parts/${i}`, form, { signal });
         break;
       } catch (e) {
-        if (attempt >= 3) throw e; // «повторить» resumes from this part
+        if (attempt >= 3 || signal?.aborted) throw e; // «повторить» resumes from this part
         await new Promise((r) => setTimeout(r, attempt * 2_000));
       }
     }
@@ -932,7 +1198,7 @@ async function uploadChatFile(roomId: string, p: Pending, onProgress: (x: number
  * Photos and videos full screen, like in Telegram: the preview at once, the full photo over it; ← → (keys, buttons or a
  * swipe) to the neighbours; Esc, ✕ or a swipe down closes. A video plays while it downloads (the server answers byte ranges).
  */
-export function MediaViewer({ items, start, onClose }: { items: ChatMessage[]; start: ChatMessage; onClose: () => void }) {
+export function MediaViewer({ items, start, onClose, protect = false }: { items: ChatMessage[]; start: ChatMessage; onClose: () => void; protect?: boolean }) {
   const list = items.length ? items : [start];
   const [i, setI] = useState(() => Math.max(0, list.findIndex((m) => m.id === start.id)));
   const [full, setFull] = useState<Record<string, boolean>>({});
@@ -966,7 +1232,7 @@ export function MediaViewer({ items, start, onClose }: { items: ChatMessage[]; s
           <p className="truncate font-semibold">{m.sender?.fullName}</p>
           {list.length > 1 && <p className="text-xs text-white/70">{i + 1} / {list.length}</p>}
         </div>
-        <a href={f.url} download={f.name ?? undefined} aria-label="Скачать" className="rounded-full p-2 hover:bg-white/10"><Download size={20} aria-hidden /></a>
+        {!protect && <a href={f.url} download={f.name ?? undefined} aria-label="Скачать" className="rounded-full p-2 hover:bg-white/10"><Download size={20} aria-hidden /></a>}
       </div>
       <div className="relative flex min-h-0 flex-1 items-center justify-center">
         {i > 0 && <button aria-label="Предыдущее" onClick={() => go(-1)} className="absolute left-2 z-10 hidden rounded-full bg-white/10 p-2 hover:bg-white/20 sm:block"><ChevronLeft size={28} aria-hidden /></button>}

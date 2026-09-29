@@ -4,6 +4,7 @@ import type { User, UserSession, WorkerProfile } from '@diamoraa/database';
 import { isStaffRole, type Permission, type Role } from '@diamoraa/shared';
 import { createHash, randomBytes } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
+import { FilesService } from '../files/files.service';
 import { EventBus } from '../events/event-bus';
 import { accountDisabled, AppError, invalidCredentials, notFound, rateLimited, sessionRevoked, ticketInvalid, unauthenticated, userNotFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
@@ -13,7 +14,10 @@ import { PasswordService, SessionAuthService } from './auth-core';
 
 export interface ClientMeta { ip?: string; userAgent?: string }
 export interface DeviceInput { installId: string; platform: string; name?: string; appVersion?: string }
-export interface MeDto { id: string; fullName: string; phone: string; role: Role; workerId: string | null; permissions: Permission[] }
+export interface MeDto {
+  id: string; fullName: string; phone: string; role: Role; workerId: string | null; permissions: Permission[];
+  avatar?: { url: string; thumbUrl: string } | null; bio?: string | null; username?: string | null;
+}
 export interface AuthResult { accessToken: string; accessTokenExpiresAt: string; refreshToken: string; refreshTokenExpiresAt: string; user: MeDto }
 export type TelegramExchangeResult = AuthResult | { status: 'PENDING_APPROVAL' | 'REJECTED' | 'PAUSED'; rejectedReason?: string | null };
 
@@ -31,6 +35,7 @@ export class AuthService {
     private readonly audit: AuditService,
     private readonly events: EventBus,
     @Inject(ENV) private readonly env: Env,
+    private readonly files: FilesService,
   ) {}
 
   // ---- ADMIN: phone + password ---------------------------------------------------------------------------------
@@ -229,7 +234,35 @@ export class AuthService {
   async me(user: AuthUser): Promise<MeDto> {
     const u = await this.prisma.user.findUnique({ where: { id: user.id }, include: { workerProfile: { select: { id: true } } } });
     if (!u) throw notFound('User');
-    return { id: u.id, fullName: u.fullName, phone: u.phone, role: u.role as Role, workerId: u.workerProfile?.id ?? null, permissions: user.permissions };
+    const avatar = u.avatarFileId ? this.files.ref(u.avatarFileId) : null;
+    return {
+      id: u.id, fullName: u.fullName, phone: u.phone, role: u.role as Role, workerId: u.workerProfile?.id ?? null, permissions: user.permissions,
+      avatar: avatar ? { url: avatar.url, thumbUrl: avatar.thumbUrl } : null, bio: u.bio, username: u.username,
+    };
+  }
+
+  /** «Мой профиль»: name, «о себе», @username (unique). */
+  async updateOwnProfile(user: AuthUser, b: { fullName?: string; bio?: string | null; username?: string | null }): Promise<MeDto> {
+    if (b.fullName) await this.updateOwnName(user, b.fullName);
+    const data: { bio?: string | null; username?: string | null } = {};
+    if (b.bio !== undefined) data.bio = b.bio?.trim() || null;
+    if (b.username !== undefined) data.username = b.username || null;
+    if (Object.keys(data).length) {
+      try {
+        await this.prisma.user.update({ where: { id: user.id }, data });
+      } catch (e) {
+        if ((e as { code?: string }).code === 'P2002') throw new AppError('USERNAME_TAKEN', 'This username is taken', 409);
+        throw e;
+      }
+    }
+    return this.me({ ...user, fullName: b.fullName ?? user.fullName });
+  }
+
+  /** Profile photo: a real image, resized, EXIF stripped; `null` removes it. */
+  async setAvatar(user: AuthUser, buffer: Buffer | null): Promise<MeDto> {
+    const fileId = buffer ? (await this.files.uploadImage({ bucket: 'avatars', buffer, uploadedById: user.id, originalName: 'avatar.jpg' })).id : null;
+    await this.prisma.user.update({ where: { id: user.id }, data: { avatarFileId: fileId } });
+    return this.me(user);
   }
 
   /** Your own name (every role). A worker's card and her account keep the same name. Audited. */

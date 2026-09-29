@@ -97,7 +97,13 @@ export const updateUserSchema = z
 export const changeRoleSchema = z.object({ role: z.enum(STAFF_ROLE_VALUES) });
 /** Anyone with a password changes their OWN: the current one proves it is really them. */
 /** «Мой профиль»: anyone may change their OWN first name and surname (stored together as fullName) */
-export const updateOwnProfileSchema = z.object({ fullName: z.string().transform((v) => v.trim().replace(/\s+/g, ' ')).pipe(z.string().min(2).max(120)) });
+export const updateOwnProfileSchema = z.object({
+  fullName: z.string().transform((v) => v.trim().replace(/\s+/g, ' ')).pipe(z.string().min(2).max(120)).optional(),
+  /** «О себе» (empty = none) */
+  bio: z.string().trim().max(140).nullable().optional(),
+  /** @username: letters, digits, _ (5-32); empty = none */
+  username: z.string().trim().transform((v) => v.replace(/^@/, '').toLowerCase()).pipe(z.union([z.literal(''), z.string().regex(/^[a-z][a-z0-9_]{4,31}$/)])).nullable().optional(),
+});
 export const changeOwnPasswordSchema = z.object({ currentPassword: z.string().min(1).max(200), newPassword: passwordSchema });
 /** Set someone's password to exactly this (PASSWORD_SET: SUPER_ADMIN always, an ADMIN only if granted). */
 export const resetPasswordSchema = z.object({ password: passwordSchema });
@@ -395,6 +401,7 @@ export const chatForwardSchema = z.object({ roomIds: z.array(z.string().uuid()).
 export const chatPinSchema = z.object({ messageId: z.string().uuid().nullable() });
 export const chatMemberPrefsSchema = z.object({ pinned: z.boolean().optional(), muted: z.boolean().optional() });
 export const chatSearchSchema = z.object({ q: z.string().trim().min(2).max(80) });
+export const chatProtectSchema = z.object({ on: z.boolean() });
 export const chatFileFieldsSchema = z.object({
   kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE']).optional(),
   text: z.string().trim().max(4000).optional(),
@@ -403,6 +410,7 @@ export const chatFileFieldsSchema = z.object({
   replyToId: z.string().uuid().optional(),
   width: z.coerce.number().int().min(1).max(20_000).optional(),
   height: z.coerce.number().int().min(1).max(20_000).optional(),
+  waveform: z.string().regex(/^(\d{1,2},){0,63}\d{1,2}$/).optional(),
 });
 /** start (or resume, same clientId) a file sent in parts */
 export const chatUploadStartSchema = z.object({
@@ -415,6 +423,7 @@ export const chatUploadStartSchema = z.object({
   replyToId: z.string().uuid().optional(),
   width: z.coerce.number().int().min(1).max(20_000).optional(),
   height: z.coerce.number().int().min(1).max(20_000).optional(),
+  waveform: z.string().regex(/^(\d{1,2},){0,63}\d{1,2}$/).optional(),
 });
 export const chatMessagesQuerySchema = z.object({
   before: z.string().uuid().optional(),

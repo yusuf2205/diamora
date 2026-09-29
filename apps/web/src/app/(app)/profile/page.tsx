@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { roleLabel } from '@/lib/format';
 import { Button, Card, ErrorState, Field, Input, PageHeader } from '@/components/ui';
 import { OwnNameForm } from '@/components/own-name-form';
+import { MyProfileModal, PersonAvatar } from '@/components/chat-extras';
 
 /** «Мой профиль»: who I am, my own name and my own password. Changing it signs out my OTHER devices; this one stays signed in. */
 export default function ProfilePage() {
@@ -15,6 +16,8 @@ export default function ProfilePage() {
   const [next, setNext] = useState('');
   const [repeat, setRepeat] = useState('');
   const [done, setDone] = useState<number | null>(null);
+  const [card, setCard] = useState(false);
+  const m = me as (typeof me & { avatar?: { thumbUrl: string } | null; bio?: string | null; username?: string | null }) | undefined;
   const change = useMutation({
     mutationFn: () => api.post<{ otherSessionsSignedOut: number }>('/auth/change-password', { currentPassword: current, newPassword: next }),
     onSuccess: (r) => { setDone(r.otherSessionsSignedOut); setCurrent(''); setNext(''); setRepeat(''); },
@@ -26,6 +29,15 @@ export default function ProfilePage() {
   return (
     <div className="max-w-xl space-y-4 sm:space-y-6">
       <PageHeader title="Мой профиль" subtitle={me ? `${me.fullName} · ${roleLabel(me.role)} · ${me.phone}` : undefined} />
+      <Card className="flex items-center gap-4">
+        <PersonAvatar name={me?.fullName ?? ''} photo={m?.avatar?.thumbUrl} size={64} />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">{me?.fullName}</p>
+          <p className="truncate text-sm text-muted">{m?.username ? `@${m.username}` : 'Имя пользователя не задано'}{m?.bio ? ` · ${m.bio}` : ''}</p>
+        </div>
+        <Button variant="outline" onClick={() => setCard(true)}>Фото и «О себе»</Button>
+      </Card>
+      {card && <MyProfileModal onClose={() => setCard(false)} />}
       <OwnNameForm fullName={me?.fullName} invalidate={[['me']]} />
       <Card className="space-y-3">
         <h2 className="font-medium">Сменить пароль</h2>

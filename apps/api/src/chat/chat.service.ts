@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Delete, Get, Header, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import { Throttle } from '@nestjs/throttler';
 import type { Socket } from 'socket.io';
@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Prisma, type ChatAudience, type ChatMember, type ChatMessage, type ChatRoom } from '@diamoraa/database';
 import {
   CHAT_CHUNK_BYTES, CHAT_MAX_FILE_BYTES, CHAT_MAX_VIDEO_BYTES, chatUploadStartSchema, chatChannelSchema, chatContactsQuerySchema, chatMediaQuerySchema, chatDirectSchema, chatEditSchema, chatFileFieldsSchema, chatForwardSchema, chatGroupSchema,
-  chatGroupUpdateSchema, chatMemberPrefsSchema, chatMessagesQuerySchema, chatPinSchema, chatReactSchema, chatSearchSchema, chatTextSchema, scopeFor,
+  chatGroupUpdateSchema, chatMemberPrefsSchema, chatProtectSchema, chatMessagesQuerySchema, chatPinSchema, chatReactSchema, chatSearchSchema, chatTextSchema, scopeFor,
   type ChatMessageKind,
 } from '@diamoraa/shared';
 import { z } from 'zod';
@@ -38,13 +38,13 @@ const PREVIEW: Record<Exclude<ChatMessageKind, 'TEXT'>, string> = {
 const isAdmin = (u: AuthUser) => u.role === 'SUPER_ADMIN' || u.role === 'ADMIN';
 const directKey = (a: string, b: string) => [a, b].sort().join(':');
 
-type Sender = { id: string; fullName: string; role: string } | null;
+type Sender = { id: string; fullName: string; role: string; avatarFileId?: string | null } | null;
 type MessageRow = ChatMessage & {
   sender: Sender;
   replyTo?: (ChatMessage & { sender: Sender }) | null;
   reactions?: { userId: string; emoji: string }[];
 };
-const SENDER = { select: { id: true, fullName: true, role: true } } as const;
+const SENDER = { select: { id: true, fullName: true, role: true, avatarFileId: true } } as const;
 /** everything a message row needs to be shown (who, what it answers, reactions) */
 const MSG_INCLUDE = { sender: SENDER, replyTo: { include: { sender: SENDER } }, reactions: { select: { userId: true, emoji: true } } } as const;
 /** a sent message can be edited for 48 hours */
@@ -188,6 +188,7 @@ export class ChatService {
       SELECT m."roomId" AS "roomId", count(*)::bigint AS n
       FROM chat_messages m JOIN chat_members cm ON cm."roomId" = m."roomId" AND cm."userId" = ${userId}::uuid
       WHERE m."deletedAt" IS NULL AND m."senderId" IS DISTINCT FROM ${userId}::uuid AND (cm."lastReadAt" IS NULL OR m."createdAt" > cm."lastReadAt")
+        AND (cm."clearedAt" IS NULL OR m."createdAt" > cm."clearedAt")
       GROUP BY m."roomId"`);
     return new Map(rows.map((r) => [r.roomId, Number(r.n)]));
   }
@@ -209,10 +210,10 @@ export class ChatService {
       this.unreadByRoom(u.id),
       this.prisma.chatMember.findMany({
         where: { roomId: { in: mine.filter((m) => m.room.kind === 'DIRECT').map((m) => m.roomId) }, userId: { not: u.id } },
-        include: { user: { select: { id: true, fullName: true, role: true, status: true, lastSeenAt: true } } },
+        include: { user: { select: { id: true, fullName: true, role: true, status: true, lastSeenAt: true, avatarFileId: true, username: true } } },
       }),
       this.prisma.chatMember.groupBy({ by: ['roomId'], where: { roomId: { in: ids.filter((id) => id !== COMPANY_ROOM_ID) } }, _count: { _all: true } }),
-      Promise.all(ids.map((roomId) => this.prisma.chatMessage.findFirst({ where: { roomId }, orderBy: { id: 'desc' }, include: MSG_INCLUDE }))),
+      Promise.all(mine.map((m) => this.prisma.chatMessage.findFirst({ where: { roomId: m.roomId, ...(m.clearedAt ? { createdAt: { gt: m.clearedAt } } : {}) }, orderBy: { id: 'desc' }, include: MSG_INCLUDE }))),
     ]);
     const activeUsers = mine.some((m) => m.roomId === COMPANY_ROOM_ID) ? await this.prisma.user.count({ where: { status: 'ACTIVE' } }) : 0;
     const peerOf = new Map(peers.map((p) => [p.roomId, p]));
@@ -240,6 +241,9 @@ export class ChatService {
         lastMessageAt: (m.room.lastMessageAt ?? m.room.createdAt).toISOString(),
       };
     });
+    // «Удалить чат» hid it from my list - until something new is written there
+    const hidden = new Set(mine.filter((m) => m.hiddenAt && !(m.room.lastMessageAt && m.room.lastMessageAt > m.hiddenAt)).map((m) => m.roomId));
+    for (let i = items.length - 1; i >= 0; i--) if (hidden.has(items[i].id)) items.splice(i, 1);
     // my pinned chats first (in the order I pinned them), then the company chat, then the most recent conversation
     const rank = (x: (typeof items)[number]) => (x.pinnedAt ? 0 : x.kind === 'COMPANY' ? 1 : 2);
     items.sort((a, b) => rank(a) - rank(b) || (a.pinnedAt && b.pinnedAt ? a.pinnedAt.localeCompare(b.pinnedAt) : b.lastMessageAt.localeCompare(a.lastMessageAt)));
@@ -252,7 +256,7 @@ export class ChatService {
     const audienceChannel = room.kind === 'CHANNEL' && room.audience !== 'CUSTOM';
     const members = room.kind === 'COMPANY' ? [] : await this.prisma.chatMember.findMany({
       where: { roomId, ...(audienceChannel ? { OR: [{ isOwner: true }, { isAdmin: true }] } : {}) },
-      include: { user: { select: { id: true, fullName: true, role: true, lastSeenAt: true } } }, orderBy: { joinedAt: 'asc' },
+      include: { user: { select: { id: true, fullName: true, role: true, lastSeenAt: true, avatarFileId: true, username: true } } }, orderBy: { joinedAt: 'asc' },
     });
     const me = members.find((m) => m.userId === u.id) ?? (await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } }));
     const pinned = room.pinnedMessageId ? await this.prisma.chatMessage.findFirst({ where: { id: room.pinnedMessageId, roomId, deletedAt: null }, include: MSG_INCLUDE }) : null;
@@ -270,6 +274,8 @@ export class ChatService {
       photo: room.photoFileId ? this.files.ref(room.photoFileId) : null,
       audience: room.kind === 'CHANNEL' ? room.audience : null,
       onlyAdminsWrite: room.onlyAdminsWrite,
+      protectContent: room.protectContent,
+      canProtect: room.kind === 'DIRECT' || this.canManage(u, room, me ?? null),
       pinned: !!me?.pinnedAt,
       muted: !!me?.mutedUntil && me.mutedUntil > new Date(),
       pinnedMessage: pinned ? this.dto(pinned, u.id) : null,
@@ -282,9 +288,12 @@ export class ChatService {
   }
 
   /** online now, or when last seen («был(а) в сети …») */
-  private person(user: { id: string; fullName: string; role: string; lastSeenAt?: Date | null }, lastReadAt: Date | null) {
+  private person(user: { id: string; fullName: string; role: string; lastSeenAt?: Date | null; avatarFileId?: string | null; username?: string | null }, lastReadAt: Date | null) {
     const online = this.presence.isOnline(user.id);
-    return { id: user.id, fullName: user.fullName, role: user.role, online, lastSeenAt: online ? null : (user.lastSeenAt?.toISOString() ?? null), lastReadAt: lastReadAt?.toISOString() ?? null };
+    return {
+      id: user.id, fullName: user.fullName, role: user.role, online, lastSeenAt: online ? null : (user.lastSeenAt?.toISOString() ?? null), lastReadAt: lastReadAt?.toISOString() ?? null,
+      avatar: user.avatarFileId ? (this.files.ref(user.avatarFileId)?.thumbUrl ?? null) : null, username: user.username ?? null,
+    };
   }
 
   /** the pinned message: anyone in a direct chat, the owner / an administrator in a group, administrators in the company chat */
@@ -315,7 +324,7 @@ export class ChatService {
   async contacts(u: AuthUser, q: z.output<typeof chatContactsQuerySchema>) {
     const rows = await this.prisma.user.findMany({
       where: { AND: [await this.reachable(u), { status: 'ACTIVE', id: { not: u.id }, ...(q.q ? { fullName: { contains: q.q, mode: 'insensitive' as const } } : {}) }] },
-      select: { id: true, fullName: true, role: true, lastSeenAt: true }, orderBy: { fullName: 'asc' }, take: 300,
+      select: { id: true, fullName: true, role: true, lastSeenAt: true, avatarFileId: true, username: true }, orderBy: { fullName: 'asc' }, take: 300,
     });
     return { items: rows.map((r) => this.person(r, null)) };
   }
@@ -429,7 +438,7 @@ export class ChatService {
   /** «Медиа», «Файлы», «Голосовые», «Ссылки» of a chat (newest first). */
   async media(u: AuthUser, roomId: string, q: z.output<typeof chatMediaQuerySchema>) {
     await this.access(u, roomId);
-    const where: Prisma.ChatMessageWhereInput = { roomId, deletedAt: null, ...(q.before ? { id: { lt: q.before } } : {}) };
+    const where: Prisma.ChatMessageWhereInput = { roomId, deletedAt: null, ...(await this.since(u, roomId)), ...(q.before ? { id: { lt: q.before } } : {}) };
     if (q.kind === 'media') where.kind = { in: ['IMAGE', 'VIDEO'] };
     if (q.kind === 'files') where.kind = { in: ['FILE', 'AUDIO'] };
     if (q.kind === 'voice') where.kind = 'VOICE';
@@ -474,7 +483,8 @@ export class ChatService {
       forwardedFrom: deleted ? null : m.forwardedFrom,
       editedAt: m.editedAt?.toISOString() ?? null,
       reactions: [...counts.values()].sort((a, b) => b.count - a.count),
-      sender: m.sender ? { id: m.sender.id, fullName: m.sender.fullName, role: m.sender.role } : null,
+      sender: m.sender ? { id: m.sender.id, fullName: m.sender.fullName, role: m.sender.role, avatar: m.sender.avatarFileId ? (this.files.ref(m.sender.avatarFileId)?.thumbUrl ?? null) : null } : null,
+      waveform: m.waveform ?? null,
       kind: deleted ? 'TEXT' : m.kind,
       text: deleted ? null : m.text,
       deleted,
@@ -490,15 +500,22 @@ export class ChatService {
     return m.kind === 'TEXT' ? (m.text ?? '') : m.text ? `${PREVIEW[m.kind]} · ${m.text}` : PREVIEW[m.kind];
   }
 
+  /** «Очистить историю» for me: messages before this are not shown to this person. */
+  private async since(u: AuthUser, roomId: string): Promise<Prisma.ChatMessageWhereInput> {
+    const cleared = (await this.me(u, roomId))?.clearedAt;
+    return cleared ? { createdAt: { gt: cleared } } : {};
+  }
+
   async messages(u: AuthUser, roomId: string, q: z.output<typeof chatMessagesQuerySchema>) {
     await this.access(u, roomId);
     const include = MSG_INCLUDE;
+    const since = await this.since(u, roomId);
     if (q.after) {
-      const rows = await this.prisma.chatMessage.findMany({ where: { roomId, id: { gt: q.after } }, orderBy: { id: 'asc' }, take: q.limit, include });
+      const rows = await this.prisma.chatMessage.findMany({ where: { roomId, id: { gt: q.after }, ...since }, orderBy: { id: 'asc' }, take: q.limit, include });
       return { items: rows.reverse().map((m) => this.dto(m, u.id)), hasMore: false };
     }
     const rows = await this.prisma.chatMessage.findMany({
-      where: { roomId, ...(q.before ? { id: { lt: q.before } } : {}) }, orderBy: { id: 'desc' }, take: q.limit + 1, include,
+      where: { roomId, ...since, ...(q.before ? { id: { lt: q.before } } : {}) }, orderBy: { id: 'desc' }, take: q.limit + 1, include,
     });
     return { items: rows.slice(0, q.limit).map((m) => this.dto(m, u.id)), hasMore: rows.length > q.limit }; // newest first
   }
@@ -600,6 +617,7 @@ export class ChatService {
       data: {
         roomId: room.id, senderId: u.id, kind, text: b.text || null, clientId: b.clientId, fileId: stored.id, fileName: name ?? null, replyToId: await this.replyTarget(room.id, b.replyToId),
         fileSize: BigInt(src.size), mimeType: stored.mimeType, durationMs: b.durationMs ?? null, width: stored.width ?? null, height: stored.height ?? null, hasThumb: !!stored.hasThumb,
+        waveform: kind === 'VOICE' || kind === 'AUDIO' ? (b.waveform ?? null) : null,
       },
       include: MSG_INCLUDE,
     });
@@ -672,7 +690,7 @@ export class ChatService {
     }
     if (size !== meta.size) throw validationFailed('The file is incomplete');
     try {
-      return await this.storeMessage(u, room, { kind: meta.kind, text: meta.text, clientId: meta.clientId, durationMs: meta.durationMs, replyToId: meta.replyToId, width: meta.width, height: meta.height },
+      return await this.storeMessage(u, room, { kind: meta.kind, text: meta.text, clientId: meta.clientId, durationMs: meta.durationMs, replyToId: meta.replyToId, width: meta.width, height: meta.height, waveform: meta.waveform },
         { parts: files, size, sha256: hash.digest('hex'), originalName: meta.name, thumb });
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -730,7 +748,8 @@ export class ChatService {
   async forward(u: AuthUser, id: string, roomIds: string[]) {
     const src = await this.prisma.chatMessage.findUnique({ where: { id }, include: { sender: SENDER } });
     if (!src || src.deletedAt) throw notFound('Message');
-    await this.access(u, src.roomId); // I may read the original
+    const from = await this.access(u, src.roomId); // I may read the original
+    if (from.protectContent) throw forbidden('Forwarding is turned off in this chat');
     const targets = [];
     for (const roomId of [...new Set(roomIds)]) targets.push(await this.writable(u, roomId)); // and may write where it goes
     const out = [];
@@ -787,6 +806,110 @@ export class ChatService {
       rooms: matchedRooms,
       people,
       messages: hits.map((m) => ({ ...this.dto(m, u.id), room: { id: m.roomId, kind: kinds.get(m.roomId), title: titles.get(m.roomId) ?? null } })),
+    };
+  }
+
+  /** «Очистить историю» - for me only (the others keep theirs). */
+  async clearHistory(u: AuthUser, roomId: string) {
+    await this.access(u, roomId);
+    await this.prisma.chatMember.update({ where: { roomId_userId: { roomId, userId: u.id } }, data: { clearedAt: new Date(), lastReadAt: new Date() } });
+    await this.events.publish('chat.room', { roomId, userIds: [u.id] });
+    return { ok: true };
+  }
+
+  /** «Удалить чат»: a direct chat is cleared and hidden for me (it comes back with the next message); a group / chosen-people
+   *  channel is left. The company chat and audience channels cannot be deleted (turn notifications off instead). */
+  async deleteChat(u: AuthUser, roomId: string) {
+    const room = await this.access(u, roomId);
+    if (room.kind === 'DIRECT') {
+      const now = new Date();
+      await this.prisma.chatMember.update({ where: { roomId_userId: { roomId, userId: u.id } }, data: { clearedAt: now, hiddenAt: now, lastReadAt: now, pinnedAt: null } });
+      await this.events.publish('chat.room', { roomId, userIds: [u.id] });
+      return { ok: true };
+    }
+    return this.leave(u, roomId);
+  }
+
+  /** «Запретить копирование»: in a direct chat either person; in a group / channel its admins. */
+  async protect(u: AuthUser, roomId: string, on: boolean) {
+    const room = await this.access(u, roomId);
+    if (room.kind === 'COMPANY' && !isAdmin(u)) throw forbidden('Only administrators change this');
+    if (room.kind !== 'DIRECT' && room.kind !== 'COMPANY' && !this.canManage(u, room, await this.me(u, roomId))) throw forbidden('Only the admins of this chat change this');
+    await this.prisma.chatRoom.update({ where: { id: roomId }, data: { protectContent: on } });
+    await this.audit.record({ action: 'chat.protect_content', entity: 'ChatRoom', entityId: roomId, after: { on } });
+    await this.events.publish('chat.room', { roomId, userIds: await this.memberIds(room) });
+    return this.room(u, roomId);
+  }
+
+  /** «Экспорт истории чата» as plain text (what I can see; not for a protected chat unless I administer it). */
+  async exportHistory(u: AuthUser, roomId: string) {
+    const room = await this.access(u, roomId);
+    if (room.protectContent && !isAdmin(u) && !this.canManage(u, room, await this.me(u, roomId))) throw forbidden('Saving is turned off in this chat');
+    const rows = await this.prisma.chatMessage.findMany({ where: { roomId, deletedAt: null, ...(await this.since(u, roomId)) }, orderBy: { id: 'asc' }, take: 20_000, include: MSG_INCLUDE });
+    const two = (v: number) => String(v).padStart(2, '0');
+    const when = (d: Date) => `${two(d.getDate())}.${two(d.getMonth() + 1)}.${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}`;
+    const title = room.kind === 'COMPANY' ? 'Общий чат' : room.title ?? (await this.room(u, roomId)).title ?? 'Чат';
+    const lines = [`Diamoraa — ${title}`, `Экспорт: ${when(new Date())}`, ''];
+    for (const m of rows) {
+      const body = m.kind === 'TEXT' ? (m.text ?? '') : `${PREVIEW[m.kind]}${m.fileName ? ` (${m.fileName})` : ''}${m.text ? ` · ${m.text}` : ''}`;
+      lines.push(`[${when(m.createdAt)}] ${m.sender?.fullName ?? '—'}: ${body}`);
+    }
+    return lines.join('\n');
+  }
+
+  /** «Прочитано когда?»: who has read a message (at the latest at the time shown). */
+  async reads(u: AuthUser, messageId: string) {
+    const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
+    if (!m) throw notFound('Message');
+    await this.access(u, m.roomId);
+    const rows = await this.prisma.chatMember.findMany({
+      where: { roomId: m.roomId, userId: { notIn: [u.id, ...(m.senderId ? [m.senderId] : [])] }, lastReadAt: { gte: m.createdAt } },
+      include: { user: { select: { id: true, fullName: true, role: true, avatarFileId: true, username: true } } }, orderBy: { lastReadAt: 'asc' }, take: 200,
+    });
+    return { items: rows.map((r) => ({ ...this.person(r.user, r.lastReadAt), readAt: r.lastReadAt!.toISOString() })) };
+  }
+
+  /** Search inside one chat. */
+  async roomSearch(u: AuthUser, roomId: string, q: string) {
+    await this.access(u, roomId);
+    const rows = await this.prisma.chatMessage.findMany({
+      where: { roomId, deletedAt: null, text: { contains: q, mode: 'insensitive' }, ...(await this.since(u, roomId)) }, orderBy: { id: 'desc' }, take: 50, include: MSG_INCLUDE,
+    });
+    return { items: rows.map((m) => this.dto(m, u.id)) };
+  }
+
+  /** «520 фотографий, 134 видео …» of a chat. */
+  async counts(u: AuthUser, roomId: string) {
+    await this.access(u, roomId);
+    const base: Prisma.ChatMessageWhereInput = { roomId, deletedAt: null, ...(await this.since(u, roomId)) };
+    const [photos, videos, files, audio, voice, links] = await Promise.all([
+      this.prisma.chatMessage.count({ where: { ...base, kind: 'IMAGE' } }),
+      this.prisma.chatMessage.count({ where: { ...base, kind: 'VIDEO' } }),
+      this.prisma.chatMessage.count({ where: { ...base, kind: 'FILE' } }),
+      this.prisma.chatMessage.count({ where: { ...base, kind: 'AUDIO' } }),
+      this.prisma.chatMessage.count({ where: { ...base, kind: 'VOICE' } }),
+      this.prisma.chatMessage.count({ where: { ...base, OR: [{ text: { contains: 'http', mode: 'insensitive' } }, { text: { contains: 'www.', mode: 'insensitive' } }] } }),
+    ]);
+    return { photos, videos, files, audio, voice, links };
+  }
+
+  /** A person's profile card (someone I may write to, or share a chat with). The phone is shown to staff only. */
+  async profile(u: AuthUser, userId: string) {
+    const target = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, fullName: true, role: true, status: true, lastSeenAt: true, avatarFileId: true, username: true, bio: true, phone: true } });
+    if (!target) throw notFound('User');
+    const reachable = userId === u.id || (await this.prisma.user.count({ where: { AND: [await this.reachable(u), { id: userId }] } })) > 0;
+    const sharesChat = (await this.prisma.chatMember.count({ where: { userId, room: { kind: { in: ['DIRECT', 'GROUP'] }, members: { some: { userId: u.id } } } } })) > 0;
+    if (!reachable && !sharesChat) throw notFound('User');
+    const direct = userId === u.id ? null : await this.prisma.chatRoom.findUnique({ where: { directKey: directKey(u.id, userId) }, select: { id: true } });
+    const avatar = target.avatarFileId ? this.files.ref(target.avatarFileId) : null;
+    return {
+      ...this.person(target, null),
+      avatarFull: avatar?.url ?? null,
+      bio: target.bio,
+      phone: u.role !== 'WORKER' ? target.phone : null,
+      active: target.status === 'ACTIVE',
+      directRoomId: direct?.id ?? null,
+      counts: direct ? await this.counts(u, direct.id) : null,
     };
   }
 
@@ -862,6 +985,30 @@ export class ChatController {
     if (!file) throw fileRejected('Attach the photo as multipart field "file"');
     return this.chat.setPhoto(u, id, file.buffer);
   }
+
+  @Authenticated() @Get('users/:id')
+  profile(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.profile(u, id); }
+
+  @Authenticated() @Get('rooms/:id/counts')
+  counts(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.counts(u, id); }
+
+  @Authenticated() @Get('rooms/:id/search')
+  roomSearch(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodQuery(chatSearchSchema) q: z.output<typeof chatSearchSchema>) { return this.chat.roomSearch(u, id, q.q); }
+
+  @Authenticated() @Post('rooms/:id/clear') @HttpCode(200)
+  clear(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.clearHistory(u, id); }
+
+  @Authenticated() @Delete('rooms/:id') @HttpCode(200)
+  deleteChat(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.deleteChat(u, id); }
+
+  @Authenticated() @Post('rooms/:id/protect') @HttpCode(200) @ApiZodBody(chatProtectSchema)
+  protect(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatProtectSchema) b: z.output<typeof chatProtectSchema>) { return this.chat.protect(u, id, b.on); }
+
+  @Authenticated() @Get('rooms/:id/export') @Header('Content-Type', 'text/plain; charset=utf-8') @Header('Content-Disposition', 'attachment; filename="diamoraa-chat.txt"')
+  export(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.exportHistory(u, id); }
+
+  @Authenticated() @Get('messages/:id/reads')
+  reads(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.reads(u, id); }
 
   @Authenticated() @Get('rooms/:id')
   room(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.room(u, id); }

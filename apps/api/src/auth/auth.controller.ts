@@ -1,6 +1,8 @@
-import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe, Patch, Post, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Global, HttpCode, Module, Param, ParseUUIDPipe, Patch, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { fileRejected } from '../common/errors';
 import { JwtModule } from '@nestjs/jwt';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { adminLoginSchema, changeOwnPasswordSchema, refreshSchema, telegramExchangeSchema, telegramPollSchema, telegramSessionSchema, updateOwnProfileSchema, workerCodeRequestSchema } from '@diamoraa/shared';
 import type { Request } from 'express';
@@ -58,7 +60,17 @@ export class AuthController {
 
   @Authenticated() @ApiBearerAuth() @Patch('me') @ApiZodBody(updateOwnProfileSchema)
   @ApiOperation({ summary: 'Change your OWN first name and surname (every role)' })
-  updateMe(@CurrentUser() u: AuthUser, @ZodBody(updateOwnProfileSchema) b: z.output<typeof updateOwnProfileSchema>) { return this.auth.updateOwnName(u, b.fullName); }
+  updateMe(@CurrentUser() u: AuthUser, @ZodBody(updateOwnProfileSchema) b: z.output<typeof updateOwnProfileSchema>) { return this.auth.updateOwnProfile(u, b); }
+
+  @Authenticated() @ApiBearerAuth() @Post('me/avatar') @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  avatar(@CurrentUser() u: AuthUser, @UploadedFile() file?: Express.Multer.File) {
+    if (!file) throw fileRejected('Attach the photo as multipart field "file"');
+    return this.auth.setAvatar(u, file.buffer);
+  }
+
+  @Authenticated() @ApiBearerAuth() @Delete('me/avatar') @HttpCode(200)
+  removeAvatar(@CurrentUser() u: AuthUser) { return this.auth.setAvatar(u, null); }
 
   @Authenticated() @ApiBearerAuth() @Get('sessions')
   sessions(@CurrentUser() u: AuthUser) { return this.auth.listSessions(u); }

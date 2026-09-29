@@ -100,7 +100,7 @@ export const api = {
   put: <T>(path: string, body?: unknown, opts?: { idempotencyKey?: string }) => request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined, ...opts }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-  upload: <T>(path: string, form: FormData) => request<T>(path, { method: 'POST', body: form }),
+  upload: <T>(path: string, form: FormData, opts?: { signal?: AbortSignal }) => request<T>(path, { method: 'POST', body: form, signal: opts?.signal }),
 };
 
 export function saveTokens(t: Tokens) { writeTokens(t); }

@@ -2,6 +2,8 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { ChatApp, chatKindForFile, chatPreview, MediaViewer, RichText, type ChatMessage } from '@/components/chat';
+import { albumsOf, barsOf, toBars, VoicePlayer } from '@/components/chat-extras';
+import { HeaderBadges } from '@/components/header-badges';
 import { mockFetch, renderWithProviders, signIn } from './helpers';
 
 let search = new URLSearchParams();
@@ -132,6 +134,54 @@ describe('«Чат» on the web (panel and worker web share it)', () => {
     expect(v.getAttribute('poster')).toBe('https://x/vt');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('right click on a message: reactions on top, Ответить / Копировать / Переслать / Выделить; «прочитано в …»', async () => {
+    search = new URLSearchParams('room=r1');
+    signIn(ME);
+    const mine = { ...msg('0002', 'Мой ответ', { id: 'me', fullName: 'Юсуф Адилов', role: 'SUPER_ADMIN' }) };
+    mockFetch({
+      '/auth/me': ME,
+      '/chat/messages/0002/reads': { items: [{ id: 'u2', fullName: 'Нигора Азимова', role: 'WORKER', readAt: '2026-09-30T09:05:00Z' }] },
+      '/chat/rooms/r1/messages': { items: [mine], hasMore: false },
+      '/chat/rooms/r1/read': { ok: true },
+      '/chat/rooms/r1': { id: 'r1', kind: 'DIRECT', title: 'Нигора Азимова', isOwner: false, canManage: false, canPin: true, canProtect: true, memberCount: 2, peer: { id: 'u2', fullName: 'Нигора Азимова', role: 'WORKER', online: true }, members: [] },
+      '/chat/rooms': { items: [] },
+      '/chat/unread': { count: 0 },
+    });
+    renderWithProviders(<ChatApp />);
+    fireEvent.contextMenu(await screen.findByText('Мой ответ'), { clientX: 100, clientY: 100 });
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByLabelText('Реакция 👍')).toBeInTheDocument();
+    for (const t of ['Ответить', 'Изменить', 'Закрепить', 'Копировать текст', 'Переслать', 'Удалить', 'Выделить']) expect(screen.getByText(t)).toBeInTheDocument();
+    expect(await screen.findByText(/прочитано в \d\d:\d\d/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Выделить'));
+    expect(screen.getByText('Выбрано: 1')).toBeInTheDocument();
+  });
+
+  it('albums: photos of one sender sent together form one grid; a caption or another sender breaks it', () => {
+    const img = (id: string, sender: string, t: number, text: string | null = null) => ({ ...msg(id, text ?? '', { id: sender, fullName: sender, role: 'ADMIN' }), text, kind: 'IMAGE' as const, createdAt: new Date(1_700_000_000_000 + t).toISOString(), file: { url: 'u', thumbUrl: 't', name: null, size: 1, mimeType: 'image/jpeg', durationMs: null, width: 1, height: 1 } });
+    const out = albumsOf([img('1', 'a', 0), img('2', 'a', 1000), img('3', 'a', 2000), img('4', 'b', 3000), img('5', 'b', 4000, 'подпись')]);
+    expect(out.map((x) => (Array.isArray(x) ? x.map((y) => y.id).join('+') : x.id))).toEqual(['1+2+3', '4', '5']);
+  });
+
+  it('voice: a waveform of 48 bars (0-31) from what was recorded; a stable pattern when there is none', () => {
+    expect(toBars([0, 0.5, 1, 0.25], 4)).toEqual([1, 16, 31, 8]);
+    expect(barsOf('1,2,3', 'x', 5)).toEqual([1, 2, 3, 1, 1]);
+    expect(barsOf(null, 'abc')).toEqual(barsOf(null, 'abc'));
+    const { container } = render(<VoicePlayer id="v" url="https://x/v.m4a" waveform={'5,10,31'} durationMs={2000} size={9011} mine />);
+    expect(container.querySelectorAll('[role=slider] span').length).toBe(48);
+    expect(screen.getByText('00:02, 8.8 KB')).toBeInTheDocument();
+  });
+
+  it('header: a big 🔔 with the unread count and the list, a big 💬 with the chat count', async () => {
+    signIn(ME);
+    mockFetch({ '/auth/me': ME, '/me/notifications': { unread: 3, items: [{ id: 'n1', title: 'Новая работа', body: 'Лента', link: null, read: false, createdAt: new Date().toISOString() }] } });
+    renderWithProviders(<HeaderBadges chatUnread={5} />);
+    expect(await screen.findByLabelText('Уведомления: непрочитанных 3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Чат: непрочитанных 5')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Уведомления: непрочитанных 3'));
+    expect(screen.getByText('Новая работа')).toBeInTheDocument();
   });
 
   it('previews and file kinds', () => {
