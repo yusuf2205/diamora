@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AtSign, Bell, BellOff, Camera, Image as ImageIcon, Link2, Megaphone, MessageCircle, Mic, Moon, Music, Pause, Phone, Play, User, Users, Video, FileText, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { player, usePlayer, type Track } from './audio-player';
 import { useAuth } from '@/lib/auth';
 import { errorMessage, initials, roleLabel } from '@/lib/format';
 import { Button, ErrorState, Input, Modal, Spinner } from '@/components/ui';
@@ -99,38 +100,36 @@ const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${Str
 const kb = (b: number | null | undefined) => (b == null ? '' : b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 
 /** ▶ + waveform (played part filled, click to seek) + «00:02, 8.8 KB» - streams, no waiting for the whole file. */
-export function VoicePlayer({ id, url, waveform, durationMs, size, name, mine }: { id: string; url: string; waveform?: string | null; durationMs?: number | null; size?: number | null; name?: string | null; mine: boolean }) {
-  const audio = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [pos, setPos] = useState(0);
-  const [len, setLen] = useState((durationMs ?? 0) / 1000);
+export function VoicePlayer({ id, url, waveform, durationMs, size, name, title, roomId, createdAt }: { id: string; url: string; waveform?: string | null; durationMs?: number | null; size?: number | null; name?: string | null; mine?: boolean; title: string; roomId: string; createdAt: string }) {
+  const s = usePlayer();
+  const track: Track = { id, roomId, url, title, createdAt, durationMs };
+  useEffect(() => player.register({ id, roomId, url, title, createdAt, durationMs }), [id, roomId, url, title, createdAt, durationMs]);
+  const current = s.track?.id === id;
+  const playing = current && s.playing;
+  const pos = current ? s.pos : 0;
+  const len = current && s.len ? s.len : (durationMs ?? 0) / 1000;
   const bars = barsOf(waveform, id);
   const played = len > 0 ? pos / len : 0;
-  const toggle = () => { const a = audio.current; if (!a) return; if (a.paused) void a.play(); else a.pause(); };
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const a = audio.current; if (!a || !len) return;
+    if (!len) return;
     const r = e.currentTarget.getBoundingClientRect();
-    a.currentTime = ((e.clientX - r.left) / r.width) * len;
-    if (a.paused) void a.play();
+    const at = ((e.clientX - r.left) / r.width) * len;
+    if (!current) player.play(track);
+    player.seek(at);
   };
-  const accent = mine ? 'bg-primary' : 'bg-primary';
   return (
     <div className="flex w-72 max-w-full items-center gap-3 py-1">
-      <audio ref={audio} src={url} preload="none"
-        onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setPos(0); }}
-        onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => { if (Number.isFinite(e.currentTarget.duration)) setLen(e.currentTarget.duration); }} />
-      <button aria-label={playing ? 'Пауза' : 'Слушать'} onClick={toggle} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${accent} text-white shadow`}>
+      <button aria-label={playing ? 'Пауза' : 'Слушать'} onClick={() => player.toggle(track)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow">
         {playing ? <Pause size={20} aria-hidden /> : <Play size={20} className="ml-0.5" aria-hidden />}
       </button>
       <div className="min-w-0 flex-1">
         {name && <p className="mb-0.5 truncate text-sm font-medium">{name}</p>}
         <div className="flex h-7 cursor-pointer items-center gap-[2px]" onClick={seek} role="slider" aria-label="Перемотка" aria-valuemin={0} aria-valuemax={Math.round(len)} aria-valuenow={Math.round(pos)}>
           {bars.map((b, i) => (
-            <span key={i} className={`w-[3px] rounded-full ${i / bars.length <= played ? 'bg-primary' : 'bg-primary/35'}`} style={{ height: `${Math.max(3, (b / 31) * 26)}px` }} />
+            <span key={i} className={`w-[3px] rounded-full ${current && i / bars.length <= played ? 'bg-primary' : 'bg-primary/35'}`} style={{ height: `${Math.max(3, (b / 31) * 26)}px` }} />
           ))}
         </div>
-        <p className="mt-0.5 text-xs text-muted">{fmt(playing || pos > 0 ? pos : len)}{size ? `, ${kb(size)}` : ''}</p>
+        <p className="mt-0.5 text-xs text-muted">{fmt(current && (playing || pos > 0) ? pos : len)}{size ? `, ${kb(size)}` : ''}{current && s.rate !== 1 ? ` · ${s.rate}x` : ''}</p>
       </div>
     </div>
   );

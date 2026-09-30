@@ -8,6 +8,7 @@ import { accessToken, api, apiOrigin } from '@/lib/api';
 const apiBaseUrl = () => (typeof window === 'undefined' ? '' : apiOrigin());
 import { emitLive, onLiveEvent } from '@/lib/live';
 import { ChatMainMenu, FloatingMenu, MenuItem, MyProfileModal, PersonAvatar, ProfileCard, VoicePlayer, WALLPAPERS, albumsOf, useWallpaper, waveformRecorder } from './chat-extras';
+import { AudioBar } from './audio-player';
 import { useAuth } from '@/lib/auth';
 import { errorMessage, initials, roleLabel } from '@/lib/format';
 import { Button, ErrorState, Input, Modal, Spinner } from '@/components/ui';
@@ -555,6 +556,7 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
         {r && <button aria-label="Информация о чате" title="Информация" className={`rounded-full p-2 hover:bg-border/50 ${panel ? 'text-primary' : 'text-muted'}`} onClick={() => (panel ? setPanel(false) : openInfo())}><PanelRight size={20} aria-hidden /></button>}
         {r && <button aria-label="Ещё" title="Ещё" className="rounded-full p-2 text-muted hover:bg-border/50" onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); setMenuAt({ x: b.right - 240, y: b.bottom + 4 }); }}><MoreVertical size={20} aria-hidden /></button>}
       </div>
+      <AudioBar />
       {selecting && (
         <div className="flex items-center gap-2 border-b border-border bg-primary/10 px-3 py-2 text-sm">
           <span className="flex-1 font-semibold">Выбрано: {selected.length}</span>
@@ -833,7 +835,7 @@ function Bubble({ m, mine, showSender, read, onReact, pinned, onOpenMedia, onCon
               </button>
             )}
             {(m.kind === 'VOICE' || m.kind === 'AUDIO') && f && (
-              <VoicePlayer id={m.id} url={f.url} waveform={m.waveform} durationMs={f.durationMs} size={f.size} name={m.kind === 'AUDIO' ? f.name : null} mine={mine} />
+              <VoicePlayer id={m.id} url={f.url} waveform={m.waveform} durationMs={f.durationMs} size={f.size} name={m.kind === 'AUDIO' ? f.name : null} mine={mine} title={m.kind === 'AUDIO' && f.name ? f.name : (m.sender?.fullName ?? 'Голосовое')} roomId={m.roomId} createdAt={m.createdAt} />
             )}
             {m.kind === 'FILE' && f && (
               <a href={protect ? undefined : f.url} download={protect ? undefined : (f.name ?? undefined)} className="flex items-center gap-3 rounded-lg p-1 hover:bg-border/40">

@@ -4,6 +4,7 @@ import { render } from '@testing-library/react';
 import { ChatApp, chatKindForFile, chatPreview, MediaViewer, RichText, type ChatMessage } from '@/components/chat';
 import { albumsOf, barsOf, toBars, VoicePlayer } from '@/components/chat-extras';
 import { HeaderBadges } from '@/components/header-badges';
+import { AudioBar } from '@/components/audio-player';
 import { mockFetch, renderWithProviders, signIn } from './helpers';
 
 let search = new URLSearchParams();
@@ -169,9 +170,23 @@ describe('«Чат» on the web (panel and worker web share it)', () => {
     expect(toBars([0, 0.5, 1, 0.25], 4)).toEqual([1, 16, 31, 8]);
     expect(barsOf('1,2,3', 'x', 5)).toEqual([1, 2, 3, 1, 1]);
     expect(barsOf(null, 'abc')).toEqual(barsOf(null, 'abc'));
-    const { container } = render(<VoicePlayer id="v" url="https://x/v.m4a" waveform={'5,10,31'} durationMs={2000} size={9011} mine />);
+    const { container } = render(<VoicePlayer id="v" url="https://x/v.m4a" waveform={'5,10,31'} durationMs={2000} size={9011} mine title="Салима" roomId="r" createdAt={new Date().toISOString()} />);
     expect(container.querySelectorAll('[role=slider] span').length).toBe(48);
     expect(screen.getByText('00:02, 8.8 KB')).toBeInTheDocument();
+  });
+
+  it('voice: playing shows the Telegram-like strip - who and when, speed 1X → 1.5X → 2X, ✕ closes', () => {
+    render(<><AudioBar /><VoicePlayer id="v2" url="https://x/v2.m4a" durationMs={3000} title="Салима" roomId="r" createdAt={new Date().toISOString()} /></>);
+    expect(screen.queryByLabelText('Проигрыватель')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Слушать'));
+    expect(screen.getByLabelText('Проигрыватель')).toBeInTheDocument();
+    expect(screen.getByText(/сегодня в/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Скорость 1x'));
+    expect(screen.getByText('1.5X')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Скорость 1.5x'));
+    expect(screen.getByText('2X')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Закрыть проигрыватель'));
+    expect(screen.queryByLabelText('Проигрыватель')).toBeNull();
   });
 
   it('header: a big 🔔 with the unread count and the list, a big 💬 with the chat count', async () => {
