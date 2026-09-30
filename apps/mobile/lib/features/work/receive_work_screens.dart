@@ -391,7 +391,20 @@ class ReceiveDoneScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(l.receiveDoneHint, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant)),
             const SizedBox(height: 32),
-            SizedBox(height: 56, child: FilledButton(onPressed: () => context.go('/worker/home'), child: Text(l.receiveGoHome))),
+            SizedBox(
+              height: 56,
+              child: FilledButton(
+                key: const Key('receiveGoHome'),
+                // the scan / done screens sit on top of «Главная»: close them (going to «/worker/home» alone did nothing,
+                // the app is already there underneath)
+                onPressed: () {
+                  final router = GoRouter.of(context);
+                  Navigator.of(context).popUntil((r) => r.isFirst);
+                  router.go('/worker/home');
+                },
+                child: Text(l.receiveGoHome),
+              ),
+            ),
           ]),
         ),
       ),
