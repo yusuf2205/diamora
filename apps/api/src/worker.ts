@@ -57,6 +57,8 @@ async function main() {
     timers.push(setInterval(() => void alerts.beat().catch(() => undefined), 60_000));
     timers.push(setInterval(() => void alerts.checkDisk(bot).catch((e) => log.error(`disk: ${e.message}`)), 60 * 60_000));
     void alerts.checkDisk(bot).catch(() => undefined);
+    // backups (incl. the external drive): checked every 3 h, told at most once a day
+    timers.push(setInterval(() => void alerts.checkBackups(bot).catch((e) => log.error(`backups: ${e.message}`)), 3 * 60 * 60_000));
   }
 
   // liveness for the Docker health check (internal network only)

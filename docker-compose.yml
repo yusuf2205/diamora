@@ -281,11 +281,14 @@ services:
       TZ: UTC
       FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
       RELEASE_MANIFEST: /downloads/version.json
+      BACKUP_STATUS_DIR: /backup-status
     volumes:
       # deadline / summary notices are pushed from here too (the same read-only key as the API)
       - ./secrets/firebase-admin.json:/run/firebase/firebase-admin.json:ro
       # the published app's manifest: a new build is announced to every phone at once (read-only)
       - ${DATA_ROOT}/downloads:/downloads:ro
+      # «копия не сделалась / внешний диск не подключён» -> the owner's Telegram once a day (read-only)
+      - ${BACKUP_ROOT}/status:/backup-status:ro
     networks: [data, egress]
     read_only: true
     tmpfs: [/tmp]
@@ -408,6 +411,8 @@ services:
       BACKUP_SCHEDULE_BASE: ${BACKUP_SCHEDULE_BASE:-0 22 * * 0}
       BACKUP_SCHEDULE_VERIFY: ${BACKUP_SCHEDULE_VERIFY:-30 22 * * *}
       BACKUP_SCHEDULE_CONFIG: ${BACKUP_SCHEDULE_CONFIG:-45 21 * * *}
+      # a copy on the external USB drive (the folder with diamoraa-backup/.diamoraa-offsite), after the checks
+      BACKUP_SCHEDULE_OFFSITE: ${BACKUP_SCHEDULE_OFFSITE:-0 23 * * *}
       RETENTION_DAILY: ${BACKUP_RETENTION_DAILY:-7}
       RETENTION_WEEKLY: ${BACKUP_RETENTION_WEEKLY:-4}
       RETENTION_MONTHLY: ${BACKUP_RETENTION_MONTHLY:-6}
@@ -417,6 +422,11 @@ services:
     volumes:
       - ${BACKUP_ROOT}:/backups
       - ./:/repo:ro
+      # USB drives of the NAS; rslave: a drive plugged in after start still shows up here
+      - type: bind
+        source: ${USB_ROOT:-/mnt/@usb}
+        target: /usb
+        bind: { propagation: rslave, create_host_path: false }
     networks: [data]
     mem_limit: ${BACKUP_MEM_LIMIT:-192m}
     healthcheck:

@@ -56,4 +56,19 @@ describe('owner alerts', () => {
     expect(low).toContain('заканчивается место');
     expect(await svc.checkDisk(sender, now, async () => ({ free: 1, total: 1000 }))).toBeNull(); // already told today
   });
+
+  it('backups: a failed copy, a stale one or a missing external drive -> told once a day, in words', async () => {
+    const now = new Date('2026-10-02T06:00:00Z');
+    const fresh = now.getTime() - 3600_000;
+    expect(await svc.checkBackups(sender, now, async () => [{ job: 'pg_dump', state: 'ok', at: fresh }, { job: 'offsite', state: 'ok', at: fresh }])).toBeNull();
+    const bad = await svc.checkBackups(sender, now, async () => [
+      { job: 'pg_dump', state: 'ok', at: now.getTime() - 3 * 86_400_000 },
+      { job: 'offsite', state: 'nodrive', at: fresh },
+      { job: 'minio_mirror', state: 'failed', at: fresh },
+    ]);
+    expect(bad).toContain('копия базы: давно не обновлялась');
+    expect(bad).toContain('внешний диск не найден');
+    expect(bad).toContain('копия фото и файлов: не получилась');
+    expect(await svc.checkBackups(sender, now, async () => [{ job: 'offsite', state: 'nodrive', at: fresh }])).toBeNull(); // once a day
+  });
 });

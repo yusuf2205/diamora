@@ -140,6 +140,44 @@ export class AlertsService {
     await this.kv.set(HEARTBEAT, String(now.getTime()));
   }
 
+  /**
+   * Backups: once a day, if a copy failed, is older than 36 h, or the external drive was not found - say which, in words.
+   * `readStatus` is for tests; normally the backup job's status files (read-only mount).
+   */
+  async checkBackups(sender: AlertSender, now = new Date(), readStatus?: () => Promise<{ job: string; state: string; at: number }[]>) {
+    const dir = this.env.BACKUP_STATUS_DIR;
+    if (!dir && !readStatus) return null;
+    let rows: { job: string; state: string; at: number }[];
+    try {
+      rows = readStatus ? await readStatus() : await (async () => {
+        const { readdir, readFile } = await import('node:fs/promises');
+        const out = [];
+        for (const f of (await readdir(dir!)).filter((x) => x.endsWith('.status'))) {
+          const [state, epoch] = (await readFile(`${dir}/${f}`, 'utf8')).trim().split(/\s+/);
+          out.push({ job: f.replace(/\.status$/, ''), state, at: Number(epoch) * 1000 });
+        }
+        return out;
+      })();
+    } catch {
+      return null;
+    }
+    const NAMES: Record<string, string> = { pg_dump: 'копия базы', minio_mirror: 'копия фото и файлов', config: 'копия настроек', verify: 'проверка восстановления', offsite: 'копия на внешнем диске', pg_basebackup: 'полная копия базы' };
+    // the weekly full copy is fine for 8 days; everything else runs every night
+    const maxAge = (job: string) => (job === 'pg_basebackup' ? 8 * 86_400_000 : 36 * 3600_000);
+    const problems = rows.filter((r) => NAMES[r.job]).flatMap((r) => {
+      if (r.state === 'nodrive') return [`• ${NAMES[r.job]}: внешний диск не найден — подключите его к NAS`];
+      if (r.state !== 'ok') return [`• ${NAMES[r.job]}: не получилась`];
+      if (!r.at || now.getTime() - r.at > maxAge(r.job)) return [`• ${NAMES[r.job]}: давно не обновлялась`];
+      return [];
+    });
+    if (!problems.length) return null;
+    const day = now.toISOString().slice(0, 10);
+    if (!(await this.kv.setOnce(`alerts:backups:${day}`, '1', 36 * 3600))) return null;
+    const text = [`⚠️ Резервные копии Diamoraa:`, ...problems, '', 'Данные в порядке, но копию нужно поправить — напишите разработчику.'].join('\n');
+    await this.notifyOwners(sender, text);
+    return text;
+  }
+
   /** Disk of the NAS volume (seen through the mounted downloads folder): once a day while under 10 % free. */
   async checkDisk(sender: AlertSender, now = new Date(), measure?: () => Promise<{ free: number; total: number }>) {
     const file = this.env.RELEASE_MANIFEST;

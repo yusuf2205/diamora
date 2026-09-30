@@ -14,7 +14,7 @@ interface Status {
 }
 
 // job names as the backup scripts write them (infra/backup/*.sh: JOB=...)
-const JOB: Record<string, string> = { pg_dump: 'База данных (каждый день)', pg_basebackup: 'Полная копия базы (раз в неделю)', minio_mirror: 'Фото и файлы', config: 'Настройки', verify: 'Проверка восстановления', restore: 'Восстановление' };
+const JOB: Record<string, string> = { pg_dump: 'База данных (каждый день)', pg_basebackup: 'Полная копия базы (раз в неделю)', minio_mirror: 'Фото и файлы', config: 'Настройки', offsite: 'Копия на внешнем диске', verify: 'Проверка восстановления', restore: 'Восстановление' };
 const hours = (iso: string | null) => (iso ? (Date.now() - new Date(iso).getTime()) / 3_600_000 : Infinity);
 const size = (b: number | null) => (b == null ? '' : b > 1e9 ? `${(b / 1e9).toFixed(1)} ГБ` : b > 1e6 ? `${(b / 1e6).toFixed(1)} МБ` : `${Math.round(b / 1e3)} КБ`);
 const uptime = (s: number) => (s > 86_400 ? `${Math.floor(s / 86_400)} дн` : s > 3600 ? `${Math.floor(s / 3600)} ч` : `${Math.floor(s / 60)} мин`);
