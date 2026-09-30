@@ -801,5 +801,8 @@
   "mapNorth": "North up",
   "mapTraffic": "Traffic",
   "mapShowAll": "Everyone in view",
-  "map3d": "3D view"
+  "map3d": "3D view",
+  "updateAppVersion": "App version",
+  "updateCheck": "Check",
+  "updateLatest": "You have the latest version"
 }

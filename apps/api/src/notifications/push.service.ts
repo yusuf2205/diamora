@@ -54,22 +54,31 @@ export class PushService {
   }
 
   /** Every signed-in phone (a new app version). */
-  async sendAll(n: PushNotice) {
-    if (!this.account) return;
+  async sendAll(n: PushNotice): Promise<{ phones: number; delivered: number }> {
+    if (!this.account) {
+      this.log.warn('push disabled: no Firebase credentials');
+      return { phones: 0, delivered: 0 };
+    }
     const tokens = await this.prisma.pushToken.findMany({ select: { token: true } });
-    for (let i = 0; i < tokens.length; i += 50) await this.deliver(tokens.slice(i, i + 50), n);
+    let delivered = 0;
+    for (let i = 0; i < tokens.length; i += 50) delivered += await this.deliver(tokens.slice(i, i + 50), n);
+    // counts only (never tokens): lets «did the update push go out?» be answered from the logs
+    this.log.log(`push ${n.id}: ${delivered} of ${tokens.length} phones`);
+    return { phones: tokens.length, delivered };
   }
 
-  private async deliver(tokens: { token: string }[], n: PushNotice) {
-    if (!this.account || !tokens.length) return;
+  /** How many phones Firebase accepted it for. */
+  private async deliver(tokens: { token: string }[], n: PushNotice): Promise<number> {
+    if (!this.account || !tokens.length) return 0;
     let access: string;
     try {
       access = await this.accessToken();
     } catch (e) {
       this.log.warn(`push: no access token (${(e as Error).message})`);
-      return;
+      return 0;
     }
     const url = `https://fcm.googleapis.com/v1/projects/${this.account.project_id}/messages:send`;
+    let ok = 0;
     await Promise.all(tokens.map(async ({ token }) => {
       try {
         const res = await fetch(url, {
@@ -83,7 +92,7 @@ export class PushService {
             },
           }),
         });
-        if (res.ok) return;
+        if (res.ok) { ok++; return; }
         const text = await res.text();
         if (res.status === 404 || /UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(text)) {
           await this.prisma.pushToken.deleteMany({ where: { token } });
@@ -94,6 +103,7 @@ export class PushService {
         this.log.warn(`push: ${(e as Error).message}`);
       }
     }));
+    return ok;
   }
 
   private async accessToken(): Promise<string> {

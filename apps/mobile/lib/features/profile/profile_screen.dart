@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
+import '../../core/update/app_updater.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../auth/models.dart';
@@ -56,6 +57,8 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+        const SizedBox(height: 8),
+        const UpdateTile(),
         const SizedBox(height: 16),
         Text(l.language, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),

@@ -882,5 +882,8 @@
   "mapNorth": "На север",
   "mapTraffic": "Пробки",
   "mapShowAll": "Все на карте",
-  "map3d": "Объёмный вид"
+  "map3d": "Объёмный вид",
+  "updateAppVersion": "Версия приложения",
+  "updateCheck": "Проверить",
+  "updateLatest": "У вас последняя версия"
 }

@@ -2601,4 +2601,13 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get map3d => 'Hajmli ko\'rinish';
+
+  @override
+  String get updateAppVersion => 'Ilova versiyasi';
+
+  @override
+  String get updateCheck => 'Tekshirish';
+
+  @override
+  String get updateLatest => 'Sizda eng so\'nggi versiya';
 }

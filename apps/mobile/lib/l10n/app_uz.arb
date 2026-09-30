@@ -832,5 +832,8 @@
   "mapNorth": "Shimolga",
   "mapTraffic": "Tirbandlik",
   "mapShowAll": "Hammasi xaritada",
-  "map3d": "Hajmli ko'rinish"
+  "map3d": "Hajmli ko'rinish",
+  "updateAppVersion": "Ilova versiyasi",
+  "updateCheck": "Tekshirish",
+  "updateLatest": "Sizda eng so'nggi versiya"
 }

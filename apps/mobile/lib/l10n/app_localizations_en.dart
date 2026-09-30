@@ -2630,4 +2630,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get map3d => '3D view';
+
+  @override
+  String get updateAppVersion => 'App version';
+
+  @override
+  String get updateCheck => 'Check';
+
+  @override
+  String get updateLatest => 'You have the latest version';
 }

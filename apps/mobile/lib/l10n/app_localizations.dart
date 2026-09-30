@@ -4911,6 +4911,24 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Объёмный вид'**
   String get map3d;
+
+  /// No description provided for @updateAppVersion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Версия приложения'**
+  String get updateAppVersion;
+
+  /// No description provided for @updateCheck.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверить'**
+  String get updateCheck;
+
+  /// No description provided for @updateLatest.
+  ///
+  /// In ru, this message translates to:
+  /// **'У вас последняя версия'**
+  String get updateLatest;
 }
 
 class _AppLocalizationsDelegate

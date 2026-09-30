@@ -268,3 +268,62 @@ class UpdateStrip extends StatelessWidget {
     );
   }
 }
+
+
+/// Profile: «Версия приложения 1.0.0-rc.40» + «Проверить обновление» - a way to update right now, without waiting.
+class UpdateTile extends ConsumerStatefulWidget {
+  const UpdateTile({super.key});
+  @override
+  ConsumerState<UpdateTile> createState() => _UpdateTileState();
+}
+
+class _UpdateTileState extends ConsumerState<UpdateTile> {
+  bool _checking = false;
+
+  Future<void> _check() async {
+    final l = AppLocalizations.of(context);
+    setState(() => _checking = true);
+    final c = ref.read(updateControllerProvider.notifier);
+    await c.check(force: true);
+    if (!mounted) return;
+    setState(() => _checking = false);
+    final s = ref.read(updateControllerProvider);
+    if (s.stage == UpdateStage.idle) {
+      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.updateLatest)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final s = ref.watch(updateControllerProvider);
+    final supported = UpdateController.supported;
+    final Widget? trailing = !supported
+        ? null
+        : switch (s.stage) {
+            UpdateStage.downloading => Text('${(s.progress * 100).round()}%', style: Theme.of(context).textTheme.titleMedium),
+            UpdateStage.ready || UpdateStage.needsPermission => FilledButton(
+                key: const Key('updateInstallNow'),
+                style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                onPressed: () => ref.read(updateControllerProvider.notifier).install(),
+                child: Text(l.updateInstall),
+              ),
+            _ => _checking
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                : OutlinedButton(key: const Key('updateCheck'), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)), onPressed: _check, child: Text(l.updateCheck)),
+          };
+    return Card(
+      child: ListTile(
+        key: const Key('updateTile'),
+        leading: const Icon(Icons.system_update_rounded),
+        title: Text(l.updateAppVersion),
+        subtitle: Text(switch (s.stage) {
+          UpdateStage.downloading => l.updateDownloading(s.release?.version ?? '', (s.progress * 100).round()),
+          UpdateStage.ready => l.updateReady(s.release?.version ?? ''),
+          _ => AppConfig.appVersion,
+        }),
+        trailing: trailing,
+      ),
+    );
+  }
+}

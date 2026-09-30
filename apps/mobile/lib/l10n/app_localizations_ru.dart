@@ -2643,4 +2643,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get map3d => 'Объёмный вид';
+
+  @override
+  String get updateAppVersion => 'Версия приложения';
+
+  @override
+  String get updateCheck => 'Проверить';
+
+  @override
+  String get updateLatest => 'У вас последняя версия';
 }
