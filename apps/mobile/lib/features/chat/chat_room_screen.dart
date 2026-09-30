@@ -24,6 +24,7 @@ import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
+import 'chat_audio.dart';
 import 'chat_list_screen.dart';
 import 'chat_gallery.dart';
 import 'chat_profile.dart';
@@ -655,6 +656,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ],
       ),
       body: Column(children: [
+        const ChatAudioBar(),
         if (_searching)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),

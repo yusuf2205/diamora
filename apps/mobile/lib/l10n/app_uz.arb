@@ -813,5 +813,15 @@
   "chatCountFiles": "Fayllar: {count}",
   "chatCountVoice": "Ovozli: {count}",
   "chatCountLinks": "Havolalar: {count}",
-  "chatShowProfile": "Profilni ko'rsatish"
+  "chatShowProfile": "Profilni ko'rsatish",
+  "chatTodayAt": "bugun {time} da",
+  "chatYesterdayAt": "kecha {time} da",
+  "chatDateAt": "{date} {time} da",
+  "chatAudioPrev": "Oldingi",
+  "chatAudioNext": "Keyingi",
+  "chatAudioPlay": "Tinglash",
+  "chatAudioPause": "Pauza",
+  "chatAudioSpeed": "Tezlik",
+  "chatAudioMute": "Ovoz",
+  "chatAudioClose": "Pleyerni yopish"
 }

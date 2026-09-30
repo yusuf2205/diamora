@@ -782,5 +782,15 @@
   "chatCountFiles": "Files: {count}",
   "chatCountVoice": "Voice messages: {count}",
   "chatCountLinks": "Links: {count}",
-  "chatShowProfile": "View profile"
+  "chatShowProfile": "View profile",
+  "chatTodayAt": "today at {time}",
+  "chatYesterdayAt": "yesterday at {time}",
+  "chatDateAt": "{date} at {time}",
+  "chatAudioPrev": "Previous",
+  "chatAudioNext": "Next",
+  "chatAudioPlay": "Play",
+  "chatAudioPause": "Pause",
+  "chatAudioSpeed": "Speed",
+  "chatAudioMute": "Sound",
+  "chatAudioClose": "Close player"
 }

@@ -4797,6 +4797,66 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Показать профиль'**
   String get chatShowProfile;
+
+  /// No description provided for @chatTodayAt.
+  ///
+  /// In ru, this message translates to:
+  /// **'сегодня в {time}'**
+  String chatTodayAt(String time);
+
+  /// No description provided for @chatYesterdayAt.
+  ///
+  /// In ru, this message translates to:
+  /// **'вчера в {time}'**
+  String chatYesterdayAt(String time);
+
+  /// No description provided for @chatDateAt.
+  ///
+  /// In ru, this message translates to:
+  /// **'{date} в {time}'**
+  String chatDateAt(String date, String time);
+
+  /// No description provided for @chatAudioPrev.
+  ///
+  /// In ru, this message translates to:
+  /// **'Предыдущее'**
+  String get chatAudioPrev;
+
+  /// No description provided for @chatAudioNext.
+  ///
+  /// In ru, this message translates to:
+  /// **'Следующее'**
+  String get chatAudioNext;
+
+  /// No description provided for @chatAudioPlay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слушать'**
+  String get chatAudioPlay;
+
+  /// No description provided for @chatAudioPause.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пауза'**
+  String get chatAudioPause;
+
+  /// No description provided for @chatAudioSpeed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скорость'**
+  String get chatAudioSpeed;
+
+  /// No description provided for @chatAudioMute.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звук'**
+  String get chatAudioMute;
+
+  /// No description provided for @chatAudioClose.
+  ///
+  /// In ru, this message translates to:
+  /// **'Закрыть проигрыватель'**
+  String get chatAudioClose;
 }
 
 class _AppLocalizationsDelegate

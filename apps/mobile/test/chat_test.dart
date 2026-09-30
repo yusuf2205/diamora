@@ -7,7 +7,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:diamoraa_mobile/core/providers.dart';
 import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
 import 'package:diamoraa_mobile/features/auth/auth_controller.dart';
+import 'package:diamoraa_mobile/features/chat/chat_audio.dart';
 import 'package:diamoraa_mobile/features/chat/chat_list_screen.dart';
+import 'package:diamoraa_mobile/features/chat/chat_media.dart';
 import 'package:diamoraa_mobile/features/chat/chat_models.dart';
 import 'package:diamoraa_mobile/features/chat/chat_profile.dart';
 import 'package:diamoraa_mobile/features/chat/chat_room_screen.dart';
@@ -20,6 +22,39 @@ Map<String, Object?> msg(String id, String text, {String sender = 'u2', String n
       'id': id, 'roomId': 'r1', 'kind': kind, 'text': text, 'deleted': deleted, 'file': file, 'clientId': null,
       'sender': {'id': sender, 'fullName': name, 'role': 'WORKER'}, 'createdAt': DateTime.now().toUtc().toIso8601String(),
     };
+
+class FakeEngine implements ChatAudioEngine {
+  final opened = <String>[];
+  double rate = 1;
+  double volume = 1;
+  final _pos = StreamController<Duration>.broadcast();
+  final _len = StreamController<Duration>.broadcast();
+  final _playing = StreamController<bool>.broadcast();
+  final _done = StreamController<void>.broadcast();
+  void finish() => _done.add(null);
+  @override
+  Stream<Duration> get position => _pos.stream;
+  @override
+  Stream<Duration> get duration => _len.stream;
+  @override
+  Stream<bool> get playing => _playing.stream;
+  @override
+  Stream<void> get complete => _done.stream;
+  @override
+  Future<void> open(ChatMessage m) async => opened.add(m.id);
+  @override
+  Future<void> resume() async => _playing.add(true);
+  @override
+  Future<void> pause() async => _playing.add(false);
+  @override
+  Future<void> seek(Duration d) async => _pos.add(d);
+  @override
+  Future<void> setRate(double r) async => rate = r;
+  @override
+  Future<void> setVolume(double v) async => volume = v;
+  @override
+  Future<void> dispose() async {}
+}
 
 void main() {
   late MockApi api;
@@ -291,4 +326,56 @@ void main() {
     expect(chatKindForName('Отчёт.pdf'), 'FILE');
     expect(chatKindForName('noext'), 'FILE');
   });
+
+  for (final wide in [false, true]) {
+    testWidgets('voice strip like Telegram (${wide ? 'tablet' : 'phone'}): one plays at a time, next by itself, ⏮ ⏭, 1X → 1.5X → 2X, ✕', (tester) async {
+      tester.view.physicalSize = wide ? const Size(1280, 800) : const Size(360, 740);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final engine = FakeEngine();
+      ChatAudio.engineFactory = () => engine;
+      ChatAudio.instance.rate = 1; // the chosen speed stays for the next voice (like Telegram); start each test from 1X
+      addTearDown(() => ChatAudio.instance.close());
+      ChatMessage voice(String id, String who, int min) => ChatMessage.fromJson({
+            ...msg(id, '', kind: 'VOICE', name: who, file: {'url': 'https://x/$id.m4a', 'durationMs': 4000, 'size': 9011}),
+            'createdAt': DateTime.now().subtract(Duration(minutes: min)).toUtc().toIso8601String(),
+          });
+      final a = voice('v1', 'Салима', 5);
+      final b = voice('v2', 'Юнус', 1);
+      await pump(tester, Scaffold(body: Column(children: [
+        const ChatAudioBar(),
+        ChatAudioBubble(message: a, color: Colors.black),
+        ChatAudioBubble(message: b, color: Colors.black),
+      ])));
+      expect(find.byKey(const Key('audioBar')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('play-v1')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('audioBar')), findsOneWidget);
+      expect(find.textContaining('Салима'), findsOneWidget);
+      expect(find.textContaining('сегодня в'), findsOneWidget);
+      expect(find.byKey(const Key('audioMute')), wide ? findsOneWidget : findsNothing); // phones use the volume keys
+      expect(tester.takeException(), isNull); // nothing overflows
+
+      await tester.tap(find.byKey(const Key('audioSpeed')));
+      await tester.pumpAndSettle();
+      expect(find.text('1.5X'), findsOneWidget);
+      expect(engine.rate, 1.5);
+      await tester.tap(find.byKey(const Key('audioSpeed')));
+      await tester.pumpAndSettle();
+      expect(find.text('2X'), findsOneWidget);
+
+      engine.finish(); // the first voice ended -> the next one starts by itself
+      await tester.pumpAndSettle();
+      expect(engine.opened, ['v1', 'v2']);
+      expect(find.textContaining('Юнус'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('audioPrev')));
+      await tester.pumpAndSettle();
+      expect(engine.opened.last, 'v1');
+
+      await tester.tap(find.byKey(const Key('audioClose')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('audioBar')), findsNothing);
+    });
+  }
 }

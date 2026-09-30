@@ -9,6 +9,7 @@ import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
+import 'chat_audio.dart';
 import 'chat_models.dart';
 import 'chat_repository.dart';
 
@@ -89,7 +90,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         icon: const Icon(Icons.edit_rounded),
         label: Text(l.chatNew),
       ),
-      body: rooms.when(
+      body: Column(children: [
+        const ChatAudioBar(), // a voice keeps playing after going back to the list, like Telegram
+        Expanded(child: rooms.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (items) => items.isEmpty
@@ -103,7 +106,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   itemBuilder: (context, i) => _RoomTile(room: items[i], meId: me?.id, onLongPress: () => _roomMenu(items[i])),
                 ),
               ),
-      ),
+        )),
+      ]),
     );
   }
 }

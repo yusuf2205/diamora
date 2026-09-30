@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'chat_audio.dart';
 import 'chat_models.dart';
 import 'chat_profile.dart' show Waveform, barsFor;
 
@@ -186,86 +186,77 @@ class ChatAudioBubble extends StatefulWidget {
 }
 
 class _ChatAudioBubbleState extends State<ChatAudioBubble> {
-  AudioPlayer? _player;
-  Duration _pos = Duration.zero;
-  Duration? _len;
-  bool _playing = false;
-  bool _loading = false;
-  final _subs = <StreamSubscription<Object?>>[];
+  // the sound itself lives in the shared ChatAudio (one at a time, the next starts by itself, the strip on top controls it)
+  final _audio = ChatAudio.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _audio.register(widget.message);
+  }
+
+  @override
+  void didUpdateWidget(ChatAudioBubble old) {
+    super.didUpdateWidget(old);
+    if (old.message.id != widget.message.id) _audio.unregister(old.message.id);
+    _audio.register(widget.message);
+  }
 
   @override
   void dispose() {
-    for (final s in _subs) {
-      s.cancel();
-    }
-    _player?.dispose();
+    _audio.unregister(widget.message.id);
     super.dispose();
-  }
-
-  Future<void> _toggle() async {
-    if (_playing) return _player?.pause();
-    if (_player == null) {
-      setState(() => _loading = true);
-      try {
-        // streams right away; a copy already on the phone plays from there
-        final local = await ChatFiles.cached(widget.message);
-        final p = AudioPlayer();
-        _subs
-          ..add(p.onPositionChanged.listen((d) { if (mounted) setState(() => _pos = d); }))
-          ..add(p.onDurationChanged.listen((d) { if (mounted) setState(() => _len = d); }))
-          ..add(p.onPlayerStateChanged.listen((s) { if (mounted) setState(() => _playing = s == PlayerState.playing); }))
-          ..add(p.onPlayerComplete.listen((_) { if (mounted) setState(() => _pos = Duration.zero); }));
-        await p.setSource(local != null ? DeviceFileSource(local.path) : UrlSource(widget.message.file!.url));
-        _player = p;
-      } catch (_) {
-        if (mounted) setState(() => _loading = false);
-        return;
-      }
-      if (mounted) setState(() => _loading = false);
-    }
-    await _player!.resume();
   }
 
   @override
   Widget build(BuildContext context) {
-    final total = _len ?? Duration(milliseconds: widget.message.file?.durationMs ?? 0);
-    final value = total.inMilliseconds > 0 ? (_pos.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0) : 0.0;
     final accent = Theme.of(context).colorScheme.primary;
-    String two(int v) => v.toString().padLeft(2, '0');
-    final shown = _playing || _pos > Duration.zero ? _pos : total;
     final size = widget.message.file?.size;
-    // like Telegram: a round ▶, the waveform (played part filled; tap to seek), «00:02, 8.8 KB»
-    return SizedBox(
-      width: 250,
-      child: Row(children: [
-        GestureDetector(
-          key: Key('play-${widget.message.id}'),
-          onTap: _loading ? null : _toggle,
-          child: CircleAvatar(
-            radius: 22,
-            backgroundColor: accent,
-            child: _loading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Icon(_playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 28),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Waveform(
-              bars: barsFor(widget.message.waveform, widget.message.id),
-              progress: value,
-              color: accent,
-              onSeek: (f) async {
-                if (_player == null) await _toggle();
-                if (total.inMilliseconds > 0) await _player?.seek(Duration(milliseconds: (total.inMilliseconds * f).round()));
-              },
+    return ListenableBuilder(
+      listenable: _audio,
+      builder: (context, _) {
+        final current = _audio.isCurrent(widget.message.id);
+        final playing = current && _audio.playing;
+        final loading = current && _audio.loading;
+        final pos = current ? _audio.pos : Duration.zero;
+        final total = current ? _audio.total : Duration(milliseconds: widget.message.file?.durationMs ?? 0);
+        final value = total.inMilliseconds > 0 ? (pos.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0) : 0.0;
+        final shown = playing || pos > Duration.zero ? pos : total;
+        final rate = current && _audio.rate != 1 ? ' · ${_audio.rate}x' : '';
+        // like Telegram: a round ▶, the waveform (played part filled; tap to seek), «00:02, 8.8 KB»
+        return SizedBox(
+          width: 250,
+          child: Row(children: [
+            GestureDetector(
+              key: Key('play-${widget.message.id}'),
+              onTap: loading ? null : () => _audio.toggle(widget.message),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: accent,
+                child: loading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 28),
+              ),
             ),
-            const SizedBox(height: 2),
-            Text('${two(shown.inMinutes)}:${two(shown.inSeconds % 60)}${size != null ? ', ${formatBytes(size)}' : ''}', style: TextStyle(fontSize: 12, color: widget.color.withValues(alpha: 0.75))),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Waveform(
+                  bars: barsFor(widget.message.waveform, widget.message.id),
+                  progress: current ? value : 0,
+                  color: accent,
+                  onSeek: (f) async {
+                    if (!current) await _audio.play(widget.message);
+                    await _audio.seekTo(f);
+                  },
+                ),
+                const SizedBox(height: 2),
+                Text('${chatAudioTime(shown)}${size != null ? ', ${formatBytes(size)}' : ''}$rate', style: TextStyle(fontSize: 12, color: widget.color.withValues(alpha: 0.75))),
+              ]),
+            ),
           ]),
-        ),
-      ]),
+        );
+      },
     );
   }
 }

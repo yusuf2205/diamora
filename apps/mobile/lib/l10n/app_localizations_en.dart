@@ -2565,4 +2565,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatShowProfile => 'View profile';
+
+  @override
+  String chatTodayAt(String time) {
+    return 'today at $time';
+  }
+
+  @override
+  String chatYesterdayAt(String time) {
+    return 'yesterday at $time';
+  }
+
+  @override
+  String chatDateAt(String date, String time) {
+    return '$date at $time';
+  }
+
+  @override
+  String get chatAudioPrev => 'Previous';
+
+  @override
+  String get chatAudioNext => 'Next';
+
+  @override
+  String get chatAudioPlay => 'Play';
+
+  @override
+  String get chatAudioPause => 'Pause';
+
+  @override
+  String get chatAudioSpeed => 'Speed';
+
+  @override
+  String get chatAudioMute => 'Sound';
+
+  @override
+  String get chatAudioClose => 'Close player';
 }

@@ -2535,4 +2535,40 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatShowProfile => 'Profilni ko\'rsatish';
+
+  @override
+  String chatTodayAt(String time) {
+    return 'bugun $time da';
+  }
+
+  @override
+  String chatYesterdayAt(String time) {
+    return 'kecha $time da';
+  }
+
+  @override
+  String chatDateAt(String date, String time) {
+    return '$date $time da';
+  }
+
+  @override
+  String get chatAudioPrev => 'Oldingi';
+
+  @override
+  String get chatAudioNext => 'Keyingi';
+
+  @override
+  String get chatAudioPlay => 'Tinglash';
+
+  @override
+  String get chatAudioPause => 'Pauza';
+
+  @override
+  String get chatAudioSpeed => 'Tezlik';
+
+  @override
+  String get chatAudioMute => 'Ovoz';
+
+  @override
+  String get chatAudioClose => 'Pleyerni yopish';
 }

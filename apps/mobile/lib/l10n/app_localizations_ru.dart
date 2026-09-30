@@ -2577,4 +2577,40 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatShowProfile => 'Показать профиль';
+
+  @override
+  String chatTodayAt(String time) {
+    return 'сегодня в $time';
+  }
+
+  @override
+  String chatYesterdayAt(String time) {
+    return 'вчера в $time';
+  }
+
+  @override
+  String chatDateAt(String date, String time) {
+    return '$date в $time';
+  }
+
+  @override
+  String get chatAudioPrev => 'Предыдущее';
+
+  @override
+  String get chatAudioNext => 'Следующее';
+
+  @override
+  String get chatAudioPlay => 'Слушать';
+
+  @override
+  String get chatAudioPause => 'Пауза';
+
+  @override
+  String get chatAudioSpeed => 'Скорость';
+
+  @override
+  String get chatAudioMute => 'Звук';
+
+  @override
+  String get chatAudioClose => 'Закрыть проигрыватель';
 }

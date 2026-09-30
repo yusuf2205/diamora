@@ -859,5 +859,18 @@
   "@chatCountVoice": {"placeholders": {"count": {"type": "int"}}},
   "chatCountLinks": "Ссылки: {count}",
   "@chatCountLinks": {"placeholders": {"count": {"type": "int"}}},
-  "chatShowProfile": "Показать профиль"
+  "chatShowProfile": "Показать профиль",
+  "chatTodayAt": "сегодня в {time}",
+  "@chatTodayAt": {"placeholders": {"time": {"type": "String"}}},
+  "chatYesterdayAt": "вчера в {time}",
+  "@chatYesterdayAt": {"placeholders": {"time": {"type": "String"}}},
+  "chatDateAt": "{date} в {time}",
+  "@chatDateAt": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
+  "chatAudioPrev": "Предыдущее",
+  "chatAudioNext": "Следующее",
+  "chatAudioPlay": "Слушать",
+  "chatAudioPause": "Пауза",
+  "chatAudioSpeed": "Скорость",
+  "chatAudioMute": "Звук",
+  "chatAudioClose": "Закрыть проигрыватель"
 }
