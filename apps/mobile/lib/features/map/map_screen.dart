@@ -15,7 +15,7 @@ import 'package:yandex_maps_mapkit_lite/yandex_map.dart';
 import 'package:yandex_maps_mapkit_lite/mapkit_factory.dart' show mapkit;
 
 import '../../core/config.dart';
-import '../../core/providers.dart' show geoProvider;
+import '../../core/location/where_am_i.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -335,13 +335,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   Future<void> _myPlace() async {
     final l = AppLocalizations.of(context);
-    try {
-      final p = await ref.read(geoProvider).current().timeout(const Duration(seconds: 12));
-      final c = _camera;
-      _mapWindow?.map.move(ymk.CameraPosition(ymk.Point(latitude: p.latitude, longitude: p.longitude), zoom: 16, azimuth: c?.azimuth ?? 0, tilt: c?.tilt ?? 0), animation: _smooth);
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.mapNoMyPlace)));
+    // fast even on a tablet without GPS: last known place, a rough network fix, or my point the server has
+    final p = await whereAmI(ref);
+    if (!mounted) return;
+    if (p == null) {
+      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.mapNoMyPlace)));
+      return;
     }
+    final c = _camera;
+    _mapWindow?.map.move(ymk.CameraPosition(ymk.Point(latitude: p.lat, longitude: p.lng), zoom: 16, azimuth: c?.azimuth ?? 0, tilt: c?.tilt ?? 0), animation: _smooth);
   }
 
   /// A pin like Yandex's: a coloured circle with the person's initials (a house for a home address), a white rim, a

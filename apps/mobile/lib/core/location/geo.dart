@@ -36,6 +36,12 @@ abstract class Geo {
   Future<Position> current();
   Stream<Position> watch();
 
+  /// The phone's last known place - instant, may be old or missing.
+  Future<Position?> lastKnown() async => null;
+
+  /// A quick, rough place (Wi-Fi / mobile network is enough): for «где я» and routes, not for tracking.
+  Future<Position> approximate() => current();
+
   /// The single source of truth for "is the app allowed to track right now" (§20's ordered checklist).
   Future<LocationStatus> status() async {
     if (!await servicesEnabled()) return const LocationStatus(LocationGap.servicesDisabled);
@@ -78,6 +84,13 @@ class GeolocatorGeo extends Geo {
 
   @override
   Future<Position> current() => Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+
+  @override
+  Future<Position?> lastKnown() => Geolocator.getLastKnownPosition();
+
+  /// tablets without GPS (and phones indoors) never reach «high»: a medium fix from the network comes in seconds
+  @override
+  Future<Position> approximate() => Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 8)));
 
   /// Movement-triggered updates (25 m) plus geolocator's own internal throttling — battery-conscious by construction (§21).
   /// A separate periodic heartbeat (BackgroundTracker) covers the "stayed still for a long time" case.

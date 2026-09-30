@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/providers.dart' show geoProvider;
+import '../../core/location/where_am_i.dart';
 import '../../l10n/app_localizations.dart';
 import '../team/models.dart';
 import 'route_plan.dart';
@@ -50,11 +50,8 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
 
   Future<void> _build() async {
     setState(() => _busy = true);
-    ({double lat, double lng})? start;
-    try {
-      final p = await ref.read(geoProvider).current().timeout(const Duration(seconds: 8));
-      start = (lat: p.latitude, lng: p.longitude);
-    } catch (_) {/* no position: the round starts at the first stop, Yandex starts «from here» */}
+    // fast even without GPS (a tablet): last known place / a rough fix / my point on the server; null = from the first stop
+    final start = await whereAmI(ref);
     final stops = _all.where((s) => _picked.contains(s.id)).toList();
     final from = start ?? (lat: stops.first.lat, lng: stops.first.lng);
     if (!mounted) return;
@@ -63,6 +60,16 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
       _plan = planRoute(from, stops);
       _busy = false;
     });
+  }
+
+  /// the Yandex Maps / Navigator app when it is installed, else the site in the browser
+  Future<void> _openYandex(List<RouteStop> order) async {
+    final web = yandexRouteUrl(_start, order);
+    final app = Uri.parse(web.toString().replaceFirst('https://yandex.ru/maps/', 'yandexmaps://maps.yandex.ru/'));
+    try {
+      if (await launchUrl(app, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {}
+    await launchUrl(web, mode: LaunchMode.externalApplication);
   }
 
   String _noteText(AppLocalizations l, String? note) => [
@@ -120,7 +127,7 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
                     FilledButton.icon(
                       key: const Key('routeOpen'),
                       style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                      onPressed: () => launchUrl(yandexRouteUrl(_start, plan.order), mode: LaunchMode.externalApplication),
+                      onPressed: () => _openYandex(plan.order),
                       icon: const Icon(Icons.navigation_rounded),
                       label: Text(l.routeOpenYandex),
                     ),
