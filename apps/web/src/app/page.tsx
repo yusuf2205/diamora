@@ -32,6 +32,10 @@ export default function Landing() {
         Открыть веб-версию (без установки)
       </a>
 
+      <a href="/order" className="mt-3 flex min-h-12 items-center justify-center rounded-2xl border border-primary/40 bg-primary/5 px-5 text-base font-semibold text-primary">
+        Заказать изделие (для покупателей)
+      </a>
+
       <ol className="mt-10 space-y-3">
         {steps.map((s, i) => (
           <li key={s} className="flex items-center gap-3 text-base">

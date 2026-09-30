@@ -80,7 +80,10 @@ describe('insights', () => {
     const priced = await t.prisma.material.create({ data: { name: `Лента ${Math.random()}`, unit: 'METER', unitCost: 1000n } });
     const unpriced = await t.prisma.material.create({ data: { name: `Бусины ${Math.random()}`, unit: 'PCS' } });
     await t.prisma.workAssignmentMaterial.createMany({ data: [{ assignmentId: a.id, materialId: priced.id, quantity: 20 }, { assignmentId: a.id, materialId: unpriced.id, quantity: 5 }] });
-    await t.prisma.workerLedgerTransaction.create({ data: { workerId: w.workerId, assignmentId: a.id, type: 'EARNING', amount: 60000n, balanceAfter: 60000n, createdById: staffId } });
+    // an earning written the way the ledger does it: the row AND the worker's balance (the integrity check compares them)
+    const bal = (await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: w.workerId }, select: { balance: true } })).balance + 60000n;
+    await t.prisma.workerLedgerTransaction.create({ data: { workerId: w.workerId, assignmentId: a.id, type: 'EARNING', amount: 60000n, balanceAfter: bal, createdById: staffId } });
+    await t.prisma.workerProfile.update({ where: { id: w.workerId }, data: { balance: bal } });
 
     // a sale with what was sold: the total is the sum of the lines
     const sale = (await admin.api.post('/v1/admin/finance/sales', { total: '1', customer: 'Магазин', items: [{ productModelId: a.productModelId, quantity: 18, unitPrice: '10000' }] }).expect(201)).body;

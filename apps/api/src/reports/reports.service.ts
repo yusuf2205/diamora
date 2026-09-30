@@ -135,7 +135,7 @@ export class ReportsService {
     t.border = { top: { style: 'thin' } };
     for (const c of ['G', 'H']) ws.getColumn(c).numFmt = '# ##0';
     if (r.lowStock?.length) {
-      const st = wb.addWorksheet('Склад: мало');
+      const st = wb.addWorksheet('Склад — мало'); // Excel forbids : / ? * [ ] and a backslash in sheet names
       st.columns = [{ header: 'Материал', key: 'n', width: 30 }, { header: 'Осталось', key: 'q', width: 12 }, { header: 'Минимум', key: 'm', width: 12 }];
       st.getRow(1).font = { bold: true };
       for (const m of r.lowStock) st.addRow([m.name, m.quantity, m.minStock]);

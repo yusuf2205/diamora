@@ -84,6 +84,9 @@ export interface EventMap {
   'chat.typing': { roomId: string; userId: string; name: string; kind: 'text' | 'voice'; userIds: string[] };
   /** a new Android build was published: every open app checks for it right away */
   'app.release': { build: number; version: string };
+  /** a customer ordered from the form on diamoraa.uz */
+  'client_order.created': { orderId: string; code: string; name: string };
+  'client_order.updated': { orderId: string };
 }
 export type EventType = keyof EventMap;
 
@@ -168,6 +171,8 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'chat.message_updated': { users: true },
   'chat.typing': { users: true },
   'app.release': { staff: true, allWorkers: true },
+  'client_order.created': { perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
+  'client_order.updated': { perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
 };
 
 export interface RealtimeEnvelope<T extends EventType = EventType> {

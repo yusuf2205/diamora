@@ -84,5 +84,8 @@ describe('two front doors: diamoraa.uz for workers, the panel on its own host', 
     expect(at('https://diamoraa.uz/workers?status=ACTIVE').headers.get('location')).toBe('https://admin.diamoraa.uz/workers?status=ACTIVE');
     expect(at('https://admin.diamoraa.uz/').headers.get('location')).toBe('https://admin.diamoraa.uz/dashboard');
     expect(at('https://admin.diamoraa.uz/login').headers.get('location')).toBeNull();
+    // customers order on the main domain; the staff list of orders lives on the panel
+    expect(at('https://diamoraa.uz/order').headers.get('location')).toBeNull();
+    expect(at('https://diamoraa.uz/orders').headers.get('location')).toBe('https://admin.diamoraa.uz/orders');
   });
 });

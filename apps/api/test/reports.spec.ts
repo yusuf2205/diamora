@@ -42,7 +42,9 @@ describe('reports (day / week / month) and «Мои заработки по ме
     expect(csv.text.charCodeAt(0)).toBe(0xfeff);
     expect(csv.text).toContain('"Мастерица";"Код"');
 
-    // a real Excel file: the same rows, money as numbers
+    // a real Excel file: the same rows, money as numbers; with a «мало» material too (its sheet name once broke the file)
+    const low = (await admin.api.post('/v1/admin/materials', { name: `Мало ${Math.random()}`, unit: 'METER', minStock: '5' }).expect(201)).body.id;
+    await admin.api.post('/v1/admin/stock/receipt', { materialId: low, quantity: '1' }).expect(201);
     const bin = await admin.api.get('/v1/admin/reports/export.xlsx?period=week').expect(200).buffer(true)
       .parse((res, cb) => { const parts: Buffer[] = []; res.on('data', (c: Buffer) => parts.push(c)); res.on('end', () => cb(null, Buffer.concat(parts))); });
     expect(bin.headers['content-type']).toContain('spreadsheetml');
@@ -54,6 +56,7 @@ describe('reports (day / week / month) and «Мои заработки по ме
     const found = ws.getSheetValues().find((r) => Array.isArray(r) && r[2] === row.worker.code) as unknown[];
     expect(found[5]).toBe(9); // accepted metres
     expect(found[8]).toBe(10000); // paid, a number Excel can sum
+    expect(wb.getWorksheet('Склад — мало')).toBeTruthy();
 
     const mgr = await staffActor(t, 'MANAGER', ['FINANCE_VIEW_ASSIGNED']);
     const mine = await mgr.api.get('/v1/admin/reports?period=week').expect(200);

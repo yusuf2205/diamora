@@ -163,6 +163,13 @@ export class AppNotifier implements OnModuleInit {
         });
         return;
       }
+      case 'client_order.created': {
+        await this.notify(await this.staffWith(['CATALOG_MANAGE']), {
+          type: e.type, title: `Новый заказ с сайта: ${d.name}`, body: `Заказ ${d.code} — откройте «Заказы клиентов» и позвоните покупателю`, link: '/admin/orders',
+          dedupe: `order:${d.orderId}`,
+        });
+        return;
+      }
       case 'stock.updated': {
         if (!d.low) return;
         const m = await this.prisma.material.findUnique({ where: { id: d.materialId as string } });

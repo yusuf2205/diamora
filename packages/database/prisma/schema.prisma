@@ -552,6 +552,7 @@ model ProductModel {
   assignments  WorkAssignment[]
   saleItems    SaleItem[]
   media        ProductMedia[]
+  clientOrders ClientOrder[]
 
   @@index([status, sortOrder])
   @@map("product_models")
@@ -1009,6 +1010,37 @@ model PayRateChange {
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
 
   @@map("pay_rate_changes")
+}
+
+enum ClientOrderStatus {
+  NEW
+  CONFIRMED
+  IN_WORK
+  DONE
+  CANCELLED
+}
+
+/// A customer's order from the form on diamoraa.uz («Заказать»): what, which colour, how many metres, who and how to reach.
+model ClientOrder {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  /// human-friendly, e.g. CO-00012
+  code           String            @unique
+  name           String
+  phone          String
+  productModelId String?           @db.Uuid
+  productModel   ProductModel?     @relation(fields: [productModelId], references: [id])
+  colorName      String?
+  quantity       Decimal?          @db.Decimal(10, 2)
+  comment        String?
+  status         ClientOrderStatus @default(NEW)
+  /// staff's own note («договорились на пятницу»)
+  staffNote      String?
+  handledById    String?           @db.Uuid
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@map("client_orders")
 }
 
 model Sale {

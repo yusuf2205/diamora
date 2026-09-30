@@ -192,6 +192,19 @@ export const updateMaterialSchema = z
 // ---- owner's analytics: sales and expenses feed «Прибыль» -------------------------------------------------------------------
 /** «this phone gets instant notifications»: the Firebase token of a signed-in device */
 export const pushTokenSchema = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios', 'web']).default('android') });
+/** «Заказать» on diamoraa.uz (no account). `website` is a trap field for bots: people never see or fill it. */
+export const clientOrderSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone: phoneSchema,
+  productModelId: idSchema.optional(),
+  colorName: z.string().trim().max(60).optional(),
+  quantity: z.coerce.number().positive().max(100_000).optional(),
+  comment: z.string().trim().max(1000).optional(),
+  website: z.string().max(500).optional(),
+});
+export const CLIENT_ORDER_STATUSES = ['NEW', 'CONFIRMED', 'IN_WORK', 'DONE', 'CANCELLED'] as const;
+export const updateClientOrderSchema = z.object({ status: z.enum(CLIENT_ORDER_STATUSES).optional(), staffNote: z.string().trim().max(1000).nullable().optional() });
+export const listClientOrdersSchema = z.object({ status: z.enum(CLIENT_ORDER_STATUSES).optional(), limit: z.coerce.number().int().min(1).max(100).default(50) });
 export const insightsMonthsSchema = z.object({ months: z.coerce.number().int().min(1).max(24).default(6) });
 /** a line of a sale: which product, how many metres, at what price per metre (drives «прибыль по изделиям») */
 export const saleLineSchema = z.object({

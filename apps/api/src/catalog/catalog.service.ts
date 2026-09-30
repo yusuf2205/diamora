@@ -210,7 +210,7 @@ export class CatalogService {
   }
   private workerCard(m: ModelWithMedia) {
     const main = m.media.find((x) => x.isMain) ?? m.media.find((x) => x.kind === 'PHOTO');
-    return { id: m.id, name: m.name, isNew: m.isNew, availability: m.availability, coverPhoto: main ? this.files.ref(main.fileId) : null, colors: m.variants.map((v) => ({ id: v.colorId, name: (v as ProductVariant & { color?: { name: string; hex: string | null } }).color?.name })) };
+    return { id: m.id, name: m.name, isNew: m.isNew, availability: m.availability, coverPhoto: main ? this.files.ref(main.fileId) : null, colors: m.variants.map((v) => { const c = (v as ProductVariant & { color?: { name: string; hex: string | null } }).color; return { id: v.colorId, name: c?.name, hex: c?.hex ?? null }; }) };
   }
   private workerDetail(m: ModelWithMedia) {
     return {
