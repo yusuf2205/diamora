@@ -10,6 +10,7 @@ import { PrismaService } from './prisma/prisma.module';
 import { AppNotifier } from './notifications/app-notifier';
 import { MaintenanceService } from './worker/maintenance';
 import { OutboxSender } from './worker/outbox';
+import { ReleaseWatcher } from './worker/release-watcher';
 import { TelegramBot } from './worker/telegram-bot';
 import { WorkerModule } from './worker/worker.module';
 
@@ -40,6 +41,10 @@ async function main() {
   const notifier = app.get(AppNotifier);
   timers.push(setInterval(() => void notifier.tick().catch((e) => log.error(`notifier: ${e.message}`)), 5 * 60_000));
   void notifier.tick().catch(() => undefined);
+  // a newly published app version -> a push + realtime hint to every phone (checked every 30 s)
+  const release = app.get(ReleaseWatcher);
+  timers.push(setInterval(() => void release.tick().catch((e) => log.error(`release: ${e.message}`)), 30_000));
+  void release.tick().catch(() => undefined);
 
   // liveness for the Docker health check (internal network only)
   const server = createServer(async (req, res) => {

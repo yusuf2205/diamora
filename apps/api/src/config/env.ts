@@ -61,6 +61,8 @@ export const envSchema = z
     FIREBASE_CREDENTIALS_FILE: z.string().optional(),
     /** where chat files sent in parts wait until complete (a disk folder; default: the system temp dir) */
     CHAT_UPLOAD_DIR: z.string().optional(),
+    /** the published app's manifest (worker: announces a new build to every phone) */
+    RELEASE_MANIFEST: z.string().optional(),
     /** the deployed build, shown on «Состояние системы» */
     APP_VERSION: z.string().optional(),
   })

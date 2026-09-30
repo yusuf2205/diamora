@@ -50,8 +50,18 @@ export class PushService {
   /** Fire-and-forget from the caller's point of view: a push failure never fails the action that caused it. */
   async send(userId: string, n: PushNotice) {
     if (!this.account) return;
-    const tokens = await this.prisma.pushToken.findMany({ where: { userId }, select: { token: true } });
-    if (!tokens.length) return;
+    await this.deliver(await this.prisma.pushToken.findMany({ where: { userId }, select: { token: true } }), n);
+  }
+
+  /** Every signed-in phone (a new app version). */
+  async sendAll(n: PushNotice) {
+    if (!this.account) return;
+    const tokens = await this.prisma.pushToken.findMany({ select: { token: true } });
+    for (let i = 0; i < tokens.length; i += 50) await this.deliver(tokens.slice(i, i + 50), n);
+  }
+
+  private async deliver(tokens: { token: string }[], n: PushNotice) {
+    if (!this.account || !tokens.length) return;
     let access: string;
     try {
       access = await this.accessToken();

@@ -90,10 +90,11 @@ void main() {
     await c.read(updateControllerProvider.notifier).install();
     expect(platform.installed, '${dir.path}/diamoraa-17.apk');
 
-    // a later check does not download it again
+    // a later (forced) check only reads the small manifest - an even newer build could have come - and never downloads it again
     server.hits.clear();
     await c.read(updateControllerProvider.notifier).check(force: true);
-    expect(server.hits, isEmpty);
+    expect(server.hits, ['/download/version.json']);
+    expect(c.read(updateControllerProvider).stage, UpdateStage.ready);
   });
 
   test('a corrupted download is thrown away and never offered for install', () async {

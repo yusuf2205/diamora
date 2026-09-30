@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../config.dart';
+import '../providers.dart' show realtimeEventsProvider;
 
 /// What diamoraa.uz/download/version.json says is the newest build (written by infra/scripts/publish-apk.sh).
 class AppRelease {
@@ -78,10 +79,10 @@ class UpdateController extends Notifier<UpdateState> {
 
   static bool get supported => !kIsWeb && Platform.isAndroid && AppConfig.apiUrl.startsWith('https://');
 
-  /// Cheap and safe to call often (app start, every return to the app, every 10 min while open): at most once per 5 min.
+  /// Cheap and safe to call often (app start, every return to the app, every 10 min while open, and at once when the server announces a new build): at most once a minute.
   Future<void> check({bool force = false}) async {
-    if (_busy || state.stage == UpdateStage.ready) return;
-    if (!force && _lastCheck != null && DateTime.now().difference(_lastCheck!) < const Duration(minutes: 5)) return;
+    if (_busy || (state.stage == UpdateStage.ready && !force)) return; // forced: an even newer build may have been announced
+    if (!force && _lastCheck != null && DateTime.now().difference(_lastCheck!) < const Duration(minutes: 1)) return;
     _lastCheck = DateTime.now();
     _busy = true;
     try {
@@ -95,6 +96,7 @@ class UpdateController extends Notifier<UpdateState> {
       if (build == null || files == null || build <= me.versionCode % 1000) return; // up to date (or an old-format manifest)
       final f = (files[me.is64 ? 'arm64' : 'armv7'] as Map?)?.cast<String, dynamic>();
       if (f == null) return;
+      if (state.stage == UpdateStage.ready && (state.release?.build ?? 0) >= build) return; // already downloaded
       final release = AppRelease(version: j['version'] as String, build: build, path: f['path'] as String, sha256: f['sha256'] as String);
       final target = '${me.dir}/diamoraa-${release.build}.apk';
       if (await platform.sha256(target) == release.sha256) {
@@ -181,6 +183,12 @@ class _UpdateBannerState extends ConsumerState<UpdateBanner> {
 
   @override
   Widget build(BuildContext context) {
+    // the server announces a freshly published build (a realtime hint; a push reaches closed apps): check right now
+    if (UpdateController.supported) {
+      ref.listen(realtimeEventsProvider, (_, next) {
+        if (next.value?.type == 'app.release') ref.read(updateControllerProvider.notifier).check(force: true);
+      });
+    }
     final s = ref.watch(updateControllerProvider);
     final show = s.stage == UpdateStage.ready || s.stage == UpdateStage.needsPermission;
     final downloading = s.stage == UpdateStage.downloading && s.release != null;

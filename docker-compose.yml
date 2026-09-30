@@ -280,9 +280,12 @@ services:
       WORKER_HEALTH_PORT: "3100"
       TZ: UTC
       FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
+      RELEASE_MANIFEST: /downloads/version.json
     volumes:
       # deadline / summary notices are pushed from here too (the same read-only key as the API)
       - ./secrets/firebase-admin.json:/run/firebase/firebase-admin.json:ro
+      # the published app's manifest: a new build is announced to every phone at once (read-only)
+      - ${DATA_ROOT}/downloads:/downloads:ro
     networks: [data, egress]
     read_only: true
     tmpfs: [/tmp]
