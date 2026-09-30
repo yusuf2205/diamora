@@ -18,7 +18,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/collaterals', label: 'Залоги', icon: Lock, perms: ['COLLATERAL_VIEW'] },
   { href: '/assignments', label: 'Задания', icon: ClipboardList, perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
   { href: '/catalog', label: 'Каталог', icon: Gem, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
-  { href: '/orders', label: 'Заказы клиентов', icon: ShoppingBag, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
+  { href: '/orders', label: 'Заказы клиентов', icon: ShoppingBag }, // every staff role: SUPER_ADMIN, ADMIN, MANAGER
   { href: '/inventory', label: 'Склад', icon: Package, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   { href: '/purchases', label: 'Закупки', icon: Truck, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   { href: '/map', label: 'Карта', icon: MapPin, perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },

@@ -6,8 +6,7 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatDate } from '@/lib/format';
-import { hasPerm } from '@/lib/types';
-import { Button, Card, EmptyState, ErrorState, ListSkeleton, PageHeader, Select } from '@/components/ui';
+import { Button, Card, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 
 interface Order { id: string; code: string; name: string; phone: string; product: { id: string; name: string } | null; colorName: string | null; quantity: number | null; comment: string | null; status: Status; staffNote: string | null; createdAt: string }
 type Status = 'NEW' | 'CONFIRMED' | 'IN_WORK' | 'DONE' | 'CANCELLED';
@@ -21,11 +20,13 @@ export default function OrdersPage() {
   const { me } = useAuth();
   const [status, setStatus] = useState<Status | ''>('NEW');
   const q = useQuery({ queryKey: ['client-orders', status], queryFn: () => api.get<{ items: Order[]; counts: Partial<Record<Status, number>> }>('/admin/orders', { status: status || undefined }) });
-  const canManage = hasPerm(me, 'CATALOG_MANAGE');
-  if (!hasPerm(me, 'CATALOG_VIEW', 'CATALOG_MANAGE')) return <EmptyState title="Недостаточно прав" />;
+  // every staff member takes and handles customer orders (owner, 2026-10-01)
+  const canManage = !!me && me.role !== 'WORKER';
+  const [adding, setAdding] = useState(false);
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Заказы клиентов" subtitle="Заказы с сайта diamoraa.uz/order. Позвоните покупателю и отметьте, на каком этапе заказ." />
+      <PageHeader title="Заказы клиентов" subtitle="Запишите заказ покупателя и отмечайте, на каком он этапе." actions={canManage && <Button onClick={() => setAdding(true)}>+ Новый заказ</Button>} />
+      {adding && <NewOrderModal onClose={() => setAdding(false)} />}
       <div className="flex flex-wrap gap-2">
         {(['NEW', 'CONFIRMED', 'IN_WORK', 'DONE', 'CANCELLED', ''] as const).map((s) => (
           <button key={s || 'all'} type="button" onClick={() => setStatus(s)}
@@ -36,7 +37,7 @@ export default function OrdersPage() {
       </div>
       {q.error && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
       {q.isLoading && <ListSkeleton />}
-      {q.data?.items.length === 0 && <EmptyState title={status === 'NEW' ? 'Новых заказов нет' : 'Здесь пока пусто'} hint="Ссылка для покупателей: diamoraa.uz/order" />}
+      {q.data?.items.length === 0 && <EmptyState title={status === 'NEW' ? 'Новых заказов нет' : 'Здесь пока пусто'} hint="Нажмите «+ Новый заказ», когда покупатель позвонит или напишет" />}
       <div className="grid gap-3 lg:grid-cols-2">
         {q.data?.items.map((o) => <OrderCard key={o.id} order={o} canManage={canManage} />)}
       </div>
@@ -78,5 +79,58 @@ function OrderCard({ order: o, canManage }: { order: Order; canManage: boolean }
       {!canManage && o.staffNote && <p className="text-sm text-muted">Заметка: {o.staffNote}</p>}
       {save.isError && <ErrorState error={save.error} />}
     </Card>
+  );
+}
+
+interface OrderProduct { id: string; name: string; colors: { name: string; hex: string | null }[] }
+
+/** A customer's order, taken by phone / Telegram / in person. */
+function NewOrderModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const products = useQuery({ queryKey: ['order-products'], queryFn: () => api.get<{ items: OrderProduct[] }>('/admin/orders/products') });
+  const [productId, setProductId] = useState('');
+  const [color, setColor] = useState('');
+  const [meters, setMeters] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('+998 ');
+  const [comment, setComment] = useState('');
+  const product = products.data?.items.find((p) => p.id === productId);
+  const save = useMutation({
+    mutationFn: () => api.post('/admin/orders', {
+      name: name.trim(), phone: phone.trim(), productModelId: productId || undefined, colorName: color || undefined,
+      quantity: meters ? Number(meters.replace(',', '.')) : undefined, comment: comment.trim() || undefined,
+    }, { idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['client-orders'] }); onClose(); },
+  });
+  return (
+    <Modal title="Новый заказ" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Изделие" htmlFor="no-p">
+          <Select id="no-p" value={productId} onChange={(e) => { setProductId(e.target.value); setColor(''); }}>
+            <option value="">— не выбрано —</option>
+            {products.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </Field>
+        {!!product?.colors.length && (
+          <div className="flex flex-wrap gap-2">
+            {product.colors.map((c) => (
+              <button key={c.name} type="button" aria-pressed={color === c.name} onClick={() => setColor(c.name)}
+                className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm ${color === c.name ? 'border-primary bg-primary/10' : 'border-border'}`}>
+                <span className="h-3.5 w-3.5 rounded-full border border-border" style={{ background: c.hex ?? undefined }} />{c.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <Field label="Сколько метров" htmlFor="no-m"><Input id="no-m" inputMode="decimal" value={meters} onChange={(e) => setMeters(e.target.value.replace(/[^\d.,]/g, ''))} /></Field>
+        <Field label="Покупатель *" htmlFor="no-n"><Input id="no-n" value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <Field label="Телефон *" htmlFor="no-t"><Input id="no-t" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+        <Field label="Комментарий" htmlFor="no-c"><Input id="no-c" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Срок, адрес, пожелания…" /></Field>
+        {save.isError && <ErrorState error={save.error} />}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="ghost" onClick={onClose}>Отмена</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || name.trim().length < 2 || phone.replace(/\D/g, '').length < 9}>Сохранить заказ</Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

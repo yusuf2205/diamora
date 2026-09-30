@@ -1,7 +1,7 @@
 import { AdminBot } from '../src/alerts/admin-bot';
 import { AlertsService } from '../src/alerts/alerts.service';
 import { PrismaService } from '../src/prisma/prisma.module';
-import { client, createTestApp, staffActor, superAdminActor, TestApp } from './support/app';
+import { createTestApp, staffActor, superAdminActor, TestApp } from './support/app';
 
 /** The owner's bot menu: only a linked, active admin chat gets it; every button answers in plain words. */
 describe('admin bot menu', () => {
@@ -22,9 +22,8 @@ describe('admin bot menu', () => {
     const admin = await superAdminActor(t);
     const mat = (await admin.api.post('/v1/admin/materials', { name: `Лента бот ${Math.random()}`, unit: 'METER', minStock: '10' }).expect(201)).body.id;
     await admin.api.post('/v1/admin/stock/receipt', { materialId: mat, quantity: '2' }).expect(201);
-    const pub = await t.prisma.productModel.create({ data: { code: `B-${Math.random()}`, name: 'Лента для бота', status: 'PUBLISHED' } });
-    await client(t).post('/v1/public/orders', { name: 'Камола', phone: '+998 90 555 44 33', productModelId: pub.id, quantity: 9 }).expect(201);
-    await t.prisma.productModel.update({ where: { id: pub.id }, data: { status: 'DRAFT' } });
+    const pub = await t.prisma.productModel.create({ data: { code: `B-${Math.random()}`, name: 'Лента для бота' } });
+    await admin.api.post('/v1/admin/orders', { name: 'Камола', phone: '+998 90 555 44 33', productModelId: pub.id, quantity: 9 }).expect(201);
 
     expect(await bot.answer('📊 Итоги дня')).toContain('Заказов с сайта: ');
     const orders = await bot.answer('🛒 Заказы');

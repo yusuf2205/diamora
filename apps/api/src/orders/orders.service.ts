@@ -1,46 +1,47 @@
 import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { clientOrderSchema, listClientOrdersSchema, updateClientOrderSchema } from '@diamoraa/shared';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
-import { ApiZodBody, CurrentUser, Perm, Public } from '../common/decorators';
+import { ApiZodBody, CurrentUser, Roles } from '../common/decorators';
 import { notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { nextCode } from '../common/sequence';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
-import { CatalogModule, CatalogService } from '../catalog/catalog.service';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
 
 /**
- * Customer orders (owner's decision: ONLY from the form on diamoraa.uz - no bot, no online payment). A customer picks an
- * item from the published catalog, a colour and metres, leaves a name and a phone; staff see it in «Заказы клиентов» with
- * a notice right away and move it NEW -> CONFIRMED -> IN_WORK -> DONE (or CANCELLED).
+ * Customer orders, taken by staff in the panel (owner, 2026-10-01: SUPER_ADMIN / ADMIN / MANAGER; no public form on
+ * diamoraa.uz any more): which item, colour, metres, the customer's name and phone; «Заказы клиентов» shows them and
+ * they move NEW -> CONFIRMED -> IN_WORK -> DONE (or CANCELLED).
  */
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus, private readonly catalog: CatalogService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus) {}
 
-  /** What a customer can pick from: the same published catalog workers see (never a purchase price, never a draft). */
-  publicCatalog() {
-    return this.catalog.published();
+  /** what can be ordered: every item (drafts too - staff know what is made) with its colours, for the order form */
+  async products() {
+    const rows = await this.prisma.productModel.findMany({
+      where: { deletedAt: null }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, variants: { where: { active: true }, select: { color: { select: { name: true, hex: true } } } } },
+    });
+    return { items: rows.map((p) => ({ id: p.id, name: p.name, colors: p.variants.map((v) => v.color) })) };
   }
 
-  async create(input: z.output<typeof clientOrderSchema>) {
-    if (input.website) return { ok: true, code: null }; // a bot filled the hidden field: pretend it worked, store nothing
+  async create(input: z.output<typeof clientOrderSchema>, actor?: AuthUser) {
     if (input.productModelId) {
-      const p = await this.prisma.productModel.findFirst({ where: { id: input.productModelId, status: 'PUBLISHED', deletedAt: null }, select: { id: true } });
+      const p = await this.prisma.productModel.findFirst({ where: { id: input.productModelId, deletedAt: null }, select: { id: true } });
       if (!p) throw notFound('Item');
     }
     const row = await this.prisma.$transaction(async (tx) => {
       const code = await nextCode(tx, 'client_order_code', 'CO-', 5);
       return tx.clientOrder.create({
-        data: { code, name: input.name, phone: input.phone, productModelId: input.productModelId, colorName: input.colorName || null, quantity: input.quantity, comment: input.comment || null },
+        data: { code, name: input.name, phone: input.phone, productModelId: input.productModelId, colorName: input.colorName || null, quantity: input.quantity, comment: input.comment || null, handledById: actor?.id ?? null },
       });
     });
     await this.events.publish('client_order.created', { orderId: row.id, code: row.code, name: row.name });
-    return { ok: true, code: row.code };
+    return { ok: true, code: row.code, id: row.id };
   }
 
   async list(q: z.output<typeof listClientOrdersSchema>) {
@@ -84,21 +85,21 @@ export class OrdersService {
 export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
-  @Public() @Get('public/catalog')
-  catalog() { return this.orders.publicCatalog(); }
+  // Customer orders are taken by staff (owner, 2026-10-01: removed from diamoraa.uz - no public form, no public endpoint).
+  @ApiBearerAuth() @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER') @Post('admin/orders') @HttpCode(201) @ApiZodBody(clientOrderSchema)
+  create(@CurrentUser() u: AuthUser, @ZodBody(clientOrderSchema) b: z.output<typeof clientOrderSchema>) { return this.orders.create(b, u); }
 
-  /** at most 5 orders in 10 minutes from one address: a person never needs more, a spammer gets nowhere */
-  @Public() @Throttle({ default: { limit: 5, ttl: 600_000 } }) @Post('public/orders') @HttpCode(201) @ApiZodBody(clientOrderSchema)
-  create(@ZodBody(clientOrderSchema) b: z.output<typeof clientOrderSchema>) { return this.orders.create(b); }
+  @ApiBearerAuth() @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER') @Get('admin/orders/products')
+  products() { return this.orders.products(); }
 
-  @ApiBearerAuth() @Perm('CATALOG_VIEW', 'CATALOG_MANAGE') @Get('admin/orders')
+  @ApiBearerAuth() @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER') @Get('admin/orders')
   list(@ZodQuery(listClientOrdersSchema) q: z.output<typeof listClientOrdersSchema>) { return this.orders.list(q); }
 
-  @ApiBearerAuth() @Perm('CATALOG_MANAGE') @Patch('admin/orders/:id') @ApiZodBody(updateClientOrderSchema)
+  @ApiBearerAuth() @Roles('SUPER_ADMIN', 'ADMIN', 'MANAGER') @Patch('admin/orders/:id') @ApiZodBody(updateClientOrderSchema)
   update(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(updateClientOrderSchema) b: z.output<typeof updateClientOrderSchema>) {
     return this.orders.update(u, id, b);
   }
 }
 
-@Module({ imports: [CatalogModule], controllers: [OrdersController], providers: [OrdersService] })
+@Module({ controllers: [OrdersController], providers: [OrdersService] })
 export class OrdersModule {}

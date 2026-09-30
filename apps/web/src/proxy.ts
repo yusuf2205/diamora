@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * ADMIN_HOST is a RUNTIME setting: empty = everything stays on one host exactly as before (so nobody is locked out
  * until the subdomain actually exists in Cloudflare). API/sockets never reach this app - Caddy routes them by path.
  */
-const WORKER_PATHS = ['/app/auth/telegram', '/w', '/manifest.webmanifest', '/order'];
+const WORKER_PATHS = ['/app/auth/telegram', '/w', '/manifest.webmanifest'];
 
 export function proxy(req: NextRequest) {
   const adminHost = (process.env.ADMIN_HOST ?? '').trim().toLowerCase();
