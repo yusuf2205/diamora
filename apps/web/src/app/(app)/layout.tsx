@@ -7,14 +7,13 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { MessageCircle, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 import { useChatUnread } from '@/components/chat';
 import { HeaderBadges } from '@/components/header-badges';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
   { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
-  { href: '/chat', label: 'Чат', icon: MessageCircle },
   { href: '/workers', label: 'Мастерицы', icon: Sparkles, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/collaterals', label: 'Залоги', icon: Lock, perms: ['COLLATERAL_VIEW'] },
   { href: '/assignments', label: 'Задания', icon: ClipboardList, perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
@@ -60,7 +59,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const items = NAV.filter((n) => !n.perms || hasPerm(me, ...n.perms));
 
-  const current = items.find((n) => pathname.startsWith(n.href))?.label ?? 'Diamoraa';
+  const current = pathname.startsWith('/chat') ? 'Чат' : items.find((n) => pathname.startsWith(n.href))?.label ?? 'Diamoraa';
 
   // Desktop: a fixed sidebar. Phone / portrait tablet (< lg): a slim top bar with the page name and a ☰ button; the same menu slides in
   // over the page, so the content always gets the full screen width.
@@ -82,6 +81,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <p className="text-xs text-muted">Панель управления</p>
           </div>
         </div>
+        <div className="mb-4"><HeaderBadges chatUnread={unread} sidebar /></div>
         <nav className="flex-1 space-y-1 overflow-y-auto">
           {items.map((n) => (
             <Link
@@ -91,12 +91,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             >
               <n.icon size={18} strokeWidth={1.8} aria-hidden />
               <span className="flex-1">{n.label}</span>
-              {n.href === '/chat' && unread > 0 && <span className="rounded-full bg-danger px-2 text-xs font-bold text-white" aria-label={`Непрочитанных: ${unread}`}>{unread}</span>}
             </Link>
           ))}
         </nav>
         <div className="mt-4 border-t border-border pt-4">
-          <div className="mb-2 hidden lg:block"><HeaderBadges chatUnread={unread} /></div>
           <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-border/50" title="Мой профиль и пароль">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs font-semibold">{initials(me.fullName)}</span>
             <div className="min-w-0">
