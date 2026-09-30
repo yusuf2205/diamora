@@ -5,7 +5,7 @@ import 'package:diamoraa_mobile/app/shells.dart';
 
 /// Tablet (>= 600 dp): a side rail with every label written out; phone: the bottom bar.
 void main() {
-  Future<void> pump(WidgetTester tester, Size size, {Set<int> fullWidth = const {}}) async {
+  Future<void> pump(WidgetTester tester, Size size, {Set<int> fullWidth = const {}, bool chat = false}) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -15,11 +15,18 @@ void main() {
           shell: shell,
           body: shell,
           fullWidthBranches: fullWidth,
-          destinations: const [(Icons.map_rounded, Icons.map_rounded, 'Карта'), (Icons.inventory_2_rounded, Icons.inventory_2_rounded, 'Склад')],
+          destinations: [
+            (Icons.map_rounded, Icons.map_rounded, 'Карта'),
+            (Icons.inventory_2_rounded, Icons.inventory_2_rounded, 'Склад'),
+            if (chat) (Icons.forum_outlined, Icons.forum_rounded, 'Чат'),
+          ],
+          chatIndex: chat ? 2 : null,
+          badges: chat ? const {2: 7} : const {},
         ),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/a', builder: (_, _) => const SizedBox.expand(child: Align(alignment: Alignment.topLeft, child: Text('экран A'))))]),
           StatefulShellBranch(routes: [GoRoute(path: '/b', builder: (_, _) => const Text('экран B'))]),
+          if (chat) StatefulShellBranch(routes: [GoRoute(path: '/c', builder: (_, _) => const Text('экран чата'))]),
         ],
       ),
     ]);
@@ -55,5 +62,31 @@ void main() {
     await pump(tester, const Size(412, 900));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byKey(const Key('tabletRail')), findsNothing);
+  });
+
+  for (final size in [const Size(800, 1280), const Size(1280, 800)]) {
+    testWidgets('tablet ${size.width < size.height ? 'portrait' : 'landscape'}: the chat is a big separate button above the other tabs, with its count', (tester) async {
+      await pump(tester, size, chat: true);
+      final rail = tester.widget<NavigationRail>(find.byKey(const Key('tabletRail')));
+      expect(rail.destinations.length, 2); // the chat is not one of the plain tabs
+      expect(find.byKey(const Key('railChat')), findsOneWidget);
+      expect(find.byKey(const Key('tabBadge-2')), findsOneWidget);
+      expect(tester.getTopLeft(find.byKey(const Key('railChat'))).dy, lessThan(tester.getTopLeft(find.text('Карта')).dy));
+      await tester.tap(find.byKey(const Key('railChat')));
+      await tester.pumpAndSettle();
+      expect(find.text('экран чата'), findsOneWidget);
+      expect(tester.widget<NavigationRail>(find.byKey(const Key('tabletRail'))).selectedIndex, isNull);
+      await tester.tap(find.text('Склад'));
+      await tester.pumpAndSettle();
+      expect(find.text('экран B'), findsOneWidget);
+    });
+  }
+
+  testWidgets('phone: the chat tab is a coloured round button in the bar', (tester) async {
+    await pump(tester, const Size(412, 900), chat: true);
+    expect(find.byKey(const Key('chatTabButton')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('chatTabButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('экран чата'), findsOneWidget);
   });
 }

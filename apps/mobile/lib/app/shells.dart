@@ -66,6 +66,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         (Icons.more_horiz_rounded, Icons.more_horiz_rounded, l.more),
       ],
       badges: {4: ref.watch(chatUnreadProvider).value ?? 0},
+      chatIndex: 4,
     );
   }
 }
@@ -88,6 +89,7 @@ class WorkerShell extends ConsumerWidget {
         (Icons.person_outline_rounded, Icons.person_rounded, l.profile),
       ],
       badges: {2: ref.watch(chatUnreadProvider).value ?? 0},
+      chatIndex: 2,
     );
   }
 }
@@ -96,7 +98,9 @@ class WorkerShell extends ConsumerWidget {
 /// every label written out (icon + text side by side in landscape, >= 1000 dp); the screens get roomier spacing, a bit
 /// larger text, and are kept to a readable width in the middle (except [fullWidthBranches], e.g. the map).
 class AdaptiveShell extends StatelessWidget {
-  const AdaptiveShell({super.key, required this.shell, required this.body, required this.destinations, this.fullWidthBranches = const {}, this.badges = const {}});
+  const AdaptiveShell({super.key, required this.shell, required this.body, required this.destinations, this.fullWidthBranches = const {}, this.badges = const {}, this.chatIndex});
+  /// the chat tab stands apart: a coloured round button in the phone's bar, a big «Чат» button on top of the tablet's rail
+  final int? chatIndex;
   final StatefulNavigationShell shell;
   final Widget body;
   final List<(IconData, IconData, String)> destinations;
@@ -104,9 +108,73 @@ class AdaptiveShell extends StatelessWidget {
   /// a number on a tab's icon (unread chat messages); 0 = no badge
   final Map<int, int> badges;
 
-  Widget _icon(int i, IconData icon) {
+  Widget _badge(int i, Widget child) {
     final n = badges[i] ?? 0;
-    return n > 0 ? Badge(key: Key('tabBadge-$i'), label: Text(n > 99 ? '99+' : '$n'), child: Icon(icon)) : Icon(icon);
+    return n > 0 ? Badge(key: Key('tabBadge-$i'), label: Text(n > 99 ? '99+' : '$n'), child: child) : child;
+  }
+
+  Widget _icon(int i, IconData icon) => _badge(i, Icon(icon));
+
+  /// phone: the chat tab is a filled round button in the brand colour (with a ring when open), so it is seen at once
+  Widget _chatIcon(BuildContext context, int i, IconData icon, bool selected) {
+    final scheme = Theme.of(context).colorScheme;
+    return _badge(
+      i,
+      Container(
+        key: selected ? null : const Key('chatTabButton'),
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          shape: BoxShape.circle,
+          border: selected ? Border.all(color: scheme.primaryContainer, width: 3) : null,
+          boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))],
+        ),
+        child: Icon(icon, color: scheme.onPrimary, size: 24),
+      ),
+    );
+  }
+
+  /// tablet: the chat is a big button above the other tabs (tonal; filled while the chat is open)
+  Widget _railChat(BuildContext context, bool extended, bool open, TextStyle? labelStyle) {
+    final scheme = Theme.of(context).colorScheme;
+    final (_, icon, label) = destinations[chatIndex!];
+    final bg = open ? scheme.primary : scheme.primaryContainer;
+    final fg = open ? scheme.onPrimary : scheme.onPrimaryContainer;
+    // not a FloatingActionButton: the screens keep their own «+» buttons
+    Widget button({required Widget child, required EdgeInsets padding, required BorderRadius radius}) => Material(
+          key: const Key('railChat'),
+          color: bg,
+          elevation: open ? 0 : 3,
+          shadowColor: scheme.primary.withValues(alpha: 0.4),
+          borderRadius: radius,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: () => _go(chatIndex!),
+            child: Padding(padding: padding, child: IconTheme(data: IconThemeData(color: fg), child: DefaultTextStyle.merge(style: TextStyle(color: fg), child: child))),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 16),
+      child: extended
+          ? _badge(
+              chatIndex!,
+              button(
+                radius: BorderRadius.circular(18),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(icon, size: 28),
+                  const SizedBox(width: 12),
+                  Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            )
+          : Column(mainAxisSize: MainAxisSize.min, children: [
+              _badge(chatIndex!, button(radius: BorderRadius.circular(18), padding: const EdgeInsets.all(15), child: Icon(icon, size: 30))),
+              const SizedBox(height: 4),
+              Text(label, style: labelStyle?.copyWith(fontWeight: FontWeight.w700, color: scheme.primary)),
+            ]),
+    );
   }
 
   static const contentMaxWidth = 960.0;
@@ -126,7 +194,12 @@ class AdaptiveShell extends StatelessWidget {
           selectedIndex: shell.currentIndex,
           onDestinationSelected: _go,
           labelBehavior: width < 400 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: [for (final (i, d) in destinations.indexed) NavigationDestination(icon: _icon(i, d.$1), selectedIcon: _icon(i, d.$2), label: d.$3)],
+          destinations: [
+            for (final (i, d) in destinations.indexed)
+              i == chatIndex
+                  ? NavigationDestination(icon: _chatIcon(context, i, d.$2, false), selectedIcon: _chatIcon(context, i, d.$2, true), label: d.$3)
+                  : NavigationDestination(icon: _icon(i, d.$1), selectedIcon: _icon(i, d.$2), label: d.$3),
+          ],
         ),
       );
     }
@@ -134,15 +207,19 @@ class AdaptiveShell extends StatelessWidget {
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.titleSmall?.copyWith(fontSize: 15);
     final full = fullWidthBranches.contains(shell.currentIndex);
+    // the rail lists every tab except the chat; the chat is the big button above them
+    final railTabs = [for (var i = 0; i < destinations.length; i++) if (i != chatIndex) i];
+    final railSelected = railTabs.indexOf(shell.currentIndex);
     return Scaffold(
       body: Row(children: [
         SafeArea(
           right: false,
           child: NavigationRail(
             key: const Key('tabletRail'),
-            selectedIndex: shell.currentIndex,
-            onDestinationSelected: _go,
+            selectedIndex: railSelected < 0 ? null : railSelected,
+            onDestinationSelected: (j) => _go(railTabs[j]),
             extended: extended,
+            leading: chatIndex == null ? null : _railChat(context, extended, shell.currentIndex == chatIndex, labelStyle),
             minWidth: 96,
             minExtendedWidth: 232,
             labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
@@ -153,12 +230,13 @@ class AdaptiveShell extends StatelessWidget {
             unselectedLabelTextStyle: labelStyle,
             destinations: [
               for (final (i, d) in destinations.indexed)
-                NavigationRailDestination(
-                  icon: _icon(i, d.$1),
-                  selectedIcon: _icon(i, d.$2),
-                  label: Text(d.$3),
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                ),
+                if (i != chatIndex)
+                  NavigationRailDestination(
+                    icon: _icon(i, d.$1),
+                    selectedIcon: _icon(i, d.$2),
+                    label: Text(d.$3),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                  ),
             ],
           ),
         ),
