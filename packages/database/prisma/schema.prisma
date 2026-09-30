@@ -258,6 +258,8 @@ model WorkerProfile {
   user               User?        @relation(fields: [userId], references: [id])
   telegramUserId     BigInt       @unique
   telegramChatId     BigInt
+  /// her own monthly goal in metres (overrides the common one); null = the common goal
+  monthlyGoalMeters  Int?
   /// human-friendly, e.g. W-0001
   code               String       @unique
   fullName           String
@@ -458,6 +460,17 @@ model ProductMedia {
 }
 
 /// Company phone + Telegram shown in the WORKER app ("Позвонить" / "Написать в Telegram"). One row (id = 1), never hard-coded in apps.
+/// «Цель месяца» for workers (no money - progress, place and badges only). Single row (id = 1).
+model GoalSettings {
+  id            Int      @id @default(1)
+  /// metres a month for every worker; 0 = no common goal
+  monthlyMeters Int      @default(0)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  updatedById   String?  @db.Uuid
+
+  @@map("goal_settings")
+}
+
 model CompanyContactSettings {
   id               Int      @id @default(1)
   phone            String?

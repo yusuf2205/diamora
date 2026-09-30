@@ -9,6 +9,7 @@ import '../settings/pay_rate.dart';
 import '../settings/pay_rate_screen.dart';
 import '../work/assignment_admin_repository.dart' show LedgerEntry;
 import '../../core/notifications/app_notifications.dart';
+import '../goals/goal_card.dart';
 import '../work/current_work_card.dart';
 import '../work/job_requests.dart';
 import '../work/work_repository.dart';
@@ -42,6 +43,7 @@ class WorkerHomeScreen extends ConsumerWidget {
                 ref.invalidate(currentWorkProvider);
                 ref.invalidate(myEarningsProvider);
                 ref.invalidate(myJobRequestsProvider);
+                ref.invalidate(myGoalProvider);
               },
               child: ListView(padding: AppTokens.screenPadding.copyWith(top: 8, bottom: 24), children: [
                 Text(me.fullName, style: Theme.of(context).textTheme.headlineSmall),
@@ -60,6 +62,8 @@ class WorkerHomeScreen extends ConsumerWidget {
                         : CurrentWorkCard(work: w),
                   ),
                   const SizedBox(height: 20),
+                  const GoalCard(),
+                  const SizedBox(height: 12),
                 ],
                 Card(
                   child: Padding(

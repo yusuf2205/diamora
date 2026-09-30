@@ -47,7 +47,7 @@ describe('reports (day / week / month) and «Мои заработки по ме
       .parse((res, cb) => { const parts: Buffer[] = []; res.on('data', (c: Buffer) => parts.push(c)); res.on('end', () => cb(null, Buffer.concat(parts))); });
     expect(bin.headers['content-type']).toContain('spreadsheetml');
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(bin.body as Buffer);
+    await wb.xlsx.load(bin.body as never);
     const ws = wb.getWorksheet('Мастерицы')!;
     expect(String(ws.getCell('A1').value)).toContain('Diamoraa — отчёт');
     expect(ws.getRow(3).getCell(1).value).toBe('Мастерица');

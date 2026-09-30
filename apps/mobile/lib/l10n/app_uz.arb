@@ -836,5 +836,11 @@
   "updateAppVersion": "Ilova versiyasi",
   "updateCheck": "Tekshirish",
   "updateLatest": "Sizda eng so'nggi versiya",
-  "stockLasts": "≈ {days} kunga yetadi"
+  "stockLasts": "≈ {days} kunga yetadi",
+  "goalTitle": "Oy maqsadi",
+  "goalPlace": "{of} tadan {place}-o‘rin",
+  "goalProgress": "{goal} m dan {done} m",
+  "goalLeft": "Yana {left} m · oy oxirigacha {days} kun",
+  "goalDone": "Maqsad bajarildi! Rahmat 🎉",
+  "goalNoGoal": "Bu oy qabul qilindi: {done} m"
 }

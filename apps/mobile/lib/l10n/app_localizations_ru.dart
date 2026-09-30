@@ -2657,4 +2657,30 @@ class AppLocalizationsRu extends AppLocalizations {
   String stockLasts(int days) {
     return 'хватит ≈ на $days дн.';
   }
+
+  @override
+  String get goalTitle => 'Цель месяца';
+
+  @override
+  String goalPlace(int place, int of) {
+    return '$place-е место из $of';
+  }
+
+  @override
+  String goalProgress(String done, int goal) {
+    return '$done из $goal м';
+  }
+
+  @override
+  String goalLeft(String left, int days) {
+    return 'Ещё $left м · до конца месяца $days дн.';
+  }
+
+  @override
+  String get goalDone => 'Цель выполнена! Спасибо за работу 🎉';
+
+  @override
+  String goalNoGoal(String done) {
+    return 'Принято в этом месяце: $done м';
+  }
 }

@@ -887,5 +887,15 @@
   "updateCheck": "Проверить",
   "updateLatest": "У вас последняя версия",
   "stockLasts": "хватит ≈ на {days} дн.",
-  "@stockLasts": {"placeholders": {"days": {"type": "int"}}}
+  "@stockLasts": {"placeholders": {"days": {"type": "int"}}},
+  "goalTitle": "Цель месяца",
+  "goalPlace": "{place}-е место из {of}",
+  "@goalPlace": {"placeholders": {"place": {"type": "int"}, "of": {"type": "int"}}},
+  "goalProgress": "{done} из {goal} м",
+  "@goalProgress": {"placeholders": {"done": {"type": "String"}, "goal": {"type": "int"}}},
+  "goalLeft": "Ещё {left} м · до конца месяца {days} дн.",
+  "@goalLeft": {"placeholders": {"left": {"type": "String"}, "days": {"type": "int"}}},
+  "goalDone": "Цель выполнена! Спасибо за работу 🎉",
+  "goalNoGoal": "Принято в этом месяце: {done} м",
+  "@goalNoGoal": {"placeholders": {"done": {"type": "String"}}}
 }

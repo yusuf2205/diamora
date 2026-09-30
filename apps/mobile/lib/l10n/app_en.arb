@@ -805,5 +805,11 @@
   "updateAppVersion": "App version",
   "updateCheck": "Check",
   "updateLatest": "You have the latest version",
-  "stockLasts": "lasts ≈ {days} d"
+  "stockLasts": "lasts ≈ {days} d",
+  "goalTitle": "Goal of the month",
+  "goalPlace": "Place {place} of {of}",
+  "goalProgress": "{done} of {goal} m",
+  "goalLeft": "{left} m to go · {days} days left",
+  "goalDone": "Goal reached! Thank you 🎉",
+  "goalNoGoal": "Accepted this month: {done} m"
 }

@@ -2644,4 +2644,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String stockLasts(int days) {
     return 'lasts ≈ $days d';
   }
+
+  @override
+  String get goalTitle => 'Goal of the month';
+
+  @override
+  String goalPlace(int place, int of) {
+    return 'Place $place of $of';
+  }
+
+  @override
+  String goalProgress(String done, int goal) {
+    return '$done of $goal m';
+  }
+
+  @override
+  String goalLeft(String left, int days) {
+    return '$left m to go · $days days left';
+  }
+
+  @override
+  String get goalDone => 'Goal reached! Thank you 🎉';
+
+  @override
+  String goalNoGoal(String done) {
+    return 'Accepted this month: $done m';
+  }
 }

@@ -12,6 +12,7 @@ import { MaintenanceService } from './worker/maintenance';
 import { OutboxSender } from './worker/outbox';
 import { ReleaseWatcher } from './worker/release-watcher';
 import { AlertsService } from './alerts/alerts.service';
+import { GoalsService } from './goals/goals.service';
 import { TelegramBot } from './worker/telegram-bot';
 import { WorkerModule } from './worker/worker.module';
 
@@ -42,6 +43,9 @@ async function main() {
   const notifier = app.get(AppNotifier);
   timers.push(setInterval(() => void notifier.tick().catch((e) => log.error(`notifier: ${e.message}`)), 5 * 60_000));
   void notifier.tick().catch(() => undefined);
+  // «Цель месяца выполнена!» once a month per worker
+  const goals = app.get(GoalsService);
+  timers.push(setInterval(() => void goals.congratulate(notifier).catch((e) => log.error(`goals: ${e.message}`)), 5 * 60_000));
   // a newly published app version -> a push + realtime hint to every phone (checked every 30 s)
   const release = app.get(ReleaseWatcher);
   timers.push(setInterval(() => void release.tick().catch((e) => log.error(`release: ${e.message}`)), 30_000));

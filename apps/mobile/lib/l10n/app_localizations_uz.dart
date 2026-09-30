@@ -2615,4 +2615,30 @@ class AppLocalizationsUz extends AppLocalizations {
   String stockLasts(int days) {
     return '≈ $days kunga yetadi';
   }
+
+  @override
+  String get goalTitle => 'Oy maqsadi';
+
+  @override
+  String goalPlace(int place, int of) {
+    return '$of tadan $place-o‘rin';
+  }
+
+  @override
+  String goalProgress(String done, int goal) {
+    return '$goal m dan $done m';
+  }
+
+  @override
+  String goalLeft(String left, int days) {
+    return 'Yana $left m · oy oxirigacha $days kun';
+  }
+
+  @override
+  String get goalDone => 'Maqsad bajarildi! Rahmat 🎉';
+
+  @override
+  String goalNoGoal(String done) {
+    return 'Bu oy qabul qilindi: $done m';
+  }
 }

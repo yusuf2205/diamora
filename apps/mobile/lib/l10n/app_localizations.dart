@@ -4935,6 +4935,42 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'хватит ≈ на {days} дн.'**
   String stockLasts(int days);
+
+  /// No description provided for @goalTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цель месяца'**
+  String get goalTitle;
+
+  /// No description provided for @goalPlace.
+  ///
+  /// In ru, this message translates to:
+  /// **'{place}-е место из {of}'**
+  String goalPlace(int place, int of);
+
+  /// No description provided for @goalProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'{done} из {goal} м'**
+  String goalProgress(String done, int goal);
+
+  /// No description provided for @goalLeft.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё {left} м · до конца месяца {days} дн.'**
+  String goalLeft(String left, int days);
+
+  /// No description provided for @goalDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цель выполнена! Спасибо за работу 🎉'**
+  String get goalDone;
+
+  /// No description provided for @goalNoGoal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принято в этом месяце: {done} м'**
+  String goalNoGoal(String done);
 }
 
 class _AppLocalizationsDelegate
