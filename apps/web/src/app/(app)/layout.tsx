@@ -7,7 +7,7 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { ShoppingBag, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 import { useChatUnread } from '@/components/chat';
 import { HeaderBadges } from '@/components/header-badges';
@@ -20,6 +20,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/catalog', label: 'Каталог', icon: Gem, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
   { href: '/orders', label: 'Заказы клиентов', icon: ShoppingBag, perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
   { href: '/inventory', label: 'Склад', icon: Package, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
+  { href: '/purchases', label: 'Закупки', icon: Truck, perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   { href: '/map', label: 'Карта', icon: MapPin, perms: ['MAP_VIEW_ALL', 'MAP_VIEW_ASSIGNED'] },
   { href: '/reports', label: 'Отчёты', icon: BarChart3, perms: ['FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'PROFIT_VIEW'] },
   { href: '/rating', label: 'Рейтинг', icon: Medal, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },

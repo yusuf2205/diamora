@@ -185,10 +185,33 @@ export const createMaterialSchema = z.object({
 export const updateMaterialSchema = z
   .object({
     name: z.string().trim().min(2).max(120), categoryId: idSchema.nullable(), colorId: idSchema.nullable(),
-    article: z.string().trim().max(60).nullable(), unit: z.enum(MATERIAL_UNITS), minStock: quantitySchema, isActive: z.boolean(), unitCost: uzsSchema.nullable(),
+    article: z.string().trim().max(60).nullable(), unit: z.enum(MATERIAL_UNITS), minStock: quantitySchema, isActive: z.boolean(), unitCost: uzsSchema.nullable(), supplierId: idSchema.nullable(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+// ---- «Закупки»: suppliers and orders to them ---------------------------------------------------------------------------------
+export const supplierSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  phone: z.string().trim().max(40).nullable().optional(),
+  telegram: z.string().trim().max(64).nullable().optional(),
+  note: z.string().trim().max(1000).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+export const purchaseLineSchema = z.object({ materialId: idSchema, quantity: quantitySchema, unitPrice: uzsSchema.nullable().optional() });
+export const createPurchaseSchema = z.object({
+  supplierId: idSchema.nullable().optional(),
+  note: z.string().trim().max(1000).optional(),
+  items: z.array(purchaseLineSchema).min(1).max(100),
+});
+export const updatePurchaseSchema = z.object({
+  status: z.enum(['ORDERED', 'CANCELLED']).optional(),
+  note: z.string().trim().max(1000).nullable().optional(),
+  items: z.array(purchaseLineSchema).min(1).max(100).optional(),
+});
+/** what really arrived (may differ from what was ordered) and at what price */
+export const receivePurchaseSchema = z.object({
+  items: z.array(z.object({ itemId: idSchema, quantity: quantitySchema, unitPrice: uzsSchema.nullable().optional() })).min(1).max(100),
+});
 // ---- owner's analytics: sales and expenses feed «Прибыль» -------------------------------------------------------------------
 /** «this phone gets instant notifications»: the Firebase token of a signed-in device */
 export const pushTokenSchema = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios', 'web']).default('android') });

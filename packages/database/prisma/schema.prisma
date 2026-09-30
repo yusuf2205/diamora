@@ -602,8 +602,11 @@ model Material {
   article    String?
   unit       MaterialUnit
   minStock   Decimal           @default(0) @db.Decimal(14, 3)
-  /// UZS per unit; used for cost of materials in the profit report
+  /// UZS per unit; used for cost of materials in the profit report (updated by «Принять закупку»)
   unitCost   BigInt?
+  /// where it is usually bought («Закупки»)
+  supplierId String?           @db.Uuid
+  supplier   Supplier?         @relation(fields: [supplierId], references: [id])
   isActive   Boolean           @default(true)
   createdAt  DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime          @updatedAt @db.Timestamptz(3)
@@ -616,6 +619,7 @@ model Material {
   assignmentMaterials WorkAssignmentMaterial[]
   deliveryItems       DeliveryItem[]
   workerBalances      WorkerMaterialBalance[]
+  purchaseItems       PurchaseOrderItem[]
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "materials_name_trgm")
   @@map("materials")
@@ -1010,6 +1014,63 @@ model PayRateChange {
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
 
   @@map("pay_rate_changes")
+}
+
+enum PurchaseStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+/// «Закупки»: who we buy materials from.
+model Supplier {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  name      String
+  phone     String?
+  telegram  String?
+  note      String?
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime        @updatedAt @db.Timestamptz(3)
+  materials Material[]
+  orders    PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+/// An order to a supplier: DRAFT (the list) -> ORDERED (sent) -> RECEIVED (on the shelf: one RECEIPT per line, and the
+/// line's price becomes the material's purchase price) or CANCELLED.
+model PurchaseOrder {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  code        String              @unique
+  supplierId  String?             @db.Uuid
+  supplier    Supplier?           @relation(fields: [supplierId], references: [id])
+  status      PurchaseStatus      @default(DRAFT)
+  note        String?
+  createdById String              @db.Uuid
+  orderedAt   DateTime?           @db.Timestamptz(3)
+  receivedAt  DateTime?           @db.Timestamptz(3)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
+  items       PurchaseOrderItem[]
+
+  @@index([status, createdAt])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  orderId    String        @db.Uuid
+  order      PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  materialId String        @db.Uuid
+  material   Material      @relation(fields: [materialId], references: [id])
+  quantity   Decimal       @db.Decimal(14, 3)
+  /// UZS per unit; null = price not known yet
+  unitPrice  BigInt?
+
+  @@index([orderId])
+  @@map("purchase_order_items")
 }
 
 enum ClientOrderStatus {

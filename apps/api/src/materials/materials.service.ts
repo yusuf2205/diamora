@@ -136,7 +136,7 @@ export class MaterialsService {
       id: m.id, name: m.name, article: m.article, unit: m.unit, isActive: m.isActive,
       category: m.category ? { id: m.category.id, code: m.category.code, name: m.category.name } : null,
       colorId: m.colorId, minStock: min, balance: qty, low: qty < min,
-      unitCost: m.unitCost === null ? null : m.unitCost.toString(),
+      unitCost: m.unitCost === null ? null : m.unitCost.toString(), supplierId: m.supplierId,
       createdAt: m.createdAt.toISOString(), updatedAt: m.updatedAt.toISOString(),
     };
   }
