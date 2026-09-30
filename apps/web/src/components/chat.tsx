@@ -1202,7 +1202,10 @@ export function MediaViewer({ items, start, onClose, protect = false }: { items:
   const list = items.length ? items : [start];
   const [i, setI] = useState(() => Math.max(0, list.findIndex((m) => m.id === start.id)));
   const [full, setFull] = useState<Record<string, boolean>>({});
-  const touch = useRef<{ x: number; y: number } | null>(null);
+  /** a drag like Telegram: up / down follows the finger (or mouse) and closes past ~100px; sideways flips photos */
+  const drag = useRef<{ x: number; y: number; id: number; moved: boolean } | null>(null);
+  const [dy, setDy] = useState(0);
+  const dragged = useRef(false);
   const m = list[i];
   const f = m.file!;
   const go = (d: number) => setI((x) => Math.min(list.length - 1, Math.max(0, x + d)));
@@ -1216,15 +1219,28 @@ export function MediaViewer({ items, start, onClose, protect = false }: { items:
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Просмотр"
-      className="fixed inset-0 z-[60] flex flex-col bg-black text-white"
-      onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
-      onTouchEnd={(e) => {
-        const t = touch.current; touch.current = null;
-        if (!t) return;
-        const dx = e.changedTouches[0].clientX - t.x; const dy = e.changedTouches[0].clientY - t.y;
-        if (Math.abs(dy) > 120 && Math.abs(dy) > Math.abs(dx)) onClose();
-        else if (Math.abs(dx) > 60) go(dx < 0 ? 1 : -1);
+      className="fixed inset-0 z-[60] flex touch-none select-none flex-col text-white"
+      style={{ backgroundColor: `rgba(0,0,0,${Math.max(0.35, 1 - Math.abs(dy) / 500)})` }}
+      onPointerDown={(e) => {
+        if (e.button !== 0 || (e.target as HTMLElement).closest('button,a')) return;
+        drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false };
+        dragged.current = false;
       }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d || d.id !== e.pointerId) return;
+        const mx = e.clientX - d.x; const my = e.clientY - d.y;
+        if (!d.moved && Math.abs(my) > 12 && Math.abs(my) > Math.abs(mx)) d.moved = true;
+        if (d.moved) setDy(my);
+      }}
+      onPointerUp={(e) => {
+        const d = drag.current; drag.current = null;
+        if (!d) return;
+        const mx = e.clientX - d.x; const my = e.clientY - d.y;
+        if (d.moved) { dragged.current = true; if (Math.abs(my) > 100) onClose(); else setDy(0); return; }
+        if (Math.abs(mx) > 60 && Math.abs(mx) > Math.abs(my) && m.kind !== 'VIDEO') { dragged.current = true; go(mx < 0 ? 1 : -1); }
+      }}
+      onPointerCancel={() => { drag.current = null; setDy(0); }}
     >
       <div className="flex items-center gap-3 p-3">
         <button aria-label="Закрыть" onClick={onClose} className="rounded-full p-2 hover:bg-white/10"><X size={22} aria-hidden /></button>
@@ -1234,14 +1250,16 @@ export function MediaViewer({ items, start, onClose, protect = false }: { items:
         </div>
         {!protect && <a href={f.url} download={f.name ?? undefined} aria-label="Скачать" className="rounded-full p-2 hover:bg-white/10"><Download size={20} aria-hidden /></a>}
       </div>
-      <div className="relative flex min-h-0 flex-1 items-center justify-center">
+      {/* a click on the dark area around the photo / video closes, like Telegram */}
+      <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={(e) => { if (dragged.current) { dragged.current = false; return; } if (e.target === e.currentTarget) onClose(); }}
+        style={{ transform: `translateY(${dy}px)`, transition: drag.current ? 'none' : 'transform 0.2s' }}>
         {i > 0 && <button aria-label="Предыдущее" onClick={() => go(-1)} className="absolute left-2 z-10 hidden rounded-full bg-white/10 p-2 hover:bg-white/20 sm:block"><ChevronLeft size={28} aria-hidden /></button>}
         {m.kind === 'VIDEO' ? (
-          <video key={m.id} src={f.url} poster={f.thumbUrl ?? undefined} controls autoPlay playsInline preload="auto" className="max-h-full max-w-full" />
+          <video key={m.id} src={f.url} poster={f.thumbUrl ?? undefined} controls autoPlay playsInline preload="auto" className="max-h-full max-w-full touch-auto" draggable={false} />
         ) : (
           <div className="relative flex max-h-full max-w-full items-center justify-center">
             {!full[m.id] && f.thumbUrl && <img src={f.thumbUrl} alt="" className="max-h-[80vh] max-w-full scale-100 object-contain blur-[1px]" />}
-            <img key={m.id} src={f.url} alt={m.text ?? 'Фото'} onLoad={() => setFull((x) => ({ ...x, [m.id]: true }))}
+            <img key={m.id} draggable={false} src={f.url} alt={m.text ?? 'Фото'} onLoad={() => setFull((x) => ({ ...x, [m.id]: true }))}
               className={`max-h-[80vh] max-w-full object-contain ${full[m.id] ? '' : 'absolute inset-0 m-auto opacity-0'}`} />
           </div>
         )}
