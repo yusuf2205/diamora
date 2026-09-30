@@ -99,6 +99,12 @@ export function CreateAssignmentDialog({ onClose, workerId: presetWorker, reques
   const kits = useQuery<Page<KitTemplate>>({ queryKey: ['admin-kits'], queryFn: () => api.get<Page<KitTemplate>>('/admin/kits') });
   const rate = useQuery<PayRate>({ queryKey: ['pay-rate'], queryFn: () => api.get<PayRate>('/settings/pay-rate') });
 
+  // «Кому лучше дать»: free / fast / clean / on time (+ already made this item) - shown until someone is picked
+  const suggest = useQuery({
+    queryKey: ['worker-suggest', productId],
+    queryFn: () => api.get<{ items: { workerId: string; fullName: string; score: number; reasons: string[] }[] }>('/admin/workers/suggest', { productModelId: productId || undefined }),
+    enabled: !request && !presetWorker,
+  });
   const worker = workers.data?.items.find((w) => w.id === workerId);
   const product = catalog.data?.items.find((p) => p.id === productId);
   const variants = useMemo(() => (product?.variants ?? []).filter((v) => v.active && v.color), [product]);
@@ -166,6 +172,24 @@ export function CreateAssignmentDialog({ onClose, workerId: presetWorker, reques
   return (
     <Modal title="Подготовить работу" onClose={onClose}>
       <div className="space-y-3">
+        {!!suggest.data?.items.length && !workerId && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <p className="mb-2 text-sm font-semibold">Кому лучше дать{product ? ` «${product.name}»` : ''}</p>
+            <div className="space-y-1.5">
+              {suggest.data.items.slice(0, 3).map((s, i) => (
+                <button key={s.workerId} type="button" onClick={() => setWorkerId(s.workerId)}
+                  className="flex w-full items-start gap-3 rounded-lg bg-card px-3 py-2 text-left hover:ring-2 hover:ring-primary/40">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{s.fullName}</span>
+                    <span className="block text-xs text-muted">{s.reasons.join(' · ')}</span>
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold text-primary" title="Оценка из 100">{s.score}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <Field label="Мастерица" htmlFor="as-worker">
           <Select id="as-worker" value={workerId} onChange={(e) => setWorkerId(e.target.value)}>
             <option value="">Выберите мастерицу</option>

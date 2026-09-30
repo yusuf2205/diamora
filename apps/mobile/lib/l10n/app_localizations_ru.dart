@@ -2763,4 +2763,8 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get offlineScanSave => 'Сохранить и принять позже';
+
+  @override
+  String get assignSuggestTitle =>
+      'Сначала — кому лучше дать (свободна, быстро, без брака, вовремя)';
 }

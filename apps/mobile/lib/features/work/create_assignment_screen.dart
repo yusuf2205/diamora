@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../catalog/catalog_repository.dart';
@@ -221,6 +222,19 @@ class _StepDots extends StatelessWidget {
   }
 }
 
+/// «Кому дать работу»: workerId -> (score 0-100, the reasons in words). Empty when it cannot be loaded (never blocks).
+final workerSuggestProvider = FutureProvider.autoDispose<Map<String, ({int score, String reasons})>>((ref) async {
+  try {
+    final j = await ref.watch(apiClientProvider).getJson('/admin/workers/suggest');
+    return {
+      for (final x in (j['items'] as List).cast<Map>())
+        x['workerId'] as String: (score: (x['score'] as num).toInt(), reasons: ((x['reasons'] as List?) ?? const []).join(' · ')),
+    };
+  } catch (_) {
+    return const {};
+  }
+});
+
 class _WorkerPicker extends ConsumerWidget {
   const _WorkerPicker({required this.selected, required this.onSelected});
   final Worker? selected;
@@ -229,21 +243,40 @@ class _WorkerPicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final workers = ref.watch(workersListProvider(const WorkersFilter(status: 'ACTIVE')));
+    final suggest = ref.watch(workerSuggestProvider).value ?? const {};
     return workers.when(
       loading: () => const SkeletonList(count: 5),
       error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
-      data: (items) => items.isEmpty
-          ? EmptyState(icon: Icons.person_off_rounded, title: l.assignEmptyWorkers)
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (_, i) {
-                final w = items[i];
-                final sel = selected?.id == w.id;
-                return _SelectCard(selected: sel, onTap: () => onSelected(w), title: w.fullName, subtitle: w.phone, leading: const Icon(Icons.person_outline_rounded));
-              },
-            ),
+      data: (unsorted) {
+        if (unsorted.isEmpty) return EmptyState(icon: Icons.person_off_rounded, title: l.assignEmptyWorkers);
+        // the best choice first: free, fast, clean, on time
+        final items = [...unsorted]..sort((a, b) => (suggest[b.id]?.score ?? -1).compareTo(suggest[a.id]?.score ?? -1));
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: items.length + (suggest.isEmpty ? 0 : 1),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (_, index) {
+            if (suggest.isNotEmpty && index == 0) {
+              return Text(l.assignSuggestTitle, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary));
+            }
+            final i = suggest.isEmpty ? index : index - 1;
+            final w = items[i];
+            final sel = selected?.id == w.id;
+            final s = suggest[w.id];
+            final top = s != null && i < 3;
+            return _SelectCard(
+              key: Key('pickWorker-${w.id}'),
+              selected: sel,
+              onTap: () => onSelected(w),
+              title: w.fullName,
+              subtitle: s?.reasons ?? w.phone,
+              leading: top
+                  ? CircleAvatar(radius: 14, backgroundColor: Theme.of(context).colorScheme.primary, child: Text('${i + 1}', style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.w700)))
+                  : const Icon(Icons.person_outline_rounded),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -464,7 +497,7 @@ class _SummaryRow extends StatelessWidget {
 }
 
 class _SelectCard extends StatelessWidget {
-  const _SelectCard({required this.selected, required this.onTap, required this.title, this.subtitle, this.leading});
+  const _SelectCard({super.key, required this.selected, required this.onTap, required this.title, this.subtitle, this.leading});
   final bool selected;
   final VoidCallback onTap;
   final String title;

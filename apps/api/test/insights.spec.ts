@@ -98,6 +98,25 @@ describe('insights', () => {
     await admin.api.post('/v1/admin/finance/sales', { total: '1', items: [{ productModelId: '00000000-0000-4000-8000-000000000000', quantity: 1, unitPrice: '1' }] }).expect(404);
   });
 
+  it('«кому дать работу»: a free worker without defects ranks above a busy one, with the reasons in words; needs ASSIGNMENT_CREATE', async () => {
+    const admin = await superAdminActor(t);
+    const staffId = (await t.prisma.user.findFirstOrThrow({ where: { role: 'SUPER_ADMIN' } })).id;
+    const free = await approveAndLoginWorker(t, admin.api, (await registerViaBot(t)).phone);
+    const busy = await approveAndLoginWorker(t, admin.api, (await registerViaBot(t)).phone);
+    const done = await workFor(free.workerId, staffId, { accepted: 9, defective: 0 });
+    await workFor(busy.workerId, staffId, { accepted: 0, defective: 0, status: 'IN_PROGRESS' });
+    await workFor(busy.workerId, staffId, { accepted: 0, defective: 0, status: 'IN_PROGRESS' });
+
+    const res = (await admin.api.get(`/v1/admin/workers/suggest?productModelId=${done.productModelId}`).expect(200)).body.items as { workerId: string; score: number; reasons: string[]; openWorks: number }[];
+    const f = res.findIndex((x) => x.workerId === free.workerId);
+    const b = res.findIndex((x) => x.workerId === busy.workerId);
+    expect(f).toBeLessThan(b);
+    expect(res[f].reasons).toContain('свободна');
+    expect(res[f].reasons).toContain('без брака');
+    expect(res[b].reasons[0]).toMatch(/^в работе: 2/);
+    await free.api.get('/v1/admin/workers/suggest').expect(403);
+  });
+
   it('stock value: shelf + at workers, at purchase price; materials without a price are listed', async () => {
     const admin = await superAdminActor(t);
     const before = (await admin.api.get('/v1/admin/stock/value').expect(200)).body;

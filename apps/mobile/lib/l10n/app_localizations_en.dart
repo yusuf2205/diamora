@@ -2750,4 +2750,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineScanSave => 'Save and receive later';
+
+  @override
+  String get assignSuggestTitle =>
+      'Best choice first (free, fast, no defects, on time)';
 }

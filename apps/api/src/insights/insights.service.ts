@@ -16,6 +16,7 @@ import { ENV, type Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.module';
 import { RedisService } from '../redis/redis.module';
 import { periodRange } from '../reports/reports.service';
+import { suggestWorkers } from './suggest';
 
 const TASHKENT_MS = 5 * 3600_000;
 const monthKey = (from: Date) => { const d = new Date(from.getTime() + TASHKENT_MS); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
@@ -76,6 +77,12 @@ export class InsightsService {
       };
     }).sort((a, b) => b.score - a.score || b.acceptedMeters - a.acceptedMeters);
     return { months, from: from.toISOString(), items };
+  }
+
+  async suggest(actor: AuthUser, productModelId?: string) {
+    const { where: scope } = workerScope(actor, 'WORKER');
+    const ids = (await this.prisma.workerProfile.findMany({ where: { ...scope, status: 'ACTIVE', deletedAt: null }, select: { id: true } })).map((w) => w.id);
+    return { items: await suggestWorkers(this.prisma, ids, productModelId) };
   }
 
   // ---- «Прибыль» ----------------------------------------------------------------------------------------------------------
@@ -269,6 +276,7 @@ export class InsightsService {
   }
 }
 
+const suggestSchema = z.object({ productModelId: z.string().uuid().optional() });
 const listSchema = z.object({ limit: z.coerce.number().int().min(1).max(200).default(50) });
 
 @ApiTags('insights')
@@ -276,6 +284,10 @@ const listSchema = z.object({ limit: z.coerce.number().int().min(1).max(200).def
 @Controller('admin')
 export class InsightsController {
   constructor(private readonly insights: InsightsService) {}
+
+  /** «Кому дать работу»: free / fast / clean / on time (+ knows this item), with the reasons in words */
+  @Perm('ASSIGNMENT_CREATE') @Get('workers/suggest')
+  suggest(@CurrentUser() u: AuthUser, @ZodQuery(suggestSchema) q: z.output<typeof suggestSchema>) { return this.insights.suggest(u, q.productModelId); }
 
   @Perm('WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED') @Get('reports/rating')
   rating(@CurrentUser() u: AuthUser, @ZodQuery(insightsMonthsSchema) q: z.output<typeof insightsMonthsSchema>) { return this.insights.rating(u, q.months); }

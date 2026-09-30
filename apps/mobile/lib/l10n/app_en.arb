@@ -833,5 +833,6 @@
   "offlineKindReady": "work ready",
   "offlineKindReceive": "receiving work",
   "offlineScanNoInternet": "No internet. Save it - the work will be received when online.",
-  "offlineScanSave": "Save and receive later"
+  "offlineScanSave": "Save and receive later",
+  "assignSuggestTitle": "Best choice first (free, fast, no defects, on time)"
 }

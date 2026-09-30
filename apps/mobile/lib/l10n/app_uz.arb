@@ -864,5 +864,6 @@
   "offlineKindReady": "ish tayyor",
   "offlineKindReceive": "ishni qabul qilish",
   "offlineScanNoInternet": "Internet yo'q. Saqlash mumkin — aloqa paydo bo'lganda ish qabul qilinadi.",
-  "offlineScanSave": "Saqlash va keyinroq qabul qilish"
+  "offlineScanSave": "Saqlash va keyinroq qabul qilish",
+  "assignSuggestTitle": "Avval — kimga berish yaxshiroq (bo'sh, tez, nuqsonsiz, o'z vaqtida)"
 }

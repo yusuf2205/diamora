@@ -2721,4 +2721,8 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get offlineScanSave => 'Saqlash va keyinroq qabul qilish';
+
+  @override
+  String get assignSuggestTitle =>
+      'Avval — kimga berish yaxshiroq (bo\'sh, tez, nuqsonsiz, o\'z vaqtida)';
 }

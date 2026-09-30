@@ -5103,6 +5103,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сохранить и принять позже'**
   String get offlineScanSave;
+
+  /// No description provided for @assignSuggestTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сначала — кому лучше дать (свободна, быстро, без брака, вовремя)'**
+  String get assignSuggestTitle;
 }
 
 class _AppLocalizationsDelegate
