@@ -5,7 +5,7 @@ import 'package:diamoraa_mobile/app/shells.dart';
 
 /// Tablet (>= 600 dp): a side rail with every label written out; phone: the bottom bar.
 void main() {
-  Future<void> pump(WidgetTester tester, Size size, {Set<int> fullWidth = const {}, bool chat = false}) async {
+  Future<void> pump(WidgetTester tester, Size size, {Set<int> fullWidth = const {}, bool chat = false, Widget? screenA}) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -24,7 +24,7 @@ void main() {
           badges: chat ? const {2: 7} : const {},
         ),
         branches: [
-          StatefulShellBranch(routes: [GoRoute(path: '/a', builder: (_, _) => const SizedBox.expand(child: Align(alignment: Alignment.topLeft, child: Text('экран A'))))]),
+          StatefulShellBranch(routes: [GoRoute(path: '/a', builder: (_, _) => screenA ?? const SizedBox.expand(child: Align(alignment: Alignment.topLeft, child: Text('экран A'))))]),
           StatefulShellBranch(routes: [GoRoute(path: '/b', builder: (_, _) => const Text('экран B'))]),
           if (chat) StatefulShellBranch(routes: [GoRoute(path: '/c', builder: (_, _) => const Text('экран чата'))]),
         ],
@@ -89,4 +89,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('экран чата'), findsOneWidget);
   });
+
+  // a sheet opened from a tab screen with the keyboard up: the keyboard's height is taken off ONCE (the shell must not
+  // lift its body as well - that hid the sheet's lower half, e.g. «Получить ссылку», on a real tablet and phone)
+  for (final size in [const Size(412, 900), const Size(800, 1280)]) {
+    testWidgets('${size.width < 600 ? 'phone' : 'tablet'}: a form sheet from a tab keeps its button above the keyboard', (tester) async {
+      await pump(tester, size, screenA: Scaffold(
+        body: Builder(builder: (context) => Center(child: TextButton(
+          onPressed: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            builder: (ctx) => Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              child: const SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(), SizedBox(height: 200), Text('кнопка')])),
+            ),
+          ),
+          child: const Text('open'),
+        ))),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      tester.view.viewInsets = FakeViewPadding(bottom: size.height * 0.4);
+      await tester.pumpAndSettle();
+      final keyboardTop = size.height * 0.6;
+      final r = tester.getRect(find.text('кнопка'));
+      expect(r.bottom, lessThanOrEqualTo(keyboardTop));
+      expect(r.top, greaterThan(keyboardTop - 120)); // right above the keyboard, not lifted a keyboard-height too high
+    });
+  }
 }

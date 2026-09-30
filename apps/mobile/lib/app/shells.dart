@@ -211,6 +211,9 @@ class AdaptiveShell extends StatelessWidget {
     final railTabs = [for (var i = 0; i < destinations.length; i++) if (i != chatIndex) i];
     final railSelected = railTabs.indexOf(shell.currentIndex);
     return Scaffold(
+      // the screens (and their sheets) make room for the keyboard themselves; lifting the whole body here as well took the
+      // keyboard's height off twice and hid the lower half of a form sheet (e.g. «Получить ссылку») on a tablet
+      resizeToAvoidBottomInset: false,
       body: Row(children: [
         SafeArea(
           right: false,
