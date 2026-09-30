@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/ui/color_swatch.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
@@ -243,7 +244,7 @@ class WorkHeroCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final color = hexColor(work.colorHex) ?? scheme.primary;
+    final color = hexColor(work.colorHex, work.colorName) ?? scheme.primary;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -398,11 +399,8 @@ class ReceiveDoneScreen extends StatelessWidget {
   }
 }
 
-Color? hexColor(String? hex) {
-  if (hex == null || hex.isEmpty) return null;
-  final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16);
-  return v == null ? null : Color(0xFF000000 | v);
-}
+/// the colour from its hex, or guessed from its name when no hex was set
+Color? hexColor(String? hex, [String? name]) => swatchColor(hex, name);
 
 String formatDay(DateTime d) {
   final t = d.toLocal();

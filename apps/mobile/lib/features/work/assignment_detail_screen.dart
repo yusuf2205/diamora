@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../core/ui/color_swatch.dart';
 import '../../core/ui/qr_print.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -125,7 +126,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = _hexColor(a.colorHex) ?? scheme.primary;
+    final color = swatchColor(a.colorHex, a.colorName) ?? scheme.primary;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -157,11 +158,6 @@ class _Header extends StatelessWidget {
     );
   }
 
-  Color? _hexColor(String? hex) {
-    if (hex == null || hex.isEmpty) return null;
-    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16);
-    return v == null ? null : Color(0xFF000000 | v);
-  }
 }
 
 class _ProgressBlock extends StatelessWidget {

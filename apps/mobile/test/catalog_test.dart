@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:diamoraa_mobile/core/ui/color_swatch.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:diamoraa_mobile/app/app.dart';
@@ -61,6 +62,19 @@ Future<ProviderScope> appWith(Session session, MockApi api) async {
 }
 
 void main() {
+  test('colours: the hex when set, otherwise guessed from the name the owner typed', () {
+    expect(swatchColor('#ff0000', 'что угодно'), const Color(0xFFFF0000));
+    expect(swatchColor(null, 'Желтый'), isNotNull);
+    expect(swatchColor(null, 'Бардовый'), const Color(0xFF800020));
+    expect(swatchColor(null, 'Зеленный'), swatchColor(null, 'Зелёный'));
+    expect(swatchColor(null, 'Черный'), const Color(0xFF111111));
+    expect(swatchColor(null, 'sariq'), swatchColor(null, 'Желтый'));
+    expect(swatchColor(null, 'Голубой'), isNot(swatchColor(null, 'Синий'))); // «голубой» is not «синий»
+    expect(swatchColor(null, 'Кокос'), isNull); // unknown -> a neutral chip, never a wrong colour
+    expect(onSwatch(const Color(0xFF111111)), Colors.white);
+    expect(onSwatch(const Color(0xFFFACC15)), Colors.black87);
+  });
+
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late MockApi api;
   setUp(() => api = MockApi());
@@ -101,6 +115,7 @@ void main() {
     expect(find.text('Комплект «Роза»'), findsOneWidget);
     expect(find.text('Ручная работа, розовое золото'), findsOneWidget);
     expect(find.text('Розовое золото · Классика'), findsOneWidget);
+    expect(find.byType(ColorNameChip), findsWidgets); // painted in the colour itself
     expect(find.text('Позвонить'), findsOneWidget);
     expect(find.text('Написать в Telegram'), findsOneWidget);
     expect(find.textContaining('сум'), findsNothing);

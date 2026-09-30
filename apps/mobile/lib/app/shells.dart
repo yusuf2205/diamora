@@ -135,7 +135,8 @@ class AdaptiveShell extends StatelessWidget {
     );
   }
 
-  /// tablet: the chat is a big button above the other tabs (tonal; filled while the chat is open)
+  /// tablet: the chat is a big button right under the other tabs, in the middle of the side where the thumb rests
+  /// (tonal; filled while the chat is open)
   Widget _railChat(BuildContext context, bool extended, bool open, TextStyle? labelStyle) {
     final scheme = Theme.of(context).colorScheme;
     final (_, icon, label) = destinations[chatIndex!];
@@ -155,7 +156,7 @@ class AdaptiveShell extends StatelessWidget {
           ),
         );
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 16),
+      padding: const EdgeInsets.only(top: 20, bottom: 8),
       child: extended
           ? _badge(
               chatIndex!,
@@ -205,7 +206,7 @@ class AdaptiveShell extends StatelessWidget {
     }
     final extended = width >= 1000;
     final theme = Theme.of(context);
-    final labelStyle = theme.textTheme.titleSmall?.copyWith(fontSize: 15);
+    final labelStyle = theme.textTheme.titleSmall?.copyWith(fontSize: extended ? 15 : 13.5, height: 1.15);
     final full = fullWidthBranches.contains(shell.currentIndex);
     // the rail lists every tab except the chat; the chat is the big button above them
     final railTabs = [for (var i = 0; i < destinations.length; i++) if (i != chatIndex) i];
@@ -222,11 +223,11 @@ class AdaptiveShell extends StatelessWidget {
             selectedIndex: railSelected < 0 ? null : railSelected,
             onDestinationSelected: (j) => _go(railTabs[j]),
             extended: extended,
-            leading: chatIndex == null ? null : _railChat(context, extended, shell.currentIndex == chatIndex, labelStyle),
-            minWidth: 96,
+            trailing: chatIndex == null ? null : _railChat(context, extended, shell.currentIndex == chatIndex, labelStyle),
+            minWidth: 112,
             minExtendedWidth: 232,
             labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
-            groupAlignment: -0.85,
+            groupAlignment: 0, // the middle of the screen's side: where the thumbs are when a tablet is held
             selectedIconTheme: IconThemeData(size: 30, color: theme.colorScheme.onSecondaryContainer),
             unselectedIconTheme: IconThemeData(size: 30, color: theme.colorScheme.onSurfaceVariant),
             selectedLabelTextStyle: labelStyle?.copyWith(fontWeight: FontWeight.w700),
@@ -237,7 +238,8 @@ class AdaptiveShell extends StatelessWidget {
                   NavigationRailDestination(
                     icon: _icon(i, d.$1),
                     selectedIcon: _icon(i, d.$2),
-                    label: Text(d.$3),
+                    // long names («Bizning ishlarimiz») wrap to two lines instead of being cut off
+                    label: extended ? Text(d.$3) : SizedBox(width: 104, child: Text(d.$3, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis)),
                     padding: const EdgeInsets.symmetric(vertical: 6),
                   ),
             ],

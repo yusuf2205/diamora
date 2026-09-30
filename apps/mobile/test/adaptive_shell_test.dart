@@ -71,7 +71,10 @@ void main() {
       expect(rail.destinations.length, 2); // the chat is not one of the plain tabs
       expect(find.byKey(const Key('railChat')), findsOneWidget);
       expect(find.byKey(const Key('tabBadge-2')), findsOneWidget);
-      expect(tester.getTopLeft(find.byKey(const Key('railChat'))).dy, lessThan(tester.getTopLeft(find.text('Карта')).dy));
+      // under the other tabs, around the middle of the side (easy to reach with a thumb), not in the top corner
+      expect(tester.getTopLeft(find.byKey(const Key('railChat'))).dy, greaterThan(tester.getTopLeft(find.text('Склад')).dy));
+      final chatY = tester.getCenter(find.byKey(const Key('railChat'))).dy;
+      expect(chatY, inInclusiveRange(size.height * 0.3, size.height * 0.75));
       await tester.tap(find.byKey(const Key('railChat')));
       await tester.pumpAndSettle();
       expect(find.text('экран чата'), findsOneWidget);

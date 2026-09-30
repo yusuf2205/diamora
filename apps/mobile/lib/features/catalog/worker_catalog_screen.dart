@@ -9,6 +9,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/company_contact.dart';
+import '../../core/ui/color_swatch.dart';
+import 'catalog_gallery.dart';
 import 'catalog_repository.dart';
 import 'models.dart';
 
@@ -78,7 +80,23 @@ class _CatalogCard extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall),
-              if (item.colors.isNotEmpty) Text(item.colors.map((c) => c.name).join(' · '), maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+              if (item.colors.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                // the colours as painted dots (names on a long press / for screen readers)
+                Tooltip(
+                  message: item.colors.map((c) => c.name).join(', '),
+                  child: Row(children: [
+                    for (final c in item.colors.take(8))
+                      Container(
+                        margin: const EdgeInsets.only(right: 4),
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(color: swatchColor(c.hex, c.name) ?? Theme.of(context).colorScheme.surfaceContainerHigh, shape: BoxShape.circle, border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
+                      ),
+                    if (item.colors.length > 8) Text('+${item.colors.length - 8}', style: Theme.of(context).textTheme.bodySmall),
+                  ]),
+                ),
+              ],
             ]),
           ),
         ]),
@@ -102,16 +120,7 @@ class CatalogItemDetailScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (i) => ListView(padding: const EdgeInsets.only(bottom: 24), children: [
-          if (i.media.isNotEmpty)
-            SizedBox(
-              height: 320,
-              child: PageView(children: [
-                for (final m in i.media)
-                  m.isVideo
-                      ? Container(color: Colors.black, child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 56)))
-                      : (m.file != null ? Image(image: CachedNetworkImageProvider(m.file!.url), fit: BoxFit.cover) : const ColoredBox(color: Colors.black12)),
-              ]),
-            ),
+          if (i.media.isNotEmpty) CatalogGallery(media: i.media),
           Padding(
             padding: AppTokens.screenPadding.copyWith(top: 16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -123,7 +132,8 @@ class CatalogItemDetailScreen extends ConsumerWidget {
               Text(_availabilityLabel(l, i.availability), style: Theme.of(context).textTheme.labelLarge),
               if (i.variants.any((v) => v.color != null)) ...[
                 const SizedBox(height: 12),
-                Wrap(spacing: 8, children: [for (final v in i.variants) if (v.color != null) Chip(label: Text(v.label != null && v.label!.isNotEmpty ? '${v.color!.name} · ${v.label}' : v.color!.name))]),
+                // each colour on a chip painted in that colour
+                Wrap(spacing: 8, runSpacing: 8, children: [for (final v in i.variants) if (v.color != null) ColorNameChip(name: v.color!.name, hex: v.color!.hex, suffix: v.label)]),
               ],
               if ((i.description ?? '').isNotEmpty) ...[
                 const SizedBox(height: 16),

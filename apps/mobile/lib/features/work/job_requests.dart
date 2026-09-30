@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/color_swatch.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../catalog/models.dart';
@@ -225,9 +226,11 @@ class _OrderWorkSheetState extends ConsumerState<OrderWorkSheet> {
           const SizedBox(height: 6),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final v in _variants)
-              ChoiceChip(
-                avatar: CircleAvatar(backgroundColor: hexColor(v.color!.hex) ?? Colors.grey, radius: 9),
-                label: Text(v.label?.isNotEmpty == true ? '${v.color!.name} · ${v.label}' : v.color!.name),
+              ColorNameChip(
+                key: Key('orderColor-${v.id}'),
+                name: v.color!.name,
+                hex: v.color!.hex,
+                suffix: v.label,
                 selected: _variantId == v.id,
                 onSelected: _busy ? null : (_) => setState(() => _variantId = v.id),
               ),
@@ -315,7 +318,7 @@ class JobRequestsScreen extends ConsumerWidget {
                           if (r.workerPhone != null) Text(r.workerPhone!, style: Theme.of(context).textTheme.bodySmall),
                           const SizedBox(height: 6),
                           Row(children: [
-                            CircleAvatar(radius: 7, backgroundColor: hexColor(r.colorHex) ?? Colors.grey),
+                            CircleAvatar(radius: 7, backgroundColor: swatchColor(r.colorHex, r.colorName) ?? Colors.grey),
                             const SizedBox(width: 8),
                             Expanded(child: Text('${r.title} · ${r.meters} м', style: const TextStyle(fontWeight: FontWeight.w600))),
                           ]),

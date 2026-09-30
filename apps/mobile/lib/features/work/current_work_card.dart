@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/ui/color_swatch.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/company_contact.dart';
@@ -25,7 +26,7 @@ class CurrentWorkCard extends ConsumerWidget {
     final ratePerKit = rate != null ? int.tryParse(rate.ratePerKit) : null;
     final expected = work.expectedPayment != null ? int.tryParse(work.expectedPayment!) : ratePerKit != null ? (ratePerKit * work.plannedMeters / 9).round() : null;
     final inProgress = work.status == 'IN_PROGRESS';
-    final color = _hexColor(work.colorHex) ?? scheme.primary;
+    final color = swatchColor(work.colorHex, work.colorName) ?? scheme.primary;
     if (work.awaitingReceipt) return _PendingWorkCard(work: work);
 
     return Card(
@@ -126,11 +127,6 @@ class CurrentWorkCard extends ConsumerWidget {
     }
   }
 
-  Color? _hexColor(String? hex) {
-    if (hex == null || hex.isEmpty) return null;
-    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16);
-    return v == null ? null : Color(0xFF000000 | v);
-  }
 
   String _formatDate(DateTime d) => '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 }
