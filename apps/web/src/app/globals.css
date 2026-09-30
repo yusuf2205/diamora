@@ -51,3 +51,13 @@ body {
   font-feature-settings: 'cv11', 'ss01';
   letter-spacing: -0.005em;
 }
+
+/* «PDF / печать» of a report: only the page itself, on white, on as many sheets as it needs */
+@media print {
+  aside, header, nav, .no-print, [aria-label="Меню"] { display: none !important; }
+  html, body { background: #fff !important; color: #000 !important; }
+  .min-h-screen, main { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  main { padding: 0 !important; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+}

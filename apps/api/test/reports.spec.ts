@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { periodRange } from '../src/reports/reports.service';
 import { approveAndLoginWorker, createTestApp, handOver, registerViaBot, staffActor, superAdminActor, TestApp } from './support/app';
 
@@ -40,6 +41,19 @@ describe('reports (day / week / month) and «Мои заработки по ме
     expect(csv.headers['content-type']).toContain('text/csv');
     expect(csv.text.charCodeAt(0)).toBe(0xfeff);
     expect(csv.text).toContain('"Мастерица";"Код"');
+
+    // a real Excel file: the same rows, money as numbers
+    const bin = await admin.api.get('/v1/admin/reports/export.xlsx?period=week').expect(200).buffer(true)
+      .parse((res, cb) => { const parts: Buffer[] = []; res.on('data', (c: Buffer) => parts.push(c)); res.on('end', () => cb(null, Buffer.concat(parts))); });
+    expect(bin.headers['content-type']).toContain('spreadsheetml');
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bin.body as Buffer);
+    const ws = wb.getWorksheet('Мастерицы')!;
+    expect(String(ws.getCell('A1').value)).toContain('Diamoraa — отчёт');
+    expect(ws.getRow(3).getCell(1).value).toBe('Мастерица');
+    const found = ws.getSheetValues().find((r) => Array.isArray(r) && r[2] === row.worker.code) as unknown[];
+    expect(found[5]).toBe(9); // accepted metres
+    expect(found[8]).toBe(10000); // paid, a number Excel can sum
 
     const mgr = await staffActor(t, 'MANAGER', ['FINANCE_VIEW_ASSIGNED']);
     const mine = await mgr.api.get('/v1/admin/reports?period=week').expect(200);

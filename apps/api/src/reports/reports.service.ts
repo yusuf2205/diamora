@@ -1,7 +1,8 @@
-import { Controller, Get, Header, Injectable, Module, Res } from '@nestjs/common';
+import { Controller, Get, Header, Injectable, Module, Res, StreamableFile } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
+import ExcelJS from 'exceljs';
 import { CurrentUser, Perm, Roles } from '../common/decorators';
 import { forbidden } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
@@ -107,6 +108,41 @@ export class ReportsService {
     return '﻿' + lines.map((l) => l.map(cell).join(';')).join('\r\n');
   }
 
+  /** The same report as a real Excel file: a header, bold totals, money as numbers (so Excel can sum them), frozen header row. */
+  async xlsx(actor: AuthUser, q: z.output<typeof reportQuerySchema>): Promise<Buffer> {
+    const r = await this.report(actor, q);
+    const day = (iso: string) => new Date(new Date(iso).getTime() + TASHKENT_MS).toISOString().slice(0, 10).split('-').reverse().join('.');
+    const title = `Diamoraa — отчёт за ${day(r.from)} – ${day(new Date(new Date(r.to).getTime() - 1).toISOString())}`;
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Diamoraa';
+    const ws = wb.addWorksheet('Мастерицы', { views: [{ state: 'frozen', ySplit: 3 }] });
+    ws.columns = [
+      { key: 'name', width: 28 }, { key: 'code', width: 10 }, { key: 'issuedCount', width: 12 }, { key: 'issuedMeters', width: 12 },
+      { key: 'acceptedMeters', width: 12 }, { key: 'defectiveMeters', width: 10 }, { key: 'earned', width: 16 }, { key: 'paid', width: 16 }, { key: 'overdue', width: 12 },
+    ];
+    ws.mergeCells('A1:I1');
+    ws.getCell('A1').value = title;
+    ws.getCell('A1').font = { bold: true, size: 14 };
+    const head = ws.getRow(3);
+    head.values = ['Мастерица', 'Код', 'Выдано работ', 'Выдано, м', 'Принято, м', 'Брак, м', 'Начислено, сум', 'Выплачено, сум', 'Просрочено'];
+    head.font = { bold: true };
+    head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3E8EC' } };
+    for (const x of r.rows) {
+      ws.addRow([x.worker.fullName, x.worker.code, x.issuedCount, x.issuedMeters, x.acceptedMeters, x.defectiveMeters, Number(x.earned), Number(x.paid), x.overdue]);
+    }
+    const t = ws.addRow(['Итого', '', r.total.issuedCount, r.total.issuedMeters, r.total.acceptedMeters, r.total.defectiveMeters, Number(r.total.earned), Number(r.total.paid), r.total.overdue]);
+    t.font = { bold: true };
+    t.border = { top: { style: 'thin' } };
+    for (const c of ['G', 'H']) ws.getColumn(c).numFmt = '# ##0';
+    if (r.lowStock?.length) {
+      const st = wb.addWorksheet('Склад: мало');
+      st.columns = [{ header: 'Материал', key: 'n', width: 30 }, { header: 'Осталось', key: 'q', width: 12 }, { header: 'Минимум', key: 'm', width: 12 }];
+      st.getRow(1).font = { bold: true };
+      for (const m of r.lowStock) st.addRow([m.name, m.quantity, m.minStock]);
+    }
+    return Buffer.from(await wb.xlsx.writeBuffer());
+  }
+
   /** «Мои заработки по месяцам» (worker, self only): accepted metres, earned, paid — the last 6 months. */
   async myMonths(workerId: string) {
     const out = [];
@@ -141,6 +177,13 @@ export class ReportsController {
   async export(@CurrentUser() u: AuthUser, @ZodQuery(reportQuerySchema) q: z.output<typeof reportQuerySchema>, @Res({ passthrough: true }) res: Response) {
     res.setHeader('Content-Disposition', `attachment; filename="diamoraa-report-${q.period}.csv"`);
     return this.reports.csv(u, q);
+  }
+
+  @Perm('FINANCE_VIEW_ALL', 'FINANCE_VIEW_ASSIGNED', 'PROFIT_VIEW') @Get('admin/reports/export.xlsx')
+  async exportXlsx(@CurrentUser() u: AuthUser, @ZodQuery(reportQuerySchema) q: z.output<typeof reportQuerySchema>, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="diamoraa-report-${q.period}.xlsx"`);
+    return new StreamableFile(await this.reports.xlsx(u, q));
   }
 
   @Roles('WORKER') @Get('work/earnings/monthly')

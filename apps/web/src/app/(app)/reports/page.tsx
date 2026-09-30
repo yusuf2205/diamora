@@ -28,14 +28,15 @@ export default function ReportsPage() {
   const [downloading, setDownloading] = useState(false);
   const { data, error, isLoading } = useQuery<Report>({ queryKey: ['report', period, offset], queryFn: () => api.get<Report>('/admin/reports', { period, offset }) });
 
-  const download = async () => {
+  const download = async (kind: 'xlsx' | 'csv') => {
     setDownloading(true);
     try {
-      const res = await fetch(`${apiOrigin()}/v1/admin/reports/export?period=${period}&offset=${offset}`, { headers: { Authorization: `Bearer ${accessToken() ?? ''}` } });
+      const path = kind === 'xlsx' ? 'export.xlsx' : 'export';
+      const res = await fetch(`${apiOrigin()}/v1/admin/reports/${path}?period=${period}&offset=${offset}`, { headers: { Authorization: `Bearer ${accessToken() ?? ''}` } });
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `diamoraa-${period}-${data ? day(data.from) : 'report'}.csv`;
+      a.download = `diamoraa-${period}-${data ? day(data.from) : 'report'}.${kind}`;
       a.click();
       URL.revokeObjectURL(a.href);
     } finally {
@@ -45,7 +46,13 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Отчёты" subtitle="Выпуск, начисления и выплаты по мастерицам" actions={<Button variant="outline" onClick={download} disabled={!data || downloading}>{downloading ? 'Готовим…' : 'Скачать для Excel'}</Button>} />
+      <PageHeader title="Отчёты" subtitle="Выпуск, начисления и выплаты по мастерицам" actions={
+        <div className="no-print flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => download('xlsx')} disabled={!data || downloading}>{downloading ? 'Готовим…' : 'Excel'}</Button>
+          {/* the browser's «Сохранить как PDF» keeps Cyrillic and the layout exactly as on screen */}
+          <Button variant="outline" onClick={() => window.print()} disabled={!data}>PDF / печать</Button>
+        </div>
+      } />
       <div className="flex flex-wrap items-center gap-3">
         <Chips options={PERIODS} value={period} onChange={(v) => { setPeriod(v as Period); setOffset(0); }} label="Период" />
         <div className="flex items-center gap-1">
