@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../core/providers.dart';
 import '../features/chat/chat_repository.dart';
 import '../features/location/location_gate.dart';
+import '../features/work/offline_ui.dart';
 import '../l10n/app_localizations.dart';
 
 /// Staff shell (SUPER_ADMIN / ADMIN / MANAGER, D-028): bottom navigation + the live link to the NAS. Every tab is reachable
@@ -81,7 +82,7 @@ class WorkerShell extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     return AdaptiveShell(
       shell: shell,
-      body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: shell))),
+      body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: OfflineSync(child: shell)))),
       destinations: [
         (Icons.auto_awesome_rounded, Icons.auto_awesome_rounded, l.catalog),
         (Icons.home_rounded, Icons.home_rounded, l.home),

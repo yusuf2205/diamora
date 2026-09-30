@@ -2705,4 +2705,49 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get routeNoStart =>
       'Your location is unknown - the route starts at the first stop.';
+
+  @override
+  String get offlineSaved =>
+      'No internet - saved on the phone, it will be sent by itself';
+
+  @override
+  String offlineSent(int count) {
+    return 'Sent what was done offline: $count';
+  }
+
+  @override
+  String offlineWaiting(int count) {
+    return 'Not sent yet: $count';
+  }
+
+  @override
+  String get offlineWillSend => 'will be sent when online';
+
+  @override
+  String get offlineSendNow => 'Send now';
+
+  @override
+  String offlineRefused(String what) {
+    return 'Not accepted: $what';
+  }
+
+  @override
+  String get offlineRefusedHint =>
+      'The server refused it. Do it again or call your manager.';
+
+  @override
+  String get offlineKindProgress => 'progress';
+
+  @override
+  String get offlineKindReady => 'work ready';
+
+  @override
+  String get offlineKindReceive => 'receiving work';
+
+  @override
+  String get offlineScanNoInternet =>
+      'No internet. Save it - the work will be received when online.';
+
+  @override
+  String get offlineScanSave => 'Save and receive later';
 }

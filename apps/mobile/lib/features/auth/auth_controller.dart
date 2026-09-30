@@ -90,6 +90,12 @@ class AuthController extends AsyncNotifier<Session?> {
     await ref.read(realtimeClientProvider).disconnect();
     await ref.read(sharedPrefsProvider).remove(_cachedSessionKey);
     await ref.read(workerRepositoryProvider).clear(); // the next user must not see this user's data
+    // nor send this user's unsent work under their own name, nor see this user's cached screens
+    try {
+      final db = ref.read(appDatabaseProvider);
+      await db.delete(db.pendingActions).go();
+      await db.delete(db.cachedResponses).go();
+    } catch (_) {/* storage trouble: never block signing out */}
   }
 }
 

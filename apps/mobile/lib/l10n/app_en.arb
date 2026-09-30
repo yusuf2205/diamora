@@ -821,5 +821,17 @@
   "routeToDeliver": "deliver materials",
   "routeOverdue": "overdue",
   "routeNobody": "No workers on the map yet.",
-  "routeNoStart": "Your location is unknown - the route starts at the first stop."
+  "routeNoStart": "Your location is unknown - the route starts at the first stop.",
+  "offlineSaved": "No internet - saved on the phone, it will be sent by itself",
+  "offlineSent": "Sent what was done offline: {count}",
+  "offlineWaiting": "Not sent yet: {count}",
+  "offlineWillSend": "will be sent when online",
+  "offlineSendNow": "Send now",
+  "offlineRefused": "Not accepted: {what}",
+  "offlineRefusedHint": "The server refused it. Do it again or call your manager.",
+  "offlineKindProgress": "progress",
+  "offlineKindReady": "work ready",
+  "offlineKindReceive": "receiving work",
+  "offlineScanNoInternet": "No internet. Save it - the work will be received when online.",
+  "offlineScanSave": "Save and receive later"
 }

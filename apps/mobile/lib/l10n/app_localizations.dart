@@ -5031,6 +5031,78 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ваше место не определилось — маршрут начнётся от первой точки.'**
   String get routeNoStart;
+
+  /// No description provided for @offlineSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет интернета — сохранено в телефоне, отправится само, когда появится связь'**
+  String get offlineSaved;
+
+  /// No description provided for @offlineSent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправлено то, что было без интернета: {count}'**
+  String offlineSent(int count);
+
+  /// No description provided for @offlineWaiting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не отправлено: {count}'**
+  String offlineWaiting(int count);
+
+  /// No description provided for @offlineWillSend.
+  ///
+  /// In ru, this message translates to:
+  /// **'отправится само, когда будет интернет'**
+  String get offlineWillSend;
+
+  /// No description provided for @offlineSendNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить сейчас'**
+  String get offlineSendNow;
+
+  /// No description provided for @offlineRefused.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не принято: {what}'**
+  String offlineRefused(String what);
+
+  /// No description provided for @offlineRefusedHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервер не принял это действие. Сделайте его ещё раз или позвоните менеджеру.'**
+  String get offlineRefusedHint;
+
+  /// No description provided for @offlineKindProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'сколько сделано'**
+  String get offlineKindProgress;
+
+  /// No description provided for @offlineKindReady.
+  ///
+  /// In ru, this message translates to:
+  /// **'работа готова'**
+  String get offlineKindReady;
+
+  /// No description provided for @offlineKindReceive.
+  ///
+  /// In ru, this message translates to:
+  /// **'получение работы'**
+  String get offlineKindReceive;
+
+  /// No description provided for @offlineScanNoInternet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет интернета. Можно сохранить — работа будет принята, когда появится связь.'**
+  String get offlineScanNoInternet;
+
+  /// No description provided for @offlineScanSave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить и принять позже'**
+  String get offlineScanSave;
 }
 
 class _AppLocalizationsDelegate

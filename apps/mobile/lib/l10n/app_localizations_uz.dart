@@ -2676,4 +2676,49 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get routeNoStart =>
       'Joylashuvingiz aniqlanmadi — marshrut birinchi nuqtadan boshlanadi.';
+
+  @override
+  String get offlineSaved =>
+      'Internet yo\'q — telefonda saqlandi, aloqa paydo bo\'lganda o\'zi yuboriladi';
+
+  @override
+  String offlineSent(int count) {
+    return 'Internetsiz qilinganlar yuborildi: $count';
+  }
+
+  @override
+  String offlineWaiting(int count) {
+    return 'Yuborilmagan: $count';
+  }
+
+  @override
+  String get offlineWillSend => 'internet bo\'lganda o\'zi yuboriladi';
+
+  @override
+  String get offlineSendNow => 'Hozir yuborish';
+
+  @override
+  String offlineRefused(String what) {
+    return 'Qabul qilinmadi: $what';
+  }
+
+  @override
+  String get offlineRefusedHint =>
+      'Server bu amalni qabul qilmadi. Qayta bajaring yoki menejerga qo\'ng\'iroq qiling.';
+
+  @override
+  String get offlineKindProgress => 'qancha qilindi';
+
+  @override
+  String get offlineKindReady => 'ish tayyor';
+
+  @override
+  String get offlineKindReceive => 'ishni qabul qilish';
+
+  @override
+  String get offlineScanNoInternet =>
+      'Internet yo\'q. Saqlash mumkin — aloqa paydo bo\'lganda ish qabul qilinadi.';
+
+  @override
+  String get offlineScanSave => 'Saqlash va keyinroq qabul qilish';
 }

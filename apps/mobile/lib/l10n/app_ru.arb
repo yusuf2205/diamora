@@ -909,5 +909,20 @@
   "routeToDeliver": "отвезти материалы",
   "routeOverdue": "просрочено",
   "routeNobody": "На карте пока нет мастериц.",
-  "routeNoStart": "Ваше место не определилось — маршрут начнётся от первой точки."
+  "routeNoStart": "Ваше место не определилось — маршрут начнётся от первой точки.",
+  "offlineSaved": "Нет интернета — сохранено в телефоне, отправится само, когда появится связь",
+  "offlineSent": "Отправлено то, что было без интернета: {count}",
+  "@offlineSent": {"placeholders": {"count": {"type": "int"}}},
+  "offlineWaiting": "Не отправлено: {count}",
+  "@offlineWaiting": {"placeholders": {"count": {"type": "int"}}},
+  "offlineWillSend": "отправится само, когда будет интернет",
+  "offlineSendNow": "Отправить сейчас",
+  "offlineRefused": "Не принято: {what}",
+  "@offlineRefused": {"placeholders": {"what": {"type": "String"}}},
+  "offlineRefusedHint": "Сервер не принял это действие. Сделайте его ещё раз или позвоните менеджеру.",
+  "offlineKindProgress": "сколько сделано",
+  "offlineKindReady": "работа готова",
+  "offlineKindReceive": "получение работы",
+  "offlineScanNoInternet": "Нет интернета. Можно сохранить — работа будет принята, когда появится связь.",
+  "offlineScanSave": "Сохранить и принять позже"
 }

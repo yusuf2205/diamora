@@ -2718,4 +2718,49 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get routeNoStart =>
       'Ваше место не определилось — маршрут начнётся от первой точки.';
+
+  @override
+  String get offlineSaved =>
+      'Нет интернета — сохранено в телефоне, отправится само, когда появится связь';
+
+  @override
+  String offlineSent(int count) {
+    return 'Отправлено то, что было без интернета: $count';
+  }
+
+  @override
+  String offlineWaiting(int count) {
+    return 'Не отправлено: $count';
+  }
+
+  @override
+  String get offlineWillSend => 'отправится само, когда будет интернет';
+
+  @override
+  String get offlineSendNow => 'Отправить сейчас';
+
+  @override
+  String offlineRefused(String what) {
+    return 'Не принято: $what';
+  }
+
+  @override
+  String get offlineRefusedHint =>
+      'Сервер не принял это действие. Сделайте его ещё раз или позвоните менеджеру.';
+
+  @override
+  String get offlineKindProgress => 'сколько сделано';
+
+  @override
+  String get offlineKindReady => 'работа готова';
+
+  @override
+  String get offlineKindReceive => 'получение работы';
+
+  @override
+  String get offlineScanNoInternet =>
+      'Нет интернета. Можно сохранить — работа будет принята, когда появится связь.';
+
+  @override
+  String get offlineScanSave => 'Сохранить и принять позже';
 }

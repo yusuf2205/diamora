@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/offline/offline_queue.dart' show isRetryable;
 import '../../core/ui/color_swatch.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -92,7 +93,15 @@ class CurrentWorkCard extends ConsumerWidget {
       ),
     );
     if (value == null) return;
-    await ref.read(workRepositoryProvider).reportProgress(work.id, reportedMeters: value.toStringAsFixed(2));
+    final meters = value.toStringAsFixed(2);
+    try {
+      await ref.read(workRepositoryProvider).reportProgress(work.id, reportedMeters: meters);
+    } catch (e) {
+      if (!isRetryable(e)) rethrow;
+      // no internet: kept on the phone and sent by itself later
+      await ref.read(offlineQueueProvider).add('progress', {'assignmentId': work.id, 'reportedMeters': meters});
+      if (context.mounted) _savedOffline(context);
+    }
     ref.invalidate(currentWorkProvider);
   }
 
@@ -110,8 +119,22 @@ class CurrentWorkCard extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
-    await ref.read(workRepositoryProvider).markReady(work.id, readyMeters: work.plannedMeters.toStringAsFixed(2));
+    final meters = work.plannedMeters.toStringAsFixed(2);
+    try {
+      await ref.read(workRepositoryProvider).markReady(work.id, readyMeters: meters);
+    } catch (e) {
+      if (!isRetryable(e)) rethrow;
+      await ref.read(offlineQueueProvider).add('ready', {'assignmentId': work.id, 'readyMeters': meters});
+      if (context.mounted) _savedOffline(context);
+    }
     ref.invalidate(currentWorkProvider);
+  }
+
+  void _savedOffline(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l.offlineSaved)));
   }
 
   Future<void> _reportProblem(BuildContext context, WidgetRef ref) async {

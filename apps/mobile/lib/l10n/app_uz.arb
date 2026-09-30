@@ -852,5 +852,17 @@
   "routeToDeliver": "materiallarni olib borish",
   "routeOverdue": "muddati o'tgan",
   "routeNobody": "Xaritada hali ustalar yo'q.",
-  "routeNoStart": "Joylashuvingiz aniqlanmadi — marshrut birinchi nuqtadan boshlanadi."
+  "routeNoStart": "Joylashuvingiz aniqlanmadi — marshrut birinchi nuqtadan boshlanadi.",
+  "offlineSaved": "Internet yo'q — telefonda saqlandi, aloqa paydo bo'lganda o'zi yuboriladi",
+  "offlineSent": "Internetsiz qilinganlar yuborildi: {count}",
+  "offlineWaiting": "Yuborilmagan: {count}",
+  "offlineWillSend": "internet bo'lganda o'zi yuboriladi",
+  "offlineSendNow": "Hozir yuborish",
+  "offlineRefused": "Qabul qilinmadi: {what}",
+  "offlineRefusedHint": "Server bu amalni qabul qilmadi. Qayta bajaring yoki menejerga qo'ng'iroq qiling.",
+  "offlineKindProgress": "qancha qilindi",
+  "offlineKindReady": "ish tayyor",
+  "offlineKindReceive": "ishni qabul qilish",
+  "offlineScanNoInternet": "Internet yo'q. Saqlash mumkin — aloqa paydo bo'lganda ish qabul qilinadi.",
+  "offlineScanSave": "Saqlash va keyinroq qabul qilish"
 }

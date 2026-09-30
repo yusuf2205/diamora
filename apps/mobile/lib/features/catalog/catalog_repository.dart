@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/offline/offline_queue.dart' show ResponseCache;
 import '../../core/providers.dart';
 import 'models.dart';
 
@@ -10,12 +11,18 @@ const _uuid = Uuid();
 /// "Наши работы" (D-029). Reads are cheap enough to always go to the server (small home-business catalog, kept live by
 /// realtime); writes always go to the server (media/publishing are ADMIN-critical, D-022 applies the same way as collateral).
 class CatalogRepository {
-  CatalogRepository(this._api);
+  CatalogRepository(this._api, [this._cache]);
   final ApiClient _api;
+  /// the last catalog, shown without internet
+  final ResponseCache? _cache;
 
   // ---- WORKER: published only, never a price --------------------------------------------------------------------------
-  Future<List<CatalogItem>> published() async =>
-      ((await _api.getJson('/catalog'))['items'] as List).map((j) => CatalogItem.fromJson((j as Map).cast<String, dynamic>())).toList();
+  Future<List<CatalogItem>> published() async {
+    Future<Object> fetch() => _api.getJson('/catalog');
+    List<CatalogItem> parse(Object j) => ((j as Map)['items'] as List).map((x) => CatalogItem.fromJson((x as Map).cast<String, dynamic>())).toList();
+    final c = _cache;
+    return c == null ? parse(await fetch()) : c.get('catalog', fetch, parse);
+  }
   Future<CatalogItem> publishedDetail(String id) async => CatalogItem.fromJson(await _api.getJson('/catalog/$id'));
 
   // ---- staff: manage everything -----------------------------------------------------------------------------------------
@@ -57,7 +64,7 @@ class CatalogRepository {
   }
 }
 
-final catalogRepositoryProvider = Provider<CatalogRepository>((ref) => CatalogRepository(ref.watch(apiClientProvider)));
+final catalogRepositoryProvider = Provider<CatalogRepository>((ref) => CatalogRepository(ref.watch(apiClientProvider), ResponseCache(ref.watch(appDatabaseProvider))));
 
 /// The public catalog, refreshed live whenever ADMIN changes it.
 final publishedCatalogProvider = FutureProvider.autoDispose<List<CatalogItem>>((ref) {

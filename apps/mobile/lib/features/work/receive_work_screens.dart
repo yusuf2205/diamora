@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/offline/offline_queue.dart' show isRetryable;
 import '../../core/ui/color_swatch.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
@@ -41,6 +42,8 @@ class _ReceiveScanScreenState extends ConsumerState<ReceiveScanScreen> {
   MobileScannerController? _controller;
   var _busy = false;
   String? _error;
+  /// scanned without internet: offer to keep it and receive the work when the connection is back
+  String? _offlineCode;
 
   @override
   void initState() {
@@ -69,7 +72,12 @@ class _ReceiveScanScreenState extends ConsumerState<ReceiveScanScreen> {
       }
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReceiptReviewScreen(scan: scan)));
     } catch (e) {
-      if (mounted) setState(() => _error = handoffErrorText(l, e) ?? errorText(context, e));
+      if (mounted) {
+        setState(() {
+          _offlineCode = isRetryable(e) ? code : null;
+          _error = isRetryable(e) ? l.offlineScanNoInternet : handoffErrorText(l, e) ?? errorText(context, e);
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -95,13 +103,33 @@ class _ReceiveScanScreenState extends ConsumerState<ReceiveScanScreen> {
             color: _error != null ? scheme.errorContainer : scheme.surface.withValues(alpha: 0.95),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(children: [
-                Icon(_error != null ? Icons.error_outline_rounded : Icons.qr_code_scanner_rounded, color: _error != null ? scheme.onErrorContainer : scheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(_error ?? l.receiveScanHint,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: _error != null ? scheme.onErrorContainer : null, fontWeight: FontWeight.w600)),
-                ),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Icon(_error != null ? Icons.error_outline_rounded : Icons.qr_code_scanner_rounded, color: _error != null ? scheme.onErrorContainer : scheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(_error ?? l.receiveScanHint,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: _error != null ? scheme.onErrorContainer : null, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+                if (_offlineCode != null) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    key: const Key('receiveSaveOffline'),
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    icon: const Icon(Icons.cloud_upload_rounded),
+                    label: Text(l.offlineScanSave),
+                    onPressed: () async {
+                      final code = _offlineCode!;
+                      await ref.read(offlineQueueProvider).add('receive', {'code': code});
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(SnackBar(content: Text(l.offlineSaved)));
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
               ]),
             ),
           ),

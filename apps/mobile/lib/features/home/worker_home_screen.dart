@@ -11,6 +11,7 @@ import '../work/assignment_admin_repository.dart' show LedgerEntry;
 import '../../core/notifications/app_notifications.dart';
 import '../goals/goal_card.dart';
 import '../work/current_work_card.dart';
+import '../work/offline_ui.dart';
 import '../work/job_requests.dart';
 import '../work/work_repository.dart';
 import '../workers/collateral_card.dart';
@@ -48,6 +49,7 @@ class WorkerHomeScreen extends ConsumerWidget {
               child: ListView(padding: AppTokens.screenPadding.copyWith(top: 8, bottom: 24), children: [
                 Text(me.fullName, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
+                const PendingActionsBanner(),
                 if (me.status != 'PENDING_APPROVAL') ...[
                   const WorkerQuickActions(),
                   const MyJobRequestCard(),
