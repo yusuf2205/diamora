@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Bot, type Context } from 'grammy';
 import { ENV, Env } from '../config/env';
+import { adminKeyboard, AdminBot } from '../alerts/admin-bot';
 import { ALERT_PREFIX, AlertsService } from '../alerts/alerts.service';
 import { RegistrationService, type BotInput } from '../registration/registration.service';
 import { parseAction, render, type BotKeyboard } from '../registration/texts';
@@ -24,7 +25,7 @@ export class TelegramBot implements TelegramSender {
   private readonly log = new Logger('TelegramBot');
   private bot?: Bot;
 
-  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService) {}
+  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot) {}
 
   get enabled() { return !!this.env.TELEGRAM_BOT_TOKEN; }
 
@@ -49,10 +50,22 @@ export class TelegramBot implements TelegramSender {
       const payload = ctx.match ? String(ctx.match) : undefined;
       // an admin linking this chat for owner alerts - not a worker registration
       if (payload?.startsWith(ALERT_PREFIX) && ctx.chat?.type === 'private') {
-        await ctx.reply(await this.alerts.completeLink(payload.slice(ALERT_PREFIX.length), BigInt(ctx.chat.id)));
+        const text = await this.alerts.completeLink(payload.slice(ALERT_PREFIX.length), BigInt(ctx.chat.id));
+        // linked: the owner's menu appears under the ⌘ button right away
+        const linked = await this.adminBot.isAdminChat(BigInt(ctx.chat.id));
+        await ctx.reply(linked ? `${text}
+
+${this.adminBot.menuText()}` : text, linked ? { reply_markup: adminKeyboard } : undefined);
+        return;
+      }
+      if (ctx.chat?.type === 'private' && (await this.adminBot.isAdminChat(BigInt(ctx.chat.id)))) {
+        await ctx.reply(this.adminBot.menuText(), { reply_markup: adminKeyboard });
         return;
       }
       return handle(ctx, { kind: 'command', command: 'start', payload });
+    });
+    bot.command('menu', async (ctx) => {
+      if (ctx.chat?.type === 'private' && (await this.adminBot.isAdminChat(BigInt(ctx.chat.id)))) await ctx.reply(this.adminBot.menuText(), { reply_markup: adminKeyboard });
     });
     bot.command('cancel', (ctx) => handle(ctx, { kind: 'command', command: 'cancel' }));
     bot.on('message:contact', (ctx) => handle(ctx, { kind: 'contact', phone: ctx.message.contact.phone_number, contactUserId: ctx.message.contact.user_id ?? null }));
@@ -69,7 +82,13 @@ export class TelegramBot implements TelegramSender {
         },
       });
     });
-    bot.on('message:text', (ctx) => {
+    bot.on('message:text', async (ctx) => {
+      // an admin's linked chat: the menu buttons, never the worker registration
+      if (ctx.chat.type === 'private' && (await this.adminBot.isAdminChat(BigInt(ctx.chat.id)))) {
+        const answer = await this.adminBot.answer(ctx.message.text);
+        await ctx.reply(answer ?? this.adminBot.menuText(), { reply_markup: adminKeyboard });
+        return;
+      }
       const action = parseAction(ctx.message.text);
       return handle(ctx, action ? { kind: 'action', action } : { kind: 'text', text: ctx.message.text });
     });

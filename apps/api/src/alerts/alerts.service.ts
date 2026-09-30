@@ -4,6 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { statfs } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { AuditService } from '../audit/audit.service';
+import { AdminBot } from './admin-bot';
 import { CurrentUser, Roles } from '../common/decorators';
 import type { AuthUser } from '../common/request-context';
 import { ENV, Env } from '../config/env';
@@ -180,5 +181,5 @@ export class AlertsController {
 export class AlertsApiModule {}
 
 /** Worker process: the service only (no HTTP). */
-@Module({ providers: [AlertsService], exports: [AlertsService] })
+@Module({ providers: [AlertsService, AdminBot], exports: [AlertsService, AdminBot] })
 export class AlertsModule {}
