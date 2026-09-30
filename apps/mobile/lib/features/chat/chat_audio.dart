@@ -72,8 +72,28 @@ class ChatAudio extends ChangeNotifier {
   bool muted = false;
 
   /// every voice / audio bubble on screen registers itself: that is the queue for ⏮ ⏭
-  void register(ChatMessage m) => _known[m.id] = m;
-  void unregister(String id) => _known.remove(id);
+  /// (the same voice can be on screen twice - in the chat and in «Голосовые» of the chat's info - so it is counted:
+  /// closing one of them must not drop it from ⏮ ⏭)
+  final _refs = <String, int>{};
+  void register(ChatMessage m) {
+    _refs[m.id] = (_refs[m.id] ?? 0) + 1;
+    _known[m.id] = m;
+  }
+
+  /// the same bubble got a newer copy of its message (edited, a reaction)
+  void refresh(ChatMessage m) {
+    if (_known.containsKey(m.id)) _known[m.id] = m;
+  }
+
+  void unregister(String id) {
+    final n = (_refs[id] ?? 1) - 1;
+    if (n > 0) {
+      _refs[id] = n;
+    } else {
+      _refs.remove(id);
+      _known.remove(id);
+    }
+  }
 
   Duration get total => len ?? Duration(milliseconds: track?.file?.durationMs ?? 0);
   bool isCurrent(String id) => track?.id == id;
@@ -82,6 +102,7 @@ class ChatAudio extends ChangeNotifier {
     final existing = _engine;
     if (existing != null) return existing;
     final e = engineFactory();
+    if (muted) e.setVolume(0); // «звук выкл.» stays off for the next voice too
     _subs
       ..add(e.position.listen((d) { pos = d; notifyListeners(); }))
       ..add(e.duration.listen((d) { len = d; notifyListeners(); }))
@@ -122,14 +143,20 @@ class ChatAudio extends ChangeNotifier {
         await e.open(m);
         await e.setRate(rate);
       } catch (_) {
-        loading = false;
-        notifyListeners();
+        // could not load it: forget it, so the next tap tries again (instead of resuming the previous voice)
+        if (track?.id == m.id) {
+          track = null;
+          loading = false;
+          notifyListeners();
+        }
         return;
       }
+      // another voice was tapped while this one was loading: that one wins
+      if (track?.id != m.id || !identical(_engine, e)) return;
       loading = false;
       notifyListeners();
     }
-    await e.resume();
+    if (track?.id == m.id && identical(_engine, e)) await e.resume();
   }
 
   Future<void> toggle(ChatMessage m) async {

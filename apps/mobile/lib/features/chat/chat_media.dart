@@ -198,8 +198,12 @@ class _ChatAudioBubbleState extends State<ChatAudioBubble> {
   @override
   void didUpdateWidget(ChatAudioBubble old) {
     super.didUpdateWidget(old);
-    if (old.message.id != widget.message.id) _audio.unregister(old.message.id);
-    _audio.register(widget.message);
+    if (old.message.id != widget.message.id) {
+      _audio.unregister(old.message.id);
+      _audio.register(widget.message);
+    } else {
+      _audio.refresh(widget.message);
+    }
   }
 
   @override

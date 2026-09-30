@@ -100,6 +100,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   double _azimuth = 0;
   _CameraListener? _cameraListener;
   List<LiveLocationRow> _shown = const [];
+  int _markerGeneration = 0;
 
   List<LiveLocationRow> _visible(List<LiveLocationRow> rows) => rows.where((r) => mapRowMatches(r, _work, _managerId)).toList();
   void _refilter() {
@@ -245,16 +246,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void> _applyMarkers(List<LiveLocationRow> rows) async {
     final window = _mapWindow;
     if (window == null) return;
+    // fresh data can arrive while pins are still being drawn: only the newest call may touch the map (two overlapping
+    // calls used to leave every person on it twice)
+    final generation = ++_markerGeneration;
+    final scheme = Theme.of(context).colorScheme;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final images = [for (final row in rows) await _pinImage(markerColor(row, scheme), row.isHome ? null : initialsOf(row.fullName), dpr)];
+    if (!mounted || generation != _markerGeneration || !identical(window, _mapWindow)) return;
     final collection = window.map.mapObjects;
     collection.clear();
     _placemarks.clear();
     _tapListeners.clear();
-    final scheme = Theme.of(context).colorScheme;
     _shown = rows;
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    for (final row in rows) {
-      final color = markerColor(row, scheme);
-      final image = await _pinImage(color, row.isHome ? null : initialsOf(row.fullName), dpr);
+    for (final (i, row) in rows.indexed) {
+      final image = images[i];
       final placemark = collection.addPlacemarkWithImageStyle(
         ymk.Point(latitude: row.latitude, longitude: row.longitude), image,
         // the pin's tip stands on the point; people waiting for something are drawn above the rest

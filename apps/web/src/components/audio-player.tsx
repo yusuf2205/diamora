@@ -14,6 +14,8 @@ let state: State = { track: null, playing: false, pos: 0, len: 0, rate: 1, volum
 const subs = new Set<() => void>();
 const set = (p: Partial<State>) => { state = { ...state, ...p }; subs.forEach((f) => f()); };
 let el: HTMLAudioElement | null = null;
+/** a seek asked for before the file's length is known (a click on a waveform that is not loaded yet) */
+let pendingSeek: number | null = null;
 
 function audio() {
   if (el) return el;
@@ -22,7 +24,11 @@ function audio() {
   el.addEventListener('play', () => set({ playing: true }));
   el.addEventListener('pause', () => set({ playing: false }));
   el.addEventListener('timeupdate', () => set({ pos: el!.currentTime }));
-  el.addEventListener('loadedmetadata', () => { if (Number.isFinite(el!.duration)) set({ len: el!.duration }); });
+  el.addEventListener('loadedmetadata', () => {
+    if (Number.isFinite(el!.duration)) set({ len: el!.duration });
+    el!.playbackRate = state.rate; // a new file resets the speed in some browsers
+    if (pendingSeek != null) { el!.currentTime = pendingSeek; pendingSeek = null; }
+  });
   el.addEventListener('ended', () => { const n = neighbour(1); if (n) player.play(n); else set({ playing: false, pos: 0 }); });
   return el;
 }
@@ -40,15 +46,21 @@ export const player = {
   play(t: Track) {
     const a = audio();
     if (state.track?.id !== t.id) {
-      a.src = t.url; a.playbackRate = state.rate;
+      pendingSeek = null;
+      a.defaultPlaybackRate = state.rate; a.src = t.url; a.playbackRate = state.rate;
       set({ track: t, pos: 0, len: (t.durationMs ?? 0) / 1000 });
     }
     try { void a.play()?.catch(() => set({ playing: false })); } catch { set({ playing: false }); }
   },
   toggle(t: Track) { if (state.track?.id === t.id && state.playing) audio().pause(); else player.play(t); },
-  seek(sec: number) { const a = audio(); a.currentTime = Math.max(0, sec); set({ pos: a.currentTime }); },
+  seek(sec: number) {
+    const a = audio(); const at = Math.max(0, sec);
+    if (a.readyState < 1) pendingSeek = at; // not loaded yet: jump there as soon as it is
+    else a.currentTime = at;
+    set({ pos: at });
+  },
   step(d: number) { const n = neighbour(d); if (n) player.play(n); else if (d < 0) player.seek(0); },
-  rate() { const r = state.rate === 1 ? 1.5 : state.rate === 1.5 ? 2 : 1; audio().playbackRate = r; set({ rate: r }); },
+  rate() { const r = state.rate === 1 ? 1.5 : state.rate === 1.5 ? 2 : 1; const a = audio(); a.defaultPlaybackRate = r; a.playbackRate = r; set({ rate: r }); },
   volume(v: number) { const a = audio(); a.volume = v; a.muted = v === 0; set({ volume: v, muted: v === 0 }); },
   mute() { const a = audio(); a.muted = !state.muted; set({ muted: !state.muted }); },
   close() { const a = audio(); a.pause(); a.removeAttribute('src'); a.load(); set({ track: null, playing: false, pos: 0 }); },

@@ -378,4 +378,37 @@ void main() {
       expect(find.byKey(const Key('audioBar')), findsNothing);
     });
   }
+
+  test('voice queue: the same voice shown twice (chat + «Голосовые») stays in ⏮ ⏭ when one of them closes', () async {
+    final engine = FakeEngine();
+    ChatAudio.engineFactory = () => engine;
+    final a = ChatAudio.instance;
+    ChatMessage v(String id, int min) => ChatMessage.fromJson({...msg(id, '', kind: 'VOICE', file: {'url': 'u', 'durationMs': 1000}), 'createdAt': DateTime.now().subtract(Duration(minutes: min)).toUtc().toIso8601String()});
+    final first = v('q1', 3), second = v('q2', 1);
+    a..register(first)..register(second)..register(second); // q2 on screen twice
+    a.unregister('q2'); // the info sheet closed
+    await a.play(first);
+    expect(a.neighbour(1)?.id, 'q2');
+    a..unregister('q1')..unregister('q2');
+    await a.close();
+  });
+
+  test('voice: one that fails to load is forgotten - the next tap tries it again instead of resuming another', () async {
+    final engine = _FailingEngine();
+    ChatAudio.engineFactory = () => engine;
+    final a = ChatAudio.instance;
+    final m = ChatMessage.fromJson(msg('bad', '', kind: 'VOICE', file: {'url': 'u', 'durationMs': 1000}));
+    await a.play(m);
+    expect(a.track, isNull);
+    expect(engine.resumed, 0);
+    await a.close();
+  });
+}
+
+class _FailingEngine extends FakeEngine {
+  int resumed = 0;
+  @override
+  Future<void> open(ChatMessage m) async => throw Exception('offline');
+  @override
+  Future<void> resume() async => resumed++;
 }
