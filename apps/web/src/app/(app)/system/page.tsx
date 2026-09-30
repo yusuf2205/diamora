@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { formatDate } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import { Badge, Card, EmptyState, ErrorState, ListSkeleton, PageHeader } from '@/components/ui';
+import { OffsiteCard } from '@/components/offsite-card';
 
 interface Status {
   now: string; version: string | null; uptimeSeconds: number;
@@ -61,6 +62,7 @@ export default function SystemPage() {
           </Card>
         </>
       )}
+      {me?.role === 'SUPER_ADMIN' && <OffsiteCard />}
     </div>
   );
 }

@@ -166,6 +166,7 @@ export class AlertsService {
     const maxAge = (job: string) => (job === 'pg_basebackup' ? 8 * 86_400_000 : 36 * 3600_000);
     const problems = rows.filter((r) => NAMES[r.job]).flatMap((r) => {
       if (r.state === 'nodrive') return [`• ${NAMES[r.job]}: внешний диск не найден — подключите его к NAS`];
+      if (r.state === 'full') return [`• ${NAMES[r.job]}: внешний диск почти заполнен — удалите старые копии в панели («Система → Внешний диск»)`];
       if (r.state !== 'ok') return [`• ${NAMES[r.job]}: не получилась`];
       if (!r.at || now.getTime() - r.at > maxAge(r.job)) return [`• ${NAMES[r.job]}: давно не обновлялась`];
       return [];

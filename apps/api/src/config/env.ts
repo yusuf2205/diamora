@@ -63,6 +63,8 @@ export const envSchema = z
     CHAT_UPLOAD_DIR: z.string().optional(),
     /** the published app's manifest (worker: announces a new build to every phone) */
     RELEASE_MANIFEST: z.string().optional(),
+    /** the NAS's USB drives (SUPER_ADMIN: «Система → Внешний диск») */
+    OFFSITE_USB_ROOT: z.string().optional(),
     /** the deployed build, shown on «Состояние системы» */
     APP_VERSION: z.string().optional(),
   })

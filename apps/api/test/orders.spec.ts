@@ -30,8 +30,13 @@ describe('client orders', () => {
     const o = list.items.find((x: { code: string }) => x.code === made.code);
     expect(o).toMatchObject({ name: 'Дилноза', phone: '+998901112233', product: { id: pub.id }, colorName: 'Розовый', quantity: 27, comment: 'к пятнице', status: 'NEW' });
     expect(list.counts.NEW).toBeGreaterThan(0);
-    const adminUser = await t.prisma.user.findFirstOrThrow({ where: { role: 'SUPER_ADMIN' } });
-    expect(await t.prisma.notification.count({ where: { userId: adminUser.id, type: 'client_order.created' } })).toBeGreaterThan(0);
+    // the notice is written right after the event (asynchronously): wait a moment for THIS admin's copy
+    let notices = 0;
+    for (let i = 0; i < 20 && !notices; i++) {
+      notices = await t.prisma.notification.count({ where: { userId: admin.user.id, type: 'client_order.created' } });
+      if (!notices) await new Promise((r) => setTimeout(r, 100));
+    }
+    expect(notices).toBeGreaterThan(0);
 
     const upd = (await admin.api.patch(`/v1/admin/orders/${o.id}`, { status: 'CONFIRMED', staffNote: 'позвонила, ждёт в пятницу' }).expect(200)).body;
     expect(upd).toMatchObject({ status: 'CONFIRMED', staffNote: 'позвонила, ждёт в пятницу' });

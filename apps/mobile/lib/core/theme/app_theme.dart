@@ -40,7 +40,8 @@ class AppTheme {
         elevation: 0,
         color: scheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radius), side: BorderSide(color: scheme.outlineVariant)),
-        margin: EdgeInsets.zero,
+        // a little air between stacked cards everywhere (lists like «Настройки» had them touching)
+        margin: const EdgeInsets.symmetric(vertical: 5),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(AppTokens.buttonHeight), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radius))),

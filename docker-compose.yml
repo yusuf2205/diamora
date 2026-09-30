@@ -227,10 +227,16 @@ services:
       TRUST_PROXY_HOPS: "1" # Caddy is the only hop the API sees; Caddy resolves the real client IP itself
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       BACKUP_STATUS_DIR: /backup-status
+      OFFSITE_USB_ROOT: /usb
       APP_VERSION: ${APP_VERSION:-local}
       FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
       CHAT_UPLOAD_DIR: /uploads
     volumes:
+      # the NAS's USB drives: «Система → Внешний диск» lists and removes old copies (only diamoraa-backup/ is touched)
+      - type: bind
+        source: ${USB_ROOT:-/mnt/@usb}
+        target: /usb
+        bind: { propagation: rslave, create_host_path: false }
       # «Состояние системы»: when each backup last succeeded (the backup job's status files, read-only)
       - ${BACKUP_ROOT}/status:/backup-status:ro
       # chat files arriving in parts (videos up to 150 MB): on disk, not in the RAM-backed /tmp
