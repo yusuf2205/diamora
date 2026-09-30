@@ -241,7 +241,7 @@ class _MaterialsTab extends ConsumerWidget {
                     child: ListTile(
                       leading: CircleAvatar(backgroundColor: m.low ? Theme.of(context).colorScheme.errorContainer : Theme.of(context).colorScheme.primaryContainer, child: const Icon(Icons.inventory_2_rounded)),
                       title: Text(m.name),
-                      subtitle: Text([if (m.categoryName != null) m.categoryName!, if (m.low) l.stockLow].join(' · '), style: m.low ? TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600) : null),
+                      subtitle: Text([if (m.categoryName != null) m.categoryName!, if (m.low) l.stockLow, if (m.daysLeft != null) l.stockLasts(m.daysLeft!)].join(' · '), style: m.low ? TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600) : null),
                       trailing: Text('${m.balance} ${m.unit}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600)),
                       onTap: canDelete ? () => _materialSheet(context, ref, m) : null,
                     ),

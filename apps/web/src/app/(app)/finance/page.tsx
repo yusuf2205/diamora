@@ -11,7 +11,9 @@ import { Button, Card, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal
 import { ConfirmDelete } from '@/components/confirm-delete';
 
 interface Month { month: string; sales: string; labor: string; materials: string; expenses: string; profit: string; materialsWithoutPrice: number }
-interface Sale { id: string; code: string; date: string; customer: string | null; total: string; notes: string | null }
+interface Sale { id: string; code: string; date: string; customer: string | null; total: string; notes: string | null; lines?: { name: string; quantity: number; unitPrice: string }[] }
+interface ProductCost { productId: string; name: string; meters: number; labor: number; materials: number; cost: number; costPerMeter: number | null; soldQuantity: number; revenue: number; pricePerMeter: number | null; profitPerMeter: number | null; marginPercent: number | null; materialsWithoutPrice: number }
+interface Line { productModelId: string; quantity: string; unitPrice: string }
 interface Expense { id: string; category: string; date: string; amount: string; comment: string | null }
 interface StockValue { warehouse: string; withWorkers: string; total: string; withoutPrice: { id: string; name: string }[] }
 
@@ -67,6 +69,8 @@ export default function FinancePage() {
         {noPrice && <p className="mt-2 text-xs text-muted">* У части материалов не указана цена закупки — они не посчитаны. Укажите цену на <Link className="text-primary hover:underline" href="/inventory">складе</Link>.</p>}
       </Card>
 
+      <ProductCosts />
+
       <Card>
         <h2 className="mb-2 text-sm font-semibold">Стоимость склада (по цене закупки)</h2>
         {stock.data && (
@@ -85,7 +89,9 @@ export default function FinancePage() {
           <ul className="divide-y divide-border text-sm">
             {sales.data?.items.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="min-w-0"><span className="font-medium">{sum(s.total)}</span> <span className="text-muted">· {s.customer ?? 'без покупателя'} · {formatDate(s.date)}</span></span>
+                <span className="min-w-0"><span className="font-medium">{sum(s.total)}</span> <span className="text-muted">· {s.customer ?? 'без покупателя'} · {formatDate(s.date)}</span>
+                  {!!s.lines?.length && <span className="block text-xs text-muted">{s.lines.map((l) => `${l.name} ${l.quantity} м × ${formatUzs(l.unitPrice)}`).join('; ')}</span>}
+                </span>
                 <button type="button" aria-label={`Удалить продажу ${s.code}`} className="text-danger hover:underline" onClick={() => setRemoving({ kind: 'sales', id: s.id, label: `продажу на ${sum(s.total)}` })}>Удалить</button>
               </li>
             ))}
@@ -121,17 +127,46 @@ function AddDialog({ kind, onClose }: { kind: 'sale' | 'expense'; onClose: () =>
   const [text, setText] = useState('');
   const [category, setCategory] = useState('DELIVERY_FUEL');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const digits = amount.replace(/\D/g, '');
+  const [lines, setLines] = useState<Line[]>([]);
+  const products = useQuery({ queryKey: ['catalog-names'], queryFn: () => api.get<{ items: { id: string; name: string }[] }>('/admin/catalog', { limit: 100 }), enabled: kind === 'sale' });
+  const price = (v: string) => Number(v.replace(/\D/g, ''));
+  const filled = lines.filter((l) => l.productModelId && Number(l.quantity) > 0 && price(l.unitPrice) > 0);
+  // with lines, the total is their sum (what the server stores too)
+  const linesTotal = filled.reduce((a, l) => a + Math.round(Number(l.quantity) * price(l.unitPrice)), 0);
+  const digits = filled.length ? String(linesTotal) : amount.replace(/\D/g, '');
+  const setLine = (i: number, patch: Partial<Line>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   const save = useMutation({
     mutationFn: () => kind === 'sale'
-      ? api.post('/admin/finance/sales', { total: digits, customer: text.trim() || undefined, date }, { idempotencyKey: crypto.randomUUID() })
+      ? api.post('/admin/finance/sales', {
+          total: digits, customer: text.trim() || undefined, date,
+          items: filled.length ? filled.map((l) => ({ productModelId: l.productModelId, quantity: Number(l.quantity), unitPrice: String(price(l.unitPrice)) })) : undefined,
+        }, { idempotencyKey: crypto.randomUUID() })
       : api.post('/admin/finance/expenses', { amount: digits, category, comment: text.trim() || undefined, date }, { idempotencyKey: crypto.randomUUID() }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['profit'] }); qc.invalidateQueries({ queryKey: [kind === 'sale' ? 'sales' : 'expenses'] }); onClose(); },
   });
   return (
     <Modal title={kind === 'sale' ? 'Новая продажа' : 'Новый расход'} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Сумма, сум" htmlFor="f-amount"><Input id="f-amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></Field>
+        {kind === 'sale' && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Что продали <span className="font-normal text-muted">— по этим строкам считается прибыль с каждого изделия</span></p>
+            {lines.map((l, i) => (
+              <div key={i} className="grid grid-cols-[1fr_5rem_7rem_auto] items-center gap-2">
+                <Select aria-label="Изделие" value={l.productModelId} onChange={(e) => setLine(i, { productModelId: e.target.value })}>
+                  <option value="">Изделие…</option>
+                  {products.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </Select>
+                <Input aria-label="Метров" inputMode="decimal" placeholder="м" value={l.quantity} onChange={(e) => setLine(i, { quantity: e.target.value.replace(',', '.') })} />
+                <Input aria-label="Цена за метр" inputMode="numeric" placeholder="сум за м" value={l.unitPrice} onChange={(e) => setLine(i, { unitPrice: e.target.value })} />
+                <button type="button" aria-label="Убрать строку" className="px-1 text-muted hover:text-danger" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
+              </div>
+            ))}
+            <Button variant="outline" onClick={() => setLines((ls) => [...ls, { productModelId: '', quantity: '', unitPrice: '' }])}>+ Изделие</Button>
+          </div>
+        )}
+        {filled.length
+          ? <p className="text-sm">Сумма: <b>{sum(String(linesTotal))}</b></p>
+          : <Field label="Сумма, сум" htmlFor="f-amount"><Input id="f-amount" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></Field>}
         {kind === 'expense' && (
           <Field label="Что" htmlFor="f-cat">
             <Select id="f-cat" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -148,5 +183,48 @@ function AddDialog({ kind, onClose }: { kind: 'sale' | 'expense'; onClose: () =>
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** «Себестоимость и прибыль по изделиям»: materials + work per metre, against the price per metre in the sales. */
+function ProductCosts() {
+  const [months, setMonths] = useState(3);
+  const q = useQuery({ queryKey: ['product-costs', months], queryFn: () => api.get<{ items: ProductCost[] }>('/admin/finance/products', { months }) });
+  const n = (v: number | null) => (v === null ? '—' : formatUzs(String(v)));
+  return (
+    <Card>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">Себестоимость и прибыль по изделиям</h2>
+        <Select aria-label="Период" value={String(months)} onChange={(e) => setMonths(Number(e.target.value))} className="w-auto">
+          <option value="1">этот месяц</option><option value="3">3 месяца</option><option value="6">6 месяцев</option><option value="12">год</option>
+        </Select>
+      </div>
+      {q.error && <ErrorState error={q.error} />}
+      {q.isLoading && <ListSkeleton rows={3} />}
+      {q.data?.items.length === 0 && <p className="text-sm text-muted">Пока нет принятых работ за этот период.</p>}
+      {!!q.data?.items.length && (
+        <div className="overflow-x-auto">
+          <Table>
+            <thead><tr>{['Изделие', 'Сделано, м', 'Себестоимость 1 м', 'Цена продажи 1 м', 'Прибыль с 1 м', 'Маржа'].map((h) => <th key={h} className="px-3 py-2 text-left text-xs font-medium uppercase text-muted">{h}</th>)}</tr></thead>
+            <tbody>
+              {q.data.items.map((p) => (
+                <tr key={p.productId} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">{p.name}</td>
+                  <td className="whitespace-nowrap px-3 py-2 tabular-nums">{p.meters}</td>
+                  <td className="whitespace-nowrap px-3 py-2 tabular-nums" title={`материалы ${formatUzs(String(p.materials))} + мастерицам ${formatUzs(String(p.labor))} сум`}>{n(p.costPerMeter)}{p.materialsWithoutPrice ? ' *' : ''}</td>
+                  <td className="whitespace-nowrap px-3 py-2 tabular-nums">{n(p.pricePerMeter)}</td>
+                  <td className={`whitespace-nowrap px-3 py-2 font-semibold tabular-nums ${p.profitPerMeter === null ? '' : p.profitPerMeter < 0 ? 'text-danger' : 'text-ok'}`}>{n(p.profitPerMeter)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 tabular-nums">{p.marginPercent === null ? '—' : `${p.marginPercent}%`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-muted">
+        Себестоимость = материалы по цене закупки + оплата мастерицам, на 1 принятый метр. Цена продажи — из продаж, где указано «Что продали».
+        {q.data?.items.some((p) => p.materialsWithoutPrice) && <> * Часть материалов без цены закупки — себестоимость занижена, укажите цену на <Link className="text-primary hover:underline" href="/inventory">складе</Link>.</>}
+      </p>
+    </Card>
   );
 }

@@ -10,8 +10,10 @@ class MaterialCategoryRef {
 class MaterialItem {
   const MaterialItem({
     required this.id, required this.name, this.article, required this.unit, required this.isActive,
-    this.categoryName, required this.minStock, required this.balance, required this.low,
+    this.categoryName, required this.minStock, required this.balance, required this.low, this.daysLeft,
   });
+  /// «хватит примерно на N дней» at the pace of the last 30 days; null = not used lately
+  final int? daysLeft;
   final String id;
   final String name;
   final String? article;
@@ -25,6 +27,7 @@ class MaterialItem {
         id: j['id'] as String, name: j['name'] as String, article: j['article'] as String?, unit: j['unit'] as String,
         isActive: j['isActive'] as bool? ?? true, categoryName: (j['category'] as Map?)?['name'] as String?,
         minStock: (j['minStock'] as num).toDouble(), balance: (j['balance'] as num).toDouble(), low: j['low'] as bool? ?? false,
+        daysLeft: (j['daysLeft'] as num?)?.toInt(),
       );
 }
 

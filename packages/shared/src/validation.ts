@@ -193,8 +193,16 @@ export const updateMaterialSchema = z
 /** «this phone gets instant notifications»: the Firebase token of a signed-in device */
 export const pushTokenSchema = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios', 'web']).default('android') });
 export const insightsMonthsSchema = z.object({ months: z.coerce.number().int().min(1).max(24).default(6) });
+/** a line of a sale: which product, how many metres, at what price per metre (drives «прибыль по изделиям») */
+export const saleLineSchema = z.object({
+  productModelId: idSchema,
+  quantity: z.coerce.number().positive().max(1_000_000),
+  unitPrice: uzsSchema.refine((v) => v > 0n, 'Price must be above zero'),
+});
 export const createSaleSchema = z.object({
   total: uzsSchema.refine((v) => v > 0n, 'Amount must be above zero'),
+  /** optional: what was sold; the total then must equal the sum of the lines */
+  items: z.array(saleLineSchema).max(50).optional(),
   customer: z.string().trim().max(120).optional(),
   notes: z.string().trim().max(1000).optional(),
   date: z.coerce.date().optional(),

@@ -9,7 +9,10 @@ import type { KitTemplate, Page } from '@/lib/types';
 import { Badge, Button, Card, Chips, DataList, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 import { ConfirmDelete } from '@/components/confirm-delete';
 
-interface Material { id: string; name: string; unit: string; balance: number; minStock: number; low: boolean; isActive: boolean; unitCost?: string | null }
+interface Material { id: string; name: string; unit: string; balance: number; minStock: number; low: boolean; isActive: boolean; unitCost?: string | null; dailyUse?: number; daysLeft?: number | null }
+
+/** «≈ 5 дн.» at the pace of the last 30 days; nothing when it is not being used */
+const lasts = (m: Material) => (m.daysLeft == null ? null : m.daysLeft >= 60 ? 'больше 2 мес.' : `≈ ${m.daysLeft} дн.`);
 
 const UNITS: { value: string; label: string; short: string }[] = [
   { value: 'METER', label: 'Метры', short: 'м' },
@@ -63,6 +66,7 @@ export default function InventoryPage() {
                 { header: 'Материал', cell: (m) => <span className="font-medium">{m.name}</span> },
                 { header: 'Остаток', cell: (m) => <span className={`tabular-nums ${m.balance <= 0 ? 'font-semibold text-danger' : m.low ? 'font-semibold text-primary' : ''}`}>{m.balance} {unit(m.unit)}</span>, className: 'text-right' },
                 { header: 'Минимум', cell: (m) => <span className="tabular-nums text-muted">{m.minStock} {unit(m.unit)}</span>, className: 'text-right' },
+                { header: 'Хватит на', cell: (m) => <span className={`tabular-nums ${m.daysLeft != null && m.daysLeft <= 7 ? 'font-semibold text-danger' : 'text-muted'}`} title={m.dailyUse ? `расход ≈ ${m.dailyUse} ${unit(m.unit)} в день` : 'не расходуется последние 30 дней'}>{lasts(m) ?? '—'}</span>, className: 'text-right' },
                 { header: '', cell: (m) => (!m.isActive ? <Badge>Выключен</Badge> : m.balance <= 0 ? <Badge tone="danger">Закончился</Badge> : m.low ? <Badge tone="warn">Мало</Badge> : null) },
                 ...(canManage ? [{ header: 'Приход', cell: () => <span className="text-primary">+ Приход</span> }] : []),
                 ...(canDelete ? [{ header: 'Удалить', cell: (m: Material) => <button type="button" aria-label={`Удалить ${m.name}`} className="text-danger hover:underline" onClick={(e) => { e.stopPropagation(); setDeletingMaterial(m); }}>Удалить</button> }] : []),
@@ -71,7 +75,7 @@ export default function InventoryPage() {
                 <div className={`flex items-center justify-between gap-3 ${m.isActive ? '' : 'opacity-50'}`}>
                   <div className="min-w-0">
                     <p className="font-medium leading-snug">{m.name}</p>
-                    <p className="text-xs text-muted">минимум {m.minStock} {unit(m.unit)}{canManage ? ' · нажмите для прихода' : ''}</p>
+                    <p className="text-xs text-muted">минимум {m.minStock} {unit(m.unit)}{lasts(m) ? ` · хватит на ${lasts(m)}` : ''}{canManage ? ' · нажмите для прихода' : ''}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className={`font-semibold tabular-nums ${m.balance <= 0 ? 'text-danger' : m.low ? 'text-primary' : ''}`}>{m.balance} {unit(m.unit)}</p>

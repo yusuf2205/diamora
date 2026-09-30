@@ -11,6 +11,7 @@ import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
 import { PushService } from './push.service';
+import { materialUsage, RUNOUT_WARN_DAYS } from '../stock/forecast';
 
 interface Notice { type: string; title: string; body?: string | null; link?: string | null; dedupe?: string }
 
@@ -177,8 +178,33 @@ export class AppNotifier implements OnModuleInit {
     }
   }
 
+  /**
+   * «Скоро закончится»: a material that, at the pace of the last 30 days, lasts a week or less - even when its minimum is 0
+   * (the «ниже минимума» notice alone never fired then). Once a week per material.
+   */
+  async runningOut(now = new Date()) {
+    const mats = await this.prisma.material.findMany({ where: { isActive: true, deletedAt: null }, include: { balance: true } });
+    if (!mats.length) return;
+    const qty = new Map(mats.map((m) => [m.id, Number(m.balance?.quantity ?? 0)]));
+    const usage = await materialUsage(this.prisma, qty, now);
+    const week = Math.floor(new Date(dayKey(now)).getTime() / (7 * 86_400_000));
+    let staff: string[] | null = null;
+    for (const m of mats) {
+      const u = usage.get(m.id);
+      const left = qty.get(m.id) ?? 0;
+      if (!u || u.daysLeft === null || u.daysLeft > RUNOUT_WARN_DAYS) continue;
+      if (left < Number(m.minStock)) continue; // «Заканчивается (ниже минимума)» already covers it
+      staff ??= await this.staffWith(['INVENTORY_MANAGE', 'INVENTORY_VIEW']);
+      const unit = ({ METER: 'м', GRAM: 'г', PCS: 'шт', SET: 'компл.', ROLL: 'рул.', PACKAGE: 'уп.' } as Record<string, string>)[m.unit] ?? '';
+      await this.notify(staff, left <= 0
+        ? { type: 'stock.runout', title: `Закончился: ${m.name}`, body: 'Его берут в работу каждый день — пора закупить', link: '/admin/inventory', dedupe: `runout:${m.id}:${week}` }
+        : { type: 'stock.runout', title: `Скоро закончится: ${m.name}`, body: `Осталось ${left} ${unit} — хватит примерно на ${u.daysLeft} дн.`, link: '/admin/inventory', dedupe: `runout:${m.id}:${week}` });
+    }
+  }
+
   // ---- time-driven (worker process, every few minutes) -----------------------------------------------------------------
   async tick(now = new Date()) {
+    await this.runningOut(now);
     const today = dayStart(now);
     const tomorrow = new Date(today.getTime() + 86_400_000);
     const after = new Date(tomorrow.getTime() + 86_400_000);

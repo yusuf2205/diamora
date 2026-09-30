@@ -2652,4 +2652,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get updateLatest => 'У вас последняя версия';
+
+  @override
+  String stockLasts(int days) {
+    return 'хватит ≈ на $days дн.';
+  }
 }

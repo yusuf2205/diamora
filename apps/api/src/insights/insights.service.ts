@@ -110,15 +110,85 @@ export class InsightsService {
     return { items: out };
   }
 
+  /**
+   * «Себестоимость и прибыль по изделиям», computed from what really happened (no typing): for work accepted in the last
+   * N months - its materials at purchase price + what the workers earned for it, per accepted metre; against the average
+   * price per metre of that product in the sales of the same period. «Цена материалов не указана» when some materials of
+   * that work have no purchase price (the cost is then too low).
+   */
+  async products(months: number) {
+    const { from } = periodRange('month', -(months - 1));
+    const rows = await this.prisma.$queryRaw<{ id: string; name: string; meters: string | null; labor: string | null; materials: string | null; noPrice: bigint | null; soldQty: string | null; revenue: string | null }[]>`
+      WITH acc AS (
+        SELECT DISTINCT l."assignmentId" AS id FROM worker_ledger_transactions l
+        WHERE l.type = 'EARNING' AND l."assignmentId" IS NOT NULL AND l."createdAt" >= ${from}
+      ),
+      met AS (SELECT w."productModelId" AS pm, SUM(w."acceptedMeters") AS meters FROM work_assignments w JOIN acc ON acc.id = w.id GROUP BY 1),
+      lab AS (
+        SELECT w."productModelId" AS pm, SUM(l.amount) AS labor FROM worker_ledger_transactions l JOIN work_assignments w ON w.id = l."assignmentId"
+        WHERE l.type = 'EARNING' AND l."createdAt" >= ${from} GROUP BY 1
+      ),
+      mat AS (
+        SELECT w."productModelId" AS pm, SUM(x.quantity * m."unitCost") AS cost, COUNT(*) FILTER (WHERE m."unitCost" IS NULL) AS "noPrice"
+        FROM work_assignment_materials x JOIN acc ON acc.id = x."assignmentId" JOIN work_assignments w ON w.id = x."assignmentId" JOIN materials m ON m.id = x."materialId"
+        GROUP BY 1
+      ),
+      sold AS (
+        SELECT si."productModelId" AS pm, SUM(si.quantity) AS qty, SUM(si."totalPrice") AS revenue FROM sale_items si JOIN sales s ON s.id = si."saleId"
+        WHERE s.date >= ${from} AND si."productModelId" IS NOT NULL GROUP BY 1
+      )
+      SELECT p.id, p.name, met.meters::text AS meters, lab.labor::text AS labor, mat.cost::text AS materials, mat."noPrice" AS "noPrice",
+             sold.qty::text AS "soldQty", sold.revenue::text AS revenue
+      FROM product_models p LEFT JOIN met ON met.pm = p.id LEFT JOIN lab ON lab.pm = p.id LEFT JOIN mat ON mat.pm = p.id LEFT JOIN sold ON sold.pm = p.id
+      WHERE met.meters IS NOT NULL OR sold.qty IS NOT NULL
+      ORDER BY p.name`;
+    const n = (v: string | null) => (v === null ? 0 : Number(v));
+    const items = rows.map((r) => {
+      const meters = n(r.meters);
+      const labor = Math.round(n(r.labor));
+      const materials = Math.round(n(r.materials));
+      const cost = labor + materials;
+      const costPerMeter = meters > 0 ? Math.round(cost / meters) : null;
+      const soldQty = n(r.soldQty);
+      const revenue = Math.round(n(r.revenue));
+      const pricePerMeter = soldQty > 0 ? Math.round(revenue / soldQty) : null;
+      const profitPerMeter = pricePerMeter !== null && costPerMeter !== null ? pricePerMeter - costPerMeter : null;
+      return {
+        productId: r.id, name: r.name, meters, labor, materials, cost, costPerMeter,
+        soldQuantity: soldQty, revenue, pricePerMeter, profitPerMeter,
+        marginPercent: profitPerMeter !== null && pricePerMeter ? Math.round((profitPerMeter / pricePerMeter) * 100) : null,
+        materialsWithoutPrice: Number(r.noPrice ?? 0n),
+      };
+    });
+    return { from: from.toISOString(), months, items };
+  }
+
   async sales(q: { limit: number }) {
-    const rows = await this.prisma.sale.findMany({ orderBy: { date: 'desc' }, take: q.limit });
-    return { items: rows.map((r) => ({ id: r.id, code: r.code, date: r.date.toISOString(), customer: r.customer, total: money(r.total)!, notes: r.notes })) };
+    const rows = await this.prisma.sale.findMany({ orderBy: { date: 'desc' }, take: q.limit, include: { items: true } });
+    return {
+      items: rows.map((r) => ({
+        id: r.id, code: r.code, date: r.date.toISOString(), customer: r.customer, total: money(r.total)!, notes: r.notes,
+        lines: r.items.map((i) => ({ productModelId: i.productModelId, name: i.description, quantity: Number(i.quantity), unitPrice: money(i.unitPrice)!, total: money(i.totalPrice)! })),
+      })),
+    };
   }
 
   async addSale(actor: AuthUser, input: z.output<typeof createSaleSchema>) {
     const row = await this.prisma.$transaction(async (tx) => {
       const code = await nextCode(tx, 'sale_code', 'SL-', 5);
-      const s = await tx.sale.create({ data: { code, date: input.date ?? new Date(), customer: input.customer, total: BigInt(input.total), notes: input.notes, createdById: actor.id } });
+      const lines = input.items ?? [];
+      const products = lines.length ? await tx.productModel.findMany({ where: { id: { in: lines.map((l) => l.productModelId) } }, select: { id: true, name: true } }) : [];
+      const names = new Map(products.map((p) => [p.id, p.name]));
+      if (lines.some((l) => !names.has(l.productModelId))) throw notFound('ProductModel');
+      const lineTotal = (l: { quantity: number; unitPrice: bigint }) => BigInt(Math.round(l.quantity * Number(l.unitPrice)));
+      // the lines are what was sold: their sum IS the total (never two numbers that disagree)
+      const total = lines.length ? lines.reduce((a, l) => a + lineTotal(l), 0n) : BigInt(input.total);
+      const s = await tx.sale.create({
+        data: {
+          code, date: input.date ?? new Date(), customer: input.customer, total, notes: input.notes, createdById: actor.id,
+          items: lines.length ? { create: lines.map((l) => ({ productModelId: l.productModelId, description: names.get(l.productModelId)!, quantity: l.quantity, unitPrice: BigInt(l.unitPrice), totalPrice: lineTotal(l) })) } : undefined,
+        },
+      });
       await this.audit.record({ action: 'sale.create', entity: 'Sale', entityId: s.id, after: { total: input.total, customer: input.customer } }, tx);
       return s;
     });
@@ -212,6 +282,9 @@ export class InsightsController {
 
   @Perm('PROFIT_VIEW') @Get('finance/profit')
   profit(@ZodQuery(insightsMonthsSchema) q: z.output<typeof insightsMonthsSchema>) { return this.insights.profit(q.months); }
+
+  @Perm('PROFIT_VIEW') @Get('finance/products')
+  products(@ZodQuery(insightsMonthsSchema) q: z.output<typeof insightsMonthsSchema>) { return this.insights.products(q.months); }
 
   @Perm('PROFIT_VIEW') @Get('finance/sales')
   sales(@ZodQuery(listSchema) q: z.output<typeof listSchema>) { return this.insights.sales(q); }

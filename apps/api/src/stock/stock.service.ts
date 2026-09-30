@@ -9,6 +9,7 @@ import { ApiZodBody, CurrentUser, Perm } from '../common/decorators';
 import { insufficientStock, notFound } from '../common/errors';
 import { lockMaterialBalance, type Tx } from '../common/sequence';
 import { num } from '../common/serialize';
+import { materialUsage, RUNOUT_WARN_DAYS } from './forecast';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
@@ -41,10 +42,14 @@ export class StockService {
     const rows = await this.prisma.material.findMany({
       where: { isActive: true, deletedAt: null }, include: { category: true, balance: true }, orderBy: { name: 'asc' },
     });
+    const usage = await materialUsage(this.prisma, new Map(rows.map((m) => [m.id, num(m.balance?.quantity) ?? 0])));
     const items = rows.map((m) => {
       const qty = num(m.balance?.quantity) ?? 0;
       const min = num(m.minStock) ?? 0;
-      return { materialId: m.id, name: m.name, unit: m.unit, category: m.category?.name ?? null, quantity: qty, minStock: min, low: qty < min };
+      const u = usage.get(m.id) ?? { dailyUse: 0, daysLeft: null };
+      // «мало» = under the minimum OR runs out within a week at the current pace (a minimum of 0 alone never warned)
+      const runningOut = u.daysLeft !== null && u.daysLeft <= RUNOUT_WARN_DAYS;
+      return { materialId: m.id, name: m.name, unit: m.unit, category: m.category?.name ?? null, quantity: qty, minStock: min, low: qty < min || runningOut, ...u };
     });
     return { items: lowOnly ? items.filter((i) => i.low) : items };
   }

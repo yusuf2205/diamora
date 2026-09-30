@@ -2639,4 +2639,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateLatest => 'You have the latest version';
+
+  @override
+  String stockLasts(int days) {
+    return 'lasts ≈ $days d';
+  }
 }

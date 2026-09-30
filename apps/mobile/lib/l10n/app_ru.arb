@@ -885,5 +885,7 @@
   "map3d": "Объёмный вид",
   "updateAppVersion": "Версия приложения",
   "updateCheck": "Проверить",
-  "updateLatest": "У вас последняя версия"
+  "updateLatest": "У вас последняя версия",
+  "stockLasts": "хватит ≈ на {days} дн.",
+  "@stockLasts": {"placeholders": {"days": {"type": "int"}}}
 }

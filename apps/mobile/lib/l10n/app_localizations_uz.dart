@@ -2610,4 +2610,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get updateLatest => 'Sizda eng so\'nggi versiya';
+
+  @override
+  String stockLasts(int days) {
+    return '≈ $days kunga yetadi';
+  }
 }

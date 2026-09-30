@@ -4929,6 +4929,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'У вас последняя версия'**
   String get updateLatest;
+
+  /// No description provided for @stockLasts.
+  ///
+  /// In ru, this message translates to:
+  /// **'хватит ≈ на {days} дн.'**
+  String stockLasts(int days);
 }
 
 class _AppLocalizationsDelegate

@@ -71,6 +71,30 @@ describe('insights', () => {
     await admin.api.delete(`/v1/admin/finance/sales/${sale.id}`).expect(200);
   });
 
+  it('cost & profit per product: (materials at purchase price + what workers earned) per accepted metre vs the sale price per metre', async () => {
+    const admin = await superAdminActor(t);
+    const w = await approveAndLoginWorker(t, admin.api, (await registerViaBot(t)).phone);
+    const staffId = (await t.prisma.user.findFirstOrThrow({ where: { role: 'SUPER_ADMIN' } })).id;
+    const a = await workFor(w.workerId, staffId, { accepted: 18, defective: 0 });
+    await t.prisma.workAssignment.update({ where: { id: a.id }, data: { reportedMeters: 18, deliveredMeters: 18, acceptedMeters: 18 } });
+    const priced = await t.prisma.material.create({ data: { name: `Лента ${Math.random()}`, unit: 'METER', unitCost: 1000n } });
+    const unpriced = await t.prisma.material.create({ data: { name: `Бусины ${Math.random()}`, unit: 'PCS' } });
+    await t.prisma.workAssignmentMaterial.createMany({ data: [{ assignmentId: a.id, materialId: priced.id, quantity: 20 }, { assignmentId: a.id, materialId: unpriced.id, quantity: 5 }] });
+    await t.prisma.workerLedgerTransaction.create({ data: { workerId: w.workerId, assignmentId: a.id, type: 'EARNING', amount: 60000n, balanceAfter: 60000n, createdById: staffId } });
+
+    // a sale with what was sold: the total is the sum of the lines
+    const sale = (await admin.api.post('/v1/admin/finance/sales', { total: '1', customer: 'Магазин', items: [{ productModelId: a.productModelId, quantity: 18, unitPrice: '10000' }] }).expect(201)).body;
+    const listed = (await admin.api.get('/v1/admin/finance/sales').expect(200)).body.items.find((x: { id: string }) => x.id === sale.id);
+    expect(listed.total).toBe('180000');
+    expect(listed.lines).toEqual([expect.objectContaining({ quantity: 18, unitPrice: '10000', total: '180000' })]);
+
+    const row = (await admin.api.get('/v1/admin/finance/products?months=1').expect(200)).body.items.find((x: { productId: string }) => x.productId === a.productModelId);
+    expect(row).toMatchObject({ meters: 18, labor: 60000, materials: 20000, cost: 80000, costPerMeter: 4444, pricePerMeter: 10000, profitPerMeter: 5556, marginPercent: 56, materialsWithoutPrice: 1 });
+    const mgr = await staffActor(t, 'MANAGER');
+    await mgr.api.get('/v1/admin/finance/products').expect(403);
+    await admin.api.post('/v1/admin/finance/sales', { total: '1', items: [{ productModelId: '00000000-0000-4000-8000-000000000000', quantity: 1, unitPrice: '1' }] }).expect(404);
+  });
+
   it('stock value: shelf + at workers, at purchase price; materials without a price are listed', async () => {
     const admin = await superAdminActor(t);
     const before = (await admin.api.get('/v1/admin/stock/value').expect(200)).body;

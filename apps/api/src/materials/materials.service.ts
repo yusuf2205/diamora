@@ -11,6 +11,7 @@ import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
 import { StockModule, StockService } from '../stock/stock.service';
+import { materialUsage, RUNOUT_WARN_DAYS, type Usage } from '../stock/forecast';
 import type { AuthUser } from '../common/request-context';
 
 type MaterialRow = Material & { category: MaterialCategory | null; balance: StockBalance | null };
@@ -20,6 +21,12 @@ type MaterialRow = Material & { category: MaterialCategory | null; balance: Stoc
  * `unitCost`, used only by the M6 profit report, never returned to a WORKER — the catalog module never even joins this
  * table). Categories are a FIXED, seeded set (TAPE/BEAD/THREAD/ACCESSORY/OTHER); not user-creatable in this round.
  */
+/** «хватит примерно на N дней»; «мало» also when it runs out within a week at the current pace (a minimum of 0 never warned) */
+const withUsage = <T extends { low: boolean }>(d: T, u: Usage | undefined) => {
+  const usage = u ?? { dailyUse: 0, daysLeft: null };
+  return { ...d, ...usage, low: d.low || (usage.daysLeft !== null && usage.daysLeft <= RUNOUT_WARN_DAYS) };
+};
+
 @Injectable()
 export class MaterialsService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus, private readonly stock: StockService) {}
@@ -39,7 +46,8 @@ export class MaterialsService {
       orderBy: { name: 'asc' }, take: q.limit + 1, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
     });
     const items = rows.slice(0, q.limit);
-    return { items: items.map((m) => this.dto(m)), nextCursor: rows.length > q.limit ? items[items.length - 1].id : null };
+    const usage = await materialUsage(this.prisma, new Map(items.map((m) => [m.id, num(m.balance?.quantity) ?? 0])));
+    return { items: items.map((m) => withUsage(this.dto(m), usage.get(m.id))), nextCursor: rows.length > q.limit ? items[items.length - 1].id : null };
   }
 
   async get(id: string) {

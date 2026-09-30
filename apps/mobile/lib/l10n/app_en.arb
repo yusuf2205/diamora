@@ -804,5 +804,6 @@
   "map3d": "3D view",
   "updateAppVersion": "App version",
   "updateCheck": "Check",
-  "updateLatest": "You have the latest version"
+  "updateLatest": "You have the latest version",
+  "stockLasts": "lasts ≈ {days} d"
 }
