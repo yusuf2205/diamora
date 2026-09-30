@@ -2571,4 +2571,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatAudioClose => 'Pleyerni yopish';
+
+  @override
+  String updateDownloading(String version, int percent) {
+    return 'Yangi versiya $version yuklanmoqda — $percent%';
+  }
 }

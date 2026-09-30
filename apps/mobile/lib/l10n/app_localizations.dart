@@ -4857,6 +4857,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Закрыть проигрыватель'**
   String get chatAudioClose;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загружается новая версия {version} — {percent}%'**
+  String updateDownloading(String version, int percent);
 }
 
 class _AppLocalizationsDelegate

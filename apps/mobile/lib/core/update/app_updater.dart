@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -77,10 +78,10 @@ class UpdateController extends Notifier<UpdateState> {
 
   static bool get supported => !kIsWeb && Platform.isAndroid && AppConfig.apiUrl.startsWith('https://');
 
-  /// Cheap and safe to call often (app start, every return to the app): at most once per 20 min.
+  /// Cheap and safe to call often (app start, every return to the app, every 10 min while open): at most once per 5 min.
   Future<void> check({bool force = false}) async {
     if (_busy || state.stage == UpdateStage.ready) return;
-    if (!force && _lastCheck != null && DateTime.now().difference(_lastCheck!) < const Duration(minutes: 20)) return;
+    if (!force && _lastCheck != null && DateTime.now().difference(_lastCheck!) < const Duration(minutes: 5)) return;
     _lastCheck = DateTime.now();
     _busy = true;
     try {
@@ -156,12 +157,15 @@ class UpdateBanner extends ConsumerStatefulWidget {
 
 class _UpdateBannerState extends ConsumerState<UpdateBanner> {
   AppLifecycleListener? _life;
+  Timer? _tick;
 
   @override
   void initState() {
     super.initState();
     if (!UpdateController.supported) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(updateControllerProvider.notifier).check());
+    // a phone that stays open all day still hears about a new version
+    _tick = Timer.periodic(const Duration(minutes: 10), (_) { if (mounted) ref.read(updateControllerProvider.notifier).check(); });
     _life = AppLifecycleListener(
       onResume: () => ref.read(updateControllerProvider.notifier).check(),
       onHide: () => ref.read(updateControllerProvider.notifier).installInBackground(),
@@ -171,6 +175,7 @@ class _UpdateBannerState extends ConsumerState<UpdateBanner> {
   @override
   void dispose() {
     _life?.dispose();
+    _tick?.cancel();
     super.dispose();
   }
 
@@ -178,11 +183,43 @@ class _UpdateBannerState extends ConsumerState<UpdateBanner> {
   Widget build(BuildContext context) {
     final s = ref.watch(updateControllerProvider);
     final show = s.stage == UpdateStage.ready || s.stage == UpdateStage.needsPermission;
+    final downloading = s.stage == UpdateStage.downloading && s.release != null;
     return Column(children: [
+      // the new version is on its way: a quiet line with the percent (the app keeps working)
+      if (downloading) UpdateProgress(state: s),
       if (show) UpdateStrip(state: s, onInstall: () => ref.read(updateControllerProvider.notifier).install()),
       // the strip already took the status-bar inset: the screens below must not add it a second time
-      Expanded(child: show ? MediaQuery.removePadding(context: context, removeTop: true, child: widget.child) : widget.child),
+      Expanded(child: show || downloading ? MediaQuery.removePadding(context: context, removeTop: true, child: widget.child) : widget.child),
     ]);
+  }
+}
+
+class UpdateProgress extends StatelessWidget {
+  const UpdateProgress({super.key, required this.state});
+  final UpdateState state;
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final pct = (state.progress * 100).clamp(0, 100).round();
+    return Material(
+      key: const Key('updateProgress'),
+      color: scheme.primaryContainer,
+      child: SafeArea(
+        bottom: false,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+            child: Row(children: [
+              Icon(Icons.downloading_rounded, size: 20, color: scheme.onPrimaryContainer),
+              const SizedBox(width: 10),
+              Expanded(child: Text(l.updateDownloading(state.release?.version ?? '', pct), style: TextStyle(color: scheme.onPrimaryContainer, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ]),
+          ),
+          LinearProgressIndicator(value: state.progress > 0 ? state.progress : null, minHeight: 2),
+        ]),
+      ),
+    );
   }
 }
 

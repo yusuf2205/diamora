@@ -823,5 +823,6 @@
   "chatAudioPause": "Pauza",
   "chatAudioSpeed": "Tezlik",
   "chatAudioMute": "Ovoz",
-  "chatAudioClose": "Pleyerni yopish"
+  "chatAudioClose": "Pleyerni yopish",
+  "updateDownloading": "Yangi versiya {version} yuklanmoqda — {percent}%"
 }

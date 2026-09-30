@@ -792,5 +792,6 @@
   "chatAudioPause": "Pause",
   "chatAudioSpeed": "Speed",
   "chatAudioMute": "Sound",
-  "chatAudioClose": "Close player"
+  "chatAudioClose": "Close player",
+  "updateDownloading": "Downloading version {version} — {percent}%"
 }

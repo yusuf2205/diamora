@@ -2613,4 +2613,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatAudioClose => 'Закрыть проигрыватель';
+
+  @override
+  String updateDownloading(String version, int percent) {
+    return 'Загружается новая версия $version — $percent%';
+  }
 }

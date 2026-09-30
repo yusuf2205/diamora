@@ -161,4 +161,16 @@ void main() {
     await tester.tap(find.text('Установить'));
     expect(tapped, isTrue);
   });
+
+  testWidgets('while the new version downloads: a quiet line with the percent', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('ru'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const Scaffold(body: UpdateProgress(
+        state: UpdateState(stage: UpdateStage.downloading, progress: 0.42, release: AppRelease(version: '1.0.0-rc.36', build: 36, path: '/x', sha256: 's')),
+      )),
+    ));
+    expect(find.text('Загружается новая версия 1.0.0-rc.36 — 42%'), findsOneWidget);
+  });
 }

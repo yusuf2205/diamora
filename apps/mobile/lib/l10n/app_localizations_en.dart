@@ -2601,4 +2601,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatAudioClose => 'Close player';
+
+  @override
+  String updateDownloading(String version, int percent) {
+    return 'Downloading version $version — $percent%';
+  }
 }
