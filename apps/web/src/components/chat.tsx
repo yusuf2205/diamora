@@ -176,6 +176,7 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
   });
   const direct = useMutation({ mutationFn: (userId: string) => api.post<ChatRoomDetail>('/chat/direct', { userId }), onSuccess: (r) => { setSearch(''); onOpen(r.id); } });
   const [menu, setMenu] = useState<string | null>(null);
+  const [fab, setFab] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
       {mainMenu && (
@@ -195,7 +196,7 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
       <div className={`flex items-center gap-2 border-b border-border py-2.5 ${collapsed ? 'flex-col px-2' : 'px-3'}`}>
         <button aria-label="Меню" onClick={() => setMainMenu(true)} className="rounded-full p-2 text-muted hover:bg-border/50"><Menu size={22} aria-hidden /></button>
         {!collapsed && <h2 className="flex-1 text-lg font-semibold">Чат</h2>}
-        <button aria-label="Новый чат" title="Новый чат" onClick={() => setCreating(true)} className="rounded-full bg-primary p-2 text-white shadow hover:opacity-90"><Pencil size={18} aria-hidden /></button>
+        {collapsed && <button aria-label="Новый чат" title="Новый чат" onClick={() => setCreating(true)} className="rounded-full bg-primary p-2 text-white shadow hover:opacity-90"><Pencil size={18} aria-hidden /></button>}
       </div>
       {!collapsed && <div className="border-b border-border px-3 py-2">
         <label className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5">
@@ -204,6 +205,7 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
           {search && <button aria-label="Очистить поиск" onClick={() => setSearch('')}><X size={14} aria-hidden /></button>}
         </label>
       </div>}
+      <div className="relative flex min-h-0 flex-1 flex-col">
       {debounced.length >= 2 ? (
         <div className="flex-1 overflow-y-auto">
           {found.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
@@ -233,7 +235,7 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
           ))}
         </div>
       ) : (
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-24">
         {q.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
         {q.isError && <div className="p-3"><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>}
         {collapsed && q.data?.items.map((r) => (
@@ -279,6 +281,21 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
           );
         })}
       </div>
+      )}
+      {/* like Telegram: a round ✎ at the bottom right of the list -> «Новое сообщение», «Новая группа», «Новый канал» */}
+      {!collapsed && (
+        <button aria-label="Новый чат" title="Новый чат" onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); setFab({ x: b.right - 240, y: b.top - 8 - (admin ? 3 : 2) * 44 - 8 }); }}
+          className="absolute bottom-5 right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition hover:scale-105 hover:opacity-95">
+          <Pencil size={22} aria-hidden />
+        </button>
+      )}
+      </div>
+      {fab && (
+        <FloatingMenu x={fab.x} y={fab.y} onClose={() => setFab(null)}>
+          <MenuItem icon={<UserIcon size={18} aria-hidden />} label="Новое сообщение" onClick={() => { setFab(null); setNewMode('chat'); }} />
+          <MenuItem icon={<Users size={18} aria-hidden />} label="Новая группа" onClick={() => { setFab(null); setNewMode('group'); }} />
+          {admin && <MenuItem icon={<Megaphone size={18} aria-hidden />} label="Новый канал" onClick={() => { setFab(null); setNewMode('channel'); }} />}
+        </FloatingMenu>
       )}
       {creating && <NewChatModal onClose={() => setCreating(false)} onOpen={(id) => { setCreating(false); onOpen(id); }} />}
     </>
