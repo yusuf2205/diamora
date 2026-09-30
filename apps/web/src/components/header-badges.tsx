@@ -26,6 +26,9 @@ export function HeaderBadges({ chatUnread, chatHref = '/chat', worker = false }:
   const qc = useQueryClient();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  /** fixed spot inside the screen (the bell sits in the left sidebar on desktop, at the right on phones) */
+  const [spot, setSpot] = useState<{ top?: number; bottom?: number; left: number } | null>(null);
+  const bell = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const q = useQuery({ queryKey: ['me-notifications'], queryFn: () => api.get<{ unread: number; items: Notice[] }>('/me/notifications', { limit: 30 }), staleTime: 15_000 });
   const readAll = useMutation({ mutationFn: () => api.post('/me/notifications/read', { all: true }), onSuccess: () => qc.invalidateQueries({ queryKey: ['me-notifications'] }) });
@@ -40,12 +43,17 @@ export function HeaderBadges({ chatUnread, chatHref = '/chat', worker = false }:
   return (
     <div className="flex items-center gap-1.5" ref={box}>
       <div className="relative">
-        <button aria-label={`Уведомления${unread ? `: непрочитанных ${unread}` : ''}`} onClick={() => setOpen(!open)} className="relative flex h-11 w-11 items-center justify-center rounded-full hover:bg-border/50">
+        <button aria-label={`Уведомления${unread ? `: непрочитанных ${unread}` : ''}`} ref={bell} onClick={() => {
+          const r = bell.current?.getBoundingClientRect();
+          if (r) { const w = Math.min(360, window.innerWidth * 0.92); const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+            setSpot(window.innerHeight - r.bottom > 420 ? { top: r.bottom + 6, left } : { bottom: window.innerHeight - r.top + 6, left }); }
+          setOpen(!open);
+        }} className="relative flex h-11 w-11 items-center justify-center rounded-full hover:bg-border/50">
           <Bell size={24} aria-hidden />
           {unread > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-6 rounded-full bg-danger px-1.5 text-center text-sm font-bold leading-6 text-white ring-2 ring-card">{count(unread)}</span>}
         </button>
         {open && (
-          <div className="absolute right-0 top-12 z-50 w-[min(360px,92vw)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl" role="dialog" aria-label="Уведомления">
+          <div style={spot ?? undefined} className="fixed z-50 w-[min(360px,92vw)] overflow-hidden rounded-xl border border-border bg-card shadow-2xl" role="dialog" aria-label="Уведомления">
             <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
               <p className="font-semibold">Уведомления</p>
               {unread > 0 && <button className="text-sm text-primary" onClick={() => readAll.mutate()}>Прочитать все</button>}
