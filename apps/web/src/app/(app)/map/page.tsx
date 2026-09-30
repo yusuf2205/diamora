@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { freshnessLabel, roleLabel } from '@/lib/format';
 import type { HomePoint, LiveLocation, ManagerSummary } from '@/lib/types';
 import { Button, Chips, EmptyState, ErrorState, Modal } from '@/components/ui';
+import { RouteModal } from '@/components/route-modal';
 
 const JS_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_JS_KEY ?? '';
 // Yandex draws the map without a key too (light use); a registered key removes the console warning and the limits.
@@ -84,6 +85,7 @@ export default function MapPage() {
   const canPickManager = me?.role !== 'MANAGER';
   const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers'), enabled: canPickManager });
   const [filter, setFilter] = useState<Filter>('all');
+  const [routing, setRouting] = useState(false);
   const [workFilter, setWorkFilter] = useState<WorkFilter>('any');
   const [managerId, setManagerId] = useState('');
   const [selected, setSelected] = useState<LiveLocation | null>(null);
@@ -105,6 +107,7 @@ export default function MapPage() {
           <h1 className="text-xl font-semibold sm:text-2xl">Карта</h1>
           <p className="text-sm text-muted">{me?.role === 'MANAGER' ? 'Ваши мастерицы' : 'Все, кого вам разрешено видеть'} · {counts.total} на карте, {counts.online} в сети</p>
         </div>
+        <Button variant="outline" onClick={() => setRouting(true)} disabled={!items.some((r) => r.worker)}>Маршрут</Button>
       </div>
       <Chips options={FILTERS} value={filter} onChange={setFilter} label="Кого показать" />
       <div className="flex flex-wrap items-center gap-2">
@@ -124,6 +127,7 @@ export default function MapPage() {
         )}
         <Legend />
       </div>
+      {routing && <RouteModal rows={items} onClose={() => setRouting(false)} />}
       {selected && <DetailSheet row={selected} canHide={me?.role === 'SUPER_ADMIN'} onClose={() => setSelected(null)} />}
     </div>
   );
