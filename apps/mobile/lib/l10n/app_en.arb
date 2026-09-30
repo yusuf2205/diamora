@@ -793,5 +793,13 @@
   "chatAudioSpeed": "Speed",
   "chatAudioMute": "Sound",
   "chatAudioClose": "Close player",
-  "updateDownloading": "Downloading version {version} — {percent}%"
+  "updateDownloading": "Downloading version {version} — {percent}%",
+  "mapZoomIn": "Zoom in",
+  "mapZoomOut": "Zoom out",
+  "mapMyPlace": "My location",
+  "mapNoMyPlace": "Could not find your location. Turn on location.",
+  "mapNorth": "North up",
+  "mapTraffic": "Traffic",
+  "mapShowAll": "Everyone in view",
+  "map3d": "3D view"
 }

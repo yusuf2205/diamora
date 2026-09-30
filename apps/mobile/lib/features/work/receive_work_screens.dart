@@ -165,8 +165,8 @@ class _ReceiptReviewScreenState extends ConsumerState<ReceiptReviewScreen> {
   }
 
   Future<void> _problem() async {
-    final sent = await showModalBottomSheet<bool>(
-      context: context, isScrollControlled: true, useSafeArea: true,
+    final sent = await showFormSheet<bool>(
+      context,
       builder: (_) => HandoffProblemSheet(handoffId: widget.scan.handoffId),
     );
     if (sent == true && mounted) {

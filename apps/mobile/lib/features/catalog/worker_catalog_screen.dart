@@ -138,7 +138,7 @@ class CatalogItemDetailScreen extends ConsumerWidget {
                     icon: const Icon(Icons.shopping_bag_rounded),
                     label: Text(l.orderWork, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                     onPressed: () async {
-                      final sent = await showModalBottomSheet<bool>(context: context, isScrollControlled: true, useSafeArea: true, builder: (_) => OrderWorkSheet(item: i));
+                      final sent = await showFormSheet<bool>(context, builder: (_) => OrderWorkSheet(item: i));
                       if (sent == true && context.mounted) {
                         ScaffoldMessenger.of(context)
                           ..hideCurrentSnackBar()

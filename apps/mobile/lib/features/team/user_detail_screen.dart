@@ -245,12 +245,7 @@ class _Body extends ConsumerWidget {
     await _run(context, ref, u, () => ref.read(teamRepositoryProvider).setPassword(u.id, pwd), l.passwordSet);
   }
 
-  Future<void> _edit(BuildContext context, WidgetRef ref, TeamUser u) => showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (_) => _EditDetailsSheet(user: u),
-      );
+  Future<void> _edit(BuildContext context, WidgetRef ref, TeamUser u) => showFormSheet<void>(context, showDragHandle: true, builder: (_) => _EditDetailsSheet(user: u));
 
   Future<void> _run(BuildContext context, WidgetRef ref, TeamUser u, Future<Object?> Function() action, String done) async {
     try {

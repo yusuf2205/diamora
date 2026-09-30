@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:diamoraa_mobile/core/theme/app_theme.dart';
 import 'package:diamoraa_mobile/features/map/map_screen.dart';
 import 'package:diamoraa_mobile/features/team/models.dart';
+import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 import 'package:diamoraa_mobile/l10n/app_localizations_ru.dart';
 
 LiveLocationRow row({required String role, required LocationFreshness freshness, int ageSeconds = 0}) => LiveLocationRow(
@@ -63,4 +64,51 @@ void main() {
       expect(r.workerId, 'w1');
     });
   });
+
+  test('pins show initials', () {
+    expect(initialsOf('Нигора Азимова'), 'НА');
+    expect(initialsOf('  salima  '), 'S');
+    expect(initialsOf(''), '?');
+  });
+
+  for (final size in [const Size(390, 800), const Size(1280, 800)]) {
+    testWidgets('map buttons like Yandex (${size.width < 600 ? 'phone' : 'tablet'}): zoom, my place, traffic, everyone, 3D; the compass only when turned', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final calls = <String>[];
+      Future<void> pump({double azimuth = 0, bool tilted = false}) => tester.pumpWidget(MaterialApp(
+            locale: const Locale('ru'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: MapControls(
+                azimuth: azimuth,
+                traffic: false,
+                tilted: tilted,
+                onZoom: (by) => calls.add('zoom $by'),
+                onMyPlace: () => calls.add('me'),
+                onNorth: () => calls.add('north'),
+                onTraffic: () => calls.add('traffic'),
+                onShowAll: () => calls.add('all'),
+                onTilt: () => calls.add('tilt'),
+              ),
+            ),
+          ));
+      await pump();
+      expect(find.byKey(const Key('mapNorth')), findsNothing);
+      for (final k in ['mapZoomIn', 'mapZoomOut', 'mapMyPlace', 'mapTraffic', 'mapShowAll', 'mapTilt']) {
+        await tester.tap(find.byKey(Key(k)));
+      }
+      expect(calls, ['zoom 1.0', 'zoom -1.0', 'me', 'traffic', 'all', 'tilt']);
+      expect(tester.getSize(find.byKey(const Key('mapZoomIn'))).width, greaterThanOrEqualTo(48)); // easy to hit
+      await pump(azimuth: 45);
+      await tester.tap(find.byKey(const Key('mapNorth')));
+      expect(calls.last, 'north');
+      expect(find.text('3D'), findsOneWidget);
+      await pump(tilted: true);
+      expect(find.text('2D'), findsOneWidget);
+      expect(find.byKey(const Key('mapNorth')), findsOneWidget);
+    });
+  }
 }

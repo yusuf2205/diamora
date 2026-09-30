@@ -824,5 +824,13 @@
   "chatAudioSpeed": "Tezlik",
   "chatAudioMute": "Ovoz",
   "chatAudioClose": "Pleyerni yopish",
-  "updateDownloading": "Yangi versiya {version} yuklanmoqda — {percent}%"
+  "updateDownloading": "Yangi versiya {version} yuklanmoqda — {percent}%",
+  "mapZoomIn": "Yaqinlashtirish",
+  "mapZoomOut": "Uzoqlashtirish",
+  "mapMyPlace": "Men qayerdaman",
+  "mapNoMyPlace": "Joylashuvingiz aniqlanmadi. Geolokatsiyani yoqing.",
+  "mapNorth": "Shimolga",
+  "mapTraffic": "Tirbandlik",
+  "mapShowAll": "Hammasi xaritada",
+  "map3d": "Hajmli ko'rinish"
 }

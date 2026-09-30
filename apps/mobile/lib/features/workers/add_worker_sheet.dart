@@ -36,6 +36,10 @@ final workerInvitesProvider = FutureProvider.autoDispose<List<WorkerInvite>>((re
 
 /// «Добавить мастерицу»: name + phone (+ manager) -> a one-time Telegram link, shown as a big QR for in-person use.
 /// She opens it and is ACTIVE at once — no questionnaire, no approval.
+/// «Добавить мастерицу» as a bottom sheet.
+Future<void> showAddWorkerSheet(BuildContext context) =>
+    showFormSheet<void>(context, builder: (_) => const AddWorkerSheet());
+
 class AddWorkerSheet extends ConsumerStatefulWidget {
   const AddWorkerSheet({super.key});
   @override

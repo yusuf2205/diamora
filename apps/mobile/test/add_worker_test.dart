@@ -48,4 +48,32 @@ void main() {
     expect(find.text('Отправить в Telegram'), findsOneWidget);
     expect(find.text('Скопировать ссылку'), findsOneWidget);
   });
+
+  testWidgets('tablet landscape with the keyboard up: the sheet shows its title and fields above the keyboard', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final api = MockApi();
+    when(() => api.getJson('/workers/invitations')).thenAnswer((_) async => {'items': <Object>[]});
+    await tester.pumpWidget(ProviderScope(
+      overrides: [apiClientProvider.overrideWithValue(api), authControllerProvider.overrideWith(_Auth.new)],
+      child: MaterialApp(
+        locale: const Locale('ru'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(builder: (context) => Scaffold(body: Center(child: TextButton(onPressed: () => showAddWorkerSheet(context), child: const Text('open'))))),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('formDialog')), findsOneWidget); // a window in the middle, not a bottom sheet
+    tester.view.viewInsets = const FakeViewPadding(bottom: 400); // the on-screen keyboard
+    await tester.pumpAndSettle();
+    const keyboardTop = 800 - 400;
+    for (final label in ['Добавить мастерицу', 'Фамилия и имя']) {
+      final y = tester.getRect(find.text(label).first);
+      expect(y.top, greaterThanOrEqualTo(0), reason: label);
+      expect(y.bottom, lessThanOrEqualTo(keyboardTop), reason: label);
+    }
+  });
 }

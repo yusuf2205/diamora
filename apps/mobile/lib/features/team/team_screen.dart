@@ -258,12 +258,7 @@ Future<void> showTemporaryPassword(BuildContext context, String password) {
 }
 
 /// «+ Добавить пользователя»: staff only (ADMIN / MANAGER). Workers register themselves through the Telegram bot.
-Future<void> showAddUserSheet(BuildContext context) => showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => const _AddUserSheet(),
-    );
+Future<void> showAddUserSheet(BuildContext context) => showFormSheet<void>(context, showDragHandle: true, builder: (_) => const _AddUserSheet());
 
 class _AddUserSheet extends ConsumerStatefulWidget {
   const _AddUserSheet();

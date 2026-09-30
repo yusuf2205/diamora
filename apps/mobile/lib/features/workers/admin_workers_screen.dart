@@ -39,7 +39,7 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
     return Scaffold(
       floatingActionButton: canInvite
           ? FloatingActionButton.extended(
-              onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, useSafeArea: true, builder: (_) => const AddWorkerSheet()),
+              onPressed: () => showAddWorkerSheet(context),
               icon: const Icon(Icons.person_add_alt_1_rounded),
               label: Text(l.addWorker),
             )

@@ -42,7 +42,7 @@ class ProfileScreen extends ConsumerWidget {
             leading: const Icon(Icons.edit_rounded),
             title: Text(l.editName),
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => EditNameSheet(fullName: me?.fullName ?? '')),
+            onTap: () => showFormSheet<void>(context, showDragHandle: true, useSafeArea: false, builder: (_) => EditNameSheet(fullName: me?.fullName ?? '')),
           ),
         ),
         if (me?.isStaff ?? false) ...[
@@ -52,7 +52,7 @@ class ProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.key_rounded),
               title: Text(l.changePassword),
               trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const ChangePasswordSheet()),
+              onTap: () => showFormSheet<void>(context, showDragHandle: true, useSafeArea: false, builder: (_) => const ChangePasswordSheet()),
             ),
           ),
         ],

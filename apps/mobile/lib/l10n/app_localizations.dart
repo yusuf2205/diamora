@@ -4863,6 +4863,54 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Загружается новая версия {version} — {percent}%'**
   String updateDownloading(String version, int percent);
+
+  /// No description provided for @mapZoomIn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приблизить'**
+  String get mapZoomIn;
+
+  /// No description provided for @mapZoomOut.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отдалить'**
+  String get mapZoomOut;
+
+  /// No description provided for @mapMyPlace.
+  ///
+  /// In ru, this message translates to:
+  /// **'Где я'**
+  String get mapMyPlace;
+
+  /// No description provided for @mapNoMyPlace.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось определить ваше место. Включите геолокацию.'**
+  String get mapNoMyPlace;
+
+  /// No description provided for @mapNorth.
+  ///
+  /// In ru, this message translates to:
+  /// **'На север'**
+  String get mapNorth;
+
+  /// No description provided for @mapTraffic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пробки'**
+  String get mapTraffic;
+
+  /// No description provided for @mapShowAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все на карте'**
+  String get mapShowAll;
+
+  /// No description provided for @map3d.
+  ///
+  /// In ru, this message translates to:
+  /// **'Объёмный вид'**
+  String get map3d;
 }
 
 class _AppLocalizationsDelegate

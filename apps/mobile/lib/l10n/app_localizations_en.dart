@@ -2606,4 +2606,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String updateDownloading(String version, int percent) {
     return 'Downloading version $version — $percent%';
   }
+
+  @override
+  String get mapZoomIn => 'Zoom in';
+
+  @override
+  String get mapZoomOut => 'Zoom out';
+
+  @override
+  String get mapMyPlace => 'My location';
+
+  @override
+  String get mapNoMyPlace => 'Could not find your location. Turn on location.';
+
+  @override
+  String get mapNorth => 'North up';
+
+  @override
+  String get mapTraffic => 'Traffic';
+
+  @override
+  String get mapShowAll => 'Everyone in view';
+
+  @override
+  String get map3d => '3D view';
 }

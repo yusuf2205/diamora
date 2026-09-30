@@ -2618,4 +2618,29 @@ class AppLocalizationsRu extends AppLocalizations {
   String updateDownloading(String version, int percent) {
     return 'Загружается новая версия $version — $percent%';
   }
+
+  @override
+  String get mapZoomIn => 'Приблизить';
+
+  @override
+  String get mapZoomOut => 'Отдалить';
+
+  @override
+  String get mapMyPlace => 'Где я';
+
+  @override
+  String get mapNoMyPlace =>
+      'Не удалось определить ваше место. Включите геолокацию.';
+
+  @override
+  String get mapNorth => 'На север';
+
+  @override
+  String get mapTraffic => 'Пробки';
+
+  @override
+  String get mapShowAll => 'Все на карте';
+
+  @override
+  String get map3d => 'Объёмный вид';
 }

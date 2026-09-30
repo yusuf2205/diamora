@@ -233,3 +233,28 @@ class WordSafeText extends StatelessWidget {
     });
   }
 }
+
+/// A form (fields to type in). Phone: a bottom sheet. Tablet (>= 600 dp): a window in the middle that moves above the
+/// keyboard - a tablet keyboard covers about half the screen and left a bottom sheet's fields hidden under it.
+Future<T?> showFormSheet<T>(BuildContext context, {required WidgetBuilder builder, bool showDragHandle = false, bool useSafeArea = true}) {
+  if (MediaQuery.sizeOf(context).width >= 600) {
+    return showDialog<T>(
+      context: context,
+      builder: (ctx) => Dialog(
+        key: const Key('formDialog'),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          // the window itself stays above the keyboard; the form must not add the keyboard's height a second time
+          child: MediaQuery.removeViewInsets(
+            context: ctx,
+            removeBottom: true,
+            child: SingleChildScrollView(padding: const EdgeInsets.only(top: 8), child: Builder(builder: builder)),
+          ),
+        ),
+      ),
+    );
+  }
+  return showModalBottomSheet<T>(context: context, isScrollControlled: true, useSafeArea: useSafeArea, showDragHandle: showDragHandle, builder: builder);
+}

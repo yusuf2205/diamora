@@ -8,7 +8,7 @@ import 'assignment_admin_repository.dart';
 
 /// M3 §14 — "Выплатить наличными": presets (вся сумма / половина) or a manual amount, one confirmation, one result.
 Future<void> showCashPayoutSheet(BuildContext context, {required String workerId, required String balance}) {
-  return showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (_) => _CashPayoutSheet(workerId: workerId, balance: balance));
+  return showFormSheet<void>(context, useSafeArea: false, builder: (_) => _CashPayoutSheet(workerId: workerId, balance: balance));
 }
 
 class _CashPayoutSheet extends ConsumerStatefulWidget {

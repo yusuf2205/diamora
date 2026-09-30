@@ -2576,4 +2576,29 @@ class AppLocalizationsUz extends AppLocalizations {
   String updateDownloading(String version, int percent) {
     return 'Yangi versiya $version yuklanmoqda — $percent%';
   }
+
+  @override
+  String get mapZoomIn => 'Yaqinlashtirish';
+
+  @override
+  String get mapZoomOut => 'Uzoqlashtirish';
+
+  @override
+  String get mapMyPlace => 'Men qayerdaman';
+
+  @override
+  String get mapNoMyPlace =>
+      'Joylashuvingiz aniqlanmadi. Geolokatsiyani yoqing.';
+
+  @override
+  String get mapNorth => 'Shimolga';
+
+  @override
+  String get mapTraffic => 'Tirbandlik';
+
+  @override
+  String get mapShowAll => 'Hammasi xaritada';
+
+  @override
+  String get map3d => 'Hajmli ko\'rinish';
 }

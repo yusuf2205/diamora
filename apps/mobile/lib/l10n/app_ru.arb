@@ -874,5 +874,13 @@
   "chatAudioMute": "Звук",
   "chatAudioClose": "Закрыть проигрыватель",
   "updateDownloading": "Загружается новая версия {version} — {percent}%",
-  "@updateDownloading": {"placeholders": {"version": {"type": "String"}, "percent": {"type": "int"}}}
+  "@updateDownloading": {"placeholders": {"version": {"type": "String"}, "percent": {"type": "int"}}},
+  "mapZoomIn": "Приблизить",
+  "mapZoomOut": "Отдалить",
+  "mapMyPlace": "Где я",
+  "mapNoMyPlace": "Не удалось определить ваше место. Включите геолокацию.",
+  "mapNorth": "На север",
+  "mapTraffic": "Пробки",
+  "mapShowAll": "Все на карте",
+  "map3d": "Объёмный вид"
 }

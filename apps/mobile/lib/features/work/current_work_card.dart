@@ -75,8 +75,8 @@ class CurrentWorkCard extends ConsumerWidget {
   Future<void> _reportProgress(BuildContext context, WidgetRef ref) async {
     final l = AppLocalizations.of(context);
     final controller = TextEditingController(text: work.reportedMeters > 0 ? work.reportedMeters.toStringAsFixed(1) : '');
-    final value = await showModalBottomSheet<double>(
-      context: context, isScrollControlled: true,
+    final value = await showFormSheet<double>(
+      context, useSafeArea: false,
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
