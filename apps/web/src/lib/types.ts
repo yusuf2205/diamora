@@ -48,6 +48,9 @@ export interface ManagerSummary extends TeamUser {
 export interface Worker {
   id: string;
   code: string;
+  /** «Удобное время» (detail only) */
+  visitTime?: { days: number[]; from: string; to: string; note?: string | null } | null;
+  visitText?: string | null;
   /** her personal QR (detail only) */
   qrCode?: string | null;
   fullName: string;
@@ -89,7 +92,7 @@ export interface CompanyContact { phone: string | null; telegramUsername: string
 export interface AuditEntry { id: string; action: string; entity: string; entityId: string | null; actorId: string | null; actorRole: string | null; actorName?: string | null; targetName?: string | null; before: unknown; after: unknown; ip?: string | null; device?: string | null; requestId: string | null; createdAt: string }
 export interface LiveLocation {
   userId: string; role: Me['role']; fullName: string; phone: string | null; online: boolean;
-  worker: { id: string; code: string; phone: string; managerId: string | null } | null;
+  worker: { id: string; code: string; phone: string; managerId: string | null; visitText?: string | null } | null;
   latitude: number; longitude: number; accuracy: number | null; recordedAt: string;
   ageSeconds: number; freshness: 'LIVE' | 'RECENT' | 'STALE'; stale: boolean; isBackground: boolean;
   /** SUPER_ADMIN only ever receives hidden people, flagged; everyone else never gets them at all */
@@ -100,7 +103,7 @@ export interface LiveLocation {
   isHome?: boolean;
 }
 export interface WorkFlags { toDeliver: boolean; toPickup: boolean; overdue: boolean }
-export interface HomePoint { worker: { id: string; code: string; fullName: string; phone: string; managerId: string | null }; latitude: number; longitude: number; work: WorkFlags }
+export interface HomePoint { worker: { id: string; code: string; fullName: string; phone: string; managerId: string | null; visitText?: string | null }; latitude: number; longitude: number; work: WorkFlags }
 
 // Every section is `null` when the viewer lacks the permission to see it (never a fabricated zero, never a 403 for
 // the whole endpoint over one out-of-reach section) — apps/api/src/stats/dashboard.controller.ts.

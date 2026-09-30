@@ -8,6 +8,7 @@ import { api, ApiError } from '@/lib/api';
 import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, statusLabel } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import { WorkerGoalCard } from '@/components/goals';
+import { VisitTimeCard } from '@/components/visit-time';
 import type { AssignmentSummary, ManagerSummary, Page, Worker, WorkerLedger } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { Badge, Button, Card, ErrorState, Input, ListSkeleton, Modal, PageHeader } from '@/components/ui';
@@ -69,6 +70,7 @@ export default function WorkerDetailPage() {
       )}
 
       {w.status === 'ACTIVE' && <WorkerGoalCard workerId={w.id} canEdit={hasPerm(me, 'WORKER_UPDATE')} />}
+      {w.status === 'ACTIVE' && <VisitTimeCard workerId={w.id} visitTime={w.visitTime ?? null} visitText={w.visitText ?? null} canEdit={hasPerm(me, 'WORKER_UPDATE')} />}
       {w.status !== 'PENDING_APPROVAL' && w.status !== 'REJECTED' && <ManagerAndStatusCard worker={w} />}
       {w.status !== 'PENDING_APPROVAL' && (w.collaterals?.length ?? 0) > 0 && <CollateralsCard worker={w} />}
       {w.qrCode && <QrCard heading="Личный QR мастерицы" code={w.qrCode} title={w.fullName} lines={[`${w.code} · ${w.phone}`]} />}

@@ -480,6 +480,7 @@ class _Contacts extends ConsumerWidget {
         padding: AppTokens.cardPadding,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.phone_rounded), title: Text(worker.phone), subtitle: worker.secondaryPhone == null ? null : Text('${l.secondaryPhone}: ${worker.secondaryPhone}')),
+          if (worker.visitText != null) ListTile(key: const Key('workerVisitTime'), contentPadding: EdgeInsets.zero, leading: const Icon(Icons.schedule_rounded), title: Text(worker.visitText!), subtitle: Text(l.visitTimeTitle)),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.place_rounded),

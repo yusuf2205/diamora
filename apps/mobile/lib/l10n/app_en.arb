@@ -834,5 +834,22 @@
   "offlineKindReceive": "receiving work",
   "offlineScanNoInternet": "No internet. Save it - the work will be received when online.",
   "offlineScanSave": "Save and receive later",
-  "assignSuggestTitle": "Best choice first (free, fast, no defects, on time)"
+  "assignSuggestTitle": "Best choice first (free, fast, no defects, on time)",
+  "visitTimeTitle": "When staff may come",
+  "visitTimeShort": "Best time",
+  "visitTimeNotSet": "Not set - tap to choose days and hours",
+  "visitTimeHint": "Your manager sees this and comes when it suits you.",
+  "visitFrom": "from",
+  "visitTo": "to",
+  "visitTimeOrder": "«From» must be before «to»",
+  "visitTimeNote": "Note (optional)",
+  "visitTimeNoteHint": "e.g. call first",
+  "visitTimeClear": "Clear",
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "daySun": "Sun"
 }

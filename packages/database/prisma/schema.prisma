@@ -260,6 +260,8 @@ model WorkerProfile {
   telegramChatId     BigInt
   /// her own monthly goal in metres (overrides the common one); null = the common goal
   monthlyGoalMeters  Int?
+  /// «Удобное время»: when staff may come to deliver / collect - { days: [1..7] (Mon = 1), from: "10:00", to: "18:00", note }
+  visitTime          Json?
   /// human-friendly, e.g. W-0001
   code               String       @unique
   fullName           String

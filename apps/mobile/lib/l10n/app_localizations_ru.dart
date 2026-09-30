@@ -2767,4 +2767,57 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get assignSuggestTitle =>
       'Сначала — кому лучше дать (свободна, быстро, без брака, вовремя)';
+
+  @override
+  String get visitTimeTitle => 'Когда удобно, чтобы приезжали';
+
+  @override
+  String get visitTimeShort => 'Удобно';
+
+  @override
+  String get visitTimeNotSet =>
+      'Не указано — нажмите, чтобы выбрать дни и часы';
+
+  @override
+  String get visitTimeHint =>
+      'Менеджер увидит это время и будет привозить материалы и забирать работу, когда вам удобно.';
+
+  @override
+  String get visitFrom => 'с';
+
+  @override
+  String get visitTo => 'до';
+
+  @override
+  String get visitTimeOrder => '«С» должно быть раньше, чем «до»';
+
+  @override
+  String get visitTimeNote => 'Пометка (необязательно)';
+
+  @override
+  String get visitTimeNoteHint => 'например: звонить заранее, 3-й подъезд';
+
+  @override
+  String get visitTimeClear => 'Убрать время';
+
+  @override
+  String get dayMon => 'Пн';
+
+  @override
+  String get dayTue => 'Вт';
+
+  @override
+  String get dayWed => 'Ср';
+
+  @override
+  String get dayThu => 'Чт';
+
+  @override
+  String get dayFri => 'Пт';
+
+  @override
+  String get daySat => 'Сб';
+
+  @override
+  String get daySun => 'Вс';
 }

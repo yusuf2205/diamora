@@ -429,6 +429,7 @@ class _PersonCard extends StatelessWidget {
           if (row.toPickup) Text('● ${l.mapFilterToPickup}', style: const TextStyle(color: workPickupColor, fontWeight: FontWeight.w600)),
           if (row.overdue) Text('● ${l.mapFilterOverdue}', style: const TextStyle(color: workOverdueColor, fontWeight: FontWeight.w600)),
           if (row.phone != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(row.phone!)),
+          if (row.visitText != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text('🕒 ${l.visitTimeShort}: ${row.visitText}', style: const TextStyle(fontWeight: FontWeight.w600))),
           const SizedBox(height: 12),
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.call)),

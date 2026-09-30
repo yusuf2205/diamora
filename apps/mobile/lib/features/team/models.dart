@@ -111,8 +111,10 @@ class LiveLocationRow {
     required this.userId, required this.role, required this.fullName, this.workerId, this.workerCode, this.phone,
     this.managerId, required this.latitude, required this.longitude, required this.ageSeconds, required this.stale,
     this.freshness = LocationFreshness.stale, this.online = false,
-    this.toDeliver = false, this.toPickup = false, this.overdue = false, this.isHome = false,
+    this.toDeliver = false, this.toPickup = false, this.overdue = false, this.isHome = false, this.visitText,
   });
+  /// «Удобное время» of a worker, in words («Пн–Пт 10:00–18:00»)
+  final String? visitText;
   /// what is waiting at this worker's (map filters «ждут доставку» / «готово к забору» / «просрочено»)
   final bool toDeliver, toPickup, overdue;
   /// a worker whose phone does not share a live position, shown at the address she registered with
@@ -139,6 +141,7 @@ class LiveLocationRow {
         freshness: _freshnessOf(j['freshness'] as String?, j['stale'] as bool? ?? false), online: j['online'] as bool? ?? false,
         toDeliver: (j['work'] as Map?)?['toDeliver'] as bool? ?? false, toPickup: (j['work'] as Map?)?['toPickup'] as bool? ?? false,
         overdue: (j['work'] as Map?)?['overdue'] as bool? ?? false,
+        visitText: (j['worker'] as Map?)?['visitText'] as String?,
       );
 
   /// `homes[]` of GET /locations: a worker with no live position, at her registered address.
@@ -150,6 +153,7 @@ class LiveLocationRow {
       phone: w['phone'] as String?, managerId: w['managerId'] as String?, latitude: (j['latitude'] as num).toDouble(), longitude: (j['longitude'] as num).toDouble(),
       ageSeconds: 0, stale: false, freshness: LocationFreshness.recent, isHome: true,
       toDeliver: work['toDeliver'] as bool? ?? false, toPickup: work['toPickup'] as bool? ?? false, overdue: work['overdue'] as bool? ?? false,
+      visitText: w['visitText'] as String?,
     );
   }
 }

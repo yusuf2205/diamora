@@ -11,6 +11,7 @@ import '../auth/models.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
 import 'locale_controller.dart';
 import '../chat/chat_profile.dart';
+import '../workers/visit_time.dart';
 
 final _sessionsProvider = FutureProvider.autoDispose<List<DeviceSession>>((ref) => ref.watch(authRepositoryProvider).sessions());
 
@@ -57,6 +58,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+        if (me?.role == 'WORKER') ...[const SizedBox(height: 8), const VisitTimeTile()],
         const SizedBox(height: 8),
         const UpdateTile(),
         const SizedBox(height: 16),

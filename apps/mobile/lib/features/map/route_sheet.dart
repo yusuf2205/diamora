@@ -38,6 +38,7 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
             lat: r.latitude,
             lng: r.longitude,
             note: [if (r.toPickup) 'pickup', if (r.toDeliver) 'deliver', if (r.overdue) 'overdue'].join(','),
+            visit: r.visitText,
           ),
     ]..sort((a, b) {
         // those with something waiting first, then by name
@@ -72,6 +73,16 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
     await launchUrl(web, mode: LaunchMode.externalApplication);
   }
 
+  /// what is waiting there, and when she is happy for staff to come («🕒 Пн–Пт 10:00–18:00»)
+  Widget? _subtitle(AppLocalizations l, RouteStop s, Color? color) {
+    final waiting = (s.note ?? '').isEmpty ? null : _noteText(l, s.note);
+    if (waiting == null && s.visit == null) return null;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+      if (waiting != null) Text(waiting, style: TextStyle(color: color)),
+      if (s.visit != null) Text('🕒 ${s.visit}'),
+    ]);
+  }
+
   String _noteText(AppLocalizations l, String? note) => [
         if (note?.contains('pickup') ?? false) l.routeToPickup,
         if (note?.contains('deliver') ?? false) l.routeToDeliver,
@@ -101,7 +112,7 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
                     value: _picked.contains(s.id),
                     onChanged: (v) => setState(() => v == true ? _picked.add(s.id) : _picked.remove(s.id)),
                     title: Text(s.name),
-                    subtitle: (s.note ?? '').isEmpty ? null : Text(_noteText(l, s.note), style: TextStyle(color: scheme.primary)),
+                    subtitle: _subtitle(l, s, scheme.primary),
                   )
               else
                 for (final (i, s) in plan.order.indexed)
@@ -109,7 +120,7 @@ class _RouteSheetState extends ConsumerState<RouteSheet> {
                     key: Key('routeOrder-$i'),
                     leading: CircleAvatar(radius: 16, backgroundColor: scheme.primary, child: Text('${i + 1}', style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w700))),
                     title: Text(s.name),
-                    subtitle: (s.note ?? '').isEmpty ? null : Text(_noteText(l, s.note)),
+                    subtitle: _subtitle(l, s, null),
                   ),
             ]),
           ),

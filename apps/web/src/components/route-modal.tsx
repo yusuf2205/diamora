@@ -17,7 +17,7 @@ export function RouteModal({ rows, onClose }: { rows: LiveLocation[]; onClose: (
     const seen = new Set<string>();
     return rows
       .filter((r) => r.worker && !seen.has(r.worker.id) && seen.add(r.worker.id))
-      .map((r): RouteStop => ({ id: r.worker!.id, name: r.fullName, lat: r.latitude, lng: r.longitude, note: noteOf(r) }))
+      .map((r): RouteStop => ({ id: r.worker!.id, name: r.fullName, lat: r.latitude, lng: r.longitude, note: noteOf(r), visit: r.worker!.visitText ?? null }))
       .sort((a, b) => Number(!!b.note) - Number(!!a.note) || a.name.localeCompare(b.name));
   }, [rows]);
   const [picked, setPicked] = useState<Set<string>>(() => new Set(stops.filter((s) => s.note).map((s) => s.id)));
@@ -51,6 +51,7 @@ export function RouteModal({ rows, onClose }: { rows: LiveLocation[]; onClose: (
                   <span className="min-w-0">
                     <span className="block font-medium">{s.name}</span>
                     {s.note && <span className="block text-xs text-primary">{s.note}</span>}
+                    {s.visit && <span className="block text-xs text-muted">🕒 {s.visit}</span>}
                   </span>
                 </label>
               </li>
@@ -64,7 +65,7 @@ export function RouteModal({ rows, onClose }: { rows: LiveLocation[]; onClose: (
             {plan.order.map((s, i) => (
               <li key={s.id} className="flex items-center gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">{i + 1}</span>
-                <span className="min-w-0"><span className="block font-medium">{s.name}</span>{s.note && <span className="block text-xs text-muted">{s.note}</span>}</span>
+                <span className="min-w-0"><span className="block font-medium">{s.name}</span>{s.note && <span className="block text-xs text-muted">{s.note}</span>}{s.visit && <span className="block text-xs text-muted">🕒 {s.visit}</span>}</span>
               </li>
             ))}
           </ol>

@@ -7,6 +7,7 @@ import type { AuthUser } from '../common/request-context';
 import { ZodBody } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { PresenceModule, PresenceService } from '../presence/presence.service';
+import { visitTimeView } from '../workers/visit-time';
 import { PrismaService } from '../prisma/prisma.module';
 
 export { LOCATION_STALE_SECONDS }; // re-exported: thresholds now live in packages/shared (M2 §17), this keeps old imports working
@@ -58,7 +59,7 @@ export class LocationService {
     // what is waiting at each worker's (for the map filters «ждут доставку» / «готово к забору» / «просрочено»)
     const inScope = await this.prisma.workerProfile.findMany({
       where: { deletedAt: null, status: { in: ['ACTIVE', 'PAUSED'] }, ...(scope === 'all' ? {} : { assignedManagerId: viewer.id }) },
-      select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true, latitude: true, longitude: true, user: { select: { locationHidden: true } } },
+      select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true, latitude: true, longitude: true, visitTime: true, user: { select: { locationHidden: true } } },
     });
     const open = await this.prisma.workAssignment.findMany({
       where: { workerId: { in: inScope.map((w) => w.id) }, status: { in: ['READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'REWORK_REQUIRED'] } },
@@ -79,7 +80,7 @@ export class LocationService {
     return {
       // workers whose phone does not share a live position: shown at the address they registered with
       homes: homes.map((w) => ({
-        worker: { id: w.id, code: w.code, fullName: w.fullName, phone: w.phone, managerId: w.assignedManagerId },
+        worker: { id: w.id, code: w.code, fullName: w.fullName, phone: w.phone, managerId: w.assignedManagerId, visitText: visitTimeView(w.visitTime).visitText },
         latitude: Number(w.latitude), longitude: Number(w.longitude), work: work.get(w.id) ?? noWork,
       })),
       // map markers (M2 §14-16): role, online (presence, separate from GPS) and phone are what a marker's bottom sheet needs.
@@ -89,7 +90,7 @@ export class LocationService {
         return {
           userId: u.id, role: u.role, fullName: u.fullName, phone: u.phone, hidden: u.locationHidden,
           online: this.presence.isOnline(u.id),
-          worker: u.workerProfile ? { id: u.workerProfile.id, code: u.workerProfile.code, phone: u.workerProfile.phone, managerId: u.workerProfile.assignedManagerId } : null,
+          worker: u.workerProfile ? { id: u.workerProfile.id, code: u.workerProfile.code, phone: u.workerProfile.phone, managerId: u.workerProfile.assignedManagerId, visitText: visitTimeView(inScope.find((w) => w.id === u.workerProfile!.id)?.visitTime).visitText } : null,
           work: u.workerProfile ? (work.get(u.workerProfile.id) ?? noWork) : null,
           latitude: l.latitude, longitude: l.longitude, accuracy: l.accuracy, heading: l.heading, speed: l.speed,
           recordedAt: l.recordedAt.toISOString(), ageSeconds, freshness: locationFreshness(ageSeconds), stale: ageSeconds > LOCATION_STALE_SECONDS, isBackground: l.isBackground,

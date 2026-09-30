@@ -189,6 +189,33 @@ export const updateMaterialSchema = z
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+// ---- «Удобное время»: when a worker is happy for staff to come ----------------------------------------------------------------
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time as HH:MM');
+export const visitTimeSchema = z
+  .object({
+    days: z.array(z.number().int().min(1).max(7)).max(7),
+    from: hhmm,
+    to: hhmm,
+    note: z.string().trim().max(200).nullable().optional(),
+  })
+  .refine((v) => v.from < v.to, { message: '«С» must be before «до»', path: ['to'] })
+  .nullable();
+export type VisitTime = { days: number[]; from: string; to: string; note?: string | null };
+const DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+/** «Пн–Пт 10:00–18:00 · звонить заранее» (consecutive days as a range); null = not set */
+export function visitTimeText(v: VisitTime | null | undefined): string | null {
+  if (!v || !v.days?.length) return null;
+  const d = [...new Set(v.days)].sort((a, b) => a - b);
+  const parts: string[] = [];
+  for (let i = 0; i < d.length; ) {
+    let j = i;
+    while (j + 1 < d.length && d[j + 1] === d[j] + 1) j++;
+    parts.push(j - i >= 2 ? `${DAY_SHORT[d[i] - 1]}–${DAY_SHORT[d[j] - 1]}` : d.slice(i, j + 1).map((x) => DAY_SHORT[x - 1]).join(', '));
+    i = j + 1;
+  }
+  const days = d.length === 7 ? 'Каждый день' : parts.join(', ');
+  return `${days} ${v.from}–${v.to}${v.note ? ` · ${v.note}` : ''}`;
+}
 // ---- «Закупки»: suppliers and orders to them ---------------------------------------------------------------------------------
 export const supplierSchema = z.object({
   name: z.string().trim().min(2).max(120),

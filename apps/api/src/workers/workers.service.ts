@@ -22,6 +22,7 @@ import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { FilesService } from '../files/files.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { visitTimeView } from './visit-time';
 import { PrismaService } from '../prisma/prisma.module';
 
 /** An invitation link stays valid a week; after that staff simply creates a new one. */
@@ -69,7 +70,7 @@ export class WorkersService {
     // her personal QR (M2 §13): opaque code only, so staff can show/print it — resolving it is scope-checked exactly like this route.
     const qr = await this.prisma.qrEntity.findFirst({ where: { workerId: id, type: 'WORKER', revokedAt: null }, orderBy: { createdAt: 'desc' } });
     return {
-      ...this.adminDto(w), collaterals: w.collaterals.map((c) => this.collateralBrief(c)), notes: w.notes,
+      ...this.adminDto(w), ...visitTimeView(w.visitTime), collaterals: w.collaterals.map((c) => this.collateralBrief(c)), notes: w.notes,
       approvedAt: w.approvedAt?.toISOString() ?? null, rejectedReason: w.rejectedReason, telegramLinked: true, qrCode: qr?.code ?? null,
     };
   }
@@ -79,7 +80,7 @@ export class WorkersService {
     if (!user.workerId) throw notFound('Worker profile');
     const w = await this.load(user.workerId);
     return {
-      id: w.id, code: w.code, fullName: w.fullName, phone: w.phone, secondaryPhone: w.secondaryPhone, status: w.status,
+      id: w.id, code: w.code, fullName: w.fullName, phone: w.phone, secondaryPhone: w.secondaryPhone, status: w.status, ...visitTimeView(w.visitTime),
       balance: money(w.balance), collaterals: w.collaterals.map((c) => this.collateralBrief(c)),
     };
   }

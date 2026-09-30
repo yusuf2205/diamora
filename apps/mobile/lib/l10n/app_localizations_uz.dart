@@ -2725,4 +2725,57 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get assignSuggestTitle =>
       'Avval — kimga berish yaxshiroq (bo\'sh, tez, nuqsonsiz, o\'z vaqtida)';
+
+  @override
+  String get visitTimeTitle => 'Qachon kelishlari qulay';
+
+  @override
+  String get visitTimeShort => 'Qulay';
+
+  @override
+  String get visitTimeNotSet => 'Ko\'rsatilmagan — kun va soatlarni tanlang';
+
+  @override
+  String get visitTimeHint =>
+      'Menejer bu vaqtni ko\'radi va materiallarni sizga qulay vaqtda olib keladi.';
+
+  @override
+  String get visitFrom => 'dan';
+
+  @override
+  String get visitTo => 'gacha';
+
+  @override
+  String get visitTimeOrder =>
+      'Boshlanish vaqti tugashdan oldin bo\'lishi kerak';
+
+  @override
+  String get visitTimeNote => 'Izoh (ixtiyoriy)';
+
+  @override
+  String get visitTimeNoteHint => 'masalan: oldindan qo\'ng\'iroq qiling';
+
+  @override
+  String get visitTimeClear => 'Vaqtni olib tashlash';
+
+  @override
+  String get dayMon => 'Du';
+
+  @override
+  String get dayTue => 'Se';
+
+  @override
+  String get dayWed => 'Ch';
+
+  @override
+  String get dayThu => 'Pa';
+
+  @override
+  String get dayFri => 'Ju';
+
+  @override
+  String get daySat => 'Sh';
+
+  @override
+  String get daySun => 'Ya';
 }

@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 /// A place to drive to (a worker's home or live position).
 class RouteStop {
-  const RouteStop({required this.id, required this.name, required this.lat, required this.lng, this.note});
+  const RouteStop({required this.id, required this.name, required this.lat, required this.lng, this.note, this.visit});
+  /// «Удобное время» in words
+  final String? visit;
   final String id;
   final String name;
   final double lat;

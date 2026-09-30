@@ -7,6 +7,7 @@ import { AlertsApiModule } from './alerts/alerts.service';
 import { GoalsModule } from './goals/goals.service';
 import { OrdersModule } from './orders/orders.service';
 import { PurchasesModule } from './purchases/purchases.service';
+import { VisitTimeModule } from './workers/visit-time';
 import { AssignmentsModule } from './assignments/assignments.service';
 import { JobRequestsModule } from './job-requests/job-requests.service';
 import { AppNotificationsApiModule, AppNotifierModule } from './notifications/app-notifier';
@@ -77,7 +78,7 @@ class RequestMiddleware implements NestMiddleware {
       inject: [ENV],
       useFactory: (env: Env) => ({ throttlers: [{ name: 'default', ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE }], skipIf: () => !env.RATE_LIMIT_ENABLED }),
     }),
-    AlertsApiModule, GoalsModule, OrdersModule, PurchasesModule,
+    AlertsApiModule, GoalsModule, OrdersModule, PurchasesModule, VisitTimeModule,
     PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
     UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,

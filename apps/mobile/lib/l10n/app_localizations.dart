@@ -5109,6 +5109,108 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сначала — кому лучше дать (свободна, быстро, без брака, вовремя)'**
   String get assignSuggestTitle;
+
+  /// No description provided for @visitTimeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Когда удобно, чтобы приезжали'**
+  String get visitTimeTitle;
+
+  /// No description provided for @visitTimeShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удобно'**
+  String get visitTimeShort;
+
+  /// No description provided for @visitTimeNotSet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не указано — нажмите, чтобы выбрать дни и часы'**
+  String get visitTimeNotSet;
+
+  /// No description provided for @visitTimeHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Менеджер увидит это время и будет привозить материалы и забирать работу, когда вам удобно.'**
+  String get visitTimeHint;
+
+  /// No description provided for @visitFrom.
+  ///
+  /// In ru, this message translates to:
+  /// **'с'**
+  String get visitFrom;
+
+  /// No description provided for @visitTo.
+  ///
+  /// In ru, this message translates to:
+  /// **'до'**
+  String get visitTo;
+
+  /// No description provided for @visitTimeOrder.
+  ///
+  /// In ru, this message translates to:
+  /// **'«С» должно быть раньше, чем «до»'**
+  String get visitTimeOrder;
+
+  /// No description provided for @visitTimeNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пометка (необязательно)'**
+  String get visitTimeNote;
+
+  /// No description provided for @visitTimeNoteHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'например: звонить заранее, 3-й подъезд'**
+  String get visitTimeNoteHint;
+
+  /// No description provided for @visitTimeClear.
+  ///
+  /// In ru, this message translates to:
+  /// **'Убрать время'**
+  String get visitTimeClear;
+
+  /// No description provided for @dayMon.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пн'**
+  String get dayMon;
+
+  /// No description provided for @dayTue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вт'**
+  String get dayTue;
+
+  /// No description provided for @dayWed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ср'**
+  String get dayWed;
+
+  /// No description provided for @dayThu.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чт'**
+  String get dayThu;
+
+  /// No description provided for @dayFri.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пт'**
+  String get dayFri;
+
+  /// No description provided for @daySat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сб'**
+  String get daySat;
+
+  /// No description provided for @daySun.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вс'**
+  String get daySun;
 }
 
 class _AppLocalizationsDelegate

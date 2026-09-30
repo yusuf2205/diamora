@@ -67,6 +67,7 @@ abstract class Worker with _$Worker {
     String? notes,
     String? rejectedReason,
     String? qrCode, // her personal QR (M2 §13), detail only
+    String? visitText, // «Удобное время»: «Пн–Пт 10:00–18:00 · звонить заранее»
   }) = _Worker;
 
   factory Worker.fromJson(Map<String, dynamic> json) => _$WorkerFromJson(json);

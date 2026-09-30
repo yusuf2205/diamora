@@ -38,7 +38,7 @@ const workColor = (r: LiveLocation) => (r.work?.overdue ? WORK_COLOR.overdue : r
 /** A worker's home (no live position) as a map row, so both kinds of points go through the same filters. */
 const homeRow = (h: HomePoint): LiveLocation => ({
   userId: `home-${h.worker.id}`, role: 'WORKER', fullName: h.worker.fullName, phone: h.worker.phone, online: false,
-  worker: { id: h.worker.id, code: h.worker.code, phone: h.worker.phone, managerId: h.worker.managerId },
+  worker: { id: h.worker.id, code: h.worker.code, phone: h.worker.phone, managerId: h.worker.managerId, visitText: h.worker.visitText ?? null },
   latitude: h.latitude, longitude: h.longitude, accuracy: null, recordedAt: '', ageSeconds: 0, freshness: 'RECENT', stale: false, isBackground: false,
   work: h.work, isHome: true,
 });
@@ -207,6 +207,7 @@ function DetailSheet({ row, canHide, onClose }: { row: LiveLocation; canHide: bo
           </>
         )}
         {row.work?.toDeliver && <p style={{ color: WORK_COLOR.toDeliver }}>● Ждёт доставку</p>}
+        {row.worker?.visitText && <p className="font-medium">🕒 Удобно: {row.worker.visitText}</p>}
         {row.work?.toPickup && <p style={{ color: WORK_COLOR.toPickup }}>● Работа готова — можно забирать</p>}
         {row.work?.overdue && <p style={{ color: WORK_COLOR.overdue }}>● Срок прошёл</p>}
         {row.phone && <p><span className="text-muted">Телефон: </span><a className="text-primary" href={`tel:${row.phone}`}>{row.phone}</a></p>}

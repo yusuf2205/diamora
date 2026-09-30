@@ -2754,4 +2754,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assignSuggestTitle =>
       'Best choice first (free, fast, no defects, on time)';
+
+  @override
+  String get visitTimeTitle => 'When staff may come';
+
+  @override
+  String get visitTimeShort => 'Best time';
+
+  @override
+  String get visitTimeNotSet => 'Not set - tap to choose days and hours';
+
+  @override
+  String get visitTimeHint =>
+      'Your manager sees this and comes when it suits you.';
+
+  @override
+  String get visitFrom => 'from';
+
+  @override
+  String get visitTo => 'to';
+
+  @override
+  String get visitTimeOrder => '«From» must be before «to»';
+
+  @override
+  String get visitTimeNote => 'Note (optional)';
+
+  @override
+  String get visitTimeNoteHint => 'e.g. call first';
+
+  @override
+  String get visitTimeClear => 'Clear';
+
+  @override
+  String get dayMon => 'Mon';
+
+  @override
+  String get dayTue => 'Tue';
+
+  @override
+  String get dayWed => 'Wed';
+
+  @override
+  String get dayThu => 'Thu';
+
+  @override
+  String get dayFri => 'Fri';
+
+  @override
+  String get daySat => 'Sat';
+
+  @override
+  String get daySun => 'Sun';
 }

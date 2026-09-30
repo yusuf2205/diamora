@@ -1,5 +1,5 @@
 /** A place to drive to (a worker's home or live position). */
-export interface RouteStop { id: string; name: string; lat: number; lng: number; note?: string }
+export interface RouteStop { id: string; name: string; lat: number; lng: number; note?: string; visit?: string | null }
 type Pt = { lat: number; lng: number };
 
 /** Straight-line km: enough to ORDER stops in one city; the map app then drives the real roads. */

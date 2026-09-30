@@ -865,5 +865,22 @@
   "offlineKindReceive": "ishni qabul qilish",
   "offlineScanNoInternet": "Internet yo'q. Saqlash mumkin — aloqa paydo bo'lganda ish qabul qilinadi.",
   "offlineScanSave": "Saqlash va keyinroq qabul qilish",
-  "assignSuggestTitle": "Avval — kimga berish yaxshiroq (bo'sh, tez, nuqsonsiz, o'z vaqtida)"
+  "assignSuggestTitle": "Avval — kimga berish yaxshiroq (bo'sh, tez, nuqsonsiz, o'z vaqtida)",
+  "visitTimeTitle": "Qachon kelishlari qulay",
+  "visitTimeShort": "Qulay",
+  "visitTimeNotSet": "Ko'rsatilmagan — kun va soatlarni tanlang",
+  "visitTimeHint": "Menejer bu vaqtni ko'radi va materiallarni sizga qulay vaqtda olib keladi.",
+  "visitFrom": "dan",
+  "visitTo": "gacha",
+  "visitTimeOrder": "Boshlanish vaqti tugashdan oldin bo'lishi kerak",
+  "visitTimeNote": "Izoh (ixtiyoriy)",
+  "visitTimeNoteHint": "masalan: oldindan qo'ng'iroq qiling",
+  "visitTimeClear": "Vaqtni olib tashlash",
+  "dayMon": "Du",
+  "dayTue": "Se",
+  "dayWed": "Ch",
+  "dayThu": "Pa",
+  "dayFri": "Ju",
+  "daySat": "Sh",
+  "daySun": "Ya"
 }
