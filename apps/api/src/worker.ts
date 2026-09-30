@@ -11,6 +11,7 @@ import { AppNotifier } from './notifications/app-notifier';
 import { MaintenanceService } from './worker/maintenance';
 import { OutboxSender } from './worker/outbox';
 import { ReleaseWatcher } from './worker/release-watcher';
+import { AlertsService } from './alerts/alerts.service';
 import { TelegramBot } from './worker/telegram-bot';
 import { WorkerModule } from './worker/worker.module';
 
@@ -45,6 +46,14 @@ async function main() {
   const release = app.get(ReleaseWatcher);
   timers.push(setInterval(() => void release.tick().catch((e) => log.error(`release: ${e.message}`)), 30_000));
   void release.tick().catch(() => undefined);
+  // owner alerts in Telegram: «снова работает, был недоступен N мин» after a down time; «мало места» once a day
+  if (bot.enabled) {
+    const alerts = app.get(AlertsService);
+    void alerts.onStart(bot).catch((e) => log.error(`alerts: ${e.message}`));
+    timers.push(setInterval(() => void alerts.beat().catch(() => undefined), 60_000));
+    timers.push(setInterval(() => void alerts.checkDisk(bot).catch((e) => log.error(`disk: ${e.message}`)), 60 * 60_000));
+    void alerts.checkDisk(bot).catch(() => undefined);
+  }
 
   // liveness for the Docker health check (internal network only)
   const server = createServer(async (req, res) => {

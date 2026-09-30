@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Bot, type Context } from 'grammy';
 import { ENV, Env } from '../config/env';
+import { ALERT_PREFIX, AlertsService } from '../alerts/alerts.service';
 import { RegistrationService, type BotInput } from '../registration/registration.service';
 import { parseAction, render, type BotKeyboard } from '../registration/texts';
 import type { TelegramSender } from './outbox';
@@ -23,7 +24,7 @@ export class TelegramBot implements TelegramSender {
   private readonly log = new Logger('TelegramBot');
   private bot?: Bot;
 
-  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService) {}
+  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService) {}
 
   get enabled() { return !!this.env.TELEGRAM_BOT_TOKEN; }
 
@@ -44,7 +45,15 @@ export class TelegramBot implements TelegramSender {
       await ctx.reply(r.text, { reply_markup: toMarkup(r.keyboard) });
     };
 
-    bot.command('start', (ctx) => handle(ctx, { kind: 'command', command: 'start', payload: ctx.match ? String(ctx.match) : undefined }));
+    bot.command('start', async (ctx) => {
+      const payload = ctx.match ? String(ctx.match) : undefined;
+      // an admin linking this chat for owner alerts - not a worker registration
+      if (payload?.startsWith(ALERT_PREFIX) && ctx.chat?.type === 'private') {
+        await ctx.reply(await this.alerts.completeLink(payload.slice(ALERT_PREFIX.length), BigInt(ctx.chat.id)));
+        return;
+      }
+      return handle(ctx, { kind: 'command', command: 'start', payload });
+    });
     bot.command('cancel', (ctx) => handle(ctx, { kind: 'command', command: 'cancel' }));
     bot.on('message:contact', (ctx) => handle(ctx, { kind: 'contact', phone: ctx.message.contact.phone_number, contactUserId: ctx.message.contact.user_id ?? null }));
     bot.on('message:location', (ctx) => handle(ctx, { kind: 'location', latitude: ctx.message.location.latitude, longitude: ctx.message.location.longitude }));

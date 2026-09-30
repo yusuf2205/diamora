@@ -1,0 +1,13 @@
+# Outside watchdog for Diamoraa (Cloudflare Workers, free plan). Deploy: see README.md in this folder.
+name = "diamoraa-watchdog"
+main = "worker.mjs"
+compatibility_date = "2026-09-01"
+
+[triggers]
+crons = ["*/2 * * * *"]
+
+# the last known state (how many checks failed, since when, whether the owner was told); create with
+#   npx wrangler kv namespace create STATE   and paste the id below
+[[kv_namespaces]]
+binding = "STATE"
+id = "PASTE_KV_ID_HERE"

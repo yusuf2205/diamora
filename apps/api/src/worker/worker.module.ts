@@ -12,13 +12,14 @@ import { StorageModule } from '../storage/storage.module';
 import { MaintenanceService } from './maintenance';
 import { OutboxSender } from './outbox';
 import { ReleaseWatcher } from './release-watcher';
+import { AlertsModule } from '../alerts/alerts.service';
 import { TelegramBot } from './telegram-bot';
 
 /** The `worker` container: Telegram bot + outbox delivery + maintenance. Same code base as the API, no HTTP business surface. */
 import { AppNotifierModule } from '../notifications/app-notifier';
 
 @Module({
-  imports: [EnvModule, PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, FilesModule, RegistrationModule, AppNotifierModule],
+  imports: [EnvModule, PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, FilesModule, RegistrationModule, AppNotifierModule, AlertsModule],
   providers: [AppLogger, TelegramBot, OutboxSender, MaintenanceService, ReleaseWatcher],
 })
 export class WorkerModule {}

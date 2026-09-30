@@ -8,6 +8,7 @@ import { roleLabel } from '@/lib/format';
 import { Button, Card, ErrorState, Field, Input, PageHeader } from '@/components/ui';
 import { OwnNameForm } from '@/components/own-name-form';
 import { MyProfileModal, PersonAvatar } from '@/components/chat-extras';
+import { TelegramAlertsCard } from '@/components/telegram-alerts';
 
 /** «Мой профиль»: who I am, my own name and my own password. Changing it signs out my OTHER devices; this one stays signed in. */
 export default function ProfilePage() {
@@ -39,6 +40,7 @@ export default function ProfilePage() {
       </Card>
       {card && <MyProfileModal onClose={() => setCard(false)} />}
       <OwnNameForm fullName={me?.fullName} invalidate={[['me']]} />
+      {(me?.role === 'SUPER_ADMIN' || me?.role === 'ADMIN') && <TelegramAlertsCard />}
       <Card className="space-y-3">
         <h2 className="font-medium">Сменить пароль</h2>
         <Field label="Текущий пароль" htmlFor="pw-cur"><Input id="pw-cur" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>

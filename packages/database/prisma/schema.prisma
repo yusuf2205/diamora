@@ -176,6 +176,8 @@ model User {
   avatarFileId   String?    @db.Uuid
   bio            String?
   username       String?    @unique
+  /// staff: the Telegram chat that gets owner alerts («сервер не отвечает», «снова работает», «мало места»)
+  alertChatId    BigInt?
   createdAt      DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
 
