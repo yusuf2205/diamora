@@ -842,5 +842,15 @@
   "goalProgress": "{goal} m dan {done} m",
   "goalLeft": "Yana {left} m · oy oxirigacha {days} kun",
   "goalDone": "Maqsad bajarildi! Rahmat 🎉",
-  "goalNoGoal": "Bu oy qabul qilindi: {done} m"
+  "goalNoGoal": "Bu oy qabul qilindi: {done} m",
+  "routeTitle": "Marshrut",
+  "routeReady": "Marshrut: {count} ta bekat, ≈ {km} km",
+  "routeBuild": "Marshrut tuzish ({count})",
+  "routeOpenYandex": "Yandex Xaritada ochish",
+  "routeChange": "Ro'yxatni o'zgartirish",
+  "routeToPickup": "ishni olib ketish",
+  "routeToDeliver": "materiallarni olib borish",
+  "routeOverdue": "muddati o'tgan",
+  "routeNobody": "Xaritada hali ustalar yo'q.",
+  "routeNoStart": "Joylashuvingiz aniqlanmadi — marshrut birinchi nuqtadan boshlanadi."
 }

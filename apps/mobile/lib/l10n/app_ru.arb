@@ -897,5 +897,17 @@
   "@goalLeft": {"placeholders": {"left": {"type": "String"}, "days": {"type": "int"}}},
   "goalDone": "Цель выполнена! Спасибо за работу 🎉",
   "goalNoGoal": "Принято в этом месяце: {done} м",
-  "@goalNoGoal": {"placeholders": {"done": {"type": "String"}}}
+  "@goalNoGoal": {"placeholders": {"done": {"type": "String"}}},
+  "routeTitle": "Маршрут",
+  "routeReady": "Маршрут: {count} остановок, ≈ {km} км",
+  "@routeReady": {"placeholders": {"count": {"type": "int"}, "km": {"type": "String"}}},
+  "routeBuild": "Построить маршрут ({count})",
+  "@routeBuild": {"placeholders": {"count": {"type": "int"}}},
+  "routeOpenYandex": "Открыть в Яндекс Картах",
+  "routeChange": "Изменить список",
+  "routeToPickup": "забрать работу",
+  "routeToDeliver": "отвезти материалы",
+  "routeOverdue": "просрочено",
+  "routeNobody": "На карте пока нет мастериц.",
+  "routeNoStart": "Ваше место не определилось — маршрут начнётся от первой точки."
 }

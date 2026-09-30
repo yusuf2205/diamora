@@ -2670,4 +2670,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String goalNoGoal(String done) {
     return 'Accepted this month: $done m';
   }
+
+  @override
+  String get routeTitle => 'Route';
+
+  @override
+  String routeReady(int count, String km) {
+    return 'Route: $count stops, ≈ $km km';
+  }
+
+  @override
+  String routeBuild(int count) {
+    return 'Plan the route ($count)';
+  }
+
+  @override
+  String get routeOpenYandex => 'Open in Yandex Maps';
+
+  @override
+  String get routeChange => 'Change the list';
+
+  @override
+  String get routeToPickup => 'collect work';
+
+  @override
+  String get routeToDeliver => 'deliver materials';
+
+  @override
+  String get routeOverdue => 'overdue';
+
+  @override
+  String get routeNobody => 'No workers on the map yet.';
+
+  @override
+  String get routeNoStart =>
+      'Your location is unknown - the route starts at the first stop.';
 }

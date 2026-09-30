@@ -811,5 +811,15 @@
   "goalProgress": "{done} of {goal} m",
   "goalLeft": "{left} m to go · {days} days left",
   "goalDone": "Goal reached! Thank you 🎉",
-  "goalNoGoal": "Accepted this month: {done} m"
+  "goalNoGoal": "Accepted this month: {done} m",
+  "routeTitle": "Route",
+  "routeReady": "Route: {count} stops, ≈ {km} km",
+  "routeBuild": "Plan the route ({count})",
+  "routeOpenYandex": "Open in Yandex Maps",
+  "routeChange": "Change the list",
+  "routeToPickup": "collect work",
+  "routeToDeliver": "deliver materials",
+  "routeOverdue": "overdue",
+  "routeNobody": "No workers on the map yet.",
+  "routeNoStart": "Your location is unknown - the route starts at the first stop."
 }

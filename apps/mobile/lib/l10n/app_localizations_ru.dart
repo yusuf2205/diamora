@@ -2683,4 +2683,39 @@ class AppLocalizationsRu extends AppLocalizations {
   String goalNoGoal(String done) {
     return 'Принято в этом месяце: $done м';
   }
+
+  @override
+  String get routeTitle => 'Маршрут';
+
+  @override
+  String routeReady(int count, String km) {
+    return 'Маршрут: $count остановок, ≈ $km км';
+  }
+
+  @override
+  String routeBuild(int count) {
+    return 'Построить маршрут ($count)';
+  }
+
+  @override
+  String get routeOpenYandex => 'Открыть в Яндекс Картах';
+
+  @override
+  String get routeChange => 'Изменить список';
+
+  @override
+  String get routeToPickup => 'забрать работу';
+
+  @override
+  String get routeToDeliver => 'отвезти материалы';
+
+  @override
+  String get routeOverdue => 'просрочено';
+
+  @override
+  String get routeNobody => 'На карте пока нет мастериц.';
+
+  @override
+  String get routeNoStart =>
+      'Ваше место не определилось — маршрут начнётся от первой точки.';
 }

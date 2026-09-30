@@ -23,6 +23,7 @@ import '../team/models.dart';
 import '../auth/auth_controller.dart';
 import '../team/team_repository.dart' show liveLocationsProvider, managersProvider;
 import '../team/team_screen.dart' show teamRoleLabel;
+import 'route_sheet.dart';
 
 /// What is waiting there wins (red overdue, green ready to collect, blue to deliver); otherwise role first (who),
 /// freshness second (how current) — never a STALE point drawn as if it were live (M2 §14-17).
@@ -209,6 +210,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   onTraffic: _toggleTraffic,
                   onShowAll: () => _showAll(_shown),
                   onTilt: _toggleTilt,
+                  onRoute: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => RouteSheet(rows: _shown)),
                   bottomInset: _selected != null && MediaQuery.sizeOf(context).width < 600 ? 250 : 0,
                 ),
               ),
@@ -482,6 +484,7 @@ class MapControls extends StatelessWidget {
     required this.onTraffic,
     required this.onShowAll,
     required this.onTilt,
+    this.onRoute,
     this.bottomInset = 0,
   });
   final double azimuth;
@@ -493,6 +496,8 @@ class MapControls extends StatelessWidget {
   final VoidCallback onTraffic;
   final VoidCallback onShowAll;
   final VoidCallback onTilt;
+  /// «Маршрут»: the round of pickups / deliveries
+  final VoidCallback? onRoute;
   /// room for the person's card at the bottom (phones)
   final double bottomInset;
 
@@ -509,6 +514,10 @@ class MapControls extends StatelessWidget {
           MapButton(key: const Key('mapShowAll'), tooltip: l.mapShowAll, icon: Icons.groups_rounded, onTap: onShowAll),
           const SizedBox(height: 10),
           MapButton(key: const Key('mapTilt'), tooltip: l.map3d, label: tilted ? '2D' : '3D', active: tilted, onTap: onTilt),
+          if (onRoute != null) ...[
+            const SizedBox(height: 10),
+            MapButton(key: const Key('mapRoute'), tooltip: l.routeTitle, icon: Icons.route_rounded, onTap: onRoute!),
+          ],
         ]),
       ),
       Positioned(

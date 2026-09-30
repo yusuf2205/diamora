@@ -2641,4 +2641,39 @@ class AppLocalizationsUz extends AppLocalizations {
   String goalNoGoal(String done) {
     return 'Bu oy qabul qilindi: $done m';
   }
+
+  @override
+  String get routeTitle => 'Marshrut';
+
+  @override
+  String routeReady(int count, String km) {
+    return 'Marshrut: $count ta bekat, ≈ $km km';
+  }
+
+  @override
+  String routeBuild(int count) {
+    return 'Marshrut tuzish ($count)';
+  }
+
+  @override
+  String get routeOpenYandex => 'Yandex Xaritada ochish';
+
+  @override
+  String get routeChange => 'Ro\'yxatni o\'zgartirish';
+
+  @override
+  String get routeToPickup => 'ishni olib ketish';
+
+  @override
+  String get routeToDeliver => 'materiallarni olib borish';
+
+  @override
+  String get routeOverdue => 'muddati o\'tgan';
+
+  @override
+  String get routeNobody => 'Xaritada hali ustalar yo\'q.';
+
+  @override
+  String get routeNoStart =>
+      'Joylashuvingiz aniqlanmadi — marshrut birinchi nuqtadan boshlanadi.';
 }

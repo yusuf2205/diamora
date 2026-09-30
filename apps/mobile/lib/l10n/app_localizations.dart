@@ -4971,6 +4971,66 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Принято в этом месяце: {done} м'**
   String goalNoGoal(String done);
+
+  /// No description provided for @routeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Маршрут'**
+  String get routeTitle;
+
+  /// No description provided for @routeReady.
+  ///
+  /// In ru, this message translates to:
+  /// **'Маршрут: {count} остановок, ≈ {km} км'**
+  String routeReady(int count, String km);
+
+  /// No description provided for @routeBuild.
+  ///
+  /// In ru, this message translates to:
+  /// **'Построить маршрут ({count})'**
+  String routeBuild(int count);
+
+  /// No description provided for @routeOpenYandex.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в Яндекс Картах'**
+  String get routeOpenYandex;
+
+  /// No description provided for @routeChange.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить список'**
+  String get routeChange;
+
+  /// No description provided for @routeToPickup.
+  ///
+  /// In ru, this message translates to:
+  /// **'забрать работу'**
+  String get routeToPickup;
+
+  /// No description provided for @routeToDeliver.
+  ///
+  /// In ru, this message translates to:
+  /// **'отвезти материалы'**
+  String get routeToDeliver;
+
+  /// No description provided for @routeOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'просрочено'**
+  String get routeOverdue;
+
+  /// No description provided for @routeNobody.
+  ///
+  /// In ru, this message translates to:
+  /// **'На карте пока нет мастериц.'**
+  String get routeNobody;
+
+  /// No description provided for @routeNoStart.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваше место не определилось — маршрут начнётся от первой точки.'**
+  String get routeNoStart;
 }
 
 class _AppLocalizationsDelegate
