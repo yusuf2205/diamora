@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- referenced by name from Dart (flutter_local_notifications): resource shrinking must keep them -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ic_stat_diamoraa,@drawable/ic_launcher_foreground" />

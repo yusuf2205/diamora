@@ -53,7 +53,9 @@ const _prefForeground = 'app.foregroundAt';
 const _taskName = 'diamoraa.notices';
 final _plugin = FlutterLocalNotificationsPlugin();
 const _details = NotificationDetails(
-  android: AndroidNotificationDetails('diamoraa_main', 'Diamoraa', channelDescription: 'Работа, выплаты, склад', importance: Importance.high, priority: Priority.high, onlyAlertOnce: true),
+  android: AndroidNotificationDetails('diamoraa_main', 'Diamoraa', channelDescription: 'Работа, выплаты, склад', importance: Importance.high, priority: Priority.high, onlyAlertOnce: true,
+      // a big diamond in the brand colour (not the launcher foreground: its safe margins made it tiny)
+      icon: '@drawable/ic_stat_diamoraa', color: Color(0xFFA3324F)),
 );
 
 bool get _supported => !kIsWeb && Platform.isAndroid;
@@ -65,11 +67,11 @@ Future<void> initSystemNotifications({bool background = false}) async {
   if (!_supported) return;
   if (background) {
     // a push arrived while the app is closed: just be able to show it (taps are handled when the app opens)
-    await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')));
+    await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_stat_diamoraa')));
     return;
   }
   await _plugin.initialize(
-    settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')),
+    settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_stat_diamoraa')),
     onDidReceiveNotificationResponse: (r) { final link = r.payload; if (link != null && link.isNotEmpty) onNoticeTap?.call(link); },
   );
   final launch = await _plugin.getNotificationAppLaunchDetails();
@@ -99,7 +101,7 @@ void noticesCallbackDispatcher() {
       final since = prefs.getString(_prefSince) ?? DateTime.now().subtract(const Duration(minutes: 20)).toUtc().toIso8601String();
       final j = await api.getJson('/me/notifications', query: {'since': since, 'limit': 20});
       final items = ((j['items'] as List?) ?? const []).map((x) => AppNotice.fromJson((x as Map).cast<String, dynamic>())).toList();
-      await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_launcher_foreground')));
+      await _plugin.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_stat_diamoraa')));
       for (final n in items.reversed.where((n) => !n.read)) {
         await showSystemNotice(id: n.id, title: n.title, body: n.body, link: n.link);
       }

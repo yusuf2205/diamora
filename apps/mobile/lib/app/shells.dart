@@ -128,8 +128,9 @@ class AdaptiveShell extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.primary,
           shape: BoxShape.circle,
-          border: selected ? Border.all(color: scheme.primaryContainer, width: 3) : null,
-          boxShadow: [BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))],
+          // flat: no drop shadow and no highlight pill behind it (they looked like a smudge, owner 2026-10-01);
+          // open = a white ring inside the circle
+          border: selected ? Border.all(color: scheme.onPrimary, width: 2.5) : null,
         ),
         child: Icon(icon, color: scheme.onPrimary, size: 24),
       ),
@@ -147,8 +148,7 @@ class AdaptiveShell extends StatelessWidget {
     Widget button({required Widget child, required EdgeInsets padding, required BorderRadius radius}) => Material(
           key: const Key('railChat'),
           color: bg,
-          elevation: open ? 0 : 3,
-          shadowColor: scheme.primary.withValues(alpha: 0.4),
+          elevation: 0,
           borderRadius: radius,
           child: InkWell(
             borderRadius: radius,
@@ -195,6 +195,8 @@ class AdaptiveShell extends StatelessWidget {
         bottomNavigationBar: NavigationBar(
           selectedIndex: shell.currentIndex,
           onDestinationSelected: _go,
+          // the round chat button is its own highlight: no pill behind it
+          indicatorColor: shell.currentIndex == chatIndex ? Colors.transparent : null,
           labelBehavior: width < 400 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             for (final (i, d) in destinations.indexed)

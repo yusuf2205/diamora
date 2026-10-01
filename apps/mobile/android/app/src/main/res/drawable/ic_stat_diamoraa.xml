@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar / notification icon: the Diamoraa diamond filling the whole 24dp canvas (Android draws only its
+     shape, tinted). The launcher foreground has the adaptive-icon safe margins and looked tiny here. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M4.54,3.48 L19.46,3.48 L22.00,8.83 L12.00,20.52 L2.00,8.83 Z M2.00,8.83 L22.00,8.83 M9.61,3.48 L8.41,8.83 M14.39,3.48 L15.59,8.83 M12.00,8.83 L12.00,17.42"
+        android:strokeColor="#FFFFFFFF" android:strokeWidth="2.1"
+        android:strokeLineJoin="miter" android:strokeLineCap="square" android:fillColor="#00000000"/>
+</vector>
