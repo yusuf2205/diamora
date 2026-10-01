@@ -29,11 +29,11 @@ async function main() {
   const prisma = app.get(PrismaService);
 
   if (bot.enabled) await bot.start();
+  else if (env.NODE_ENV === 'production') throw new Error('TELEGRAM_BOT_TOKEN is required in production');
+  else log.warn('TELEGRAM_BOT_TOKEN not set: bot and outbox delivery are disabled (development)');
   // the customers' bot: optional; a failure here never stops the workers' bot
   const shopBot = app.get(ShopBot);
   if (shopBot.enabled && bot.enabled) await shopBot.start(bot).catch((e) => log.error(`shop bot: ${e.message}`));
-  else if (env.NODE_ENV === 'production') throw new Error('TELEGRAM_BOT_TOKEN is required in production');
-  else log.warn('TELEGRAM_BOT_TOKEN not set: bot and outbox delivery are disabled (development)');
 
   const timers: NodeJS.Timeout[] = [];
   let lastTick = Date.now();
