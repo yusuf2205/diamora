@@ -70,7 +70,7 @@ describe('user card: the SUPER_ADMIN sets a chosen password and decides map visi
 });
 
 describe('two front doors: diamoraa.uz for workers, the panel on its own host', () => {
-  afterEach(() => { delete process.env.ADMIN_HOST; });
+  afterEach(() => { delete process.env.ADMIN_HOST; delete process.env.SHOP_HOST; });
   const at = (url: string) => proxy(new NextRequest(url, { headers: { host: new URL(url).host } }));
 
   it('without ADMIN_HOST nothing moves (nobody is locked out before the subdomain exists)', () => {
@@ -86,5 +86,18 @@ describe('two front doors: diamoraa.uz for workers, the panel on its own host', 
     expect(at('https://admin.diamoraa.uz/login').headers.get('location')).toBeNull();
     // customer orders are taken by staff in the panel only (owner, 2026-10-01): nothing of it on the main domain
     expect(at('https://diamoraa.uz/orders').headers.get('location')).toBe('https://admin.diamoraa.uz/orders');
+  });
+
+  it('with SHOP_HOST: customers see only the shop there; the shop never opens on the other hosts', () => {
+    process.env.ADMIN_HOST = 'admin.diamoraa.uz';
+    process.env.SHOP_HOST = 'shop.diamoraa.uz';
+    const root = at('https://shop.diamoraa.uz/');
+    expect(root.headers.get('location')).toBeNull();
+    expect(root.headers.get('x-middleware-rewrite')).toBe('https://shop.diamoraa.uz/shop');
+    expect(at('https://shop.diamoraa.uz/dashboard').headers.get('location')).toBe('https://shop.diamoraa.uz/');
+    expect(at('https://shop.diamoraa.uz/login').headers.get('location')).toBe('https://shop.diamoraa.uz/');
+    expect(at('https://diamoraa.uz/shop').headers.get('location')).toBe('https://shop.diamoraa.uz/');
+    expect(at('https://admin.diamoraa.uz/shop').headers.get('location')).toBe('https://shop.diamoraa.uz/');
+    delete process.env.SHOP_HOST;
   });
 });

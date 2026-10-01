@@ -87,6 +87,8 @@ export interface EventMap {
   /** a customer ordered from the form on diamoraa.uz */
   'client_order.created': { orderId: string; code: string; name: string };
   'client_order.updated': { orderId: string };
+  /** a customer wrote to the shop bot (not an order) */
+  'client_order.message': { from: string; text: string };
   /** «Закупки» changed (a supplier linked the bot, an order was sent): the page refetches */
   'purchase.updated': { purchaseId: string | null };
   /** the supplier pressed «Принял» / «Нет в наличии» under an order in Telegram */
@@ -179,6 +181,7 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'app.release': { staff: true, allWorkers: true },
   'client_order.created': { perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
   'client_order.updated': { perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
+  'client_order.message': { perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
   'purchase.updated': { perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   'purchase.replied': { perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
   'purchase.supplier_message': { perms: ['INVENTORY_VIEW', 'INVENTORY_MANAGE'] },

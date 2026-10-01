@@ -14,6 +14,7 @@ import { ReleaseWatcher } from './worker/release-watcher';
 import { AlertsService } from './alerts/alerts.service';
 import { GoalsService } from './goals/goals.service';
 import { TelegramBot } from './worker/telegram-bot';
+import { ShopBot } from './worker/shop-bot';
 import { WorkerModule } from './worker/worker.module';
 
 async function main() {
@@ -28,6 +29,9 @@ async function main() {
   const prisma = app.get(PrismaService);
 
   if (bot.enabled) await bot.start();
+  // the customers' bot: optional; a failure here never stops the workers' bot
+  const shopBot = app.get(ShopBot);
+  if (shopBot.enabled && bot.enabled) await shopBot.start(bot).catch((e) => log.error(`shop bot: ${e.message}`));
   else if (env.NODE_ENV === 'production') throw new Error('TELEGRAM_BOT_TOKEN is required in production');
   else log.warn('TELEGRAM_BOT_TOKEN not set: bot and outbox delivery are disabled (development)');
 
@@ -82,6 +86,7 @@ async function main() {
     timers.forEach(clearInterval);
     server.close();
     await bot.stop().catch(() => undefined);
+    await shopBot.stop().catch(() => undefined);
     await app.close();
     process.exit(0);
   };

@@ -228,6 +228,7 @@ services:
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       BACKUP_STATUS_DIR: /backup-status
       OFFSITE_USB_ROOT: /usb
+      SHOP_BOT_USERNAME: ${SHOP_BOT_USERNAME:-}
       APP_VERSION: ${APP_VERSION:-local}
       FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
       CHAT_UPLOAD_DIR: /uploads
@@ -282,6 +283,10 @@ services:
       S3_BUCKET_PREFIX: ${S3_BUCKET_PREFIX:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env (@BotFather)}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-diamora1_bot}
+      # the customers' bot (optional: empty = only the site takes orders)
+      SHOP_BOT_TOKEN: ${SHOP_BOT_TOKEN:-}
+      SHOP_BOT_USERNAME: ${SHOP_BOT_USERNAME:-}
+      SHOP_HOST: ${SHOP_HOST:-shop.diamoraa.uz}
       PUBLIC_API_URL: ${PUBLIC_URL:?set PUBLIC_URL in .env (no trailing slash)}
       WORKER_HEALTH_PORT: "3100"
       TZ: UTC
@@ -327,6 +332,8 @@ services:
       # staff panel host, e.g. admin.diamoraa.uz (empty = panel stays on the main domain; set it only once the
       # hostname exists in the Cloudflare tunnel, docs/NAS-DEPLOYMENT.md)
       ADMIN_HOST: ${ADMIN_HOST:-}
+      # the customers' shop (shop.diamoraa.uz): its root opens the catalog; empty = /shop on any host
+      SHOP_HOST: ${SHOP_HOST:-}
     networks: [edge]
     read_only: true
     tmpfs: [/tmp, /app/apps/web/.next/cache]

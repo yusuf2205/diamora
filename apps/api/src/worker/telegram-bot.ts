@@ -7,6 +7,7 @@ import { RegistrationService, type BotInput } from '../registration/registration
 import { parseAction, render, type BotKeyboard } from '../registration/texts';
 import { PO_CALLBACK, SUPPLIER_PREFIX, SupplierBot } from '../purchases/supplier-bot';
 import type { SendOptions, TelegramSender } from './outbox';
+import { ShopBot } from './shop-bot';
 
 const toMarkup = (k: BotKeyboard) => {
   if (k.type === 'remove') return { remove_keyboard: true as const };
@@ -26,11 +27,12 @@ export class TelegramBot implements TelegramSender {
   private readonly log = new Logger('TelegramBot');
   private bot?: Bot;
 
-  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot) {}
+  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot, private readonly shopBot: ShopBot) {}
 
   get enabled() { return !!this.env.TELEGRAM_BOT_TOKEN; }
 
   async send(chatId: bigint, text: string, opts?: SendOptions) {
+    if (opts?.via === 'shop') return this.shopBot.send(chatId, text); // customers only know the shop bot
     if (!this.bot) throw new Error('bot not started');
     const markup = opts?.buttons ? { inline_keyboard: opts.buttons.map((row) => row.map((b) => ({ text: b.text, callback_data: b.data }))) } : undefined;
     await this.bot.api.sendMessage(Number(chatId), text, markup ? { reply_markup: markup } : undefined);

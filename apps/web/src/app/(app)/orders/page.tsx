@@ -8,14 +8,15 @@ import { useAuth } from '@/lib/auth';
 import { formatDate } from '@/lib/format';
 import { Button, Card, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 
-interface Order { id: string; code: string; name: string; phone: string; product: { id: string; name: string } | null; colorName: string | null; quantity: number | null; comment: string | null; status: Status; staffNote: string | null; createdAt: string }
+interface Order { id: string; code: string; name: string; phone: string; product: { id: string; name: string } | null; colorName: string | null; quantity: number | null; comment: string | null; status: Status; staffNote: string | null; source: 'PANEL' | 'SITE' | 'BOT'; followsInBot: boolean; createdAt: string }
 type Status = 'NEW' | 'CONFIRMED' | 'IN_WORK' | 'DONE' | 'CANCELLED';
 
 const LABEL: Record<Status, string> = { NEW: 'Новые', CONFIRMED: 'Подтверждены', IN_WORK: 'В работе', DONE: 'Выполнены', CANCELLED: 'Отменены' };
 const ONE: Record<Status, string> = { NEW: 'Новый', CONFIRMED: 'Подтверждён', IN_WORK: 'В работе', DONE: 'Выполнен', CANCELLED: 'Отменён' };
+const SOURCE: Record<Order['source'], string> = { PANEL: '📞 записал сотрудник', SITE: '🌐 с сайта', BOT: '✈️ из Telegram' };
 const TONE: Record<Status, string> = { NEW: 'bg-primary text-white', CONFIRMED: 'bg-sky-100 text-sky-900', IN_WORK: 'bg-amber-100 text-amber-900', DONE: 'bg-emerald-100 text-emerald-900', CANCELLED: 'bg-border text-muted' };
 
-/** «Заказы клиентов»: what customers ordered on diamoraa.uz/order; call back and move it along. */
+/** «Заказы клиентов»: from shop.diamoraa.uz, the shop bot, or written down by staff; call back and move it along. */
 export default function OrdersPage() {
   const { me } = useAuth();
   const [status, setStatus] = useState<Status | ''>('NEW');
@@ -25,7 +26,7 @@ export default function OrdersPage() {
   const [adding, setAdding] = useState(false);
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Заказы клиентов" subtitle="Запишите заказ покупателя и отмечайте, на каком он этапе." actions={canManage && <Button onClick={() => setAdding(true)}>+ Новый заказ</Button>} />
+      <PageHeader title="Заказы клиентов" subtitle="Заказы с сайта shop.diamoraa.uz, из Telegram-бота и записанные вами. Отмечайте, на каком они этапе." actions={canManage && <Button onClick={() => setAdding(true)}>+ Новый заказ</Button>} />
       {adding && <NewOrderModal onClose={() => setAdding(false)} />}
       <div className="flex flex-wrap gap-2">
         {(['NEW', 'CONFIRMED', 'IN_WORK', 'DONE', 'CANCELLED', ''] as const).map((s) => (
@@ -57,6 +58,7 @@ function OrderCard({ order: o, canManage }: { order: Order; canManage: boolean }
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold">{o.name} <span className="text-sm font-normal text-muted">· {o.code} · {formatDate(o.createdAt)}</span></p>
+          <p className="text-xs text-muted">{SOURCE[o.source] ?? ''}{o.followsInBot ? ' · покупатель получает новости в Telegram' : ''}</p>
           <a href={`tel:${o.phone}`} className="inline-flex items-center gap-1.5 text-primary hover:underline"><Phone size={15} aria-hidden />{o.phone}</a>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-0.5 text-xs font-semibold ${TONE[o.status]}`}>{ONE[o.status]}</span>

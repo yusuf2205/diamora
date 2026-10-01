@@ -165,9 +165,13 @@ export class AppNotifier implements OnModuleInit {
       }
       case 'client_order.created': {
         await this.notify(await this.staffWith(['CATALOG_MANAGE']), {
-          type: e.type, title: `Новый заказ с сайта: ${d.name}`, body: `Заказ ${d.code} — откройте «Заказы клиентов» и позвоните покупателю`, link: '/admin/orders',
+          type: e.type, title: `Новый заказ: ${d.name}`, body: `Заказ ${d.code} — откройте «Заказы клиентов» и позвоните покупателю`, link: '/admin/orders',
           dedupe: `order:${d.orderId}`,
         });
+        return;
+      }
+      case 'client_order.message': {
+        await this.notify(await this.staffWith(['CATALOG_MANAGE']), { type: e.type, title: `Покупатель пишет: ${d.from}`, body: String(d.text), link: '/admin/orders' });
         return;
       }
       case 'purchase.replied': {

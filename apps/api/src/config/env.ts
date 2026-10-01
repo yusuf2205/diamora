@@ -50,6 +50,12 @@ export const envSchema = z
     TELEGRAM_BOT_TOKEN: z.string().optional(),
     /** public bot username (no @), used to build the /start deep link for WORKER Telegram-only login */
     TELEGRAM_BOT_USERNAME: z.string().default('diamora1_bot'),
+    /** the customers' own bot (owner, 2026-10-01: separate from the workers' bot); unset = no shop bot */
+    SHOP_BOT_TOKEN: z.string().optional(),
+    /** its public username (no @): «Следить за заказом в Telegram» on shop.diamoraa.uz */
+    SHOP_BOT_USERNAME: z.string().optional(),
+    /** the customers' site (the shop bot's «Открыть каталог») */
+    SHOP_HOST: z.string().default('shop.diamoraa.uz'),
     WORKER_HEALTH_PORT: z.coerce.number().int().default(3100),
     /** TTL for an app-initiated Telegram login session (time to finish /start + the questionnaire in Telegram) */
     TELEGRAM_LOGIN_SESSION_TTL_MINUTES: z.coerce.number().int().min(1).default(30),

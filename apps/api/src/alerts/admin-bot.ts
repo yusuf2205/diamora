@@ -70,7 +70,7 @@ export class AdminBot {
       `Принято: ${m(Number(inspected._sum.acceptedMeters ?? 0))}${Number(inspected._sum.defectiveMeters ?? 0) ? `, брак ${m(Number(inspected._sum.defectiveMeters))}` : ''}`,
       `Начислено мастерицам: ${sum(earned._sum.amount ?? 0n)}`,
       `Выплачено: ${sum(-(paid._sum.amount ?? 0n))}`,
-      `Заказов с сайта: ${orders}`,
+      `Новых заказов клиентов: ${orders}`,
     ].join('\n');
   }
 

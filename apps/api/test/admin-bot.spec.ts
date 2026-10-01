@@ -25,7 +25,7 @@ describe('admin bot menu', () => {
     const pub = await t.prisma.productModel.create({ data: { code: `B-${Math.random()}`, name: 'Лента для бота' } });
     await admin.api.post('/v1/admin/orders', { name: 'Камола', phone: '+998 90 555 44 33', productModelId: pub.id, quantity: 9 }).expect(201);
 
-    expect(await bot.answer('📊 Итоги дня')).toContain('Заказов с сайта: ');
+    expect(await bot.answer('📊 Итоги дня')).toContain('Новых заказов клиентов: ');
     const orders = await bot.answer('🛒 Заказы');
     expect(orders).toContain('Камола');
     expect(orders).toContain('+998905554433');

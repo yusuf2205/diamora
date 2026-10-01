@@ -1108,11 +1108,16 @@ model ClientOrder {
   status         ClientOrderStatus @default(NEW)
   /// staff's own note («договорились на пятницу»)
   staffNote      String?
+  /// where it came from: PANEL (staff wrote it down), SITE (shop.diamoraa.uz), BOT (the shop bot)
+  source         String            @default("PANEL")
+  /// the customer's chat with the shop bot: they hear about every step of the order there
+  customerChatId BigInt?
   handledById    String?           @db.Uuid
   createdAt      DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
 
   @@index([status, createdAt])
+  @@index([customerChatId])
   @@map("client_orders")
 }
 

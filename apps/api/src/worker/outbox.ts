@@ -6,7 +6,7 @@ export interface TelegramSender {
   send(chatId: bigint, text: string, opts?: SendOptions): Promise<void>;
 }
 /** inline buttons under the message (`data.buttons` of the notification row) */
-export interface SendOptions { buttons?: { text: string; data: string }[][] }
+export interface SendOptions { buttons?: { text: string; data: string }[][]; via?: 'shop' }
 
 const MAX_ATTEMPTS = 5;
 const backoffMs = (attempt: number) => Math.min(30 * 60_000, 15_000 * 2 ** attempt);
@@ -32,8 +32,9 @@ export class OutboxSender {
     for (const n of claimed) {
       try {
         if (n.telegramChatId === null || !n.body) throw new Error('no recipient or body');
-        const buttons = (n.data as { buttons?: SendOptions['buttons'] } | null)?.buttons;
-        await sender.send(n.telegramChatId, n.body, buttons ? { buttons } : undefined);
+        // `data.buttons`: inline buttons; `data.via: 'shop'`: a customer's chat with the shop bot
+        const { buttons, via } = (n.data ?? {}) as SendOptions;
+        await sender.send(n.telegramChatId, n.body, buttons || via ? { buttons, via } : undefined);
         await this.prisma.notification.update({ where: { id: n.id }, data: { status: 'SENT', sentAt: new Date(), lastError: null, body: WIPE_AFTER_SEND.has(n.type) ? null : undefined } });
         sent++;
       } catch (e) {
