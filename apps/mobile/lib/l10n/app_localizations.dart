@@ -5211,6 +5211,114 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Вс'**
   String get daySun;
+
+  /// No description provided for @ordersTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заказы клиентов'**
+  String get ordersTitle;
+
+  /// No description provided for @ordersEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Здесь пока пусто'**
+  String get ordersEmpty;
+
+  /// No description provided for @ordersNew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Новые'**
+  String get ordersNew;
+
+  /// No description provided for @ordersConfirmed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтверждены'**
+  String get ordersConfirmed;
+
+  /// No description provided for @ordersInWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'В работе'**
+  String get ordersInWork;
+
+  /// No description provided for @ordersDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выполнены'**
+  String get ordersDone;
+
+  /// No description provided for @ordersCancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменены'**
+  String get ordersCancelled;
+
+  /// No description provided for @ordersAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все'**
+  String get ordersAll;
+
+  /// No description provided for @ordersAccept.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принять заказ'**
+  String get ordersAccept;
+
+  /// No description provided for @ordersStart.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начать работу'**
+  String get ordersStart;
+
+  /// No description provided for @ordersFinish.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово'**
+  String get ordersFinish;
+
+  /// No description provided for @ordersCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get ordersCancel;
+
+  /// No description provided for @ordersCancelAsk.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить этот заказ?'**
+  String get ordersCancelAsk;
+
+  /// No description provided for @ordersFromSite.
+  ///
+  /// In ru, this message translates to:
+  /// **'с сайта'**
+  String get ordersFromSite;
+
+  /// No description provided for @ordersFromBot.
+  ///
+  /// In ru, this message translates to:
+  /// **'из Telegram'**
+  String get ordersFromBot;
+
+  /// No description provided for @ordersFromPanel.
+  ///
+  /// In ru, this message translates to:
+  /// **'записал сотрудник'**
+  String get ordersFromPanel;
+
+  /// No description provided for @ordersNoItem.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изделие не выбрано'**
+  String get ordersNoItem;
+
+  /// No description provided for @ordersTotal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всего: {m} м'**
+  String ordersTotal(String m);
 }
 
 class _AppLocalizationsDelegate

@@ -2778,4 +2778,60 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get daySun => 'Ya';
+
+  @override
+  String get ordersTitle => 'Mijozlar buyurtmalari';
+
+  @override
+  String get ordersEmpty => 'Hozircha bo\'sh';
+
+  @override
+  String get ordersNew => 'Yangi';
+
+  @override
+  String get ordersConfirmed => 'Tasdiqlangan';
+
+  @override
+  String get ordersInWork => 'Ishda';
+
+  @override
+  String get ordersDone => 'Bajarilgan';
+
+  @override
+  String get ordersCancelled => 'Bekor qilingan';
+
+  @override
+  String get ordersAll => 'Hammasi';
+
+  @override
+  String get ordersAccept => 'Buyurtmani qabul qilish';
+
+  @override
+  String get ordersStart => 'Ishni boshlash';
+
+  @override
+  String get ordersFinish => 'Tayyor';
+
+  @override
+  String get ordersCancel => 'Bekor qilish';
+
+  @override
+  String get ordersCancelAsk => 'Bu buyurtmani bekor qilasizmi?';
+
+  @override
+  String get ordersFromSite => 'saytdan';
+
+  @override
+  String get ordersFromBot => 'Telegramdan';
+
+  @override
+  String get ordersFromPanel => 'xodim yozgan';
+
+  @override
+  String get ordersNoItem => 'Mahsulot tanlanmagan';
+
+  @override
+  String ordersTotal(String m) {
+    return 'Jami: $m m';
+  }
 }

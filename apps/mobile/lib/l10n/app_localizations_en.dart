@@ -2806,4 +2806,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get daySun => 'Sun';
+
+  @override
+  String get ordersTitle => 'Customer orders';
+
+  @override
+  String get ordersEmpty => 'Nothing here yet';
+
+  @override
+  String get ordersNew => 'New';
+
+  @override
+  String get ordersConfirmed => 'Confirmed';
+
+  @override
+  String get ordersInWork => 'In work';
+
+  @override
+  String get ordersDone => 'Done';
+
+  @override
+  String get ordersCancelled => 'Cancelled';
+
+  @override
+  String get ordersAll => 'All';
+
+  @override
+  String get ordersAccept => 'Accept order';
+
+  @override
+  String get ordersStart => 'Start work';
+
+  @override
+  String get ordersFinish => 'Done';
+
+  @override
+  String get ordersCancel => 'Cancel';
+
+  @override
+  String get ordersCancelAsk => 'Cancel this order?';
+
+  @override
+  String get ordersFromSite => 'from the site';
+
+  @override
+  String get ordersFromBot => 'from Telegram';
+
+  @override
+  String get ordersFromPanel => 'taken by staff';
+
+  @override
+  String get ordersNoItem => 'No item chosen';
+
+  @override
+  String ordersTotal(String m) {
+    return 'Total: $m m';
+  }
 }

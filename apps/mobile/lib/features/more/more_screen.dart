@@ -17,6 +17,7 @@ class MoreScreen extends ConsumerWidget {
     final perms = ref.watch(authControllerProvider).value?.permissions ?? const <String>[];
     final isSuper = ref.watch(authControllerProvider).value?.isSuperAdmin ?? false;
     final items = <(IconData, String, String)>[
+      (Icons.shopping_bag_rounded, l.ordersTitle, '/admin/orders'),
       (Icons.qr_code_scanner_rounded, l.qrScan, '/admin/qr-scan'),
       (Icons.auto_awesome_rounded, l.catalog, '/admin/catalog'),
       (Icons.badge_rounded, l.team, '/admin/team'),

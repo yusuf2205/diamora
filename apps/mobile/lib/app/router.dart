@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/orders/orders_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/models.dart';
@@ -57,11 +58,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (loc == '/login' || loc == '/splash') return home(s.isStaff);
       if (s.isStaff && loc.startsWith('/worker/')) return home(true);
       if (s.isWorker && loc.startsWith('/admin/')) return home(false);
-      // notices about panel-only pages («Закупки», «Заказы клиентов») open the nearest screen of the app
-      final path = state.uri.path;
-      if (path == '/admin/purchases') return '/admin/inventory';
-      if (path == '/admin/orders') return '/admin/dashboard';
+      // notices about a panel-only page («Закупки») open the nearest screen of the app
+      if (state.uri.path == '/admin/purchases') return '/admin/inventory';
       return null;
+    },
+    // a link the app does not know (a notice from a newer server): the home screen, never a red error page
+    onException: (context, state, router) {
+      final s = ref.read(authControllerProvider).value;
+      router.go(s == null ? '/login' : home(s.isStaff));
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const Scaffold(body: Center(child: CircularProgressIndicator()))),
@@ -74,6 +78,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/chat/:id', builder: (_, s) => ChatRoomScreen(key: ValueKey(s.pathParameters['id']), roomId: s.pathParameters['id']!)),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       GoRoute(path: '/admin/job-requests', builder: (_, _) => const JobRequestsScreen()),
+      GoRoute(path: '/admin/orders', builder: (_, _) => const OrdersScreen()),
       GoRoute(path: '/admin/collaterals', builder: (_, _) => const CollateralsScreen()),
       GoRoute(path: '/admin/rating', builder: (_, _) => const RatingScreen()),
       GoRoute(path: '/admin/finance', builder: (_, _) => const ProfitScreen()),

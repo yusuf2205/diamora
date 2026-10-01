@@ -2820,4 +2820,60 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get daySun => 'Вс';
+
+  @override
+  String get ordersTitle => 'Заказы клиентов';
+
+  @override
+  String get ordersEmpty => 'Здесь пока пусто';
+
+  @override
+  String get ordersNew => 'Новые';
+
+  @override
+  String get ordersConfirmed => 'Подтверждены';
+
+  @override
+  String get ordersInWork => 'В работе';
+
+  @override
+  String get ordersDone => 'Выполнены';
+
+  @override
+  String get ordersCancelled => 'Отменены';
+
+  @override
+  String get ordersAll => 'Все';
+
+  @override
+  String get ordersAccept => 'Принять заказ';
+
+  @override
+  String get ordersStart => 'Начать работу';
+
+  @override
+  String get ordersFinish => 'Готово';
+
+  @override
+  String get ordersCancel => 'Отменить';
+
+  @override
+  String get ordersCancelAsk => 'Отменить этот заказ?';
+
+  @override
+  String get ordersFromSite => 'с сайта';
+
+  @override
+  String get ordersFromBot => 'из Telegram';
+
+  @override
+  String get ordersFromPanel => 'записал сотрудник';
+
+  @override
+  String get ordersNoItem => 'Изделие не выбрано';
+
+  @override
+  String ordersTotal(String m) {
+    return 'Всего: $m м';
+  }
 }
