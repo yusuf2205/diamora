@@ -173,9 +173,10 @@ class _ProgressBlock extends StatelessWidget {
       ]),
       const SizedBox(height: 6),
       ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: a.percent / 100, minHeight: 8)),
-      if (a.calculatedPayment != null) ...[
+      // before the check: what she will get for the planned metres; after it: what was really accrued
+      if ((a.acceptedMeters > 0 ? a.calculatedPayment : a.expectedPayment ?? a.calculatedPayment) case final pay?) ...[
         const SizedBox(height: 12),
-        Text('${l.assignSummaryPayment}: ${formatUzs(a.calculatedPayment)} ${l.currency}', style: Theme.of(context).textTheme.titleSmall),
+        Text('${l.assignSummaryPayment}: ${formatUzs(pay)} ${l.currency}', style: Theme.of(context).textTheme.titleSmall),
       ],
     ]);
   }

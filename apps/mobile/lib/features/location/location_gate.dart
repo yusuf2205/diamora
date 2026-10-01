@@ -71,12 +71,13 @@ class _GapScreenState extends ConsumerState<_GapScreen> {
         case LocationGap.servicesDisabled:
           await geo.openLocationSettings();
         case LocationGap.foregroundDenied:
-          await geo.requestForeground();
+          // Android may not show its question again (it remembers a «no») - then the app settings, never a dead button
+          if (await geo.requestForeground() != LocationGap.none) await geo.openAppSettings();
         case LocationGap.foregroundDeniedForever:
         case LocationGap.backgroundDeniedForever:
           await geo.openAppSettings();
         case LocationGap.backgroundDenied:
-          await geo.requestBackground();
+          if (await geo.requestBackground() != LocationGap.none) await geo.openAppSettings();
         case LocationGap.none:
           break;
       }

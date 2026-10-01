@@ -869,5 +869,16 @@
   "ordersFromBot": "from Telegram",
   "ordersFromPanel": "taken by staff",
   "ordersNoItem": "No item chosen",
-  "ordersTotal": "Total: {m} m"
+  "ordersTotal": "Total: {m} m",
+  "badgeFirstKit": "First kit",
+  "badge100": "100 metres",
+  "badge500": "500 metres",
+  "badgeGoal": "Monthly goal",
+  "badgeNoDefects": "No defects",
+  "badgeOnTime": "All on time",
+  "visitEveryDay": "Every day",
+  "learnTitle": "Training",
+  "learnSubtitle": "Short videos: how to work in Diamoraa",
+  "learnNone": "No videos yet. Check back later.",
+  "learnMinutes": "{n} min"
 }

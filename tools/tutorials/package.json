@@ -1,0 +1,7 @@
+{
+  "name": "diamoraa-tutorials",
+  "private": true,
+  "type": "module",
+  "description": "Records the training videos from the demo stack (see README.md)",
+  "dependencies": { "playwright": "^1.58.0", "ffmpeg-static": "^5.2.0" }
+}

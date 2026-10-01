@@ -197,7 +197,8 @@ class AdaptiveShell extends StatelessWidget {
           onDestinationSelected: _go,
           // the round chat button is its own highlight: no pill behind it
           indicatorColor: shell.currentIndex == chatIndex ? Colors.transparent : null,
-          labelBehavior: width < 400 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
+          // six tabs on a 411 dp phone: «Мастерицы» would break in two - icons only when a tab gets under 72 dp
+          labelBehavior: width < 400 || width / destinations.length < 72 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
           destinations: [
             for (final (i, d) in destinations.indexed)
               i == chatIndex

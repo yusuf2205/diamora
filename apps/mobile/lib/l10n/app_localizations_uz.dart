@@ -2834,4 +2834,39 @@ class AppLocalizationsUz extends AppLocalizations {
   String ordersTotal(String m) {
     return 'Jami: $m m';
   }
+
+  @override
+  String get badgeFirstKit => 'Birinchi komplekt';
+
+  @override
+  String get badge100 => '100 metr';
+
+  @override
+  String get badge500 => '500 metr';
+
+  @override
+  String get badgeGoal => 'Oy maqsadi';
+
+  @override
+  String get badgeNoDefects => 'Braksiz';
+
+  @override
+  String get badgeOnTime => 'Hammasi o\'z vaqtida';
+
+  @override
+  String get visitEveryDay => 'Har kuni';
+
+  @override
+  String get learnTitle => 'O\'qitish';
+
+  @override
+  String get learnSubtitle => 'Qisqa videolar: Diamoraa\'da qanday ishlash';
+
+  @override
+  String get learnNone => 'Hozircha video yo\'q. Keyinroq qarang.';
+
+  @override
+  String learnMinutes(int n) {
+    return '$n daq';
+  }
 }

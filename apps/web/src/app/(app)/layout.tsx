@@ -7,7 +7,7 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { PlayCircle, ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 import { useChatUnread } from '@/components/chat';
 import { HeaderBadges } from '@/components/header-badges';
@@ -30,6 +30,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/settings', label: 'Настройки', icon: Settings, perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },
   { href: '/audit', label: 'Журнал', icon: ScrollText, perms: ['AUDIT_VIEW'] },
   { href: '/system', label: 'Система', icon: Activity, perms: ['SETTINGS_MANAGE'] },
+  { href: '/learn', label: 'Обучение', icon: PlayCircle }, // short videos for each role
 ];
 
 /** Everything under (app) requires a signed-in STAFF session (D-028) - the server enforces the rest per page. */

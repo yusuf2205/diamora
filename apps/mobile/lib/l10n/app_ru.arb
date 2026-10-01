@@ -961,5 +961,17 @@
   "ordersFromPanel": "записал сотрудник",
   "ordersNoItem": "Изделие не выбрано",
   "ordersTotal": "Всего: {m} м",
-  "@ordersTotal": {"placeholders": {"m": {"type": "String"}}}
+  "@ordersTotal": {"placeholders": {"m": {"type": "String"}}},
+  "badgeFirstKit": "Первый комплект",
+  "badge100": "100 метров",
+  "badge500": "500 метров",
+  "badgeGoal": "Цель месяца",
+  "badgeNoDefects": "Без брака",
+  "badgeOnTime": "Всё вовремя",
+  "visitEveryDay": "Каждый день",
+  "learnTitle": "Обучение",
+  "learnSubtitle": "Короткие видео: как работать в Diamoraa",
+  "learnNone": "Видео пока нет. Загляните позже.",
+  "learnMinutes": "{n} мин",
+  "@learnMinutes": {"placeholders": {"n": {"type": "int"}}}
 }

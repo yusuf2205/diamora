@@ -70,6 +70,9 @@
 		header @main Content-Disposition "attachment; filename=\"Diamoraa.apk\""
 		@json path *.json
 		header @json Cache-Control "no-cache"
+		# training videos and their posters (tools/tutorials/publish.sh); file_server answers Range requests for seeking
+		@media path /tutorials/*.mp4 /tutorials/*.jpg
+		header @media Cache-Control "public, max-age=3600"
 		file_server
 	}
 

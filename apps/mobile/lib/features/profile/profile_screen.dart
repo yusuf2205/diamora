@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
@@ -59,6 +60,17 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
         if (me?.role == 'WORKER') ...[const SizedBox(height: 8), const VisitTimeTile()],
+        const SizedBox(height: 8),
+        // «Обучение»: short videos for her role
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.ondemand_video_rounded, color: Theme.of(context).colorScheme.primary),
+            title: Text(l.learnTitle),
+            subtitle: Text(l.learnSubtitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/learn'),
+          ),
+        ),
         const SizedBox(height: 8),
         const UpdateTile(),
         const SizedBox(height: 16),

@@ -107,7 +107,7 @@ class GoalCard extends ConsumerWidget {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(_badgeIcons[b.code] ?? Icons.star_rounded, size: 18, color: b.earned ? scheme.primary : scheme.outline),
                             const SizedBox(width: 6),
-                            Text(b.title, style: TextStyle(fontWeight: FontWeight.w600, color: b.earned ? scheme.onPrimaryContainer : scheme.outline)),
+                            Text(badgeTitle(l, b), style: TextStyle(fontWeight: FontWeight.w600, color: b.earned ? scheme.onPrimaryContainer : scheme.outline)),
                           ]),
                         ),
                       ),
@@ -120,3 +120,14 @@ class GoalCard extends ConsumerWidget {
         );
   }
 }
+
+/// the badge in the app's language (the server's own title is Russian; it stays the fallback for new badges)
+String badgeTitle(AppLocalizations l, GoalBadge b) => switch (b.code) {
+      'first_kit' => l.badgeFirstKit,
+      'm100' => l.badge100,
+      'm500' => l.badge500,
+      'goal' => l.badgeGoal,
+      'no_defects' => l.badgeNoDefects,
+      'on_time' => l.badgeOnTime,
+      _ => b.title,
+    };

@@ -900,5 +900,16 @@
   "ordersFromBot": "Telegramdan",
   "ordersFromPanel": "xodim yozgan",
   "ordersNoItem": "Mahsulot tanlanmagan",
-  "ordersTotal": "Jami: {m} m"
+  "ordersTotal": "Jami: {m} m",
+  "badgeFirstKit": "Birinchi komplekt",
+  "badge100": "100 metr",
+  "badge500": "500 metr",
+  "badgeGoal": "Oy maqsadi",
+  "badgeNoDefects": "Braksiz",
+  "badgeOnTime": "Hammasi o'z vaqtida",
+  "visitEveryDay": "Har kuni",
+  "learnTitle": "O'qitish",
+  "learnSubtitle": "Qisqa videolar: Diamoraa'da qanday ishlash",
+  "learnNone": "Hozircha video yo'q. Keyinroq qarang.",
+  "learnMinutes": "{n} daq"
 }

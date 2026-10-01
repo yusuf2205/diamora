@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Phone, Send, ShoppingBag, X } from 'lucide-react';
+import { CheckCircle2, Phone, PlayCircle, Send, ShoppingBag, X } from 'lucide-react';
+import { fetchTutorials, type Tutorial, VideoModal } from '@/components/tutorials';
 import { apiOrigin } from '@/lib/api';
 import { Logo } from '@/components/ui';
 
@@ -19,6 +20,10 @@ export default function ShopPage() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [bot, setBot] = useState<string | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
+  // «Как заказать» - the customers' training video, if it is published
+  const [howTo, setHowTo] = useState<Tutorial | null>(null);
+  const [playing, setPlaying] = useState<'uz' | 'ru' | null>(null);
+  useEffect(() => { fetchTutorials().then((all) => setHowTo(all.find((t) => t.roles.includes('CUSTOMER')) ?? null)).catch(() => undefined); }, []);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<Item | null>(null);
   const [done, setDone] = useState<{ code: string | null; follow: string | null; phone: string } | null>(null);
@@ -77,6 +82,15 @@ export default function ShopPage() {
         </div>
       </header>
 
+      {howTo && (
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
+          <PlayCircle size={22} className="text-primary" aria-hidden />
+          <span className="font-semibold">Видео: как заказать</span>
+          <button type="button" onClick={() => setPlaying('uz')} className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-border/40">O'zbekcha</button>
+          <button type="button" onClick={() => setPlaying('ru')} className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-border/40">Русский</button>
+        </div>
+      )}
+      {howTo && playing && <VideoModal title={howTo.title[playing] ?? howTo.title.ru} src={howTo.files[playing] ?? howTo.files.ru} onClose={() => setPlaying(null)} />}
       {failed && <p className="rounded-xl bg-danger/10 p-4 text-sm text-danger">Каталог сейчас не открывается. Попробуйте позже.</p>}
       {!items && !failed && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-border/50" />)}</div>}
       {items?.length === 0 && <p className="text-muted">Каталог скоро появится.</p>}

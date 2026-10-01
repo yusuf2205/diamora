@@ -2876,4 +2876,39 @@ class AppLocalizationsRu extends AppLocalizations {
   String ordersTotal(String m) {
     return 'Всего: $m м';
   }
+
+  @override
+  String get badgeFirstKit => 'Первый комплект';
+
+  @override
+  String get badge100 => '100 метров';
+
+  @override
+  String get badge500 => '500 метров';
+
+  @override
+  String get badgeGoal => 'Цель месяца';
+
+  @override
+  String get badgeNoDefects => 'Без брака';
+
+  @override
+  String get badgeOnTime => 'Всё вовремя';
+
+  @override
+  String get visitEveryDay => 'Каждый день';
+
+  @override
+  String get learnTitle => 'Обучение';
+
+  @override
+  String get learnSubtitle => 'Короткие видео: как работать в Diamoraa';
+
+  @override
+  String get learnNone => 'Видео пока нет. Загляните позже.';
+
+  @override
+  String learnMinutes(int n) {
+    return '$n мин';
+  }
 }

@@ -5319,6 +5319,72 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Всего: {m} м'**
   String ordersTotal(String m);
+
+  /// No description provided for @badgeFirstKit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Первый комплект'**
+  String get badgeFirstKit;
+
+  /// No description provided for @badge100.
+  ///
+  /// In ru, this message translates to:
+  /// **'100 метров'**
+  String get badge100;
+
+  /// No description provided for @badge500.
+  ///
+  /// In ru, this message translates to:
+  /// **'500 метров'**
+  String get badge500;
+
+  /// No description provided for @badgeGoal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Цель месяца'**
+  String get badgeGoal;
+
+  /// No description provided for @badgeNoDefects.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без брака'**
+  String get badgeNoDefects;
+
+  /// No description provided for @badgeOnTime.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всё вовремя'**
+  String get badgeOnTime;
+
+  /// No description provided for @visitEveryDay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Каждый день'**
+  String get visitEveryDay;
+
+  /// No description provided for @learnTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обучение'**
+  String get learnTitle;
+
+  /// No description provided for @learnSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Короткие видео: как работать в Diamoraa'**
+  String get learnSubtitle;
+
+  /// No description provided for @learnNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видео пока нет. Загляните позже.'**
+  String get learnNone;
+
+  /// No description provided for @learnMinutes.
+  ///
+  /// In ru, this message translates to:
+  /// **'{n} мин'**
+  String learnMinutes(int n);
 }
 
 class _AppLocalizationsDelegate

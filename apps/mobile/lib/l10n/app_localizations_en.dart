@@ -2862,4 +2862,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String ordersTotal(String m) {
     return 'Total: $m m';
   }
+
+  @override
+  String get badgeFirstKit => 'First kit';
+
+  @override
+  String get badge100 => '100 metres';
+
+  @override
+  String get badge500 => '500 metres';
+
+  @override
+  String get badgeGoal => 'Monthly goal';
+
+  @override
+  String get badgeNoDefects => 'No defects';
+
+  @override
+  String get badgeOnTime => 'All on time';
+
+  @override
+  String get visitEveryDay => 'Every day';
+
+  @override
+  String get learnTitle => 'Training';
+
+  @override
+  String get learnSubtitle => 'Short videos: how to work in Diamoraa';
+
+  @override
+  String get learnNone => 'No videos yet. Check back later.';
+
+  @override
+  String learnMinutes(int n) {
+    return '$n min';
+  }
 }

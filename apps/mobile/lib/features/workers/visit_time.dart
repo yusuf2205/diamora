@@ -36,7 +36,7 @@ class VisitTimeTile extends ConsumerWidget {
         key: const Key('visitTimeTile'),
         leading: const Icon(Icons.schedule_rounded),
         title: Text(l.visitTimeTitle),
-        subtitle: Text(v?.text ?? l.visitTimeNotSet),
+        subtitle: Text(v?.value == null ? (v?.text ?? l.visitTimeNotSet) : visitTimeLabel(l, v!.value!)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => showFormSheet<void>(context, showDragHandle: true, useSafeArea: false, builder: (_) => VisitTimeSheet(initial: v?.value)),
       ),
@@ -124,4 +124,22 @@ class _VisitTimeSheetState extends ConsumerState<VisitTimeSheet> {
       ]),
     );
   }
+}
+
+/// «Du–Ju 10:00–18:00 · izoh» in the app's language (same rules as visitTimeText on the server)
+String visitTimeLabel(AppLocalizations l, VisitTime v) {
+  final names = [l.dayMon, l.dayTue, l.dayWed, l.dayThu, l.dayFri, l.daySat, l.daySun];
+  final d = {...v.days}.where((x) => x >= 1 && x <= 7).toList()..sort();
+  final parts = <String>[];
+  for (var i = 0; i < d.length;) {
+    var j = i;
+    while (j + 1 < d.length && d[j + 1] == d[j] + 1) {
+      j++;
+    }
+    parts.add(j - i >= 2 ? '${names[d[i] - 1]}–${names[d[j] - 1]}' : [for (final x in d.sublist(i, j + 1)) names[x - 1]].join(', '));
+    i = j + 1;
+  }
+  final days = d.length == 7 ? l.visitEveryDay : parts.join(', ');
+  final note = v.note?.trim() ?? '';
+  return '$days ${v.from}–${v.to}${note.isEmpty ? '' : ' · $note'}';
 }

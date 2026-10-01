@@ -9,19 +9,21 @@ import 'package:diamoraa_mobile/l10n/app_localizations.dart';
 import 'fakes/fake_geo.dart';
 
 class _RecordingGeo extends FakeGeo {
-  const _RecordingGeo({required super.gap, required this.calls});
+  const _RecordingGeo({required super.gap, required this.calls, this.answer = LocationGap.none});
   final List<String> calls;
+  /// what Android answers to the request (it may answer «no» at once, without asking - after an earlier «no»)
+  final LocationGap answer;
 
   @override
   Future<LocationGap> requestForeground() async {
     calls.add('requestForeground');
-    return LocationGap.none;
+    return answer;
   }
 
   @override
   Future<LocationGap> requestBackground() async {
     calls.add('requestBackground');
-    return LocationGap.none;
+    return answer;
   }
 
   @override
@@ -109,5 +111,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('CHILD SCREEN'), findsNothing); // the fake still reports the same gap: still blocked
     expect(calls, isEmpty); // "retry" itself calls neither request nor settings
+  });
+
+  testWidgets('Android does not ask again (an earlier «no»): «Разрешить» opens the app settings instead of doing nothing', (tester) async {
+    final calls = <String>[];
+    await pump(tester, _RecordingGeo(gap: LocationGap.backgroundDenied, calls: calls, answer: LocationGap.backgroundDenied));
+    await tester.tap(find.byKey(const Key('locationGateAction')));
+    await tester.pumpAndSettle();
+    expect(calls, ['requestBackground', 'openAppSettings']);
   });
 }

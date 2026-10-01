@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/learn/learn_screen.dart';
 import '../features/orders/orders_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
@@ -79,6 +80,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       GoRoute(path: '/admin/job-requests', builder: (_, _) => const JobRequestsScreen()),
       GoRoute(path: '/admin/orders', builder: (_, _) => const OrdersScreen()),
+      // «Обучение»: every role (the list is filtered by role inside)
+      GoRoute(path: '/learn', builder: (_, _) => const LearnScreen()),
       GoRoute(path: '/admin/collaterals', builder: (_, _) => const CollateralsScreen()),
       GoRoute(path: '/admin/rating', builder: (_, _) => const RatingScreen()),
       GoRoute(path: '/admin/finance', builder: (_, _) => const ProfitScreen()),

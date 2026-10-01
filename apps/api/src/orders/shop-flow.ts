@@ -116,7 +116,12 @@ export class ShopFlow {
     if (!items.length) return { text: 'Каталог скоро появится. Напишите, что хотите — мы ответим.', menu: true };
     return {
       text: `🛍 Наш каталог (${items.length}):\n${items.slice(0, 20).map((i) => `• ${i.name}${i.colors.length ? ` — ${i.colors.length} цв.` : ''}`).join('\n')}\n\nФото и цвета — на сайте:`,
-      buttons: [[{ text: '🛍 Открыть каталог', url: this.shopUrl }], [{ text: '📝 Заказать здесь', data: 'sh:new' }]],
+      buttons: [
+        [{ text: '🛍 Открыть каталог', url: this.shopUrl }],
+        [{ text: '📝 Заказать здесь', data: 'sh:new' }],
+        // the customers' training video (tools/tutorials), played right in Telegram's browser
+        [{ text: '🎬 Video: qanday buyurtma berish', url: `${this.env.PUBLIC_API_URL.replace(/\/+$/, '')}/download/tutorials/customer-uz.mp4` }],
+      ],
     };
   }
 
