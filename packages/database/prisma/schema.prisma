@@ -1027,16 +1027,21 @@ enum PurchaseStatus {
 
 /// «Закупки»: who we buy materials from.
 model Supplier {
-  id        String          @id @default(uuid(7)) @db.Uuid
-  name      String
-  phone     String?
-  telegram  String?
-  note      String?
-  isActive  Boolean         @default(true)
-  createdAt DateTime        @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime        @updatedAt @db.Timestamptz(3)
-  materials Material[]
-  orders    PurchaseOrder[]
+  id             String          @id @default(uuid(7)) @db.Uuid
+  name           String
+  phone          String?
+  telegram       String?
+  /// the supplier pressed «Старт» in our bot (a link from «Поставщики»): orders go straight to this chat
+  telegramChatId BigInt?         @unique
+  /// sha256 of the one-time bot link token (7 days)
+  linkTokenHash  String?         @unique
+  linkExpiresAt  DateTime?       @db.Timestamptz(3)
+  note           String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @db.Timestamptz(3)
+  materials      Material[]
+  orders         PurchaseOrder[]
 
   @@map("suppliers")
 }
@@ -1044,18 +1049,23 @@ model Supplier {
 /// An order to a supplier: DRAFT (the list) -> ORDERED (sent) -> RECEIVED (on the shelf: one RECEIPT per line, and the
 /// line's price becomes the material's purchase price) or CANCELLED.
 model PurchaseOrder {
-  id          String              @id @default(uuid(7)) @db.Uuid
-  code        String              @unique
-  supplierId  String?             @db.Uuid
-  supplier    Supplier?           @relation(fields: [supplierId], references: [id])
-  status      PurchaseStatus      @default(DRAFT)
-  note        String?
-  createdById String              @db.Uuid
-  orderedAt   DateTime?           @db.Timestamptz(3)
-  receivedAt  DateTime?           @db.Timestamptz(3)
-  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime            @updatedAt @db.Timestamptz(3)
-  items       PurchaseOrderItem[]
+  id              String              @id @default(uuid(7)) @db.Uuid
+  code            String              @unique
+  supplierId      String?             @db.Uuid
+  supplier        Supplier?           @relation(fields: [supplierId], references: [id])
+  status          PurchaseStatus      @default(DRAFT)
+  note            String?
+  createdById     String              @db.Uuid
+  orderedAt       DateTime?           @db.Timestamptz(3)
+  receivedAt      DateTime?           @db.Timestamptz(3)
+  /// sent to the supplier's chat by the bot
+  sentByBotAt     DateTime?           @db.Timestamptz(3)
+  /// the supplier's answer with the buttons under the order: ACCEPTED / UNAVAILABLE
+  supplierReply   String?
+  supplierReplyAt DateTime?           @db.Timestamptz(3)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(3)
+  items           PurchaseOrderItem[]
 
   @@index([status, createdAt])
   @@map("purchase_orders")
@@ -1261,26 +1271,26 @@ enum ChatMessageKind {
 /// A conversation. DIRECT: exactly two people (directKey = the two user ids, sorted); GROUP: chosen members;
 /// COMPANY: the one chat of everyone (every active user is a member).
 model ChatRoom {
-  id            String        @id @default(uuid(7)) @db.Uuid
-  kind          ChatKind
-  title         String?
-  directKey     String?       @unique
-  createdById   String?       @db.Uuid
-  lastMessageAt DateTime?     @db.Timestamptz(3)
+  id              String        @id @default(uuid(7)) @db.Uuid
+  kind            ChatKind
+  title           String?
+  directKey       String?       @unique
+  createdById     String?       @db.Uuid
+  lastMessageAt   DateTime?     @db.Timestamptz(3)
   /// the one message shown on top of the chat («Закреплённое сообщение»)
-  pinnedMessageId String?     @db.Uuid
-  description   String?
-  photoFileId   String?       @db.Uuid
+  pinnedMessageId String?       @db.Uuid
+  description     String?
+  photoFileId     String?       @db.Uuid
   /// channels: who reads it (members are joined automatically unless CUSTOM)
-  audience      ChatAudience  @default(CUSTOM)
+  audience        ChatAudience  @default(CUSTOM)
   /// groups: only the owner and group admins write (like a channel, but members still see each other)
-  onlyAdminsWrite Boolean     @default(false)
+  onlyAdminsWrite Boolean       @default(false)
   /// «Запретить копирование»: no copy / forward / save in the apps (a screenshot cannot be prevented)
-  protectContent Boolean      @default(false)
-  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
-  members       ChatMember[]
-  messages      ChatMessage[]
+  protectContent  Boolean       @default(false)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
+  members         ChatMember[]
+  messages        ChatMessage[]
 
   @@index([kind])
   @@map("chat_rooms")
@@ -1312,35 +1322,35 @@ model ChatMember {
 
 /// Text, or one file (photo/video/voice/audio/document) with an optional caption. Deleting keeps the row (deletedAt).
 model ChatMessage {
-  id         String          @id @default(uuid(7)) @db.Uuid
-  roomId     String          @db.Uuid
-  room       ChatRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  senderId   String?         @db.Uuid
-  sender     User?           @relation("ChatSender", fields: [senderId], references: [id], onDelete: SetNull)
-  kind       ChatMessageKind @default(TEXT)
-  text       String?
-  fileId     String?         @db.Uuid
-  fileName   String?
-  fileSize   BigInt?
-  mimeType   String?
-  durationMs Int?
-  width      Int?
-  height     Int?
+  id            String          @id @default(uuid(7)) @db.Uuid
+  roomId        String          @db.Uuid
+  room          ChatRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId      String?         @db.Uuid
+  sender        User?           @relation("ChatSender", fields: [senderId], references: [id], onDelete: SetNull)
+  kind          ChatMessageKind @default(TEXT)
+  text          String?
+  fileId        String?         @db.Uuid
+  fileName      String?
+  fileSize      BigInt?
+  mimeType      String?
+  durationMs    Int?
+  width         Int?
+  height        Int?
   /// a video with a preview picture (FileAsset.thumbKey)
-  hasThumb   Boolean         @default(false)
+  hasThumb      Boolean         @default(false)
   /// a voice message's loudness, 48 values 0-31 as a comma list (drawn as bars)
-  waveform   String?
+  waveform      String?
   /// the sender's own id for this message: a retried send never posts it twice
-  clientId   String?
-  replyToId  String?         @db.Uuid
-  replyTo    ChatMessage?    @relation("ChatReply", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies    ChatMessage[]   @relation("ChatReply")
-  editedAt   DateTime?       @db.Timestamptz(3)
+  clientId      String?
+  replyToId     String?         @db.Uuid
+  replyTo       ChatMessage?    @relation("ChatReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies       ChatMessage[]   @relation("ChatReply")
+  editedAt      DateTime?       @db.Timestamptz(3)
   /// «Переслано от …» (the original sender's name at the time)
   forwardedFrom String?
-  reactions  ChatReaction[]
-  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
-  deletedAt  DateTime?       @db.Timestamptz(3)
+  reactions     ChatReaction[]
+  createdAt     DateTime        @default(now()) @db.Timestamptz(3)
+  deletedAt     DateTime?       @db.Timestamptz(3)
 
   @@unique([senderId, clientId])
   @@index([roomId, createdAt])

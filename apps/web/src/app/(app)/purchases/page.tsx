@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Send, Truck } from 'lucide-react';
+import { Bot, Copy, Plus, Send, Trash2, Truck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -9,29 +9,37 @@ import { formatDate, formatUzs } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import { Button, Card, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
 
-interface Supplier { id: string; name: string; phone: string | null; telegram: string | null; note: string | null; isActive: boolean; materials: number }
+interface Supplier { id: string; name: string; phone: string | null; telegram: string | null; note: string | null; isActive: boolean; materials: number; botLinked: boolean }
 interface Suggest { materialId: string; name: string; unitLabel: string; left: number; coming: number; minStock: number; dailyUse: number; daysLeft: number | null; quantity: number; lastPrice: string | null; supplier: { id: string; name: string } | null; reason: string }
 interface Purchase {
   id: string; code: string; status: 'DRAFT' | 'ORDERED' | 'RECEIVED' | 'CANCELLED'; note: string | null; createdAt: string; receivedAt: string | null;
-  supplier: { id: string; name: string; phone: string | null; telegram: string | null } | null;
+  supplier: { id: string; name: string; phone: string | null; telegram: string | null; botLinked: boolean } | null;
+  sentByBotAt: string | null; supplierReply: 'ACCEPTED' | 'UNAVAILABLE' | null; supplierReplyAt: string | null;
   items: { id: string; material: { id: string; name: string }; unitLabel: string; quantity: number; unitPrice: string | null }[]; total: string; priced: boolean;
 }
 const STATUS: Record<Purchase['status'], string> = { DRAFT: 'Черновик', ORDERED: 'Заказано', RECEIVED: 'Получено', CANCELLED: 'Отменено' };
 const digits = (v: string) => v.replace(/\D/g, '');
+interface MaterialRow { id: string; name: string; unit: string; isActive: boolean; unitCost?: string | null; supplierId?: string | null }
+const UNIT: Record<string, string> = { METER: 'м', GRAM: 'г', PCS: 'шт', SET: 'компл.', ROLL: 'рул.', PACKAGE: 'уп.' };
 
 /** «Закупки»: what to buy (from the stock forecast), orders to suppliers as a message, receiving them onto the shelf. */
 export default function PurchasesPage() {
   const { me } = useAuth();
   const canManage = hasPerm(me, 'INVENTORY_MANAGE');
   const [suppliersOpen, setSuppliersOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
   if (!hasPerm(me, 'INVENTORY_VIEW', 'INVENTORY_MANAGE')) return <EmptyState title="Недостаточно прав" />;
   return (
     <div className="space-y-4 sm:space-y-6">
-      <PageHeader title="Закупки" subtitle="Что пора купить, заказ поставщику одним сообщением и приход на склад по заказу."
-        actions={<Button variant="outline" onClick={() => setSuppliersOpen(true)}>Поставщики</Button>} />
+      <PageHeader title="Закупки" subtitle="Что пора купить, заказ поставщику прямо в Telegram и приход на склад по заказу."
+        actions={<>
+          <Button variant="outline" onClick={() => setSuppliersOpen(true)}>Поставщики</Button>
+          {canManage && <Button onClick={() => setNewOpen(true)}><Plus size={16} aria-hidden /> Новый заказ</Button>}
+        </>} />
       <ToBuy canManage={canManage} />
       <Orders canManage={canManage} />
       {suppliersOpen && <SuppliersModal canManage={canManage} onClose={() => setSuppliersOpen(false)} />}
+      {newOpen && <NewPurchaseModal onClose={() => setNewOpen(false)} />}
     </div>
   );
 }
@@ -118,7 +126,7 @@ function Orders({ canManage }: { canManage: boolean }) {
   return (
     <Card>
       <h2 className="mb-3 text-sm font-semibold">Заказы поставщикам</h2>
-      {q.data?.items.length === 0 && <p className="text-sm text-muted">Пока нет. Создайте заказ из списка «Что пора купить».</p>}
+      {q.data?.items.length === 0 && <p className="text-sm text-muted">Пока нет. Нажмите «+ Новый заказ» или создайте его из списка «Что пора купить».</p>}
       <div className="grid gap-3 lg:grid-cols-2">
         {q.data?.items.map((o) => (
           <div key={o.id} className="space-y-2 rounded-xl border border-border p-3">
@@ -129,6 +137,12 @@ function Orders({ canManage }: { canManage: boolean }) {
             <ul className="text-sm">
               {o.items.map((i) => <li key={i.id}>{i.material.name} — {i.quantity} {i.unitLabel}{i.unitPrice ? ` × ${formatUzs(i.unitPrice)}` : ''}</li>)}
             </ul>
+            {o.sentByBotAt && <p className="text-xs text-muted">Отправлен в Telegram {formatDate(o.sentByBotAt)}{o.supplierReply ? '' : ' · ждём ответа'}</p>}
+            {o.supplierReply && (
+              <p className={`rounded-lg px-2.5 py-1.5 text-sm font-medium ${o.supplierReply === 'ACCEPTED' ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'}`}>
+                {o.supplierReply === 'ACCEPTED' ? '✅ Поставщик принял заказ' : '❌ Поставщик: нет в наличии'}{o.supplierReplyAt ? ` · ${formatDate(o.supplierReplyAt)}` : ''}
+              </p>
+            )}
             {o.total !== '0' && <p className="text-sm">Сумма: <b>{formatUzs(o.total)} сум</b>{o.priced ? '' : ' (не у всех указана цена)'}</p>}
             {canManage && (o.status === 'DRAFT' || o.status === 'ORDERED') && (
               <div className="flex flex-wrap gap-2 pt-1">
@@ -149,7 +163,8 @@ function Orders({ canManage }: { canManage: boolean }) {
 /** The order as a message: copy it, or open the supplier's Telegram with it ready; marks the order «Заказано». */
 function SendModal({ order, onClose }: { order: Purchase; onClose: () => void }) {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['purchase-text', order.id], queryFn: () => api.get<{ text: string; telegram: string | null; phone: string | null }>(`/admin/purchases/${order.id}/text`) });
+  const q = useQuery({ queryKey: ['purchase-text', order.id], queryFn: () => api.get<{ text: string; telegram: string | null; phone: string | null; botLinked: boolean }>(`/admin/purchases/${order.id}/text`) });
+  const viaBot = useMutation({ mutationFn: () => api.post(`/admin/purchases/${order.id}/send`, {}), onSuccess: () => { qc.invalidateQueries({ queryKey: ['purchases'] }); onClose(); } });
   const [copied, setCopied] = useState(false);
   const ordered = useMutation({ mutationFn: () => api.patch(`/admin/purchases/${order.id}`, { status: 'ORDERED' }), onSuccess: () => qc.invalidateQueries({ queryKey: ['purchases'] }) });
   const mark = () => { if (order.status === 'DRAFT') ordered.mutate(); };
@@ -157,6 +172,15 @@ function SendModal({ order, onClose }: { order: Purchase; onClose: () => void })
   return (
     <Modal title={`Заказ ${order.code}`} onClose={onClose}>
       <div className="space-y-3">
+        {q.data?.botLinked ? (
+          <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <p className="text-sm">Заказ уйдёт поставщику в Telegram от нашего бота. У него будут кнопки «Принял» и «Нет в наличии» — ответ появится здесь.</p>
+            <Button onClick={() => viaBot.mutate()} disabled={viaBot.isPending}><Bot size={16} aria-hidden /> {viaBot.isPending ? 'Отправляем…' : 'Отправить через бота'}</Button>
+            {viaBot.isError && <ErrorState error={viaBot.error} />}
+          </div>
+        ) : order.supplier ? (
+          <p className="rounded-xl bg-background p-3 text-sm text-muted">Чтобы отправлять заказы прямо отсюда, подключите поставщика к боту: «Поставщики» → «Подключить бота». А пока — скопируйте текст или откройте Telegram.</p>
+        ) : null}
         <textarea readOnly value={text} rows={Math.min(14, text.split('\n').length + 1)} className="w-full rounded-lg border border-border bg-background p-3 text-sm" />
         <div className="flex flex-wrap gap-2">
           <Button onClick={async () => { await navigator.clipboard.writeText(text); setCopied(true); mark(); }}><Copy size={16} aria-hidden /> {copied ? 'Скопировано' : 'Скопировать'}</Button>
@@ -210,6 +234,8 @@ function SuppliersModal({ canManage, onClose }: { canManage: boolean; onClose: (
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
+  const [linking, setLinking] = useState<Supplier | null>(null);
+  const unlink = useMutation({ mutationFn: (id: string) => api.delete(`/admin/suppliers/${id}/bot-link`), onSuccess: () => qc.invalidateQueries({ queryKey: ['suppliers'] }) });
   const add = useMutation({
     mutationFn: () => api.post('/admin/suppliers', { name: name.trim(), phone: phone.trim() || null, telegram: telegram.trim() || null }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setName(''); setPhone(''); setTelegram(''); },
@@ -221,7 +247,13 @@ function SuppliersModal({ canManage, onClose }: { canManage: boolean; onClose: (
         <ul className="divide-y divide-border">
           {q.data?.items.map((s) => (
             <li key={s.id} className="py-2 text-sm">
-              <b>{s.name}</b>{s.phone ? ` · ${s.phone}` : ''}{s.telegram ? ` · @${s.telegram}` : ''} <span className="text-muted">· материалов: {s.materials}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span><b>{s.name}</b>{s.phone ? ` · ${s.phone}` : ''}{s.telegram ? ` · @${s.telegram}` : ''} <span className="text-muted">· материалов: {s.materials}</span></span>
+                {s.botLinked
+                  ? <span className="inline-flex items-center gap-2"><span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-900">✓ Бот подключён</span>
+                    {canManage && <button type="button" className="text-xs text-muted hover:underline" onClick={() => { if (confirm(`Отключить бота у «${s.name}»? Заказы перестанут приходить ему в Telegram.`)) unlink.mutate(s.id); }}>отключить</button>}</span>
+                  : canManage && <Button variant="outline" onClick={() => setLinking(s)}><Bot size={16} aria-hidden /> Подключить бота</Button>}
+              </div>
             </li>
           ))}
         </ul>
@@ -237,6 +269,101 @@ function SuppliersModal({ canManage, onClose }: { canManage: boolean; onClose: (
             <Button onClick={() => add.mutate()} disabled={add.isPending || name.trim().length < 2}>Добавить</Button>
           </div>
         )}
+        {linking && <BotLinkBox supplier={linking} onDone={() => setLinking(null)} />}
+      </div>
+    </Modal>
+  );
+}
+
+/** A link for the supplier: they press «Старт» in our bot once, then orders go to their Telegram from the panel. */
+function BotLinkBox({ supplier, onDone }: { supplier: Supplier; onDone: () => void }) {
+  const q = useQuery({ queryKey: ['supplier-bot-link', supplier.id], queryFn: () => api.post<{ url: string; expiresInDays: number }>(`/admin/suppliers/${supplier.id}/bot-link`, {}), staleTime: Infinity, gcTime: 0 });
+  const [copied, setCopied] = useState(false);
+  const invite = q.data ? `Здравствуйте! Это Diamoraa. Чтобы получать наши заказы в Telegram, нажмите на ссылку и «Старт»:\n${q.data.url}` : '';
+  return (
+    <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+      <p className="font-semibold">Подключить «{supplier.name}» к боту</p>
+      <p>Отправьте поставщику эту ссылку. Он нажмёт её и «Старт» — и заказы будут приходить ему прямо в Telegram, а его ответ — сюда. Ссылка работает 7 дней.</p>
+      {q.error && <ErrorState error={q.error} />}
+      {q.data && (
+        <>
+          <Input readOnly value={q.data.url} aria-label="Ссылка для поставщика" onFocus={(e) => e.currentTarget.select()} />
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={async () => { await navigator.clipboard.writeText(invite); setCopied(true); }}><Copy size={16} aria-hidden /> {copied ? 'Скопировано' : 'Скопировать приглашение'}</Button>
+            <a className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-4 font-medium hover:bg-border/40" target="_blank" rel="noopener noreferrer"
+              href={`https://t.me/share/url?url=${encodeURIComponent(q.data.url)}&text=${encodeURIComponent('Это Diamoraa: нажмите ссылку и «Старт», чтобы получать наши заказы в Telegram')}`}>
+              <Send size={16} aria-hidden /> Отправить в Telegram
+            </a>
+            <Button variant="ghost" onClick={onDone}>Готово</Button>
+          </div>
+          <p className="text-xs text-muted">Когда поставщик нажмёт «Старт», здесь появится «✓ Бот подключён».</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface Line { key: string; materialId: string; quantity: string; price: string }
+const newLine = (): Line => ({ key: crypto.randomUUID(), materialId: '', quantity: '', price: '' });
+
+/** Any order, whenever it is needed - not only what «Что пора купить» suggests. */
+function NewPurchaseModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const suppliers = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get<{ items: Supplier[] }>('/admin/suppliers') });
+  const materials = useQuery({ queryKey: ['materials', 'all'], queryFn: () => api.get<{ items: MaterialRow[] }>('/admin/materials', { limit: 100 }) });
+  const [supplierId, setSupplierId] = useState('');
+  const [note, setNote] = useState('');
+  const [lines, setLines] = useState<Line[]>(() => [newLine()]);
+  const mats = (materials.data?.items ?? []).filter((m) => m.isActive);
+  const byId = new Map(mats.map((m) => [m.id, m]));
+  // the supplier's own materials first
+  const sorted = supplierId ? [...mats].sort((a, b) => Number(b.supplierId === supplierId) - Number(a.supplierId === supplierId)) : mats;
+  const set = (key: string, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  const ready = lines.filter((l) => l.materialId && Number(l.quantity.replace(',', '.')) > 0);
+  const save = useMutation({
+    mutationFn: () => api.post('/admin/purchases', {
+      supplierId: supplierId || null, note: note.trim() || undefined,
+      items: ready.map((l) => ({ materialId: l.materialId, quantity: l.quantity.replace(',', '.'), unitPrice: digits(l.price) || null })),
+    }, { idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['purchases'] }); qc.invalidateQueries({ queryKey: ['purchase-suggest'] }); onClose(); },
+  });
+  return (
+    <Modal title="Новый заказ поставщику" onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Поставщик" htmlFor="np-s">
+          <Select id="np-s" value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
+            <option value="">— не выбран —</option>
+            {suppliers.data?.items.filter((x) => x.isActive).map((x) => <option key={x.id} value={x.id}>{x.name}{x.botLinked ? ' · бот ✓' : ''}</option>)}
+          </Select>
+        </Field>
+        {materials.error && <ErrorState error={materials.error} />}
+        <div className="space-y-2">
+          {lines.map((l, i) => {
+            const m = byId.get(l.materialId);
+            const unit = m ? UNIT[m.unit] ?? '' : '';
+            return (
+              <div key={l.key} className="grid grid-cols-[1fr_1fr_auto] gap-2 rounded-xl border border-border p-2 sm:grid-cols-[1fr_6rem_8rem_auto] sm:items-center sm:border-0 sm:p-0">
+                <Select aria-label={`Материал ${i + 1}`} value={l.materialId} className="col-span-3 sm:col-span-1"
+                  onChange={(e) => { const x = byId.get(e.target.value); set(l.key, { materialId: e.target.value, price: l.price || x?.unitCost || '' }); }}>
+                  <option value="">— материал —</option>
+                  {sorted.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </Select>
+                <Input aria-label="Сколько" placeholder={unit ? `кол-во, ${unit}` : 'кол-во'} inputMode="decimal" value={l.quantity} onChange={(e) => set(l.key, { quantity: e.target.value.replace(/[^\d.,]/g, '') })} />
+                <Input aria-label="Цена за единицу" placeholder="цена, сум" inputMode="numeric" value={l.price} onChange={(e) => set(l.key, { price: digits(e.target.value) })} />
+                <button type="button" aria-label="Убрать строку" disabled={lines.length === 1} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
+                  className="grid h-10 w-10 place-items-center rounded-lg text-muted hover:bg-border/40 disabled:opacity-30"><Trash2 size={16} aria-hidden /></button>
+              </div>
+            );
+          })}
+          <Button variant="outline" onClick={() => setLines((ls) => [...ls, newLine()])} disabled={lines.length >= 100}><Plus size={16} aria-hidden /> Ещё материал</Button>
+        </div>
+        <Field label="Комментарий для поставщика" htmlFor="np-n"><Input id="np-n" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Срок, доставка, цвет…" /></Field>
+        {save.isError && <ErrorState error={save.error} />}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="ghost" onClick={onClose}>Отмена</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !ready.length}>Создать заказ</Button>
+        </div>
+        <p className="text-xs text-muted">Потом нажмите у заказа «Отправить поставщику».</p>
       </div>
     </Modal>
   );

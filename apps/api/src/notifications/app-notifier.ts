@@ -170,6 +170,21 @@ export class AppNotifier implements OnModuleInit {
         });
         return;
       }
+      case 'purchase.replied': {
+        const ok = d.reply === 'ACCEPTED';
+        await this.notify(await this.staffWith(['INVENTORY_MANAGE']), {
+          type: e.type, title: `${d.supplier}: ${ok ? 'принял заказ' : 'нет в наличии'} ${d.code}`,
+          body: ok ? 'Когда привезут — «Принять на склад» в «Закупках»' : 'Закажите у другого поставщика или поменяйте заказ', link: '/admin/purchases',
+          dedupe: `po-reply:${d.purchaseId}:${d.reply}`,
+        });
+        return;
+      }
+      case 'purchase.supplier_message': {
+        await this.notify(await this.staffWith(['INVENTORY_MANAGE']), {
+          type: e.type, title: `Сообщение от поставщика: ${d.supplier}`, body: String(d.text), link: '/admin/purchases',
+        });
+        return;
+      }
       case 'stock.updated': {
         if (!d.low) return;
         const m = await this.prisma.material.findUnique({ where: { id: d.materialId as string } });

@@ -1,4 +1,5 @@
-import { Controller, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { createPurchaseSchema, receivePurchaseSchema, supplierSchema, updatePurchaseSchema } from '@diamoraa/shared';
 import type { StockMovement } from '@diamoraa/database';
@@ -9,10 +10,16 @@ import { invariant, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { nextCode } from '../common/sequence';
 import { ZodBody } from '../common/zod.pipe';
+import { ENV, Env } from '../config/env';
 import { EventBus } from '../events/event-bus';
+import { NotificationsModule, NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.module';
 import { materialUsage } from '../stock/forecast';
 import { StockModule, StockService } from '../stock/stock.service';
+import { sha256, SUPPLIER_PREFIX } from './supplier-bot';
+
+/** how long the «connect the bot» link for a supplier works (it is sent to them, they may open it later) */
+const LINK_TTL_MS = 7 * 86_400_000;
 
 const UNIT: Record<string, string> = { METER: 'м', GRAM: 'г', PCS: 'шт', SET: 'компл.', ROLL: 'рул.', PACKAGE: 'уп.' };
 /** buy enough for about a month at the current pace (at least back to twice the minimum) */
@@ -27,12 +34,13 @@ const PLAN_DAYS = 14;
  */
 @Injectable()
 export class PurchasesService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus, private readonly stock: StockService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus, private readonly stock: StockService,
+    private readonly notifications: NotificationsService, @Inject(ENV) private readonly env: Env) {}
 
   // ---- suppliers
   async suppliers() {
     const rows = await this.prisma.supplier.findMany({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }], include: { _count: { select: { materials: true } } } });
-    return { items: rows.map((s) => ({ id: s.id, name: s.name, phone: s.phone, telegram: s.telegram, note: s.note, isActive: s.isActive, materials: s._count.materials })) };
+    return { items: rows.map((s) => ({ id: s.id, name: s.name, phone: s.phone, telegram: s.telegram, note: s.note, isActive: s.isActive, materials: s._count.materials, botLinked: s.telegramChatId !== null })) };
   }
 
   async addSupplier(input: z.output<typeof supplierSchema>) {
@@ -49,6 +57,43 @@ export class PurchasesService {
     });
     await this.audit.record({ action: 'supplier.update', entity: 'Supplier', entityId: id, after: input });
     return s;
+  }
+
+  /** A link for the supplier: pressing «Старт» in our bot connects their chat (orders then go straight there). */
+  async botLink(id: string, now = new Date()) {
+    if (!(await this.prisma.supplier.findUnique({ where: { id } }))) throw notFound('Supplier');
+    const token = randomBytes(18).toString('base64url');
+    await this.prisma.supplier.update({ where: { id }, data: { linkTokenHash: sha256(token), linkExpiresAt: new Date(now.getTime() + LINK_TTL_MS) } });
+    return { url: `https://t.me/${this.env.TELEGRAM_BOT_USERNAME}?start=${SUPPLIER_PREFIX}${token}`, expiresInDays: 7 };
+  }
+
+  async botUnlink(id: string) {
+    if (!(await this.prisma.supplier.findUnique({ where: { id } }))) throw notFound('Supplier');
+    await this.prisma.supplier.update({ where: { id }, data: { telegramChatId: null, linkTokenHash: null, linkExpiresAt: null } });
+    await this.audit.record({ action: 'supplier.bot_unlinked', entity: 'Supplier', entityId: id });
+    return { botLinked: false };
+  }
+
+  /** The order goes to the supplier's chat by our bot, with «Принял» / «Нет в наличии» under it; the order becomes «Заказано». */
+  async sendByBot(actor: AuthUser, id: string) {
+    const o = await this.prisma.purchaseOrder.findUnique({ where: { id }, include: { supplier: true } });
+    if (!o) throw notFound('Purchase');
+    if (o.status === 'RECEIVED' || o.status === 'CANCELLED') throw invariant('This purchase is already closed');
+    if (!o.supplier?.telegramChatId) throw invariant('The supplier has not connected the bot yet');
+    const { text } = await this.text(id);
+    await this.prisma.$transaction(async (tx) => {
+      await this.notifications.telegram({
+        chatId: o.supplier!.telegramChatId!, type: 'purchase.order', body: text,
+        data: { purchaseId: id, buttons: [[{ text: '✅ Принял', data: `po:ok:${id}` }, { text: '❌ Нет в наличии', data: `po:no:${id}` }]] },
+      }, tx);
+      await tx.purchaseOrder.update({
+        where: { id },
+        data: { status: 'ORDERED', orderedAt: o.orderedAt ?? new Date(), sentByBotAt: new Date(), supplierReply: null, supplierReplyAt: null },
+      });
+      await this.audit.record({ action: 'purchase.sent_by_bot', entity: 'PurchaseOrder', entityId: id, actorId: actor.id, actorRole: actor.role }, tx);
+    });
+    await this.events.publish('purchase.updated', { purchaseId: id });
+    return this.get(id);
   }
 
   // ---- «Что купить»
@@ -158,7 +203,7 @@ export class PurchasesService {
     if (!o) throw notFound('Purchase');
     const lines = o.items.map((i, n) => `${n + 1}. ${i.material.name}${i.material.article ? ` (${i.material.article})` : ''} — ${Number(i.quantity)} ${UNIT[i.material.unit] ?? ''}`);
     const text = [`Здравствуйте${o.supplier ? `, ${o.supplier.name}` : ''}! Заказ ${o.code} от Diamoraa:`, ...lines, o.note ? `\nКомментарий: ${o.note}` : '', '\nСпасибо!'].filter(Boolean).join('\n');
-    return { text, telegram: o.supplier?.telegram ?? null, phone: o.supplier?.phone ?? null };
+    return { text, telegram: o.supplier?.telegram ?? null, phone: o.supplier?.phone ?? null, botLinked: !!o.supplier?.telegramChatId };
   }
 
   async get(id: string) {
@@ -174,13 +219,15 @@ export class PurchasesService {
 
   private dto(o: {
     id: string; code: string; status: string; note: string | null; createdAt: Date; orderedAt: Date | null; receivedAt: Date | null;
-    supplier: { id: string; name: string; phone: string | null; telegram: string | null } | null;
+    sentByBotAt: Date | null; supplierReply: string | null; supplierReplyAt: Date | null;
+    supplier: { id: string; name: string; phone: string | null; telegram: string | null; telegramChatId: bigint | null } | null;
     items: { id: string; quantity: { toString(): string }; unitPrice: bigint | null; material: { id: string; name: string; unit: string } }[];
   }) {
     const total = o.items.reduce((a, i) => a + (i.unitPrice === null ? 0 : Math.round(Number(i.quantity.toString()) * Number(i.unitPrice))), 0);
     return {
       id: o.id, code: o.code, status: o.status, note: o.note, createdAt: o.createdAt.toISOString(), orderedAt: o.orderedAt?.toISOString() ?? null, receivedAt: o.receivedAt?.toISOString() ?? null,
-      supplier: o.supplier ? { id: o.supplier.id, name: o.supplier.name, phone: o.supplier.phone, telegram: o.supplier.telegram } : null,
+      supplier: o.supplier ? { id: o.supplier.id, name: o.supplier.name, phone: o.supplier.phone, telegram: o.supplier.telegram, botLinked: o.supplier.telegramChatId !== null } : null,
+      sentByBotAt: o.sentByBotAt?.toISOString() ?? null, supplierReply: o.supplierReply, supplierReplyAt: o.supplierReplyAt?.toISOString() ?? null,
       items: o.items.map((i) => ({ id: i.id, material: i.material, unitLabel: UNIT[i.material.unit] ?? '', quantity: Number(i.quantity.toString()), unitPrice: i.unitPrice === null ? null : i.unitPrice.toString() })),
       total: String(total), priced: o.items.every((i) => i.unitPrice !== null),
     };
@@ -201,6 +248,15 @@ export class PurchasesController {
 
   @Perm('INVENTORY_MANAGE') @Patch('suppliers/:id') @ApiZodBody(supplierSchema)
   updateSupplier(@Param('id', new ParseUUIDPipe()) id: string, @ZodBody(supplierSchema) b: z.output<typeof supplierSchema>) { return this.purchases.updateSupplier(id, b); }
+
+  @Perm('INVENTORY_MANAGE') @Post('suppliers/:id/bot-link') @HttpCode(200)
+  botLink(@Param('id', new ParseUUIDPipe()) id: string) { return this.purchases.botLink(id); }
+
+  @Perm('INVENTORY_MANAGE') @Delete('suppliers/:id/bot-link')
+  botUnlink(@Param('id', new ParseUUIDPipe()) id: string) { return this.purchases.botUnlink(id); }
+
+  @Perm('INVENTORY_MANAGE') @Post('purchases/:id/send') @HttpCode(200)
+  send(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.purchases.sendByBot(u, id); }
 
   @Perm('INVENTORY_VIEW', 'INVENTORY_MANAGE') @Get('purchases/suggest')
   suggest() { return this.purchases.suggest(); }
@@ -224,5 +280,5 @@ export class PurchasesController {
   receive(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(receivePurchaseSchema) b: z.output<typeof receivePurchaseSchema>) { return this.purchases.receive(u, id, b); }
 }
 
-@Module({ imports: [StockModule], controllers: [PurchasesController], providers: [PurchasesService] })
+@Module({ imports: [StockModule, NotificationsModule], controllers: [PurchasesController], providers: [PurchasesService] })
 export class PurchasesModule {}

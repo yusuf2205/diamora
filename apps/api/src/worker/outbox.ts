@@ -3,8 +3,10 @@ import { PrismaService } from '../prisma/prisma.module';
 
 /** Transport port implemented by the Telegram bot (kept abstract so the outbox is testable without Telegram). */
 export interface TelegramSender {
-  send(chatId: bigint, text: string): Promise<void>;
+  send(chatId: bigint, text: string, opts?: SendOptions): Promise<void>;
 }
+/** inline buttons under the message (`data.buttons` of the notification row) */
+export interface SendOptions { buttons?: { text: string; data: string }[][] }
 
 const MAX_ATTEMPTS = 5;
 const backoffMs = (attempt: number) => Math.min(30 * 60_000, 15_000 * 2 ** attempt);
@@ -18,19 +20,20 @@ export class OutboxSender {
   constructor(private readonly prisma: PrismaService) {}
 
   async tick(sender: TelegramSender, batch = 20): Promise<{ sent: number; failed: number }> {
-    const claimed = await this.prisma.$queryRaw<{ id: string; telegramChatId: bigint | null; body: string | null; type: string; attempts: number }[]>`
+    const claimed = await this.prisma.$queryRaw<{ id: string; telegramChatId: bigint | null; body: string | null; type: string; attempts: number; data: unknown }[]>`
       UPDATE notifications SET attempts = attempts + 1, "nextAttemptAt" = now() + interval '60 seconds'
       WHERE id IN (
         SELECT id FROM notifications
         WHERE channel = 'TELEGRAM' AND status = 'PENDING' AND "nextAttemptAt" <= now()
         ORDER BY "createdAt" LIMIT ${batch} FOR UPDATE SKIP LOCKED)
-      RETURNING id, "telegramChatId", body, type, attempts`;
+      RETURNING id, "telegramChatId", body, type, attempts, data`;
     let sent = 0;
     let failed = 0;
     for (const n of claimed) {
       try {
         if (n.telegramChatId === null || !n.body) throw new Error('no recipient or body');
-        await sender.send(n.telegramChatId, n.body);
+        const buttons = (n.data as { buttons?: SendOptions['buttons'] } | null)?.buttons;
+        await sender.send(n.telegramChatId, n.body, buttons ? { buttons } : undefined);
         await this.prisma.notification.update({ where: { id: n.id }, data: { status: 'SENT', sentAt: new Date(), lastError: null, body: WIPE_AFTER_SEND.has(n.type) ? null : undefined } });
         sent++;
       } catch (e) {

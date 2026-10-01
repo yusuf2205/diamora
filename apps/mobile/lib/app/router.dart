@@ -57,6 +57,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (loc == '/login' || loc == '/splash') return home(s.isStaff);
       if (s.isStaff && loc.startsWith('/worker/')) return home(true);
       if (s.isWorker && loc.startsWith('/admin/')) return home(false);
+      // notices about panel-only pages («Закупки», «Заказы клиентов») open the nearest screen of the app
+      final path = state.uri.path;
+      if (path == '/admin/purchases') return '/admin/inventory';
+      if (path == '/admin/orders') return '/admin/dashboard';
       return null;
     },
     routes: [

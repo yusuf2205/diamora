@@ -5,7 +5,8 @@ import { adminKeyboard, AdminBot } from '../alerts/admin-bot';
 import { ALERT_PREFIX, AlertsService } from '../alerts/alerts.service';
 import { RegistrationService, type BotInput } from '../registration/registration.service';
 import { parseAction, render, type BotKeyboard } from '../registration/texts';
-import type { TelegramSender } from './outbox';
+import { PO_CALLBACK, SUPPLIER_PREFIX, SupplierBot } from '../purchases/supplier-bot';
+import type { SendOptions, TelegramSender } from './outbox';
 
 const toMarkup = (k: BotKeyboard) => {
   if (k.type === 'remove') return { remove_keyboard: true as const };
@@ -25,13 +26,14 @@ export class TelegramBot implements TelegramSender {
   private readonly log = new Logger('TelegramBot');
   private bot?: Bot;
 
-  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot) {}
+  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot) {}
 
   get enabled() { return !!this.env.TELEGRAM_BOT_TOKEN; }
 
-  async send(chatId: bigint, text: string) {
+  async send(chatId: bigint, text: string, opts?: SendOptions) {
     if (!this.bot) throw new Error('bot not started');
-    await this.bot.api.sendMessage(Number(chatId), text);
+    const markup = opts?.buttons ? { inline_keyboard: opts.buttons.map((row) => row.map((b) => ({ text: b.text, callback_data: b.data }))) } : undefined;
+    await this.bot.api.sendMessage(Number(chatId), text, markup ? { reply_markup: markup } : undefined);
   }
 
   async start() {
@@ -58,8 +60,17 @@ export class TelegramBot implements TelegramSender {
 ${this.adminBot.menuText()}` : text, linked ? { reply_markup: adminKeyboard } : undefined);
         return;
       }
+      // a supplier linking this chat: orders from «Закупки» arrive here
+      if (payload?.startsWith(SUPPLIER_PREFIX) && ctx.chat?.type === 'private') {
+        await ctx.reply(await this.supplierBot.completeLink(payload.slice(SUPPLIER_PREFIX.length), BigInt(ctx.chat.id)), { reply_markup: { remove_keyboard: true } });
+        return;
+      }
       if (ctx.chat?.type === 'private' && (await this.adminBot.isAdminChat(BigInt(ctx.chat.id)))) {
         await ctx.reply(this.adminBot.menuText(), { reply_markup: adminKeyboard });
+        return;
+      }
+      if (ctx.chat?.type === 'private' && (await this.supplierBot.isSupplierChat(BigInt(ctx.chat.id)))) {
+        await ctx.reply('Здесь будут приходить заказы Diamoraa. Под каждым — кнопки «Принял» и «Нет в наличии».');
         return;
       }
       return handle(ctx, { kind: 'command', command: 'start', payload });
@@ -89,8 +100,27 @@ ${this.adminBot.menuText()}` : text, linked ? { reply_markup: adminKeyboard } : 
         await ctx.reply(answer ?? this.adminBot.menuText(), { reply_markup: adminKeyboard });
         return;
       }
+      // a supplier's message: passed to the staff
+      if (ctx.chat.type === 'private') {
+        const answer = await this.supplierBot.message(BigInt(ctx.chat.id), ctx.message.text);
+        if (answer) {
+          await ctx.reply(answer.reply);
+          await this.alerts.notifyOwners(this, answer.owners).catch(() => undefined);
+          return;
+        }
+      }
       const action = parseAction(ctx.message.text);
       return handle(ctx, action ? { kind: 'action', action } : { kind: 'text', text: ctx.message.text });
+    });
+    // the buttons under an order sent to a supplier
+    bot.on('callback_query:data', async (ctx) => {
+      const m = PO_CALLBACK.exec(ctx.callbackQuery.data);
+      const chatId = ctx.chat?.id;
+      if (!m || chatId === undefined) { await ctx.answerCallbackQuery(); return; }
+      const r = await this.supplierBot.reply(BigInt(chatId), m[2], m[1] === 'ok' ? 'ACCEPTED' : 'UNAVAILABLE');
+      await ctx.answerCallbackQuery(r ? { text: r.text } : { text: 'Этот заказ не ваш.' });
+      if (r) await ctx.reply(r.text);
+      if (r?.changed && r.owners) await this.alerts.notifyOwners(this, r.owners).catch(() => undefined);
     });
     bot.catch((err) => this.log.error(`update ${err.ctx.update.update_id} failed: ${err.error instanceof Error ? err.error.message : String(err.error)}`));
 
