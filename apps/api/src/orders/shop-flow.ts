@@ -3,7 +3,7 @@ import { phoneSchema } from '@diamoraa/shared';
 import { ENV, Env } from '../config/env';
 import { EventBus } from '../events/event-bus';
 import { PrismaService } from '../prisma/prisma.module';
-import { FOLLOW_PREFIX, OrdersModule, OrdersService, STATUS_RU } from './orders.service';
+import { FOLLOW_PREFIX, linesText, type OrderLine, OrdersModule, OrdersService, STATUS_RU } from './orders.service';
 
 /** the customer's reply keyboard */
 export const SHOP_MENU = [['🛍 Каталог', '📝 Заказать'], ['📦 Мои заказы', '📞 Связаться']] as const;
@@ -22,22 +22,30 @@ export interface ShopReply {
   askContact?: boolean;
   /** show the menu keyboard */
   menu?: boolean;
+  /** replace the message the button was pressed under (ticking colours) instead of sending a new one */
+  edit?: boolean;
   /** for the owners' Telegram (a customer wrote something) */
   owners?: string;
 }
 
 interface Draft {
   step: 'product' | 'color' | 'qty' | 'name' | 'phone' | 'confirm';
-  productId?: string; productName?: string; colors?: string[]; color?: string; qty?: number; name?: string; phone?: string;
+  productId?: string; productName?: string; colors?: string[];
+  /** the colours ticked, in the catalog's order */
+  picked?: string[];
+  /** metres per picked colour (asked one by one); without colours: one number */
+  lines?: OrderLine[]; qty?: number;
+  name?: string; phone?: string;
   at: number;
 }
 const DRAFT_TTL_MS = 60 * 60_000;
 const MAX_ITEMS = 40;
+const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
 /**
- * The customers' bot (separate from the workers' bot, owner 2026-10-01): browse, order step by step (item -> colour ->
- * metres -> name -> phone -> confirm), see «Мои заказы», write to us. Telegram-free so it is tested directly; the
- * worker's ShopBot only turns updates into ShopInput and replies into messages.
+ * The customers' bot (separate from the workers' bot, owner 2026-10-01): browse, order step by step (item -> one or
+ * several colours -> metres for each -> name -> phone -> confirm), see «Мои заказы», contact us. Telegram-free so it
+ * is tested directly; the worker's ShopBot only turns updates into ShopInput and replies into messages.
  */
 @Injectable()
 export class ShopFlow {
@@ -73,14 +81,14 @@ export class ShopFlow {
       case '🛍 Каталог': return this.catalog();
       case '📝 Заказать': return this.startOrder(key, now);
       case '📦 Мои заказы': return this.mine(chatId);
-      case '📞 Связаться': return { text: 'Напишите сюда ваш вопрос одним сообщением — мы ответим или перезвоним.', menu: true };
+      case '📞 Связаться': return this.contact();
       case '/cancel': this.drafts.delete(key); return { text: 'Отменили.', menu: true };
     }
 
     if (draft?.step === 'qty') {
       const n = Number(text.replace(',', '.').replace(/[^\d.]/g, ''));
       if (!(n > 0 && n <= 100_000)) return { text: 'Напишите число метров, например 27. Или нажмите «Пропустить».', buttons: [[{ text: 'Пропустить', data: 'sh:q:-' }]] };
-      return this.next(key, { ...draft, qty: n, step: 'name' }, now);
+      return this.setQty(key, draft, n, now);
     }
     if (draft?.step === 'name') {
       if (text.length < 2 || text.length > 80) return { text: 'Напишите ваше имя (от 2 букв).' };
@@ -91,6 +99,16 @@ export class ShopFlow {
     // not in an order: a question for us
     await this.events.publish('client_order.message', { from: input.from ?? 'покупатель', text: text.slice(0, 500) });
     return { text: 'Спасибо, передали Diamoraa. Мы ответим или перезвоним.', menu: true, owners: `💬 Покупатель ${input.from ?? ''} пишет в бот магазина:\n${text.slice(0, 500)}` };
+  }
+
+  /** «📞 Связаться»: the company's Telegram and phone from «Настройки → Контакты компании» */
+  private async contact(): Promise<ShopReply> {
+    const c = await this.orders.contact();
+    const lines = ['📞 Связаться с Diamoraa:'];
+    if (c.telegramUsername) lines.push(`Telegram: @${c.telegramUsername}`);
+    if (c.phone) lines.push(`Телефон: ${c.phone}`);
+    lines.push('', 'Или напишите вопрос прямо сюда — мы ответим.');
+    return c.telegramUrl ? { text: lines.join('\n'), buttons: [[{ text: `✈️ Написать @${c.telegramUsername}`, url: c.telegramUrl }]] } : { text: lines.join('\n'), menu: true };
   }
 
   private async catalog(): Promise<ShopReply> {
@@ -117,27 +135,45 @@ export class ShopFlow {
     if (kind === 'p' && value) {
       const item = (await this.items()).find((i) => i.id === value);
       if (!item) return { text: 'Это изделие больше недоступно. Выберите другое.', menu: true };
-      const next: Draft = { ...draft, productId: item.id, productName: item.name, colors: item.colors, color: undefined, step: item.colors.length ? 'color' : 'qty' };
-      return this.next(key, next, now);
+      return this.next(key, { step: item.colors.length ? 'color' : 'qty', productId: item.id, productName: item.name, colors: item.colors, picked: [], at: now }, now);
     }
-    if (kind === 'c' && draft.step === 'color') {
-      const color = value === '-' ? undefined : draft.colors?.[Number(value)];
-      return this.next(key, { ...draft, color, step: 'qty' }, now);
+    if (draft.step === 'color') {
+      // tick / untick a colour: the same message is redrawn
+      if (kind === 'c' && value !== '-' && value !== undefined) {
+        const name = draft.colors?.[Number(value)];
+        if (!name) return this.next(key, draft, now);
+        const on = new Set(draft.picked);
+        if (on.has(name)) on.delete(name); else on.add(name);
+        return { ...(await this.next(key, { ...draft, picked: draft.colors!.filter((c) => on.has(c)) }, now)), edit: true };
+      }
+      if (kind === 'c' && value === '-') return this.next(key, { ...draft, picked: [], lines: [], step: 'qty' }, now);
+      if (kind === 'cd') {
+        if (!draft.picked?.length) return { ...(await this.next(key, draft, now)), text: '2/5 · Отметьте хотя бы один цвет (или «Ещё не знаю»).', edit: true };
+        return this.next(key, { ...draft, lines: [], step: 'qty' }, now);
+      }
     }
-    if (kind === 'q' && draft.step === 'qty') return this.next(key, { ...draft, qty: undefined, step: 'name' }, now);
+    if (kind === 'q' && draft.step === 'qty') return this.setQty(key, draft, undefined, now);
     if (kind === 'me' && draft.step === 'name') {
       const last = await this.prisma.clientOrder.findFirst({ where: { customerChatId: chatId }, orderBy: { createdAt: 'desc' }, select: { name: true, phone: true } });
       if (last) return this.next(key, { ...draft, name: last.name, phone: last.phone, step: 'confirm' }, now);
     }
     if (data === 'sh:ok' && draft.step === 'confirm') {
+      const lines = draft.lines?.length ? draft.lines : undefined;
       const r = await this.orders.create(
-        { name: draft.name!, phone: draft.phone!, productModelId: draft.productId, colorName: draft.color, quantity: draft.qty },
+        { name: draft.name!, phone: draft.phone!, productModelId: draft.productId, lines, quantity: lines ? undefined : draft.qty },
         undefined, { source: 'BOT', chatId },
       );
       this.drafts.delete(key);
       return { text: `Спасибо! Заказ ${r.code} принят 🎉\nМы позвоним по номеру ${draft.phone}, чтобы уточнить срок и цену. Новости по заказу придут сюда.`, menu: true };
     }
     return { text: 'Этот шаг устарел. Нажмите «📝 Заказать» ещё раз.', menu: true };
+  }
+
+  /** metres for the next picked colour (or the one number without colours); `undefined` = skipped */
+  private setQty(key: string, draft: Draft, n: number | undefined, now: number) {
+    if (!draft.picked?.length) return this.next(key, { ...draft, qty: n, step: 'name' }, now);
+    const lines = [...(draft.lines ?? []), { colorName: draft.picked[(draft.lines ?? []).length], ...(n ? { quantity: n } : {}) }];
+    return this.next(key, { ...draft, lines, step: lines.length < draft.picked.length ? 'qty' : 'name' }, now);
   }
 
   private async setPhone(key: string, draft: Draft, raw: string, now: number): Promise<ShopReply> {
@@ -151,10 +187,20 @@ export class ShopFlow {
   private async next(key: string, d: Draft, now: number): Promise<ShopReply> {
     this.drafts.set(key, { ...d, at: now });
     switch (d.step) {
-      case 'color':
-        return { text: `2/5 · ${d.productName}: какой цвет?`, buttons: [...(d.colors ?? []).map((c, i) => [{ text: c, data: `sh:c:${i}` }]), [{ text: 'Ещё не знаю', data: 'sh:c:-' }]] };
-      case 'qty':
-        return { text: '3/5 · Сколько метров? Напишите число (можно примерно).', buttons: [[{ text: 'Пропустить', data: 'sh:q:-' }]] };
+      case 'color': {
+        const on = new Set(d.picked);
+        return {
+          text: `2/5 · ${d.productName}: какие цвета? Можно отметить несколько, потом «Готово».${d.picked?.length ? `\nВыбрано: ${d.picked.join(', ')}` : ''}`,
+          buttons: [
+            ...chunk((d.colors ?? []).map((c, i) => ({ text: `${on.has(c) ? '✅ ' : ''}${c}`, data: `sh:c:${i}` })), 2),
+            [{ text: 'Ещё не знаю', data: 'sh:c:-' }, { text: `Готово ➡️${d.picked?.length ? ` (${d.picked.length})` : ''}`, data: 'sh:cd' }],
+          ],
+        };
+      }
+      case 'qty': {
+        const color = d.picked?.[(d.lines ?? []).length];
+        return { text: color ? `3/5 · Сколько метров «${color}»? Напишите число (можно примерно).` : '3/5 · Сколько метров? Напишите число (можно примерно).', buttons: [[{ text: 'Пропустить', data: 'sh:q:-' }]] };
+      }
       case 'name': {
         const known = await this.prisma.clientOrder.findFirst({ where: { customerChatId: BigInt(key) }, orderBy: { createdAt: 'desc' }, select: { name: true, phone: true } });
         return known
@@ -163,11 +209,13 @@ export class ShopFlow {
       }
       case 'phone':
         return { text: '5/5 · Ваш номер телефона — нажмите кнопку внизу или напишите.', askContact: true };
-      case 'confirm':
+      case 'confirm': {
+        const what = d.lines?.length ? linesText(d.lines) : d.qty ? `${fmt(d.qty)} м` : '';
         return {
-          text: ['Проверьте заказ:', `• ${d.productName ?? 'изделие'}${d.color ? `, ${d.color}` : ''}${d.qty ? `, ${d.qty} м` : ''}`, `• ${d.name}, ${d.phone}`].join('\n'),
+          text: ['Проверьте заказ:', `• ${d.productName ?? 'изделие'}${what ? `: ${what}` : ''}`, `• ${d.name}, ${d.phone}`].join('\n'),
           buttons: [[{ text: '✅ Отправить заказ', data: 'sh:ok' }], [{ text: '✖ Отмена', data: 'sh:x' }]],
         };
+      }
       default:
         return { text: '1/5 · Какое изделие?' };
     }
@@ -187,6 +235,8 @@ export class ShopFlow {
     return c.items.map((i) => ({ id: i.id, name: i.name, colors: i.colors.map((x) => x.name).filter((x): x is string => !!x) }));
   }
 }
+
+const chunk = <T>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 @Module({ imports: [OrdersModule], providers: [ShopFlow], exports: [ShopFlow] })
 export class ShopFlowModule {}

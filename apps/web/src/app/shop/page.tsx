@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Send, ShoppingBag, X } from 'lucide-react';
+import { CheckCircle2, Phone, Send, ShoppingBag, X } from 'lucide-react';
 import { apiOrigin } from '@/lib/api';
 import { Logo } from '@/components/ui';
 
 interface Item { id: string; name: string; isNew: boolean; availability: string; coverPhoto: { url: string; thumbUrl: string } | null; colors: { id: string; name: string | null; hex: string | null }[] }
+const num = (v?: string) => (v && Number(v.replace(',', '.')) > 0 ? Number(v.replace(',', '.')) : undefined);
+interface Contact { phone: string | null; telegramUsername: string | null; telegramUrl: string | null }
 interface Detail { id: string; name: string; description: string | null; media: { id: string; kind: string; file: { url: string; thumbUrl?: string } | null }[] }
 
 /**
@@ -16,13 +18,14 @@ interface Detail { id: string; name: string; description: string | null; media: 
 export default function ShopPage() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [bot, setBot] = useState<string | null>(null);
+  const [contact, setContact] = useState<Contact | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<Item | null>(null);
   const [done, setDone] = useState<{ code: string | null; follow: string | null; phone: string } | null>(null);
 
   useEffect(() => {
     fetch(`${apiOrigin()}/v1/public/catalog`).then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((d: { items: Item[]; bot: string | null }) => { setItems(d.items); setBot(d.bot); }).catch(() => setFailed(true));
+      .then((d: { items: Item[]; bot: string | null; contact?: Contact }) => { setItems(d.items); setBot(d.bot); setContact(d.contact ?? null); }).catch(() => setFailed(true));
   }, []);
 
   if (done) {
@@ -53,12 +56,25 @@ export default function ShopPage() {
             <p className="text-sm text-muted">Выберите изделие — мы перезвоним и всё уточним</p>
           </div>
         </div>
-        {bot && (
-          <a href={`https://t.me/${bot}`} target="_blank" rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 font-semibold hover:bg-border/40">
-            <Send size={18} className="text-[#229ED9]" aria-hidden /> Заказать в Telegram
-          </a>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {bot && (
+            <a href={`https://t.me/${bot}`} target="_blank" rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 font-semibold hover:bg-border/40">
+              <Send size={18} className="text-[#229ED9]" aria-hidden /> Заказать в Telegram
+            </a>
+          )}
+          {contact?.telegramUrl && (
+            <a href={contact.telegramUrl} target="_blank" rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 font-semibold hover:bg-border/40">
+              <Send size={18} className="text-[#229ED9]" aria-hidden /> @{contact.telegramUsername}
+            </a>
+          )}
+          {contact?.phone && (
+            <a href={`tel:${contact.phone}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 font-semibold hover:bg-border/40">
+              <Phone size={18} className="text-primary" aria-hidden /> {contact.phone}
+            </a>
+          )}
+        </div>
       </header>
 
       {failed && <p className="rounded-xl bg-danger/10 p-4 text-sm text-danger">Каталог сейчас не открывается. Попробуйте позже.</p>}
@@ -91,7 +107,8 @@ export default function ShopPage() {
 function OrderSheet({ item, onClose, onDone }: { item: Item; onClose: () => void; onDone: (d: { code: string | null; follow: string | null; phone: string }) => void }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [photo, setPhoto] = useState(0);
-  const [color, setColor] = useState('');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [perColor, setPerColor] = useState<Record<string, string>>({});
   const [meters, setMeters] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('+998 ');
@@ -120,8 +137,10 @@ function OrderSheet({ item, onClose, onDone }: { item: Item; onClose: () => void
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(), phone: phone.trim(), productModelId: item.id, colorName: color || undefined,
-          quantity: meters ? Number(meters.replace(',', '.')) : undefined, comment: comment.trim() || undefined, website: website || undefined,
+          name: name.trim(), phone: phone.trim(), productModelId: item.id,
+          // one or several colours, each with its own metres
+          lines: picked.length ? picked.map((c) => ({ colorName: c, quantity: num(perColor[c]) })) : undefined,
+          quantity: picked.length ? undefined : num(meters), comment: comment.trim() || undefined, website: website || undefined,
         }),
       });
       if (res.status === 429) throw new Error('Слишком много заказов подряд. Попробуйте через 10 минут.');
@@ -164,20 +183,38 @@ function OrderSheet({ item, onClose, onDone }: { item: Item; onClose: () => void
           <div className="space-y-3">
             {item.colors.length > 0 && (
               <div>
-                <p className="mb-2 text-sm font-semibold">Цвет</p>
+                <p className="mb-2 text-sm font-semibold">Цвет <span className="font-normal text-muted">— можно выбрать несколько</span></p>
                 <div className="flex flex-wrap gap-2">
-                  {item.colors.map((c) => (
-                    <button key={c.id} type="button" onClick={() => setColor(c.name ?? '')} aria-pressed={color === c.name}
-                      className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-medium ${color === c.name ? 'border-primary bg-primary/10' : 'border-border'}`}>
-                      <span className="h-4 w-4 rounded-full border border-border" style={{ background: c.hex ?? undefined }} />{c.name}
-                    </button>
-                  ))}
+                  {item.colors.map((c) => {
+                    const on = !!c.name && picked.includes(c.name);
+                    return (
+                      <button key={c.id} type="button" aria-pressed={on}
+                        onClick={() => c.name && setPicked((p) => (on ? p.filter((x) => x !== c.name) : [...p, c.name!]))}
+                        className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-medium ${on ? 'border-primary bg-primary/10' : 'border-border'}`}>
+                        <span className="grid h-4 w-4 place-items-center rounded-full border border-border text-[10px] text-white" style={{ background: c.hex ?? undefined }}>{on ? '✓' : ''}</span>{c.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
-            <label className="block text-sm">Сколько метров (можно примерно)
-              <input inputMode="decimal" value={meters} onChange={(e) => setMeters(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="например, 27" className="mt-1 block w-full rounded-xl border border-border bg-card px-3 py-3 text-base" />
-            </label>
+            {picked.length ? (
+              <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                <p className="text-sm font-semibold">Сколько метров каждого цвета (можно примерно)</p>
+                {picked.map((c) => (
+                  <label key={c} className="grid grid-cols-[1fr_8rem] items-center gap-2 text-sm">
+                    <span>{c}</span>
+                    <input inputMode="decimal" aria-label={`Метров: ${c}`} value={perColor[c] ?? ''} placeholder="м"
+                      onChange={(e) => setPerColor((v) => ({ ...v, [c]: e.target.value.replace(/[^\d.,]/g, '') }))}
+                      className="block w-full rounded-xl border border-border bg-background px-3 py-2.5 text-base" />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <label className="block text-sm">Сколько метров (можно примерно)
+                <input inputMode="decimal" value={meters} onChange={(e) => setMeters(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="например, 27" className="mt-1 block w-full rounded-xl border border-border bg-card px-3 py-3 text-base" />
+              </label>
+            )}
             <label className="block text-sm">Ваше имя *
               <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className="mt-1 block w-full rounded-xl border border-border bg-card px-3 py-3 text-base" />
             </label>

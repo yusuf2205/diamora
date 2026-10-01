@@ -1110,6 +1110,8 @@ model ClientOrder {
   staffNote      String?
   /// where it came from: PANEL (staff wrote it down), SITE (shop.diamoraa.uz), BOT (the shop bot)
   source         String            @default("PANEL")
+  /// several colours in one order: [{ colorName, quantity }]; colorName / quantity above hold the joined names / the sum
+  lines          Json?
   /// the customer's chat with the shop bot: they hear about every step of the order there
   customerChatId BigInt?
   handledById    String?           @db.Uuid

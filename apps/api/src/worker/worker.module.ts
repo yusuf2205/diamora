@@ -17,13 +17,14 @@ import { GoalsWorkerModule } from '../goals/goals.service';
 import { TelegramBot } from './telegram-bot';
 import { SupplierBotModule } from '../purchases/supplier-bot';
 import { ShopFlowModule } from '../orders/shop-flow';
+import { OrdersModule } from '../orders/orders.service';
 import { ShopBot } from './shop-bot';
 
 /** The `worker` container: Telegram bot + outbox delivery + maintenance. Same code base as the API, no HTTP business surface. */
 import { AppNotifierModule } from '../notifications/app-notifier';
 
 @Module({
-  imports: [EnvModule, PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, FilesModule, RegistrationModule, AppNotifierModule, AlertsModule, GoalsWorkerModule, SupplierBotModule, ShopFlowModule],
+  imports: [EnvModule, PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, FilesModule, RegistrationModule, AppNotifierModule, AlertsModule, GoalsWorkerModule, SupplierBotModule, ShopFlowModule, OrdersModule],
   providers: [AppLogger, TelegramBot, ShopBot, OutboxSender, MaintenanceService, ReleaseWatcher],
 })
 export class WorkerModule {}

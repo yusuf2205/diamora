@@ -26,6 +26,12 @@ const STEP_TEXT: Record<string, (code: string) => string> = {
   DONE: (c) => `🎉 Заказ ${c} готов! Мы свяжемся с вами насчёт получения.`,
   CANCELLED: (c) => `Заказ ${c} отменён. Если это ошибка — напишите сюда, мы ответим.`,
 };
+/** the owner's buttons under a new order in Telegram: co:<ok|no>:<order id> */
+export const CO_CALLBACK = /^co:(ok|no):([0-9a-f-]{36})$/;
+export type OrderLine = { colorName: string; quantity?: number };
+const m = (n: number) => `${Math.round(n * 100) / 100} м`;
+/** «Розовый 10 м, Синий 5 м» */
+export const linesText = (lines: OrderLine[]) => lines.map((l) => `${l.colorName}${l.quantity ? ` ${m(l.quantity)}` : ''}`).join(', ');
 export const STATUS_RU: Record<string, string> = { NEW: 'принят, скоро позвоним', CONFIRMED: 'подтверждён', IN_WORK: 'в работе', DONE: 'готов', CANCELLED: 'отменён' };
 
 /**
@@ -51,8 +57,14 @@ export class OrdersService {
 
   /** The shop: the published catalog only (photos, colours - never prices for workers, never a draft). */
   async publicCatalog() {
-    const c = await this.catalog.published();
-    return { ...c, bot: this.env.SHOP_BOT_USERNAME || null };
+    const [c, contact] = await Promise.all([this.catalog.published(), this.contact()]);
+    return { ...c, bot: this.env.SHOP_BOT_USERNAME || null, contact };
+  }
+
+  /** «Связаться»: the company phone and Telegram from «Настройки → Контакты компании» */
+  async contact() {
+    const r = await this.prisma.companyContactSettings.findUnique({ where: { id: 1 } });
+    return { phone: r?.phone ?? null, telegramUsername: r?.telegramUsername ?? null, telegramUrl: r?.telegramUrl ?? null };
   }
 
   publicItem(id: string) { return this.catalog.publishedDetail(id); }
@@ -64,14 +76,30 @@ export class OrdersService {
       const p = await this.prisma.productModel.findFirst({ where: { id: input.productModelId, deletedAt: null, ...(source === 'PANEL' ? {} : { status: 'PUBLISHED' }) }, select: { id: true } });
       if (!p) throw notFound('Item');
     }
+    // several colours: the joined names and the total stay in colorName / quantity (lists, the bot, reports)
+    const lines = input.lines?.length ? input.lines : null;
+    const known = lines?.filter((l) => l.quantity).reduce((a, l) => a + (l.quantity ?? 0), 0);
+    const colorName = lines ? lines.map((l) => l.colorName).join(', ').slice(0, 300) : input.colorName || null;
+    const quantity = lines ? (known || undefined) : input.quantity;
     const row = await this.prisma.$transaction(async (tx) => {
       const code = await nextCode(tx, 'client_order_code', 'CO-', 5);
-      return tx.clientOrder.create({
+      const o = await tx.clientOrder.create({
         data: {
-          code, name: input.name, phone: input.phone, productModelId: input.productModelId, colorName: input.colorName || null, quantity: input.quantity,
+          code, name: input.name, phone: input.phone, productModelId: input.productModelId, colorName, quantity, lines: lines ?? undefined,
           comment: input.comment || null, handledById: actor?.id ?? null, source, customerChatId: from.chatId ?? null,
         },
+        include: { productModel: { select: { name: true } } },
       });
+      // a customer's own order: the owners get it in Telegram with «Подтвердить» / «Отменить» under it
+      if (source !== 'PANEL') {
+        const admins = await tx.user.findMany({ where: { alertChatId: { not: null }, status: 'ACTIVE', role: { in: ['SUPER_ADMIN', 'ADMIN'] } }, select: { alertChatId: true } });
+        const what = [o.productModel?.name, lines ? linesText(lines) : [colorName, quantity ? m(quantity) : null].filter(Boolean).join(', ')].filter(Boolean).join(' — ');
+        const body = [`🛒 Новый заказ ${o.code} ${source === 'SITE' ? 'с сайта' : 'из Telegram'}`, what, `${o.name}, ${o.phone}`, o.comment ? `«${o.comment}»` : ''].filter(Boolean).join('\n');
+        for (const a of admins) {
+          await this.notifications.telegram({ chatId: a.alertChatId!, type: 'client_order.new', body, data: { orderId: o.id, buttons: [[{ text: '✅ Подтвердить', data: `co:ok:${o.id}` }, { text: '❌ Отменить', data: `co:no:${o.id}` }]] } }, tx);
+        }
+      }
+      return o;
     });
     await this.events.publish('client_order.created', { orderId: row.id, code: row.code, name: row.name });
     return { ok: true, code: row.code, id: row.id };
@@ -103,10 +131,22 @@ export class OrdersService {
     return { code: o.code, status: o.status };
   }
 
+  /** A button under a new order in the owner's Telegram: only a linked, active admin may press it. */
+  async decide(chatId: bigint, id: string, ok: boolean) {
+    const u = await this.prisma.user.findFirst({ where: { alertChatId: chatId, status: 'ACTIVE', role: { in: ['SUPER_ADMIN', 'ADMIN'] } } });
+    if (!u) return null;
+    const o = await this.prisma.clientOrder.findUnique({ where: { id } });
+    if (!o) return 'Заказ не найден.';
+    if (o.status !== 'NEW') return `Заказ ${o.code} уже ${STATUS_RU[o.status]}.`;
+    const actor = { id: u.id, role: u.role, fullName: u.fullName, sessionId: '', workerId: null, permissions: [] } as AuthUser;
+    await this.update(actor, id, { status: ok ? 'CONFIRMED' : 'CANCELLED' });
+    return ok ? `✅ Заказ ${o.code} подтверждён — покупатель ${o.name} получит сообщение. Позвоните: ${o.phone}` : `❌ Заказ ${o.code} отменён.`;
+  }
+
   /** «Мои заказы» in the shop bot */
   async ofChat(chatId: bigint) {
     const rows = await this.prisma.clientOrder.findMany({ where: { customerChatId: chatId }, orderBy: { createdAt: 'desc' }, take: 10, include: { productModel: { select: { name: true } } } });
-    return rows.map((o) => ({ code: o.code, status: o.status, product: o.productModel?.name ?? null, colorName: o.colorName, quantity: o.quantity === null ? null : Number(o.quantity), createdAt: o.createdAt }));
+    return rows.map((o) => ({ code: o.code, status: o.status, product: o.productModel?.name ?? null, colorName: o.lines ? linesText(o.lines as OrderLine[]) : o.colorName, quantity: o.lines || o.quantity === null ? null : Number(o.quantity), createdAt: o.createdAt }));
   }
 
   async list(q: z.output<typeof listClientOrdersSchema>) {
@@ -145,11 +185,11 @@ export class OrdersService {
     return createHmac('sha256', this.env.FILE_SIGNING_SECRET).update(`order-follow:${v}`).digest('hex').slice(0, 16);
   }
 
-  private dto(r: { id: string; code: string; name: string; phone: string; colorName: string | null; quantity: { toString(): string } | null; comment: string | null; status: string; staffNote: string | null; source: string; customerChatId: bigint | null; createdAt: Date; updatedAt: Date; productModel: { id: string; name: string } | null }) {
+  private dto(r: { id: string; code: string; name: string; phone: string; colorName: string | null; quantity: { toString(): string } | null; comment: string | null; status: string; staffNote: string | null; source: string; customerChatId: bigint | null; lines: unknown; createdAt: Date; updatedAt: Date; productModel: { id: string; name: string } | null }) {
     return {
       id: r.id, code: r.code, name: r.name, phone: r.phone, product: r.productModel, colorName: r.colorName,
       quantity: r.quantity === null ? null : Number(r.quantity.toString()), comment: r.comment, status: r.status, staffNote: r.staffNote,
-      source: r.source, followsInBot: r.customerChatId !== null,
+      source: r.source, followsInBot: r.customerChatId !== null, lines: (r.lines as OrderLine[] | null) ?? null,
       createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(),
     };
   }

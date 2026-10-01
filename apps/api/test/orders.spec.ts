@@ -8,7 +8,11 @@ import { client, createTestApp, staffActor, superAdminActor, TestApp } from './s
 describe('client orders', () => {
   let t: TestApp;
   beforeAll(async () => { t = await createTestApp(); });
-  afterAll(async () => { await t.close(); });
+  // the database is shared by the suites: leave nothing published (the catalog suite starts from an empty catalog)
+  afterAll(async () => {
+    await t.prisma.productModel.updateMany({ where: { OR: [{ code: { startsWith: 'SH-' } }, { code: { startsWith: 'SB-' } }, { code: { startsWith: 'MC-' } }] }, data: { status: 'DRAFT' } });
+    await t.close();
+  });
 
   it('staff record an order (any item, even not published), see it and move it along; a guest cannot', async () => {
     const admin = await superAdminActor(t);
@@ -94,5 +98,65 @@ describe('client orders', () => {
     const siteRow = await t.prisma.clientOrder.findUniqueOrThrow({ where: { code: site.code } });
     const followed = await flow.handle(chat2, { kind: 'start', payload: t.app.get(OrdersService).followToken(siteRow.id) });
     expect(followed.text).toContain(site.code);
+  });
+  it('several colours with their own metres (bot, site, panel); «Связаться» shows the company contact; the owner accepts from Telegram', async () => {
+    const admin = await superAdminActor(t);
+    const flow = new ShopFlow(t.prisma, t.app.get(OrdersService), t.app.get(EventBus), t.app.get(ENV));
+    const tag = Math.random().toString(36).slice(2, 8);
+    const pink = await t.prisma.color.create({ data: { name: `Розовый ${tag}`, hex: '#f9c' } });
+    const blue = await t.prisma.color.create({ data: { name: `Синий ${tag}`, hex: '#36f' } });
+    const item = await t.prisma.productModel.create({
+      data: {
+        code: `MC-${tag}`, name: `Много цветов ${tag}`, status: 'PUBLISHED', publishedAt: new Date(), sortOrder: -2000,
+        variants: { create: [{ colorId: pink.id, sku: `MC-${tag}-1` }, { colorId: blue.id, sku: `MC-${tag}-2` }] },
+      },
+    });
+    const ownerChat = BigInt(Math.floor(Math.random() * 1e12));
+    const owner = await t.prisma.user.findFirstOrThrow({ where: { role: 'SUPER_ADMIN', status: 'ACTIVE' } });
+    await t.prisma.user.update({ where: { id: owner.id }, data: { alertChatId: ownerChat } });
+    const contactBefore = await t.prisma.companyContactSettings.findUniqueOrThrow({ where: { id: 1 } });
+    await t.prisma.companyContactSettings.update({ where: { id: 1 }, data: { phone: '+998901234567', telegramUsername: 'diamoraa_help', telegramUrl: 'https://t.me/diamoraa_help' } });
+
+    // the bot: tick two colours, metres for each
+    const chat = BigInt(Math.floor(Math.random() * 1e12));
+    await flow.handle(chat, { kind: 'text', text: '📝 Заказать' });
+    const colours = await flow.handle(chat, { kind: 'callback', data: `sh:p:${item.id}` });
+    expect(colours.text).toContain('несколько');
+    expect((await flow.handle(chat, { kind: 'callback', data: 'sh:cd' })).text).toContain('хотя бы один'); // nothing ticked
+    const ticked = await flow.handle(chat, { kind: 'callback', data: 'sh:c:0' });
+    expect(ticked.edit).toBe(true);
+    expect(ticked.buttons!.flat().some((b) => b.text.startsWith('✅'))).toBe(true);
+    await flow.handle(chat, { kind: 'callback', data: 'sh:c:1' });
+    expect((await flow.handle(chat, { kind: 'callback', data: 'sh:cd' })).text).toContain(`«Розовый ${tag}»`);
+    expect((await flow.handle(chat, { kind: 'text', text: '10' })).text).toContain(`«Синий ${tag}»`);
+    await flow.handle(chat, { kind: 'text', text: '5,5' });
+    await flow.handle(chat, { kind: 'text', text: 'Сабина' });
+    const confirm = await flow.handle(chat, { kind: 'contact', phone: '998901112299' });
+    expect(confirm.text).toContain(`Розовый ${tag} 10 м, Синий ${tag} 5.5 м`);
+    const code = /CO-\d{5}/.exec((await flow.handle(chat, { kind: 'callback', data: 'sh:ok' })).text)![0];
+    const listed = (await admin.api.get('/v1/admin/orders?status=NEW').expect(200)).body.items.find((x: { code: string }) => x.code === code);
+    expect(listed).toMatchObject({ source: 'BOT', quantity: 15.5, colorName: `Розовый ${tag}, Синий ${tag}`, lines: [{ colorName: `Розовый ${tag}`, quantity: 10 }, { colorName: `Синий ${tag}`, quantity: 5.5 }] });
+
+    // the owner got it in Telegram with buttons and accepts it there; the customer hears about it
+    const note = await t.prisma.notification.findFirstOrThrow({ where: { telegramChatId: ownerChat, type: 'client_order.new' }, orderBy: { createdAt: 'desc' } });
+    expect(note.body).toContain(code);
+    expect((note.data as { buttons: { data: string }[][] }).buttons[0][0].data).toBe(`co:ok:${listed.id}`);
+    expect(await t.app.get(OrdersService).decide(ownerChat + 1n, listed.id, true)).toBeNull(); // not an admin's chat
+    expect(await t.app.get(OrdersService).decide(ownerChat, listed.id, true)).toContain('подтверждён');
+    expect(await t.app.get(OrdersService).decide(ownerChat, listed.id, false)).toContain('уже'); // only once
+    expect((await t.prisma.notification.findFirstOrThrow({ where: { telegramChatId: chat, type: 'client_order.step' } })).body).toContain('подтверждён');
+
+    // the site: several colours too
+    const site = (await client(t).post('/v1/public/orders', { name: 'Лола', phone: '+998 90 333 44 55', productModelId: item.id, lines: [{ colorName: `Синий ${tag}`, quantity: 3 }, { colorName: `Розовый ${tag}` }] }).expect(201)).body;
+    expect(await t.prisma.clientOrder.findUniqueOrThrow({ where: { code: site.code } })).toMatchObject({ colorName: `Синий ${tag}, Розовый ${tag}` });
+
+    // «Связаться»: the contact from the panel's settings, on the site and in the bot
+    const contact = await flow.handle(chat, { kind: 'text', text: '📞 Связаться' });
+    expect(contact.text).toContain('@diamoraa_help');
+    expect(contact.buttons![0][0].url).toBe('https://t.me/diamoraa_help');
+    expect((await client(t).get('/v1/public/catalog').expect(200)).body.contact).toMatchObject({ telegramUsername: 'diamoraa_help', phone: '+998901234567' });
+
+    await t.prisma.user.update({ where: { id: owner.id }, data: { alertChatId: null } });
+    await t.prisma.companyContactSettings.update({ where: { id: 1 }, data: { phone: contactBefore.phone, telegramUsername: contactBefore.telegramUsername, telegramUrl: contactBefore.telegramUrl } });
   });
 });

@@ -5,6 +5,7 @@ import { adminKeyboard, AdminBot } from '../alerts/admin-bot';
 import { ALERT_PREFIX, AlertsService } from '../alerts/alerts.service';
 import { RegistrationService, type BotInput } from '../registration/registration.service';
 import { parseAction, render, type BotKeyboard } from '../registration/texts';
+import { CO_CALLBACK, OrdersService } from '../orders/orders.service';
 import { PO_CALLBACK, SUPPLIER_PREFIX, SupplierBot } from '../purchases/supplier-bot';
 import type { SendOptions, TelegramSender } from './outbox';
 import { ShopBot } from './shop-bot';
@@ -27,7 +28,7 @@ export class TelegramBot implements TelegramSender {
   private readonly log = new Logger('TelegramBot');
   private bot?: Bot;
 
-  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot, private readonly shopBot: ShopBot) {}
+  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot, private readonly shopBot: ShopBot, private readonly orders: OrdersService) {}
 
   get enabled() { return !!this.env.TELEGRAM_BOT_TOKEN; }
 
@@ -116,6 +117,17 @@ ${this.adminBot.menuText()}` : text, linked ? { reply_markup: adminKeyboard } : 
     });
     // the buttons under an order sent to a supplier
     bot.on('callback_query:data', async (ctx) => {
+      // the owner's «Подтвердить» / «Отменить» under a new customer order
+      const co = CO_CALLBACK.exec(ctx.callbackQuery.data);
+      if (co && ctx.chat) {
+        const text = await this.orders.decide(BigInt(ctx.chat.id), co[2], co[1] === 'ok');
+        await ctx.answerCallbackQuery({ text: text ?? 'Нет доступа.' }).catch(() => undefined);
+        if (text) {
+          await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }).catch(() => undefined);
+          await ctx.reply(text);
+        }
+        return;
+      }
       const m = PO_CALLBACK.exec(ctx.callbackQuery.data);
       const chatId = ctx.chat?.id;
       if (!m || chatId === undefined) { await ctx.answerCallbackQuery(); return; }

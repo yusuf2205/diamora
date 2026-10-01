@@ -251,6 +251,8 @@ export const clientOrderSchema = z.object({
   quantity: z.coerce.number().positive().max(100_000).optional(),
   comment: z.string().trim().max(1000).optional(),
   website: z.string().max(500).optional(),
+  /** several colours, each with its own metres (owner, 2026-10-01) */
+  lines: z.array(z.object({ colorName: z.string().trim().min(1).max(60), quantity: z.coerce.number().positive().max(100_000).optional() })).max(20).optional(),
 });
 export const CLIENT_ORDER_STATUSES = ['NEW', 'CONFIRMED', 'IN_WORK', 'DONE', 'CANCELLED'] as const;
 export const updateClientOrderSchema = z.object({ status: z.enum(CLIENT_ORDER_STATUSES).optional(), staffNote: z.string().trim().max(1000).nullable().optional() });

@@ -56,6 +56,10 @@ export class ShopBot implements TelegramSender {
   private async reply(ctx: Context, r: ShopReply) {
     if (r.buttons) {
       const inline_keyboard = r.buttons.map((row) => row.map((b) => (b.url ? { text: b.text, url: b.url } : { text: b.text, callback_data: b.data! })));
+      // ticking colours redraws the same message (a new one per tap would flood the chat)
+      if (r.edit && ctx.callbackQuery) {
+        try { await ctx.editMessageText(r.text, { reply_markup: { inline_keyboard } }); return; } catch { /* unchanged or too old: send anew */ }
+      }
       await ctx.reply(r.text, { reply_markup: { inline_keyboard } });
       return;
     }
