@@ -472,7 +472,14 @@ export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏',
 export const chatReactSchema = z.object({ emoji: z.enum(CHAT_REACTIONS) });
 export const chatForwardSchema = z.object({ roomIds: z.array(z.string().uuid()).min(1).max(20) });
 export const chatPinSchema = z.object({ messageId: z.string().uuid().nullable() });
-export const chatMemberPrefsSchema = z.object({ pinned: z.boolean().optional(), muted: z.boolean().optional() });
+export const chatMemberPrefsSchema = z.object({
+  pinned: z.boolean().optional(),
+  muted: z.boolean().optional(),
+  /** mute for this many minutes (1 hour, 8 hours, 2 days…); `muted: true` is for good */
+  muteMinutes: z.number().int().min(1).max(366 * 24 * 60).optional(),
+  archived: z.boolean().optional(),
+  unread: z.boolean().optional(),
+});
 export const chatSearchSchema = z.object({ q: z.string().trim().min(2).max(80) });
 export const chatProtectSchema = z.object({ on: z.boolean() });
 export const chatFileFieldsSchema = z.object({

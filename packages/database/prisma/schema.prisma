@@ -1321,6 +1321,10 @@ model ChatMember {
   clearedAt  DateTime? @db.Timestamptz(3)
   /// «Удалить чат» (a direct chat) for me: hidden from my list until a new message arrives
   hiddenAt   DateTime? @db.Timestamptz(3)
+  /// «Архивировать» for me: out of the main list (an unmuted chat comes back with a new message, like Telegram)
+  archivedAt DateTime? @db.Timestamptz(3)
+  /// «Пометить как непрочитанное»: a dot on the chat until I open it
+  markedUnread Boolean  @default(false)
 
   @@id([roomId, userId])
   @@index([userId])

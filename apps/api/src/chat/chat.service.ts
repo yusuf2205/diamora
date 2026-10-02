@@ -236,6 +236,10 @@ export class ChatService {
         pinned: !!m.pinnedAt,
         pinnedAt: m.pinnedAt?.toISOString() ?? null,
         muted: !!m.mutedUntil && m.mutedUntil > new Date(),
+        mutedUntil: m.mutedUntil && m.mutedUntil > new Date() && m.mutedUntil < FAR_FUTURE ? m.mutedUntil.toISOString() : null,
+        // archived until something new is written there - unless it is muted (then it stays, like Telegram)
+        archived: !!m.archivedAt && ((!!m.mutedUntil && m.mutedUntil > new Date()) || !(m.room.lastMessageAt && m.room.lastMessageAt > m.archivedAt)),
+        markedUnread: m.markedUnread,
         unread: unread.get(m.roomId) ?? 0,
         lastMessage: last ? this.dto(last, u.id) : null,
         lastMessageAt: (m.room.lastMessageAt ?? m.room.createdAt).toISOString(),
@@ -776,7 +780,7 @@ export class ChatService {
     return this.room(u, roomId);
   }
 
-  /** My own settings for a chat: keep it on top, no notifications. */
+  /** My own settings for a chat: keep it on top, no notifications (for good or for a while), archived, marked unread. */
   async prefs(u: AuthUser, roomId: string, b: z.output<typeof chatMemberPrefsSchema>) {
     await this.access(u, roomId);
     await this.prisma.chatMember.update({
@@ -784,6 +788,9 @@ export class ChatService {
       data: {
         ...(b.pinned === undefined ? {} : { pinnedAt: b.pinned ? new Date() : null }),
         ...(b.muted === undefined ? {} : { mutedUntil: b.muted ? FAR_FUTURE : null }),
+        ...(b.muteMinutes === undefined ? {} : { mutedUntil: new Date(Date.now() + b.muteMinutes * 60_000) }),
+        ...(b.archived === undefined ? {} : { archivedAt: b.archived ? new Date() : null, ...(b.archived ? { pinnedAt: null } : {}) }),
+        ...(b.unread === undefined ? {} : { markedUnread: b.unread, ...(b.unread ? {} : { lastReadAt: new Date() }) }),
       },
     });
     await this.events.publish('chat.room', { roomId, userIds: [u.id] });
@@ -923,7 +930,7 @@ export class ChatService {
 
   async read(u: AuthUser, roomId: string) {
     const room = await this.access(u, roomId);
-    await this.prisma.chatMember.updateMany({ where: { roomId, userId: u.id }, data: { lastReadAt: new Date() } });
+    await this.prisma.chatMember.updateMany({ where: { roomId, userId: u.id }, data: { lastReadAt: new Date(), markedUnread: false } });
     // a direct chat shows «прочитано» to the other person; everywhere else only my other devices care
     const userIds = room.kind === 'DIRECT' ? await this.memberIds(room) : [u.id];
     await this.events.publish('chat.read', { roomId, userId: u.id, userIds });

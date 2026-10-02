@@ -66,6 +66,35 @@ describe('chat v2', () => {
     expect(list[1].kind).toBe('COMPANY');
   });
 
+  it('the chat menu like Telegram: mute for a while, archive (back with a new message unless muted), mark unread', async () => {
+    const { a, b, room } = await pair();
+    const mine = async () => (await a.api.get('/v1/chat/rooms').expect(200)).body.items.find((r: { id: string }) => r.id === room.id);
+
+    await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { muteMinutes: 60 }).expect(200);
+    const muted = await mine();
+    expect(muted.muted).toBe(true);
+    expect(new Date(muted.mutedUntil).getTime()).toBeGreaterThan(Date.now() + 50 * 60_000);
+    await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { muted: false }).expect(200);
+    expect(await mine()).toMatchObject({ muted: false, mutedUntil: null });
+
+    await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { pinned: true }).expect(200);
+    await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { archived: true }).expect(200);
+    expect(await mine()).toMatchObject({ archived: true, pinned: false });
+    await new Promise((r) => setTimeout(r, 5));
+    await b.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'Привет' }).expect(201);
+    expect((await mine()).archived).toBe(false); // a new message brings it back
+    await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { archived: true, muted: true }).expect(200);
+    await new Promise((r) => setTimeout(r, 5));
+    await b.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'Ещё' }).expect(201);
+    expect((await mine()).archived).toBe(true); // muted: it stays in the archive
+
+    await a.api.post(`/v1/chat/rooms/${room.id}/read`).expect(200);
+    await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { unread: true }).expect(200);
+    expect(await mine()).toMatchObject({ markedUnread: true, unread: 0 });
+    await a.api.post(`/v1/chat/rooms/${room.id}/read`).expect(200);
+    expect((await mine()).markedUnread).toBe(false); // opening the chat clears it
+  });
+
   it('search: chats by name, people, messages in my chats only', async () => {
     const { a, b, room } = await pair();
     await b.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'Кружево бежевое 40 метров' }).expect(201);

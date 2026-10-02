@@ -1,9 +1,9 @@
 'use client';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Menu, PanelRight, ShieldOff, Shield, Eraser, FileDown, Wallpaper, CheckSquare, User as UserIcon, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, ExternalLink, MailOpen, MessageCircle, Bell, ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Menu, PanelRight, ShieldOff, Shield, Eraser, FileDown, Wallpaper, CheckSquare, User as UserIcon, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { accessToken, api, apiOrigin } from '@/lib/api';
 const apiBaseUrl = () => (typeof window === 'undefined' ? '' : apiOrigin());
 import { emitLive, onLiveEvent } from '@/lib/live';
@@ -20,7 +20,7 @@ export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏',
 export interface ChatFile { url: string; thumbUrl: string | null; name: string | null; size: number | null; mimeType: string | null; durationMs: number | null; width: number | null; height: number | null }
 export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null; waveform?: string | null;
   replyTo?: { id: string; sender: string | null; preview: string | null; deleted: boolean } | null; forwardedFrom?: string | null; editedAt?: string | null; reactions?: ChatReaction[] }
-export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY' | 'CHANNEL'; photo?: string | null; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean }
+export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY' | 'CHANNEL'; photo?: string | null; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean; mutedUntil?: string | null; archived?: boolean; markedUnread?: boolean }
 export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[];
   canPin?: boolean; pinned?: boolean; muted?: boolean; pinnedMessage?: ChatMessage | null;
   description?: string | null; photo?: { url: string; thumbUrl: string } | null; audience?: 'ALL' | 'STAFF' | 'WORKERS' | 'CUSTOM' | null;
@@ -171,11 +171,26 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
   useEffect(() => { const id = setTimeout(() => setDebounced(search.trim()), 300); return () => clearTimeout(id); }, [search]);
   const found = useQuery({ queryKey: ['chat-search', debounced], queryFn: () => api.get<ChatSearch>('/chat/search', { q: debounced }), enabled: debounced.length >= 2 });
   const prefs = useMutation({
-    mutationFn: ({ id, ...b }: { id: string; pinned?: boolean; muted?: boolean }) => api.patch(`/chat/rooms/${id}/me`, b),
+    mutationFn: ({ id, ...b }: { id: string; pinned?: boolean; muted?: boolean; muteMinutes?: number; archived?: boolean; unread?: boolean }) => api.patch(`/chat/rooms/${id}/me`, b),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-rooms'] }); qc.invalidateQueries({ queryKey: ['chat-unread'] }); },
+  });
+  const roomAct = useMutation({
+    mutationFn: ({ id, del }: { id: string; del?: boolean }) => (del ? api.delete(`/chat/rooms/${id}`) : api.post(`/chat/rooms/${id}/clear`)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['chat-rooms'] }),
   });
+  const [archive, setArchive] = useState(false);
   const direct = useMutation({ mutationFn: (userId: string) => api.post<ChatRoomDetail>('/chat/direct', { userId }), onSuccess: (r) => { setSearch(''); onOpen(r.id); } });
-  const [menu, setMenu] = useState<string | null>(null);
+  // the chat's menu (⋮ or a right click), like Telegram's; it closes on a click anywhere else
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number; mute?: boolean } | null>(null);
+  const openMenu = (id: string, x: number, y: number) => setMenu(menu?.id === id ? null : { id, x, y });
+  const all = q.data?.items ?? [];
+  const archived = all.filter((r) => r.archived);
+  const shown = archive ? archived : all.filter((r) => !r.archived);
+  useEffect(() => { if (archive && !archived.length && q.data) setArchive(false); }, [archive, archived.length, q.data]);
+  const menuRoom = menu ? all.find((r) => r.id === menu.id) : undefined;
+  const closeMenu = useCallback(() => setMenu(null), []);
+  const router = useRouter();
+  const pathname = usePathname();
   const [fab, setFab] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
@@ -238,18 +253,36 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
       <div className="flex-1 overflow-y-auto pb-24">
         {q.isLoading && <div className="flex justify-center p-6"><Spinner /></div>}
         {q.isError && <div className="p-3"><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>}
-        {collapsed && q.data?.items.map((r) => (
+        {collapsed && shown.map((r) => (
           <button key={r.id} title={chatTitle(r)} aria-label={chatTitle(r)} onClick={() => onOpen(r.id)} className={`relative flex w-full justify-center py-2 hover:bg-border/40 ${selected === r.id ? 'bg-primary/15' : ''}`}>
             <Avatar kind={r.kind} name={chatTitle(r)} online={r.peer?.online} photo={r.photo ?? r.peer?.avatar} size={48} />
             {r.unread > 0 && <span className={`absolute right-2 top-1 rounded-full px-1.5 text-[11px] font-bold text-white ${r.muted ? 'bg-muted' : 'bg-primary'}`}>{r.unread}</span>}
           </button>
         ))}
-        {!collapsed && q.data?.items.map((r) => {
+        {!collapsed && archive && (
+          <button onClick={() => setArchive(false)} className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left font-semibold hover:bg-border/40">
+            <ArrowLeft size={18} aria-hidden /> Архив
+          </button>
+        )}
+        {!collapsed && !archive && archived.length > 0 && (
+          <button onClick={() => setArchive(true)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-border/40">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-border/70 text-muted"><Archive size={22} aria-hidden /></span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center justify-between gap-2">
+                <span className="font-medium">Архив</span>
+                {archived.some((r) => r.unread > 0) && <span className="shrink-0 rounded-full bg-muted px-2 text-xs font-bold text-white">{archived.reduce((n, r) => n + r.unread, 0)}</span>}
+              </span>
+              <span className="block truncate text-sm text-muted">{archived.map((r) => chatTitle(r)).join(', ')}</span>
+            </span>
+          </button>
+        )}
+        {!collapsed && shown.map((r) => {
           const last = r.lastMessage;
           const who = !last || r.kind === 'DIRECT' || !last.sender ? '' : last.sender.id === me?.id ? 'Вы: ' : `${last.sender.fullName.split(' ')[0]}: `;
           const sub = last ? `${who}${chatPreview(last)}` : r.kind === 'COMPANY' ? 'Все сотрудники и мастерицы' : `Участников: ${r.memberCount}`;
           return (
-            <div key={r.id} className={`group relative flex items-center hover:bg-border/40 ${selected === r.id ? 'bg-primary/10' : ''}`}>
+            <div key={r.id} onContextMenu={(e) => { e.preventDefault(); setMenu({ id: r.id, x: e.clientX, y: e.clientY }); }}
+              className={`group relative flex items-center hover:bg-border/40 ${selected === r.id || menu?.id === r.id ? 'bg-primary/10' : ''}`}>
             <button
               onClick={() => onOpen(r.id)}
               className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
@@ -266,17 +299,14 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
                 </span>
                 <span className="flex items-center justify-between gap-2">
                   <span className="truncate text-sm text-muted">{sub}</span>
-                  {r.unread > 0 && <span className={`shrink-0 rounded-full px-2 text-xs font-bold text-white ${r.muted ? 'bg-muted' : 'bg-primary'}`}>{r.unread}</span>}
+                  {r.unread > 0 ? <span className={`shrink-0 rounded-full px-2 text-xs font-bold text-white ${r.muted ? 'bg-muted' : 'bg-primary'}`}>{r.unread}</span>
+                    : r.markedUnread && <span className={`h-3 w-3 shrink-0 rounded-full ${r.muted ? 'bg-muted' : 'bg-primary'}`} aria-label="Непрочитанный" />}
                 </span>
               </span>
             </button>
-            <button aria-label={`Действия: ${chatTitle(r)}`} onClick={() => setMenu(menu === r.id ? null : r.id)} className="mr-1 rounded p-1.5 text-muted opacity-60 hover:bg-border/60 group-hover:opacity-100"><MoreVertical size={16} aria-hidden /></button>
-            {menu === r.id && (
-              <div className="absolute right-2 top-12 z-20 w-56 rounded-lg border border-border bg-card p-1 text-sm shadow-lg">
-                <button className="flex w-full items-center gap-2 rounded px-3 py-2 hover:bg-border/40" onClick={() => { setMenu(null); prefs.mutate({ id: r.id, pinned: !r.pinned }); }}><Pin size={15} aria-hidden />{r.pinned ? 'Открепить чат' : 'Закрепить чат'}</button>
-                <button className="flex w-full items-center gap-2 rounded px-3 py-2 hover:bg-border/40" onClick={() => { setMenu(null); prefs.mutate({ id: r.id, muted: !r.muted }); }}><BellOff size={15} aria-hidden />{r.muted ? 'Включить уведомления' : 'Без уведомлений'}</button>
-              </div>
-            )}
+            <button aria-label={`Действия: ${chatTitle(r)}`} onMouseDown={(e) => { if (menu?.id === r.id) e.stopPropagation(); }}
+              onClick={(e) => { const b = e.currentTarget.getBoundingClientRect(); openMenu(r.id, b.right - 250, b.bottom + 4); }}
+              className="mr-1 rounded p-1.5 text-muted opacity-60 hover:bg-border/60 group-hover:opacity-100"><MoreVertical size={16} aria-hidden /></button>
             </div>
           );
         })}
@@ -290,6 +320,49 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
         </button>
       )}
       </div>
+      {menu && menuRoom && (
+        <FloatingMenu key={`${menu.id}-${menu.mute ? 'm' : ''}`} x={menu.x} y={menu.y} onClose={closeMenu}>
+          {menu.mute ? (
+            <>
+              <MenuItem icon={<ChevronLeft size={18} aria-hidden />} label="Назад" onClick={() => setMenu({ ...menu, mute: false })} />
+              <div className="my-1 border-t border-border" />
+              {([['На 1 час', 60], ['На 8 часов', 8 * 60], ['На 2 дня', 2 * 24 * 60]] as const).map(([label, min]) => (
+                <MenuItem key={min} icon={<BellOff size={18} aria-hidden />} label={label} onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, muteMinutes: min }); }} />
+              ))}
+              <MenuItem icon={<BellOff size={18} aria-hidden />} label="Навсегда" onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, muted: true }); }} />
+            </>
+          ) : (
+            <>
+              <MenuItem icon={<ExternalLink size={18} aria-hidden />} label="Открыть в новой вкладке" onClick={() => { setMenu(null); window.open(`${pathname}?room=${menuRoom.id}`, '_blank', 'noopener'); }} />
+              <div className="my-1 border-t border-border" />
+              <MenuItem icon={menuRoom.archived ? <ArchiveRestore size={18} aria-hidden /> : <Archive size={18} aria-hidden />} label={menuRoom.archived ? 'Вернуть из архива' : 'Архивировать'}
+                onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, archived: !menuRoom.archived }); }} />
+              {!menuRoom.archived && <MenuItem icon={<Pin size={18} aria-hidden />} label={menuRoom.pinned ? 'Открепить' : 'Закрепить'} onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, pinned: !menuRoom.pinned }); }} />}
+              {menuRoom.muted
+                ? <MenuItem icon={<Bell size={18} aria-hidden />} label={menuRoom.mutedUntil ? `Включить уведомления (выкл. до ${chatWhen(menuRoom.mutedUntil)})` : 'Включить уведомления'} onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, muted: false }); }} />
+                : (
+                  <button role="menuitem" onClick={() => setMenu({ ...menu, mute: true })} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-border/50">
+                    <span className="flex w-5 justify-center"><BellOff size={18} aria-hidden /></span><span className="flex-1">Выключить уведомления</span><ChevronRight size={16} className="text-muted" aria-hidden />
+                  </button>
+                )}
+              {menuRoom.unread > 0 || menuRoom.markedUnread
+                ? <MenuItem icon={<MailOpen size={18} aria-hidden />} label="Пометить как прочитанное" onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, unread: false }); }} />
+                : <MenuItem icon={<MessageCircle size={18} aria-hidden />} label="Пометить как непрочитанное" onClick={() => { setMenu(null); prefs.mutate({ id: menuRoom.id, unread: true }); }} />}
+              <div className="my-1 border-t border-border" />
+              <MenuItem icon={<Eraser size={18} aria-hidden />} label="Очистить историю" onClick={() => { setMenu(null); if (confirm('Очистить историю? Сообщения исчезнут только у вас.')) roomAct.mutate({ id: menuRoom.id }); }} />
+              {/* the company chat and audience channels cannot be left (turn notifications off instead) */}
+              {menuRoom.kind !== 'COMPANY' && menuRoom.kind !== 'CHANNEL' && (
+                <MenuItem danger icon={<Trash2 size={18} aria-hidden />} label={menuRoom.kind === 'DIRECT' ? 'Удалить чат' : 'Покинуть группу'}
+                  onClick={() => {
+                    setMenu(null);
+                    if (!confirm(menuRoom.kind === 'DIRECT' ? 'Удалить чат? Переписка исчезнет только у вас.' : 'Покинуть группу? Вы больше не будете видеть сообщения.')) return;
+                    roomAct.mutate({ id: menuRoom.id, del: true }, { onSuccess: () => { if (selected === menuRoom.id) router.push(pathname); } });
+                  }} />
+              )}
+            </>
+          )}
+        </FloatingMenu>
+      )}
       {fab && (
         <FloatingMenu x={fab.x} y={fab.y} onClose={() => setFab(null)}>
           <MenuItem icon={<UserIcon size={18} aria-hidden />} label="Новое сообщение" onClick={() => { setFab(null); setNewMode('chat'); }} />
