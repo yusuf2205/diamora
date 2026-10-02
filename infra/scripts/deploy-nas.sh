@@ -22,7 +22,8 @@ ssh "$HOST" "sh -s -- '$DIR'" < infra/scripts/nas-preflight.sh || { echo "deploy
 
 echo "==> uploading the source to $HOST:$DIR (no .env, no node_modules, no mobile app)"
 tar czf - --exclude=node_modules --exclude=.git --exclude=.dev-data --exclude=.env --exclude=dist --exclude=.next --exclude=.turbo \
-  --exclude=apps/mobile --exclude=./secrets --exclude='*.log' --exclude=.tmp --exclude=.claude --exclude=.vscode . \
+  --exclude=apps/mobile --exclude=./secrets --exclude='*.log' --exclude=.tmp --exclude=.claude --exclude=.vscode \
+  --exclude=./tools/tutorials/out --exclude=./tools/tutorials/shots . \
   | ssh "$HOST" "mkdir -p '$DIR' && tar xzf - -C '$DIR'"
 
 TOKEN=""
