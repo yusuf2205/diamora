@@ -197,10 +197,13 @@ export class RegistrationService {
     if (taken) return { prompt: 'INVITE_INVALID' };
     const now = new Date();
     const user = await tx.user.create({ data: { phone: inv.phone, fullName: inv.fullName, role: 'WORKER' } });
+    // a manager's invitation on the spot: an admin still approves her (and her collateral), as for a bot registration
+    const approved = !inv.needsApproval;
     const worker = await tx.workerProfile.create({
       data: {
         telegramUserId: ctx.telegramUserId, telegramChatId: ctx.chatId, code: await nextCode(tx, 'worker', 'W-', 4), fullName: inv.fullName, phone: inv.phone,
-        status: 'ACTIVE', userId: user.id, approvedAt: now, approvedById: inv.createdById, assignedManagerId: inv.managerId,
+        status: approved ? 'ACTIVE' : 'PENDING_APPROVAL', userId: user.id, approvedAt: approved ? now : null, approvedById: approved ? inv.createdById : null,
+        assignedManagerId: inv.managerId,
       },
     });
     await tx.qrEntity.create({ data: { code: generateQrCode(), type: 'WORKER', workerId: worker.id } });
@@ -208,6 +211,7 @@ export class RegistrationService {
     await tx.registrationDraft.deleteMany({ where: { telegramUserId: ctx.telegramUserId } });
     await this.audit.record({ action: 'worker.invite_accepted', entity: 'WorkerProfile', entityId: worker.id, actorId: null, actorRole: 'WORKER', after: { code: worker.code, fullName: worker.fullName, phone: worker.phone, invitationId: inv.id } }, tx);
     after.push(() => this.events.publish('worker.created', { workerId: worker.id, code: worker.code, fullName: worker.fullName, status: worker.status, managerId: inv.managerId }));
+    if (!approved) return { prompt: 'STATUS_PENDING' };
     after.push(() => this.events.publish('worker.approved', { workerId: worker.id, managerId: inv.managerId }));
     return { prompt: 'INVITE_ACCEPTED', fullName: worker.fullName };
   }

@@ -12,6 +12,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/auth_controller.dart';
+import '../auth/models.dart';
 import '../team/team_repository.dart';
 
 /// A link that was created but not opened yet.
@@ -26,11 +27,14 @@ class WorkerInvite {
       WorkerInvite(id: j['id'] as String, fullName: j['fullName'] as String, phone: j['phone'] as String, url: j['url'] as String?);
 }
 
+/// A MANAGER invites on the spot through her own endpoint (the new worker is still approved by an admin).
+String invitationsPath(Session? me) => me != null && me.role == 'MANAGER' && !me.has('WORKER_APPROVE') ? '/me/invitations' : '/workers/invitations';
+
 final workerInvitesProvider = FutureProvider.autoDispose<List<WorkerInvite>>((ref) async {
   ref.listen(realtimeEventsProvider, (_, next) {
     if (next.value?.type.startsWith('worker.') ?? false) ref.invalidateSelf();
   });
-  final j = await ref.watch(apiClientProvider).getJson('/workers/invitations');
+  final j = await ref.watch(apiClientProvider).getJson(invitationsPath(ref.watch(authControllerProvider).value));
   return ((j['items'] as List?) ?? const []).map((x) => WorkerInvite.fromJson((x as Map).cast<String, dynamic>())).toList();
 });
 
@@ -66,7 +70,7 @@ class _AddWorkerSheetState extends ConsumerState<AddWorkerSheet> {
     if (!_valid || _busy) return;
     setState(() => _busy = true);
     try {
-      final j = await ref.read(apiClientProvider).postJson('/workers/invitations', body: {'fullName': _name.text.trim(), 'phone': _phone.text.trim(), 'managerId': _managerId});
+      final j = await ref.read(apiClientProvider).postJson(invitationsPath(ref.read(authControllerProvider).value), body: {'fullName': _name.text.trim(), 'phone': _phone.text.trim(), 'managerId': _managerId});
       ref.invalidate(workerInvitesProvider);
       if (mounted) setState(() => _created = WorkerInvite.fromJson(j));
     } catch (e) {
@@ -188,7 +192,7 @@ class PendingInvitesCard extends ConsumerWidget {
               TextButton(
                 onPressed: () async {
                   try {
-                    await ref.read(apiClientProvider).deleteJson('/workers/invitations/${i.id}');
+                    await ref.read(apiClientProvider).deleteJson('${invitationsPath(ref.read(authControllerProvider).value)}/${i.id}');
                     ref.invalidate(workerInvitesProvider);
                   } catch (e) {
                     if (context.mounted) showError(context, e);

@@ -24,6 +24,7 @@ import 'collateral_card.dart';
 import 'collaterals_screen.dart';
 import 'models.dart';
 import 'worker_history_screen.dart';
+import '../manager/manager_tools.dart' show showReminderSheet;
 import 'workers_providers.dart';
 
 /// Her live position/presence from `GET /locations` (same scoped source as the map) - null when none is known.
@@ -47,6 +48,9 @@ class WorkerDetailScreen extends ConsumerWidget {
         title: Text(async.value?.fullName ?? l.workers),
         actions: [
           IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.actionScanQr, onPressed: () => context.push('/admin/qr-scan')),
+          if (async.value != null)
+            IconButton(key: const Key('remindAboutWorker'), icon: const Icon(Icons.alarm_add_rounded), tooltip: l.reminderAdd,
+                onPressed: () => showReminderSheet(context, workerId: async.value!.id, workerName: async.value!.fullName)),
           if (async.value?.qrCode != null)
             IconButton(icon: const Icon(Icons.qr_code_2_rounded), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
           if (async.value != null)

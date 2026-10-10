@@ -35,7 +35,9 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final canInvite = ref.watch(authControllerProvider).value?.has('WORKER_APPROVE') ?? false;
+    final me = ref.watch(authControllerProvider).value;
+    // a manager adds a new worker on the spot too (an admin approves her afterwards)
+    final canInvite = (me?.has('WORKER_APPROVE') ?? false) || me?.role == 'MANAGER';
     return Scaffold(
       floatingActionButton: canInvite
           ? FloatingActionButton.extended(

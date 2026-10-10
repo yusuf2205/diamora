@@ -3013,4 +3013,133 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get acceptanceWhatsWrong =>
       'What is wrong? The craftswoman will see it';
+
+  @override
+  String get idleTitle => 'Who is idle';
+
+  @override
+  String get idleHint =>
+      'Your craftswomen without work: those asking for work first, then the longest waiting.';
+
+  @override
+  String get idleNone => 'Everyone has work 🎉';
+
+  @override
+  String idleDays(String days) {
+    return 'Idle for $days d';
+  }
+
+  @override
+  String get idleNeverWorked => 'Has not had work yet';
+
+  @override
+  String idleQuality(String percent) {
+    return 'defect-free $percent%';
+  }
+
+  @override
+  String get idleWantsWork => 'Asks for work';
+
+  @override
+  String get idleGiveWork => 'Give work';
+
+  @override
+  String idleBanner(String count) {
+    return 'Idle: $count';
+  }
+
+  @override
+  String get remindersTitle => 'Reminders';
+
+  @override
+  String get reminderAdd => 'Remind me';
+
+  @override
+  String get remindersEmpty => 'No reminders';
+
+  @override
+  String get remindersEmptyHint =>
+      'For example: “Call Nigora on Friday”. Tap “Remind me”.';
+
+  @override
+  String get reminderWhat => 'What to remind you of';
+
+  @override
+  String get reminderWhatHint => 'e.g. pick up the finished work';
+
+  @override
+  String get reminderTomorrow => 'Tomorrow 9:00';
+
+  @override
+  String get reminderIn3Days => 'In 3 days';
+
+  @override
+  String get reminderNextMonday => 'On Monday';
+
+  @override
+  String reminderSaved(String when) {
+    return 'I will remind you $when';
+  }
+
+  @override
+  String get awayTitle => 'Holiday';
+
+  @override
+  String awayHint(String count) {
+    return 'Going on holiday? Your craftswomen ($count) move to another manager meanwhile and come back to you on the chosen day.';
+  }
+
+  @override
+  String get awaySubstitute => 'Who covers';
+
+  @override
+  String get awayUntilPick => 'Until which day';
+
+  @override
+  String awayUntil(String date) {
+    return 'Until $date';
+  }
+
+  @override
+  String get awayGo => 'Hand over my craftswomen';
+
+  @override
+  String awayNow(String date, String name) {
+    return 'You are on holiday until $date. $name looks after your craftswomen.';
+  }
+
+  @override
+  String get awayBack => 'I am back — take them back';
+
+  @override
+  String get awayCovering => 'You are covering';
+
+  @override
+  String awayCoveringLine(String count, String date) {
+    return 'Craftswomen: $count · until $date';
+  }
+
+  @override
+  String get myQrTitle => 'My QR code';
+
+  @override
+  String get myQrHint => 'Show it to the manager: one scan opens your card';
+
+  @override
+  String get widgetToday => 'Today';
+
+  @override
+  String widgetDeliver(String count) {
+    return 'To deliver: $count';
+  }
+
+  @override
+  String widgetPickup(String count) {
+    return 'To pick up: $count';
+  }
+
+  @override
+  String widgetOverdue(String count) {
+    return 'Overdue: $count';
+  }
 }

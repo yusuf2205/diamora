@@ -82,6 +82,8 @@ export class WorkersService {
     return {
       id: w.id, code: w.code, fullName: w.fullName, phone: w.phone, secondaryPhone: w.secondaryPhone, status: w.status, ...visitTimeView(w.visitTime),
       balance: money(w.balance), collaterals: w.collaterals.map((c) => this.collateralBrief(c)),
+      // «Мой QR-код»: a manager at her door scans it and has her card at once
+      qrCode: (await this.prisma.qrEntity.findFirst({ where: { workerId: w.id, type: 'WORKER', revokedAt: null }, orderBy: { createdAt: 'desc' }, select: { code: true } }))?.code ?? null,
     };
   }
 
@@ -168,7 +170,7 @@ export class WorkersService {
       managerName = m.fullName;
     }
     await this.prisma.$transaction(async (tx) => {
-      await tx.workerProfile.update({ where: { id }, data: { assignedManagerId: input.managerId } });
+      await tx.workerProfile.update({ where: { id }, data: { assignedManagerId: input.managerId, homeManagerId: null } });
       await this.audit.record({ action: 'worker.assign_manager', entity: 'WorkerProfile', entityId: id, before: { managerId: before.assignedManagerId }, after: { managerId: input.managerId, managerName } }, tx);
     });
     await this.events.publish('worker.manager_changed', { workerId: id, managerId: input.managerId, previousManagerId: before.assignedManagerId });
@@ -190,7 +192,7 @@ export class WorkersService {
     if (workers.length !== ids.length) throw notFound('Worker');
     const changed = workers.filter((w) => w.assignedManagerId !== input.managerId);
     await this.prisma.$transaction(async (tx) => {
-      await tx.workerProfile.updateMany({ where: { id: { in: changed.map((w) => w.id) } }, data: { assignedManagerId: input.managerId } });
+      await tx.workerProfile.updateMany({ where: { id: { in: changed.map((w) => w.id) } }, data: { assignedManagerId: input.managerId, homeManagerId: null } });
       for (const w of changed) {
         await this.audit.record({ action: 'worker.assign_manager', entity: 'WorkerProfile', entityId: w.id, before: { managerId: w.assignedManagerId }, after: { managerId: input.managerId, managerName } }, tx);
       }
@@ -200,7 +202,7 @@ export class WorkersService {
   }
 
   // ---- «Добавить мастерицу»: an invitation link; she opens it in Telegram and is active at once ------------------------
-  async createInvite(actor: AuthUser, input: z.output<typeof createWorkerInviteSchema>) {
+  async createInvite(actor: AuthUser, input: z.output<typeof createWorkerInviteSchema>, opts: { needsApproval?: boolean } = {}) {
     if (await this.prisma.workerProfile.findUnique({ where: { phone: input.phone }, select: { id: true } })) throw conflict('A worker with this phone already exists');
     if (await this.prisma.user.findUnique({ where: { phone: input.phone }, select: { id: true } })) throw conflict('This phone number already has a login');
     if (input.managerId) {
@@ -213,7 +215,10 @@ export class WorkersService {
       // one live link per phone: a new one replaces the old (a resent link never leaves two valid ones)
       await tx.workerInvitation.updateMany({ where: { phone: input.phone, usedAt: null, revokedAt: null }, data: { revokedAt: now } });
       const row = await tx.workerInvitation.create({
-        data: { tokenHash: sha256(token), fullName: input.fullName, phone: input.phone, managerId: input.managerId ?? null, createdById: actor.id, expiresAt: new Date(now.getTime() + INVITE_TTL_DAYS * 86_400_000) },
+        data: {
+          tokenHash: sha256(token), fullName: input.fullName, phone: input.phone, managerId: input.managerId ?? null, createdById: actor.id,
+          needsApproval: opts.needsApproval ?? false, expiresAt: new Date(now.getTime() + INVITE_TTL_DAYS * 86_400_000),
+        },
       });
       await this.audit.record({ action: 'worker.invite', entity: 'WorkerInvitation', entityId: row.id, after: { fullName: input.fullName, phone: input.phone, managerId: input.managerId ?? null } }, tx);
       return row;
@@ -221,14 +226,14 @@ export class WorkersService {
     return { ...this.inviteDto(invite), url: `https://t.me/${this.env.TELEGRAM_BOT_USERNAME}?start=inv_${token}` };
   }
 
-  async listInvites() {
-    const rows = await this.prisma.workerInvitation.findMany({ where: { usedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' }, take: 100 });
+  async listInvites(createdById?: string) {
+    const rows = await this.prisma.workerInvitation.findMany({ where: { usedAt: null, revokedAt: null, expiresAt: { gt: new Date() }, ...(createdById ? { createdById } : {}) }, orderBy: { createdAt: 'desc' }, take: 100 });
     return { items: rows.map((r) => this.inviteDto(r)) };
   }
 
-  async revokeInvite(id: string) {
+  async revokeInvite(id: string, createdById?: string) {
     const row = await this.prisma.workerInvitation.findUnique({ where: { id } });
-    if (!row) throw notFound('Invitation');
+    if (!row || (createdById && row.createdById !== createdById)) throw notFound('Invitation');
     if (!row.usedAt && !row.revokedAt) {
       await this.prisma.$transaction(async (tx) => {
         await tx.workerInvitation.update({ where: { id }, data: { revokedAt: new Date() } });

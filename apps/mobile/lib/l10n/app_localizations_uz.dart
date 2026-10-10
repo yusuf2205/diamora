@@ -2984,4 +2984,134 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get acceptanceWhatsWrong => 'Nima noto‘g‘ri? Usta buni ko‘radi';
+
+  @override
+  String get idleTitle => 'Ishsiz turganlar';
+
+  @override
+  String get idleHint =>
+      'Ishsiz ustalaringiz: avval ish so‘raganlar, keyin uzoq kutayotganlar.';
+
+  @override
+  String get idleNone => 'Barcha ustalar ish bilan band 🎉';
+
+  @override
+  String idleDays(String days) {
+    return '$days kundan beri ishsiz';
+  }
+
+  @override
+  String get idleNeverWorked => 'Hali ish olmagan';
+
+  @override
+  String idleQuality(String percent) {
+    return 'braksiz $percent%';
+  }
+
+  @override
+  String get idleWantsWork => 'Ish so‘ramoqda';
+
+  @override
+  String get idleGiveWork => 'Ish berish';
+
+  @override
+  String idleBanner(String count) {
+    return 'Ishsiz: $count';
+  }
+
+  @override
+  String get remindersTitle => 'Eslatmalar';
+
+  @override
+  String get reminderAdd => 'Eslatish';
+
+  @override
+  String get remindersEmpty => 'Eslatmalar yo‘q';
+
+  @override
+  String get remindersEmptyHint =>
+      'Masalan: «Juma kuni Nigoraga qo‘ng‘iroq qilish». «Eslatish» tugmasini bosing.';
+
+  @override
+  String get reminderWhat => 'Nima haqida eslatish';
+
+  @override
+  String get reminderWhatHint => 'Masalan: tayyor ishni olib ketish';
+
+  @override
+  String get reminderTomorrow => 'Ertaga 9:00';
+
+  @override
+  String get reminderIn3Days => '3 kundan keyin';
+
+  @override
+  String get reminderNextMonday => 'Dushanba kuni';
+
+  @override
+  String reminderSaved(String when) {
+    return '$when da eslataman';
+  }
+
+  @override
+  String get awayTitle => 'Ta’til';
+
+  @override
+  String awayHint(String count) {
+    return 'Ta’tilga ketyapsizmi? Ustalaringiz ($count) shu vaqtga boshqa menejerga o‘tadi va belgilangan kuni o‘zi sizga qaytadi.';
+  }
+
+  @override
+  String get awaySubstitute => 'Kim almashtiradi';
+
+  @override
+  String get awayUntilPick => 'Qaysi kungacha';
+
+  @override
+  String awayUntil(String date) {
+    return '$date gacha';
+  }
+
+  @override
+  String get awayGo => 'Ustalarni topshirish';
+
+  @override
+  String awayNow(String date, String name) {
+    return 'Siz $date gacha ta’tildasiz. Ustalaringizni $name olib bormoqda.';
+  }
+
+  @override
+  String get awayBack => 'Qaytdim — ustalarni olish';
+
+  @override
+  String get awayCovering => 'Siz almashtiryapsiz';
+
+  @override
+  String awayCoveringLine(String count, String date) {
+    return 'Ustalar: $count · $date gacha';
+  }
+
+  @override
+  String get myQrTitle => 'Mening QR-kodim';
+
+  @override
+  String get myQrHint =>
+      'Menejerga ko‘rsating — u skanerlab, kartangizni darhol ko‘radi';
+
+  @override
+  String get widgetToday => 'Bugun';
+
+  @override
+  String widgetDeliver(String count) {
+    return 'Olib borish: $count';
+  }
+
+  @override
+  String widgetPickup(String count) {
+    return 'Olib ketish: $count';
+  }
+
+  @override
+  String widgetOverdue(String count) {
+    return 'Muddati o‘tgan: $count';
+  }
 }

@@ -31,6 +31,13 @@
         </provider>
         <!-- result of an update install (UpdateInstaller): shows the system confirmation only after a tap -->
         <receiver android:name=".UpdateResultReceiver" android:exported="false" />
+        <!-- the staff home-screen widget: today's deliveries / pick-ups / overdue -->
+        <receiver android:name=".ManagerWidgetProvider" android:exported="false" android:label="Diamoraa">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/manager_widget_info" />
+        </receiver>
         <activity
             android:name=".MainActivity"
             android:exported="true"

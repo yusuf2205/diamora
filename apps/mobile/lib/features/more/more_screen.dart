@@ -16,12 +16,16 @@ class MoreScreen extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final perms = ref.watch(authControllerProvider).value?.permissions ?? const <String>[];
     final isSuper = ref.watch(authControllerProvider).value?.isSuperAdmin ?? false;
+    final isManager = ref.watch(authControllerProvider).value?.role == 'MANAGER';
     final items = <(IconData, String, String)>[
       (Icons.shopping_bag_rounded, l.ordersTitle, '/admin/orders'),
       (Icons.ondemand_video_rounded, l.learnTitle, '/learn'),
       (Icons.qr_code_scanner_rounded, l.qrScan, '/admin/qr-scan'),
       (Icons.auto_awesome_rounded, l.catalog, '/admin/catalog'),
       (Icons.badge_rounded, l.team, '/admin/team'),
+      if (perms.contains('WORKER_VIEW_ALL') || perms.contains('WORKER_VIEW_ASSIGNED')) (Icons.hourglass_empty_rounded, l.idleTitle, '/admin/idle'),
+      (Icons.alarm_rounded, l.remindersTitle, '/reminders'),
+      if (isManager) (Icons.beach_access_rounded, l.awayTitle, '/admin/away'),
       if (perms.contains('COLLATERAL_VIEW')) (Icons.lock_rounded, l.collateralsTitle, '/admin/collaterals'),
       if (perms.contains('WORKER_VIEW_ALL') || perms.contains('WORKER_VIEW_ASSIGNED')) (Icons.emoji_events_rounded, l.ratingTitle, '/admin/rating'),
       if (perms.contains('PROFIT_VIEW')) (Icons.trending_up_rounded, l.profitTitle, '/admin/finance'),

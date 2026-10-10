@@ -3024,4 +3024,134 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get acceptanceWhatsWrong => 'Что не так? Мастерица увидит это';
+
+  @override
+  String get idleTitle => 'Кто простаивает';
+
+  @override
+  String get idleHint =>
+      'Ваши мастерицы без работы: сначала те, кто просит работу, потом кто дольше ждёт.';
+
+  @override
+  String get idleNone => 'Все мастерицы при работе 🎉';
+
+  @override
+  String idleDays(String days) {
+    return 'Без работы $days дн.';
+  }
+
+  @override
+  String get idleNeverWorked => 'Ещё не брала работу';
+
+  @override
+  String idleQuality(String percent) {
+    return 'без брака $percent%';
+  }
+
+  @override
+  String get idleWantsWork => 'Просит работу';
+
+  @override
+  String get idleGiveWork => 'Выдать работу';
+
+  @override
+  String idleBanner(String count) {
+    return 'Без работы: $count';
+  }
+
+  @override
+  String get remindersTitle => 'Напоминания';
+
+  @override
+  String get reminderAdd => 'Напомнить';
+
+  @override
+  String get remindersEmpty => 'Напоминаний нет';
+
+  @override
+  String get remindersEmptyHint =>
+      'Например: «Позвонить Нигоре в пятницу». Нажмите «Напомнить».';
+
+  @override
+  String get reminderWhat => 'О чём напомнить';
+
+  @override
+  String get reminderWhatHint => 'Например: забрать готовую работу';
+
+  @override
+  String get reminderTomorrow => 'Завтра 9:00';
+
+  @override
+  String get reminderIn3Days => 'Через 3 дня';
+
+  @override
+  String get reminderNextMonday => 'В понедельник';
+
+  @override
+  String reminderSaved(String when) {
+    return 'Напомню $when';
+  }
+
+  @override
+  String get awayTitle => 'Отпуск';
+
+  @override
+  String awayHint(String count) {
+    return 'Уходите в отпуск? Ваши мастерицы ($count) на это время перейдут к другому менеджеру и сами вернутся к вам в указанный день.';
+  }
+
+  @override
+  String get awaySubstitute => 'Кто заменит';
+
+  @override
+  String get awayUntilPick => 'До какого дня';
+
+  @override
+  String awayUntil(String date) {
+    return 'До $date';
+  }
+
+  @override
+  String get awayGo => 'Передать мастериц';
+
+  @override
+  String awayNow(String date, String name) {
+    return 'Вы в отпуске до $date. Ваших мастериц ведёт $name.';
+  }
+
+  @override
+  String get awayBack => 'Я вернулся — забрать мастериц';
+
+  @override
+  String get awayCovering => 'Вы заменяете';
+
+  @override
+  String awayCoveringLine(String count, String date) {
+    return 'Мастериц: $count · до $date';
+  }
+
+  @override
+  String get myQrTitle => 'Мой QR-код';
+
+  @override
+  String get myQrHint =>
+      'Покажите менеджеру — он отсканирует и сразу увидит вашу карточку';
+
+  @override
+  String get widgetToday => 'Сегодня';
+
+  @override
+  String widgetDeliver(String count) {
+    return 'Отвезти: $count';
+  }
+
+  @override
+  String widgetPickup(String count) {
+    return 'Забрать: $count';
+  }
+
+  @override
+  String widgetOverdue(String count) {
+    return 'Просрочено: $count';
+  }
 }

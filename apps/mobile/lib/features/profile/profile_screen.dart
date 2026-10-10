@@ -13,6 +13,8 @@ import '../team/team_screen.dart' show teamRoleLabel;
 import 'locale_controller.dart';
 import '../chat/chat_profile.dart';
 import '../workers/visit_time.dart';
+import '../workers/workers_providers.dart' as workers;
+import 'package:qr_flutter/qr_flutter.dart';
 
 final _sessionsProvider = FutureProvider.autoDispose<List<DeviceSession>>((ref) => ref.watch(authRepositoryProvider).sessions());
 
@@ -59,7 +61,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
-        if (me?.role == 'WORKER') ...[const SizedBox(height: 8), const VisitTimeTile()],
+        if (me?.role == 'WORKER') ...[const SizedBox(height: 8), const VisitTimeTile(), const SizedBox(height: 8), const _MyQrTile()],
         const SizedBox(height: 8),
         // «Обучение»: short videos for her role
         Card(
@@ -229,6 +231,38 @@ class _EditNameSheetState extends ConsumerState<EditNameSheet> {
         const SizedBox(height: 16),
         FilledButton(key: const Key('saveName'), onPressed: _busy ? null : _save, child: Text(l.save)),
       ]),
+    );
+  }
+}
+
+/// «Мой QR-код» (worker): the manager at her door scans it and has her card at once.
+class _MyQrTile extends ConsumerWidget {
+  const _MyQrTile();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    final code = ref.watch(workers.myProfileProvider).value?.qrCode;
+    if (code == null) return const SizedBox.shrink();
+    return Card(
+      child: ListTile(
+        key: const Key('myQr'),
+        leading: const Icon(Icons.qr_code_2_rounded),
+        title: Text(l.myQrTitle),
+        subtitle: Text(l.myQrHint),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l.myQrTitle, textAlign: TextAlign.center),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(color: Colors.white, padding: const EdgeInsets.all(12), child: QrImageView(data: code, size: 240)),
+              const SizedBox(height: 12),
+              Text(l.myQrHint, textAlign: TextAlign.center),
+            ]),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(MaterialLocalizations.of(ctx).closeButtonLabel))],
+          ),
+        ),
+      ),
     );
   }
 }

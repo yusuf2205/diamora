@@ -5571,6 +5571,216 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Что не так? Мастерица увидит это'**
   String get acceptanceWhatsWrong;
+
+  /// No description provided for @idleTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто простаивает'**
+  String get idleTitle;
+
+  /// No description provided for @idleHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваши мастерицы без работы: сначала те, кто просит работу, потом кто дольше ждёт.'**
+  String get idleHint;
+
+  /// No description provided for @idleNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все мастерицы при работе 🎉'**
+  String get idleNone;
+
+  /// No description provided for @idleDays.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без работы {days} дн.'**
+  String idleDays(String days);
+
+  /// No description provided for @idleNeverWorked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё не брала работу'**
+  String get idleNeverWorked;
+
+  /// No description provided for @idleQuality.
+  ///
+  /// In ru, this message translates to:
+  /// **'без брака {percent}%'**
+  String idleQuality(String percent);
+
+  /// No description provided for @idleWantsWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просит работу'**
+  String get idleWantsWork;
+
+  /// No description provided for @idleGiveWork.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выдать работу'**
+  String get idleGiveWork;
+
+  /// No description provided for @idleBanner.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без работы: {count}'**
+  String idleBanner(String count);
+
+  /// No description provided for @remindersTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напоминания'**
+  String get remindersTitle;
+
+  /// No description provided for @reminderAdd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напомнить'**
+  String get reminderAdd;
+
+  /// No description provided for @remindersEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напоминаний нет'**
+  String get remindersEmpty;
+
+  /// No description provided for @remindersEmptyHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: «Позвонить Нигоре в пятницу». Нажмите «Напомнить».'**
+  String get remindersEmptyHint;
+
+  /// No description provided for @reminderWhat.
+  ///
+  /// In ru, this message translates to:
+  /// **'О чём напомнить'**
+  String get reminderWhat;
+
+  /// No description provided for @reminderWhatHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: забрать готовую работу'**
+  String get reminderWhatHint;
+
+  /// No description provided for @reminderTomorrow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завтра 9:00'**
+  String get reminderTomorrow;
+
+  /// No description provided for @reminderIn3Days.
+  ///
+  /// In ru, this message translates to:
+  /// **'Через 3 дня'**
+  String get reminderIn3Days;
+
+  /// No description provided for @reminderNextMonday.
+  ///
+  /// In ru, this message translates to:
+  /// **'В понедельник'**
+  String get reminderNextMonday;
+
+  /// No description provided for @reminderSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напомню {when}'**
+  String reminderSaved(String when);
+
+  /// No description provided for @awayTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отпуск'**
+  String get awayTitle;
+
+  /// No description provided for @awayHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уходите в отпуск? Ваши мастерицы ({count}) на это время перейдут к другому менеджеру и сами вернутся к вам в указанный день.'**
+  String awayHint(String count);
+
+  /// No description provided for @awaySubstitute.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто заменит'**
+  String get awaySubstitute;
+
+  /// No description provided for @awayUntilPick.
+  ///
+  /// In ru, this message translates to:
+  /// **'До какого дня'**
+  String get awayUntilPick;
+
+  /// No description provided for @awayUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'До {date}'**
+  String awayUntil(String date);
+
+  /// No description provided for @awayGo.
+  ///
+  /// In ru, this message translates to:
+  /// **'Передать мастериц'**
+  String get awayGo;
+
+  /// No description provided for @awayNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы в отпуске до {date}. Ваших мастериц ведёт {name}.'**
+  String awayNow(String date, String name);
+
+  /// No description provided for @awayBack.
+  ///
+  /// In ru, this message translates to:
+  /// **'Я вернулся — забрать мастериц'**
+  String get awayBack;
+
+  /// No description provided for @awayCovering.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы заменяете'**
+  String get awayCovering;
+
+  /// No description provided for @awayCoveringLine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастериц: {count} · до {date}'**
+  String awayCoveringLine(String count, String date);
+
+  /// No description provided for @myQrTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой QR-код'**
+  String get myQrTitle;
+
+  /// No description provided for @myQrHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Покажите менеджеру — он отсканирует и сразу увидит вашу карточку'**
+  String get myQrHint;
+
+  /// No description provided for @widgetToday.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня'**
+  String get widgetToday;
+
+  /// No description provided for @widgetDeliver.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отвезти: {count}'**
+  String widgetDeliver(String count);
+
+  /// No description provided for @widgetPickup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрать: {count}'**
+  String widgetPickup(String count);
+
+  /// No description provided for @widgetOverdue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Просрочено: {count}'**
+  String widgetOverdue(String count);
 }
 
 class _AppLocalizationsDelegate

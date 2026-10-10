@@ -14,6 +14,8 @@ import '../work/deliveries_screen.dart';
 import '../workers/workers_due_screen.dart';
 import 'dashboard_models.dart';
 import 'dashboard_repository.dart';
+import '../manager/manager_tools.dart' show IdleBanner;
+import '../manager/home_widget_sync.dart';
 
 const _active = ['DELIVERED', 'IN_PROGRESS', 'READY_TO_DELIVER', 'READY_FOR_PICKUP', 'REWORK_REQUIRED'];
 
@@ -27,6 +29,11 @@ class StaffDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(staffDashboardProvider);
     final session = ref.watch(authControllerProvider).value;
+    // the home-screen widget follows «Обзор»
+    ref.listen(staffDashboardProvider, (_, next) {
+      final v = next.value;
+      if (v != null) syncHomeWidget(AppLocalizations.of(context), v);
+    });
     final d = async.value;
     // Last known numbers stay on screen while a realtime refresh runs (no skeleton flash); an error with nothing to show
     // is reported at once - Riverpod keeps retrying in the background, but the owner must not stare at a skeleton.
@@ -41,6 +48,7 @@ class StaffDashboardScreen extends ConsumerWidget {
             _QuickActions(session: session),
             if (session?.has('ASSIGNMENT_VIEW_ALL') == true || session?.has('ASSIGNMENT_VIEW_ASSIGNED') == true) const JobRequestsBanner(),
             _Attention(d: d),
+            if (session?.has('WORKER_VIEW_ALL') == true || session?.has('WORKER_VIEW_ASSIGNED') == true) const IdleBanner(),
             _Counters(d: d),
             if (d.today != null) _Today(t: d.today!),
           ],

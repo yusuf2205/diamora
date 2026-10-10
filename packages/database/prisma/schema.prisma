@@ -180,6 +180,9 @@ model User {
   alertChatId    BigInt?
   /// staff: their own Telegram account, linked by sharing their phone number with the bot - «Войти через Telegram»
   telegramUserId BigInt?    @unique
+  /// a MANAGER on holiday: her workers are with `awaySubstituteId` until then (they come back by themselves)
+  awayUntil        DateTime? @db.Timestamptz(3)
+  awaySubstituteId String?   @db.Uuid
   createdAt      DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
 
@@ -280,6 +283,8 @@ model WorkerProfile {
   /// the MANAGER responsible for this worker (a user with role MANAGER, enforced by a trigger); a manager sees only their workers
   assignedManagerId  String?      @db.Uuid
   assignedManager    User?        @relation("ManagerWorkers", fields: [assignedManagerId], references: [id])
+  /// her own manager while that manager is on holiday (`assignedManagerId` is the substitute meanwhile)
+  homeManagerId      String?      @db.Uuid
   /// materialised sum of the cash ledger ("К получению"); verified by the integrity job
   balance            BigInt       @default(0)
   createdAt          DateTime     @default(now()) @db.Timestamptz(3)
@@ -493,6 +498,23 @@ model QualityBonusSettings {
   updatedById      String?   @db.Uuid
 
   @@map("quality_bonus_settings")
+}
+
+/// «Напоминания себе» (staff): «Позвонить Нигоре в пятницу» -> a notification at that moment.
+model StaffReminder {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @db.Uuid
+  text       String
+  dueAt      DateTime  @db.Timestamptz(3)
+  /// about this worker (opens her card)
+  workerId   String?   @db.Uuid
+  doneAt     DateTime? @db.Timestamptz(3)
+  notifiedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, doneAt])
+  @@index([notifiedAt, dueAt])
+  @@map("staff_reminders")
 }
 
 model CompanyContactSettings {
@@ -917,6 +939,8 @@ model WorkerInvitation {
   phone       String
   managerId   String?   @db.Uuid
   createdById String    @db.Uuid
+  /// made by a MANAGER on the spot: she still goes through an admin's approval (collateral)
+  needsApproval Boolean @default(false)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
   expiresAt   DateTime  @db.Timestamptz(3)
   usedAt      DateTime? @db.Timestamptz(3)
