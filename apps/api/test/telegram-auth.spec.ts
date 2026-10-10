@@ -42,10 +42,9 @@ describe('WORKER Telegram-only login (§ critical auth change): no phone/passwor
     const ctx = { telegramUserId: BigInt(tgId), chatId: BigInt(tgId) };
     const send = (i: Parameters<TestApp['registration']['process']>[1]) => t.registration.process(ctx, i);
 
-    await send({ kind: 'command', command: 'start', payload: startToken });
-    await send({ kind: 'text', text: 'Новая Мастерица' });
-    await send({ kind: 'contact', phone: uniquePhone().replace('+', ''), contactUserId: tgId });
-    await send({ kind: 'action', action: 'skip' });
+    expect((await send({ kind: 'command', command: 'start', payload: startToken })).prompt).toBe('LOGIN_ASK_PHONE'); // first: is she known?
+    expect((await send({ kind: 'contact', phone: uniquePhone().replace('+', ''), contactUserId: tgId })).prompt).toBe('WELCOME'); // nobody: register
+    expect((await send({ kind: 'text', text: 'Новая Мастерица' })).prompt).toBe('ASK_LOCATION'); // the phone is not asked again
     await send({ kind: 'location', latitude: 41.3, longitude: 69.24 });
     await send({ kind: 'action', action: 'type_money' });
     await send({ kind: 'text', text: '1 000 000' });
@@ -57,6 +56,44 @@ describe('WORKER Telegram-only login (§ critical auth change): no phone/passwor
     const ticket = new URL(done.telegramHandoffUrl!).searchParams.get('t')!;
     const res = await post(t, '/v1/auth/telegram/exchange', { ticket, device: device() }).expect(200);
     expect(res.body).toEqual({ status: 'PENDING_APPROVAL' });
+  });
+
+  it('staff sign in through the bot too: the first time by sharing their phone, after that straight away', async () => {
+    const admin = await adminActor(t);
+    const me = await t.prisma.user.findUniqueOrThrow({ where: { id: admin.user.id } });
+    const tgId = nextTelegramId();
+    const ctx = { telegramUserId: BigInt(tgId), chatId: BigInt(tgId) };
+    const startToken = async () => new URL((await post(t, '/v1/auth/telegram/session', { device: device('staff') }).expect(200)).body.deepLink).searchParams.get('start')!;
+
+    // the first time: the bot does not know this Telegram -> asks the phone -> recognises the admin
+    const first = await startToken();
+    expect((await t.registration.process(ctx, { kind: 'command', command: 'start', payload: first })).prompt).toBe('LOGIN_ASK_PHONE');
+    expect((await t.registration.process(ctx, { kind: 'contact', phone: me.phone, contactUserId: tgId + 1 })).error).toBe('PHONE_NOT_OWN'); // someone else's contact
+    const linked = await t.registration.process(ctx, { kind: 'contact', phone: me.phone.replace('+', ''), contactUserId: tgId });
+    expect(linked.prompt).toBe('STAFF_LOGIN');
+    // the app was polling: it is signed in without even tapping the button
+    const polled = await post(t, '/v1/auth/telegram/poll', { sessionToken: first, device: device('staff') }).expect(200);
+    expect(polled.body.user).toMatchObject({ id: me.id, role: me.role });
+    expect(await t.prisma.workerProfile.findUnique({ where: { telegramUserId: BigInt(tgId) } })).toBeNull(); // no worker made of an admin
+
+    // next time: one reply with the button, no questions
+    const again = await t.registration.process(ctx, { kind: 'command', command: 'start', payload: await startToken() });
+    expect(again.prompt).toBe('STAFF_LOGIN');
+    const ticket = new URL(again.telegramHandoffUrl!).searchParams.get('t')!;
+    const res = await post(t, '/v1/auth/telegram/exchange', { ticket, device: device('staff') }).expect(200);
+    expect(res.body.user).toMatchObject({ id: me.id, role: me.role });
+    expect(res.body.accessToken).toBeTruthy();
+  });
+
+  it("a phone that belongs to a worker on another Telegram account is never taken over", async () => {
+    const { phone } = await registerViaBot(t);
+    const tgId = nextTelegramId();
+    const ctx = { telegramUserId: BigInt(tgId), chatId: BigInt(tgId) };
+    const startToken = new URL((await post(t, '/v1/auth/telegram/session', { device: device() }).expect(200)).body.deepLink).searchParams.get('start')!;
+    await t.registration.process(ctx, { kind: 'command', command: 'start', payload: startToken });
+    const r = await t.registration.process(ctx, { kind: 'contact', phone: phone.replace('+', ''), contactUserId: tgId });
+    expect(r.prompt).toBe('LINKED_ELSEWHERE');
+    expect(r.telegramHandoffUrl).toBeUndefined();
   });
 
   it('an organic bot conversation (no app session) never gets a handoff button', async () => {

@@ -303,7 +303,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Выйти на всех устройствах'), 200, scrollable: find.byType(Scrollable).last);
     await tester.tap(find.text('Выйти на всех устройствах'));
     await tester.pumpAndSettle();
-    expect(find.text('Телефон'), findsOneWidget); // back on the sign-in screen
+    expect(find.text('Войти через Telegram'), findsOneWidget); // back on the sign-in screen
     verify(() => api.postJson('/auth/logout-all')).called(1);
     await tearDownDb(tester);
   });

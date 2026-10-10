@@ -481,7 +481,7 @@
   "passwordForLogin": "Пароль для входа",
   "passwordForLoginHint": "Придумайте сами и передайте лично",
   "userCreated": "Пользователь создан. Передайте ему пароль лично.",
-  "telegramLoginHint": "Для мастериц — без пароля, через ваш Telegram",
+  "telegramLoginHint": "Для всех — без пароля, через ваш Telegram",
   "staffSignIn": "Вход для сотрудников",
   "workWaitingTitle": "Вас ожидает новая работа",
   "workKitReadyTitle": "Ваш комплект готов к получению",
@@ -973,5 +973,7 @@
   "learnSubtitle": "Короткие видео: как работать в Diamoraa",
   "learnNone": "Видео пока нет. Загляните позже.",
   "learnMinutes": "{n} мин",
-  "@learnMinutes": {"placeholders": {"n": {"type": "int"}}}
+  "@learnMinutes": {"placeholders": {"n": {"type": "int"}}},
+  "signInWithPassword": "Войти по паролю (для сотрудников)",
+  "waitingForTelegram": "Ждём вас в Telegram… Потом просто вернитесь сюда."
 }

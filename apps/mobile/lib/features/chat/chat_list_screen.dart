@@ -51,6 +51,8 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   bool _searching = false;
+  // like Telegram: «✎ Новый чат» at the top of the list, only the ✎ once the list is scrolled
+  bool _compactFab = false;
   final _q = TextEditingController();
   Timer? _debounce;
   Future<ChatSearchResult>? _results;
@@ -87,6 +89,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('chatNew'),
         onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet()),
+        tooltip: l.chatNew,
+        isExtended: !_compactFab,
         icon: const Icon(Icons.edit_rounded),
         label: Text(l.chatNew),
       ),
@@ -97,7 +101,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (items) => items.isEmpty
             ? EmptyState(icon: Icons.forum_rounded, title: l.chatNoChats)
-            : RefreshIndicator(
+            : NotificationListener<ScrollUpdateNotification>(
+                onNotification: (n) {
+                  final compact = n.metrics.axis == Axis.vertical && n.metrics.pixels > 8;
+                  if (compact != _compactFab) setState(() => _compactFab = compact);
+                  return false;
+                },
+                child: RefreshIndicator(
                 onRefresh: () => ref.refresh(chatRoomsProvider.future),
                 child: ListView.separated(
                   padding: const EdgeInsets.only(bottom: 96),
@@ -105,7 +115,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   separatorBuilder: (_, _) => const Divider(height: 1, indent: 76),
                   itemBuilder: (context, i) => _RoomTile(room: items[i], meId: me?.id, onLongPress: () => _roomMenu(items[i])),
                 ),
-              ),
+              )),
         )),
       ]),
     );

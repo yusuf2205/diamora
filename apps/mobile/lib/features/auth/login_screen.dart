@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/network/api_exception.dart';
@@ -7,32 +10,91 @@ import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
+import 'models.dart';
 import '../profile/locale_controller.dart';
 
 enum _Step { phone, password }
 
-/// The single Login Screen. STAFF (SUPER_ADMIN/ADMIN/MANAGER): phone -> the server says PASSWORD, never a role
-/// picked by the client. WORKER: Telegram-only, always — no phone/password/OTP field for her, ever (§ critical
-/// business requirement). Both live on this one screen; picking between them is picking a login METHOD, never a
-/// role — the server alone still decides who anyone actually is, on both paths.
+/// The single Login Screen. Everyone signs in through Telegram (owner, 2026-10-11): the bot knows a returning
+/// worker or staff member at once and sends them straight back; a new Telegram account is asked for its phone first.
+/// STAFF keep phone + password as a fallback behind «Войти по паролю» (the server says PASSWORD, never a role picked
+/// by the client). WORKER: no phone/password/OTP field for her, ever — the server alone decides who anyone is.
+/// While Telegram is open the screen keeps asking the server whether the bot let this login in, so coming back to the
+/// app is enough; the bot's «Открыть Diamoraa» button does the same.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> with WidgetsBindingObserver {
   _Step _step = _Step.phone;
   bool _busy = false;
   bool _openingTelegram = false;
+  bool _withPassword = false;
   final _phone = TextEditingController();
   final _password = TextEditingController();
+  // the Telegram login in progress: its session token, asked about every 2 s (and at once on coming back to the app)
+  String? _waitingToken;
+  DateTime _waitUntil = DateTime.now();
+  Timer? _poll;
+  bool _asking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _poll?.cancel();
     _phone.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _askServer();
+  }
+
+  void _waitFor(String deepLink) {
+    final token = Uri.tryParse(deepLink)?.queryParameters['start'];
+    if (token == null || token.isEmpty) return;
+    setState(() => _waitingToken = token);
+    _waitUntil = DateTime.now().add(const Duration(minutes: 15));
+    _poll?.cancel();
+    _poll = Timer.periodic(const Duration(seconds: 2), (_) => _askServer());
+  }
+
+  void _stopWaiting() {
+    _poll?.cancel();
+    _poll = null;
+    if (mounted) setState(() => _waitingToken = null);
+  }
+
+  Future<void> _askServer() async {
+    final token = _waitingToken;
+    if (token == null || _asking) return;
+    if (DateTime.now().isAfter(_waitUntil)) return _stopWaiting();
+    _asking = true;
+    try {
+      final outcome = await ref.read(authControllerProvider.notifier).telegramPoll(token);
+      if (outcome == null || !mounted) return;
+      _stopWaiting();
+      // signed in: the session change alone moves the router on; not ready yet (pending / rejected / paused): say so
+      if (outcome is TelegramNotReady) {
+        context.go(Uri(path: '/telegram-pending', queryParameters: {'status': outcome.status, if (outcome.reason != null) 'reason': outcome.reason!}).toString());
+      }
+    } on ApiException catch (e) {
+      if (!e.isOffline) _stopWaiting(); // the session ended (used by the bot's button, or expired): nothing to wait for
+    } catch (_) {
+      _stopWaiting();
+    } finally {
+      _asking = false;
+    }
   }
 
   bool _looksLikePhone(String v) {
@@ -89,6 +151,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!opened) opened = await launchUrl(Uri.parse(deepLink), mode: LaunchMode.externalApplication);
       if (!opened && mounted) {
         showError(context, ApiException(code: 'NETWORK', message: AppLocalizations.of(context).telegramLoginFailed));
+      } else if (opened) {
+        _waitFor(deepLink);
       }
     } catch (e) {
       if (mounted) showError(context, e);
@@ -135,7 +199,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(l.telegramLoginHint, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  if (_waitingToken != null) ...[
+                    const SizedBox(height: 16),
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.schedule_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Flexible(child: Text(l.waitingForTelegram, textAlign: TextAlign.center)),
+                    ]),
+                  ],
                   const SizedBox(height: 32),
+                  // staff only, a fallback when Telegram is not at hand: small, out of the way
+                  if (!_withPassword)
+                    Center(child: TextButton(onPressed: () => setState(() => _withPassword = true), child: Text(l.signInWithPassword))),
+                  if (_withPassword) ...[
                   Row(children: [
                     const Expanded(child: Divider()),
                     Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l.staffSignIn, style: Theme.of(context).textTheme.bodySmall)),
@@ -151,6 +227,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(onPressed: _busy ? null : _submitPhone, child: Text(l.continueAction)),
+                  ],
                 ] else ...[
                   TextField(
                     controller: _password,

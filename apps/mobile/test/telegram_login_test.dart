@@ -102,6 +102,28 @@ void main() {
 
       verify(() => api.postJson('/auth/telegram/session', body: any(named: 'body'), skipAuth: true)).called(1);
       expect(launcher.lastUrl, 'tg://resolve?domain=diamora1_bot&start=abc123xyz'); // the Telegram app itself, not the browser
+      expect(find.text('Ждём вас в Telegram… Потом просто вернитесь сюда.'), findsOneWidget);
+    });
+
+    testWidgets('while Telegram is open the app asks the server itself: the bot let her in -> signed in, no button tap needed', (tester) async {
+      when(() => api.postJson('/auth/telegram/session', body: any(named: 'body'), skipAuth: true))
+          .thenAnswer((_) async => {'deepLink': 'https://t.me/diamora1_bot?start=abc123xyz', 'expiresAt': '2026-09-24T12:00:00.000Z'});
+      var asked = 0;
+      when(() => api.postJson('/auth/telegram/poll', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async {
+        asked++;
+        if (asked == 1) return {'status': 'WAITING'};
+        return {'accessToken': 'at', 'refreshToken': 'rt', 'user': {'id': 'u1', 'fullName': 'Менеджер', 'phone': '+998901234567', 'role': 'MANAGER', 'workerId': null}};
+      });
+      await tester.pumpWidget(await appWith(null, api));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Войти через Telegram'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2)); // still waiting
+      await tester.pump(const Duration(seconds: 2)); // let in
+      await tester.pump();
+      expect(asked, 2);
+      verify(() => api.postJson('/auth/telegram/poll', body: any(named: 'body', that: containsPair('sessionToken', 'abc123xyz')), skipAuth: true)).called(2);
+      expect(find.text('Войти через Telegram'), findsNothing); // the login screen is gone
     });
   });
 

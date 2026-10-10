@@ -102,6 +102,7 @@ export class AuthService {
       throw ticketInvalid();
     }
     await this.audit.record({ action: 'worker.telegram_handoff_consumed', entity: 'TelegramHandoffTicket', entityId: ticket.id, actorId: null, actorRole: 'WORKER' });
+    if (ticket.userId) return this.loginStaff(await this.prisma.user.findUnique({ where: { id: ticket.userId } }), input.device, meta);
     const worker = ticket.workerId ? await this.prisma.workerProfile.findUnique({ where: { id: ticket.workerId }, include: { user: true } }) : null;
     return this.loginWorker(worker, input.device, meta, ticket.id);
   }
@@ -115,12 +116,21 @@ export class AuthService {
     const row = await this.prisma.telegramLoginSession.findUnique({ where: { tokenHash: sha256(input.sessionToken) } });
     if (!row || row.expiresAt <= new Date() || row.installId !== input.device.installId) throw ticketInvalid();
     if (row.telegramUserId === null) return { status: 'WAITING' };
-    const worker = await this.prisma.workerProfile.findUnique({ where: { telegramUserId: row.telegramUserId }, include: { user: true } });
-    if (!worker) return { status: 'NOT_REGISTERED' };
+    const staff = await this.prisma.user.findFirst({ where: { role: { not: 'WORKER' }, telegramUserId: row.telegramUserId } });
+    const worker = staff ? null : await this.prisma.workerProfile.findUnique({ where: { telegramUserId: row.telegramUserId }, include: { user: true } });
+    if (!staff && !worker) return { status: 'NOT_REGISTERED' };
     const spent = await this.prisma.telegramLoginSession.updateMany({ where: { id: row.id, expiresAt: { gt: new Date() } }, data: { expiresAt: new Date() } });
     if (spent.count !== 1) throw ticketInvalid(); // a concurrent poll already used it
     await this.prisma.telegramHandoffTicket.updateMany({ where: { sessionId: row.id, consumedAt: null }, data: { consumedAt: new Date() } });
-    return this.loginWorker(worker, input.device, meta, row.id);
+    return staff ? this.loginStaff(staff, input.device, meta) : this.loginWorker(worker, input.device, meta, row.id);
+  }
+
+  /** A staff member who signed in through the bot: their account's CURRENT status decides, as for a worker. */
+  private async loginStaff(user: User | null, device: DeviceInput, meta: ClientMeta): Promise<TelegramExchangeResult> {
+    if (!user || user.role === 'WORKER') throw ticketInvalid();
+    if (user.status !== 'ACTIVE') return { status: 'PAUSED' };
+    await this.audit.record({ action: 'staff.telegram_login_success', entity: 'User', entityId: user.id, actorId: user.id, actorRole: user.role });
+    return this.createSession(user, device, meta);
   }
 
   private async loginWorker(

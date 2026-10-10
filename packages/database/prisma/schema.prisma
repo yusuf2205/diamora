@@ -178,6 +178,8 @@ model User {
   username       String?    @unique
   /// staff: the Telegram chat that gets owner alerts («сервер не отвечает», «снова работает», «мало места»)
   alertChatId    BigInt?
+  /// staff: their own Telegram account, linked by sharing their phone number with the bot - «Войти через Telegram»
+  telegramUserId BigInt?    @unique
   createdAt      DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
 
@@ -341,6 +343,8 @@ model TelegramHandoffTicket {
   sessionId      String    @db.Uuid
   telegramUserId BigInt
   workerId       String?   @db.Uuid
+  /// a staff login (SUPER_ADMIN / ADMIN / MANAGER) instead of a worker's
+  userId         String?   @db.Uuid
   expiresAt      DateTime  @db.Timestamptz(3)
   consumedAt     DateTime? @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @db.Timestamptz(3)

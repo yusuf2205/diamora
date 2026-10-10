@@ -438,7 +438,7 @@
   "passwordForLogin": "Sign-in password",
   "passwordForLoginHint": "Make one up and hand it over in person",
   "userCreated": "User created. Hand the password over in person.",
-  "telegramLoginHint": "For craftswomen — no password, with your Telegram",
+  "telegramLoginHint": "For everyone — no password, with your Telegram",
   "staffSignIn": "Staff sign-in",
   "workWaitingTitle": "New work is waiting for you",
   "workKitReadyTitle": "Your kit is ready to receive",
@@ -880,5 +880,7 @@
   "learnTitle": "Training",
   "learnSubtitle": "Short videos: how to work in Diamoraa",
   "learnNone": "No videos yet. Check back later.",
-  "learnMinutes": "{n} min"
+  "learnMinutes": "{n} min",
+  "signInWithPassword": "Sign in with a password (staff)",
+  "waitingForTelegram": "Waiting for you in Telegram… then just come back here."
 }

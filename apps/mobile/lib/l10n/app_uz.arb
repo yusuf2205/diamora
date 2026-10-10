@@ -469,7 +469,7 @@
   "passwordForLogin": "Kirish paroli",
   "passwordForLoginHint": "O'zingiz o'ylab toping va shaxsan bering",
   "userCreated": "Foydalanuvchi yaratildi. Parolni shaxsan bering.",
-  "telegramLoginHint": "Ustalar uchun — parolsiz, Telegram orqali",
+  "telegramLoginHint": "Hamma uchun — parolsiz, Telegram orqali",
   "staffSignIn": "Xodimlar uchun kirish",
   "workWaitingTitle": "Sizni yangi ish kutmoqda",
   "workKitReadyTitle": "To'plamingiz qabul qilishga tayyor",
@@ -911,5 +911,7 @@
   "learnTitle": "O'qitish",
   "learnSubtitle": "Qisqa videolar: Diamoraa'da qanday ishlash",
   "learnNone": "Hozircha video yo'q. Keyinroq qarang.",
-  "learnMinutes": "{n} daq"
+  "learnMinutes": "{n} daq",
+  "signInWithPassword": "Parol bilan kirish (xodimlar uchun)",
+  "waitingForTelegram": "Telegramda kutyapmiz… Keyin shu yerga qayting."
 }

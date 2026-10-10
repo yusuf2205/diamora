@@ -51,12 +51,16 @@ void main() {
   late MockApi api;
   setUp(() => api = MockApi());
 
-  testWidgets('signed out: a single phone field only, no role selector of any kind', (tester) async {
+  testWidgets('signed out: Telegram for everyone; the staff phone field only behind «Войти по паролю», no role selector', (tester) async {
     await tester.pumpWidget(await appWith(null, api));
     await tester.pumpAndSettle();
     expect(find.text('Я мастерица'), findsNothing);
     expect(find.text('Я администратор'), findsNothing);
     expect(find.byType(SegmentedButton<bool>), findsNothing);
+    expect(find.text('Войти через Telegram'), findsOneWidget);
+    expect(find.text('Телефон'), findsNothing);
+    await tester.tap(find.text('Войти по паролю (для сотрудников)'));
+    await tester.pumpAndSettle();
     expect(find.text('Телефон'), findsOneWidget);
     expect(find.text('Пароль'), findsNothing);
     expect(find.text('Продолжить'), findsOneWidget);
@@ -65,6 +69,8 @@ void main() {
   testWidgets('phone identifies as a WORKER: no code field appears — she is pointed at the Telegram button instead', (tester) async {
     when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'method': 'TELEGRAM_ONLY'});
     await tester.pumpWidget(await appWith(null, api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти по паролю (для сотрудников)'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '90 123 45 67');
     await tester.tap(find.text('Продолжить'));
@@ -80,6 +86,8 @@ void main() {
     when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true)).thenAnswer((_) async => {'method': 'PASSWORD'});
     await tester.pumpWidget(await appWith(null, api));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти по паролю (для сотрудников)'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '90 123 45 67');
     await tester.tap(find.text('Продолжить'));
     await tester.pumpAndSettle();
@@ -92,6 +100,8 @@ void main() {
         .thenThrow(ApiException(code: 'USER_NOT_FOUND', message: 'No user with this phone', status: 404));
     await tester.pumpWidget(await appWith(null, api));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти по паролю (для сотрудников)'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '90 123 45 67');
     await tester.tap(find.text('Продолжить'));
     await tester.pumpAndSettle();
@@ -103,6 +113,8 @@ void main() {
     when(() => api.postJson('/auth/identify', body: any(named: 'body'), skipAuth: true))
         .thenThrow(ApiException(code: 'ACCOUNT_DISABLED', message: 'This account is disabled', status: 403));
     await tester.pumpWidget(await appWith(null, api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти по паролю (для сотрудников)'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '90 123 45 67');
     await tester.tap(find.text('Продолжить'));

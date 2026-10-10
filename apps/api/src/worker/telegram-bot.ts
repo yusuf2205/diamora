@@ -68,6 +68,8 @@ ${this.adminBot.menuText()}` : text, linked ? { reply_markup: adminKeyboard } : 
         await ctx.reply(await this.supplierBot.completeLink(payload.slice(SUPPLIER_PREFIX.length), BigInt(ctx.chat.id)), { reply_markup: { remove_keyboard: true } });
         return;
       }
+      // «Войти через Telegram» from the app: a login, even in the owner's alerts chat
+      if (payload) return handle(ctx, { kind: 'command', command: 'start', payload });
       if (ctx.chat?.type === 'private' && (await this.adminBot.isAdminChat(BigInt(ctx.chat.id)))) {
         await ctx.reply(this.adminBot.menuText(), { reply_markup: adminKeyboard });
         return;

@@ -185,6 +185,9 @@ Future<void> handleTelegramLink(Ref ref, GoRouter router, Uri uri, Set<String> h
     }
     // TelegramLoggedIn: the session change alone drives the router (refreshListenable) to the WORKER shell.
   } catch (_) {
+    // the app already signed in by itself (it asks the server while she is in Telegram), or already shows her status:
+    // the bot's button arriving after that is not an error
+    if (ref.read(authControllerProvider).value != null || router.routerDelegate.currentConfiguration.uri.path == '/telegram-pending') return;
     router.go('/telegram-pending?status=ERROR');
   }
 }

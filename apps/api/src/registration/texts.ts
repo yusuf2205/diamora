@@ -14,7 +14,11 @@ export type BotPrompt =
   | 'STATUS_PAUSED'
   | 'LOCATION_UPDATED'
   | 'INVITE_ACCEPTED'
-  | 'INVITE_INVALID';
+  | 'INVITE_INVALID'
+  | 'LOGIN_ASK_PHONE'
+  | 'STAFF_LOGIN'
+  | 'STAFF_HELLO'
+  | 'LINKED_ELSEWHERE';
 export type BotError = RegError | 'PHONE_TAKEN' | 'PHOTO_FAILED';
 
 export interface RegSummary {
@@ -63,6 +67,7 @@ export const BTN = {
   editCollateral: 'Залог',
   editNote: 'Заметка',
   back: '⬅️ Назад',
+  openApp: '📲 Открыть Diamoraa',
 } as const;
 
 const ACTION_BY_TEXT: Record<string, RegAction> = {
@@ -120,7 +125,7 @@ export function render(r: BotReply): Rendered {
   const err = r.error ? `${ERRORS[r.error]}\n\n` : '';
   const ask = (text: string, keyboard: BotKeyboard = REMOVE): Rendered => ({
     text: err + text,
-    keyboard: r.telegramHandoffUrl ? { type: 'inline', text: BTN.confirm, url: r.telegramHandoffUrl } : keyboard,
+    keyboard: r.telegramHandoffUrl ? { type: 'inline', text: BTN.openApp, url: r.telegramHandoffUrl } : keyboard,
   });
   switch (r.prompt) {
     case 'WELCOME':
@@ -153,7 +158,7 @@ export function render(r: BotReply): Rendered {
     case 'SUBMITTED':
       return ask(
         r.telegramHandoffUrl
-          ? 'Спасибо! Заявка отправлена. Нажмите «Подтвердить», чтобы открыть Diamoraa.'
+          ? 'Спасибо! Заявка отправлена. Нажмите «Открыть Diamoraa».'
           : `Спасибо! Заявка отправлена ✅ Мы сообщим о решении здесь, в Telegram.\n\nПока ждёте — установите приложение Diamoraa: ${appDownloadUrl()}`,
       );
     case 'CANCELLED':
@@ -162,7 +167,7 @@ export function render(r: BotReply): Rendered {
       return ask('Ваша заявка на рассмотрении. Мы сообщим о решении здесь, в Telegram.');
     case 'STATUS_ACTIVE':
       return ask(
-        r.telegramHandoffUrl ? 'С возвращением! Нажмите «Подтвердить», чтобы открыть Diamoraa.' : `Вы уже зарегистрированы ✅ Откройте Diamoraa и нажмите «Войти через Telegram».\n\nНет приложения? Скачайте: ${appDownloadUrl()}`,
+        r.telegramHandoffUrl ? 'С возвращением! 👋 Нажмите «Открыть Diamoraa».' : `Вы уже зарегистрированы ✅ Откройте Diamoraa и нажмите «Войти через Telegram».\n\nНет приложения? Скачайте: ${appDownloadUrl()}`,
       );
     case 'STATUS_PAUSED':
       return ask('Ваш профиль временно приостановлен. Свяжитесь с администратором.');
@@ -177,6 +182,14 @@ export function render(r: BotReply): Rendered {
           'Чтобы мы знали, куда привозить материалы, отправьте геолокацию кнопкой ниже 👇',
         kb([{ text: BTN.location, requestLocation: true }]),
       );
+    case 'LOGIN_ASK_PHONE':
+      return ask('Здравствуйте! 👋 Нажмите кнопку ниже, чтобы отправить ваш номер телефона — так мы узнаем, есть ли вы уже в Diamoraa.', kb([{ text: BTN.contact, requestContact: true }]));
+    case 'STAFF_LOGIN':
+      return ask(`С возвращением${r.fullName ? `, ${r.fullName}` : ''}! 👋 Нажмите «Открыть Diamoraa».`);
+    case 'STAFF_HELLO':
+      return ask(`Здравствуйте${r.fullName ? `, ${r.fullName}` : ''}! Чтобы войти, откройте приложение Diamoraa и нажмите «Войти через Telegram».`);
+    case 'LINKED_ELSEWHERE':
+      return ask('Этот номер уже привязан к другому аккаунту Telegram. Войдите с того аккаунта или напишите администратору.');
     case 'INVITE_INVALID':
       return ask('Эта ссылка-приглашение уже не действует. Попросите у администратора новую — или отправьте /start, чтобы оставить заявку.');
   }

@@ -41,6 +41,16 @@ class AuthRepository {
     return TelegramNotReady(res['status'] as String, res['rejectedReason'] as String?);
   }
 
+  /// The app asks the server itself whether the bot has let this login in yet (so coming back from Telegram signs in
+  /// even without the bot's button). Null while waiting (or while she is still answering the bot's questions).
+  Future<TelegramExchangeOutcome?> telegramPoll(String sessionToken, {String platform = 'ANDROID'}) async {
+    final res = await _api.postJson('/auth/telegram/poll', skipAuth: true, body: {'sessionToken': sessionToken, 'device': await _device(platform)});
+    if (res.containsKey('accessToken')) return TelegramLoggedIn(await _finish(res));
+    final status = res['status'] as String;
+    if (status == 'WAITING' || status == 'NOT_REGISTERED') return null;
+    return TelegramNotReady(status, res['rejectedReason'] as String?);
+  }
+
   Future<Session> _finish(Map<String, dynamic> res) async {
     await _tokens.save(access: res['accessToken'] as String, refresh: res['refreshToken'] as String);
     return Session.fromJson((res['user'] as Map).cast<String, dynamic>());

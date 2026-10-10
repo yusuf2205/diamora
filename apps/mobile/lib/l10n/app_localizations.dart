@@ -2731,7 +2731,7 @@ abstract class AppLocalizations {
   /// No description provided for @telegramLoginHint.
   ///
   /// In ru, this message translates to:
-  /// **'Для мастериц — без пароля, через ваш Telegram'**
+  /// **'Для всех — без пароля, через ваш Telegram'**
   String get telegramLoginHint;
 
   /// No description provided for @staffSignIn.
@@ -5385,6 +5385,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'{n} мин'**
   String learnMinutes(int n);
+
+  /// No description provided for @signInWithPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти по паролю (для сотрудников)'**
+  String get signInWithPassword;
+
+  /// No description provided for @waitingForTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ждём вас в Telegram… Потом просто вернитесь сюда.'**
+  String get waitingForTelegram;
 }
 
 class _AppLocalizationsDelegate

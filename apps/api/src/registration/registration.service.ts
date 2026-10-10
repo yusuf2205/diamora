@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Module } from '@nestjs/common';
-import { Prisma, type WorkerProfile } from '@diamoraa/database';
-import { advance, initialRegState, parseUzs, type RegInput, type RegState } from '@diamoraa/shared';
+import { Prisma, type User, type WorkerProfile } from '@diamoraa/database';
+import { advance, initialRegState, normalizePhone, parseUzs, type RegInput, type RegState } from '@diamoraa/shared';
 import { AuditService } from '../audit/audit.service';
 import { ENV, Env } from '../config/env';
 import { EventBus } from '../events/events.module';
@@ -57,17 +57,37 @@ export class RegistrationService {
   }
 
   private async handle(tx: Tx, ctx: BotContext, input: BotInput, after: Array<() => Promise<void>>): Promise<BotReply> {
+    // staff sign in through the bot too (owner, 2026-10-11): known by their linked Telegram, or by the chat they linked for alerts
+    const staff = await tx.user.findFirst({ where: { role: { not: 'WORKER' }, OR: [{ telegramUserId: ctx.telegramUserId }, { alertChatId: ctx.chatId }] } });
+    if (staff) return this.existingStaff(tx, ctx, staff, input);
     const worker = await tx.workerProfile.findUnique({ where: { telegramUserId: ctx.telegramUserId } });
     if (worker) return this.existingWorker(tx, ctx, worker, input, after);
 
     const startPayload = input.kind === 'command' && input.command === 'start' ? input.payload : undefined;
     if (startPayload?.startsWith('inv_')) return this.acceptInvite(tx, ctx, startPayload.slice(4), after);
-    if (startPayload) await this.linkTelegramSession(tx, ctx, startPayload); // side effect only: never changes the questionnaire itself
+    // «Войти через Telegram» from the app by a Telegram account we don't know yet: first the phone - a staff member
+    // or a worker who changed Telegram is recognised by it; nobody - the registration starts (with that phone already known)
+    if (startPayload && (await this.linkTelegramSession(tx, ctx, startPayload))) {
+      const state = { ...initialRegState(), loginCheck: true } as unknown as Prisma.InputJsonValue;
+      await tx.registrationDraft.upsert({
+        where: { telegramUserId: ctx.telegramUserId },
+        create: { telegramUserId: ctx.telegramUserId, chatId: ctx.chatId, state, photoFileIds: [] },
+        update: { chatId: ctx.chatId, state, photoFileIds: [] },
+      });
+      return { prompt: 'LOGIN_ASK_PHONE' };
+    }
 
     let draft = await tx.registrationDraft.findUnique({ where: { telegramUserId: ctx.telegramUserId } });
     if (input.kind === 'command' && input.command === 'cancel') {
       if (draft) await tx.registrationDraft.delete({ where: { telegramUserId: ctx.telegramUserId } });
       return { prompt: 'CANCELLED' };
+    }
+    if (draft && (draft.state as unknown as { loginCheck?: boolean }).loginCheck && !(input.kind === 'command' && input.command === 'start')) {
+      if (input.kind !== 'contact') return { prompt: 'LOGIN_ASK_PHONE' };
+      if (input.contactUserId === null || BigInt(input.contactUserId) !== ctx.telegramUserId) return { prompt: 'LOGIN_ASK_PHONE', error: 'PHONE_NOT_OWN' };
+      const phone = normalizePhone(input.phone);
+      if (!phone) return { prompt: 'LOGIN_ASK_PHONE', error: 'PHONE_INVALID' };
+      return this.loginByPhone(tx, ctx, phone);
     }
     if (!draft || (input.kind === 'command' && input.command === 'start')) {
       draft = await tx.registrationDraft.upsert({
@@ -112,8 +132,61 @@ export class RegistrationService {
       return telegramHandoffUrl ? { prompt: 'SUBMITTED', telegramHandoffUrl } : { prompt: 'SUBMITTED' };
     }
 
+    // the phone came from «Войти через Telegram» already: not asked a second time
+    if (r.state.step === 'PHONE' && r.state.data.phone && !state.returnToConfirm) r.state.step = 'LOCATION';
     await tx.registrationDraft.update({ where: { telegramUserId: ctx.telegramUserId }, data: { state: r.state as unknown as Prisma.InputJsonValue, photoFileIds: photoIds } });
     return this.replyFor(r.state);
+  }
+
+  /** The phone shared with the bot after «Войти через Telegram»: a staff member's -> this Telegram is theirs from now on
+   * and they are let in; a worker's (on another Telegram) -> no; nobody's -> her registration starts, phone filled in. */
+  private async loginByPhone(tx: Tx, ctx: BotContext, phone: string): Promise<BotReply> {
+    const user = await tx.user.findUnique({ where: { phone } });
+    if (user && user.role !== 'WORKER') {
+      if (user.telegramUserId !== null && user.telegramUserId !== ctx.telegramUserId) {
+        await tx.registrationDraft.deleteMany({ where: { telegramUserId: ctx.telegramUserId } });
+        return { prompt: 'LINKED_ELSEWHERE' };
+      }
+      await tx.user.update({ where: { id: user.id }, data: { telegramUserId: ctx.telegramUserId } });
+      await tx.registrationDraft.deleteMany({ where: { telegramUserId: ctx.telegramUserId } });
+      await this.audit.record({ action: 'staff.telegram_linked', entity: 'User', entityId: user.id, actorId: user.id, actorRole: user.role }, tx);
+      return this.staffLogin(tx, ctx, user, await this.latestLinkedSession(tx, ctx));
+    }
+    if (user || (await tx.workerProfile.findUnique({ where: { phone }, select: { id: true } }))) {
+      // her worker profile belongs to another Telegram account: only an admin may move it
+      await tx.registrationDraft.deleteMany({ where: { telegramUserId: ctx.telegramUserId } });
+      return { prompt: 'LINKED_ELSEWHERE' };
+    }
+    const state: RegState = { ...initialRegState(), data: { photoCount: 0, phone } };
+    await tx.registrationDraft.update({ where: { telegramUserId: ctx.telegramUserId }, data: { state: state as unknown as Prisma.InputJsonValue, photoFileIds: [] } });
+    return { prompt: 'WELCOME' };
+  }
+
+  private async existingStaff(tx: Tx, ctx: BotContext, user: User, input: BotInput): Promise<BotReply> {
+    if (input.kind === 'command' && input.command === 'start' && input.payload) {
+      const sessionId = await this.linkTelegramSession(tx, ctx, input.payload);
+      if (sessionId) {
+        // known by the alerts chat only so far: this Telegram is theirs for signing in too
+        if (user.telegramUserId === null) await tx.user.update({ where: { id: user.id }, data: { telegramUserId: ctx.telegramUserId } });
+        return this.staffLogin(tx, ctx, user, sessionId);
+      }
+    }
+    return { prompt: 'STAFF_HELLO', fullName: user.fullName };
+  }
+
+  private async staffLogin(tx: Tx, ctx: BotContext, user: User, sessionId: string | null): Promise<BotReply> {
+    if (user.status !== 'ACTIVE') return { prompt: 'STATUS_PAUSED' };
+    if (!sessionId) return { prompt: 'STAFF_HELLO', fullName: user.fullName };
+    const telegramHandoffUrl = await this.issueHandoffTicket(tx, sessionId, ctx, { userId: user.id });
+    return { prompt: 'STAFF_LOGIN', fullName: user.fullName, telegramHandoffUrl };
+  }
+
+  private async latestLinkedSession(tx: Tx, ctx: BotContext): Promise<string | null> {
+    const s = await tx.telegramLoginSession.findFirst({
+      where: { telegramUserId: ctx.telegramUserId, linkedAt: { not: null }, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return s?.id ?? null;
   }
 
   /** «Добавить мастерицу»: staff already knows her — no questions, no approval. She is ACTIVE the moment she opens the link. */
@@ -154,17 +227,14 @@ export class RegistrationService {
   /** Only if THIS telegramUserId has a session linked (and not yet turned into an unconsumed ticket for this same
    * worker) — a bot conversation that never went through the app's "Войти через Telegram" gets no button, ever. */
   private async issueHandoffTicketIfLinked(tx: Tx, ctx: BotContext, workerId: string): Promise<string | null> {
-    const session = await tx.telegramLoginSession.findFirst({
-      where: { telegramUserId: ctx.telegramUserId, linkedAt: { not: null }, expiresAt: { gt: new Date() } },
-      orderBy: { createdAt: 'desc' },
-    });
-    return session ? this.issueHandoffTicket(tx, session.id, ctx, workerId) : null;
+    const sessionId = await this.latestLinkedSession(tx, ctx);
+    return sessionId ? this.issueHandoffTicket(tx, sessionId, ctx, { workerId }) : null;
   }
 
-  private async issueHandoffTicket(tx: Tx, sessionId: string, ctx: BotContext, workerId: string): Promise<string> {
+  private async issueHandoffTicket(tx: Tx, sessionId: string, ctx: BotContext, who: { workerId: string } | { userId: string }): Promise<string> {
     const token = newOpaqueToken();
     const expiresAt = new Date(Date.now() + this.env.TELEGRAM_HANDOFF_TICKET_TTL_MINUTES * 60_000);
-    await tx.telegramHandoffTicket.create({ data: { tokenHash: sha256(token), sessionId, telegramUserId: ctx.telegramUserId, workerId, expiresAt } });
+    await tx.telegramHandoffTicket.create({ data: { tokenHash: sha256(token), sessionId, telegramUserId: ctx.telegramUserId, ...who, expiresAt } });
     return `${this.env.PUBLIC_API_URL}/app/auth/telegram?t=${token}`;
   }
 
@@ -205,7 +275,7 @@ export class RegistrationService {
     if (input.kind === 'command' && input.command === 'start' && input.payload) {
       const sessionId = await this.linkTelegramSession(tx, ctx, input.payload);
       if (sessionId) {
-        const telegramHandoffUrl = await this.issueHandoffTicket(tx, sessionId, ctx, w.id);
+        const telegramHandoffUrl = await this.issueHandoffTicket(tx, sessionId, ctx, { workerId: w.id });
         return { ...this.statusReply(w), telegramHandoffUrl };
       }
     }

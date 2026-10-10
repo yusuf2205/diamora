@@ -80,11 +80,11 @@ describe('chat v2', () => {
     await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { pinned: true }).expect(200);
     await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { archived: true }).expect(200);
     expect(await mine()).toMatchObject({ archived: true, pinned: false });
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 50));
     await b.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'Привет' }).expect(201);
     expect((await mine()).archived).toBe(false); // a new message brings it back
     await a.api.patch(`/v1/chat/rooms/${room.id}/me`, { archived: true, muted: true }).expect(200);
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 50));
     await b.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'Ещё' }).expect(201);
     expect((await mine()).archived).toBe(true); // muted: it stays in the archive
 

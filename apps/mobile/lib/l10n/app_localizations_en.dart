@@ -1436,7 +1436,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get telegramLoginHint =>
-      'For craftswomen — no password, with your Telegram';
+      'For everyone — no password, with your Telegram';
 
   @override
   String get staffSignIn => 'Staff sign-in';
@@ -2897,4 +2897,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String learnMinutes(int n) {
     return '$n min';
   }
+
+  @override
+  String get signInWithPassword => 'Sign in with a password (staff)';
+
+  @override
+  String get waitingForTelegram =>
+      'Waiting for you in Telegram… then just come back here.';
 }

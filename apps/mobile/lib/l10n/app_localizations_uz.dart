@@ -1404,7 +1404,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get userCreated => 'Foydalanuvchi yaratildi. Parolni shaxsan bering.';
 
   @override
-  String get telegramLoginHint => 'Ustalar uchun — parolsiz, Telegram orqali';
+  String get telegramLoginHint => 'Hamma uchun — parolsiz, Telegram orqali';
 
   @override
   String get staffSignIn => 'Xodimlar uchun kirish';
@@ -2869,4 +2869,11 @@ class AppLocalizationsUz extends AppLocalizations {
   String learnMinutes(int n) {
     return '$n daq';
   }
+
+  @override
+  String get signInWithPassword => 'Parol bilan kirish (xodimlar uchun)';
+
+  @override
+  String get waitingForTelegram =>
+      'Telegramda kutyapmiz… Keyin shu yerga qayting.';
 }

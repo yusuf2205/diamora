@@ -36,8 +36,15 @@ class AuthController extends AsyncNotifier<Session?> {
 
   /// WORKER Telegram-only login: unlike [adminLogin], this may legitimately NOT produce a session (pending
   /// approval, rejected, paused) — the caller (the App Link handler) decides what screen to show from the outcome.
-  Future<TelegramExchangeOutcome> telegramExchange(String ticket) async {
-    final outcome = await ref.read(authRepositoryProvider).telegramExchange(ticket);
+  Future<TelegramExchangeOutcome> telegramExchange(String ticket) async => _telegram(await ref.read(authRepositoryProvider).telegramExchange(ticket));
+
+  /// The login screen asking whether the bot has let this login in yet: null = not yet.
+  Future<TelegramExchangeOutcome?> telegramPoll(String sessionToken) async {
+    final outcome = await ref.read(authRepositoryProvider).telegramPoll(sessionToken);
+    return outcome == null ? null : _telegram(outcome);
+  }
+
+  Future<TelegramExchangeOutcome> _telegram(TelegramExchangeOutcome outcome) async {
     if (outcome is TelegramLoggedIn) {
       await ref.read(sharedPrefsProvider).setString(_cachedSessionKey, jsonEncode(outcome.session.toJson()));
       state = AsyncData(outcome.session);

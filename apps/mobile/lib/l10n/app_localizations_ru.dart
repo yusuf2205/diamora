@@ -1442,8 +1442,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get userCreated => 'Пользователь создан. Передайте ему пароль лично.';
 
   @override
-  String get telegramLoginHint =>
-      'Для мастериц — без пароля, через ваш Telegram';
+  String get telegramLoginHint => 'Для всех — без пароля, через ваш Telegram';
 
   @override
   String get staffSignIn => 'Вход для сотрудников';
@@ -2911,4 +2910,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String learnMinutes(int n) {
     return '$n мин';
   }
+
+  @override
+  String get signInWithPassword => 'Войти по паролю (для сотрудников)';
+
+  @override
+  String get waitingForTelegram =>
+      'Ждём вас в Telegram… Потом просто вернитесь сюда.';
 }
