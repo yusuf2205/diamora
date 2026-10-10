@@ -13,6 +13,7 @@ import { OutboxSender } from './worker/outbox';
 import { ReleaseWatcher } from './worker/release-watcher';
 import { AlertsService } from './alerts/alerts.service';
 import { GoalsService } from './goals/goals.service';
+import { ProgressService } from './progress/progress.service';
 import { TelegramBot } from './worker/telegram-bot';
 import { ShopBot } from './worker/shop-bot';
 import { WorkerModule } from './worker/worker.module';
@@ -50,6 +51,10 @@ async function main() {
   // «Цель месяца выполнена!» once a month per worker
   const goals = app.get(GoalsService);
   timers.push(setInterval(() => void goals.congratulate(notifier).catch((e) => log.error(`goals: ${e.message}`)), 5 * 60_000));
+  // «Бонус за качество» for the month before, once, from the 1st
+  const progress = app.get(ProgressService);
+  timers.push(setInterval(() => void progress.payMonthlyBonuses(notifier).catch((e) => log.error(`quality bonus: ${e.message}`)), 15 * 60_000));
+  void progress.payMonthlyBonuses(notifier).catch(() => undefined);
   // a newly published app version -> a push + realtime hint to every phone (checked every 30 s)
   const release = app.get(ReleaseWatcher);
   timers.push(setInterval(() => void release.tick().catch((e) => log.error(`release: ${e.message}`)), 30_000));

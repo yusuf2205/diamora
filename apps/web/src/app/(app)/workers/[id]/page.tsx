@@ -102,7 +102,7 @@ export default function WorkerDetailPage() {
             {ledger.data.history.map((e) => (
               <li key={e.id} className="flex items-center justify-between gap-3 py-2">
                 <span className="min-w-0">
-                  <span className="block">{e.type === 'PAYOUT_CASH' ? 'Выплата наличными' : 'Начисление за работу'}</span>
+                  <span className="block">{e.type === 'PAYOUT_CASH' ? 'Выплата наличными' : e.type === 'BONUS' ? '🏆 Бонус за качество' : 'Начисление за работу'}</span>
                   <span className="block text-xs text-muted">{formatDate(e.createdAt)}</span>
                 </span>
                 <span className={`shrink-0 font-semibold tabular-nums ${e.amount.startsWith('-') ? 'text-danger' : 'text-ok'}`}>{e.amount.startsWith('-') ? '' : '+'}{formatUzs(e.amount)}</span>

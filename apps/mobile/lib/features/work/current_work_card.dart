@@ -8,6 +8,7 @@ import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../settings/company_contact.dart';
 import '../settings/pay_rate.dart';
+import '../progress/progress_screen.dart' show openHowToSew;
 import 'models.dart';
 import 'receive_work_screens.dart';
 import 'work_repository.dart';
@@ -60,6 +61,14 @@ class CurrentWorkCard extends ConsumerWidget {
             Text(l.workMaterials, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
             for (final m in work.materials) Text(materialLine(m.name, m.quantity, m.unit), style: Theme.of(context).textTheme.bodySmall),
+          ],
+          if (work.hasInstruction && work.productId != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(
+              key: const Key('howToSew'),
+              onPressed: () => openHowToSew(context, ref, work.productId!, work.productName),
+              icon: const Icon(Icons.play_circle_rounded), label: Text(l.workHowToSew),
+            )),
           ],
           const SizedBox(height: 20),
           if (inProgress) ...[

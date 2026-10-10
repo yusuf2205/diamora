@@ -42,10 +42,14 @@ class AssignmentAdminRepository {
 
   Future<AssignmentDetail> pickup(String id) async => AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/pickup', idempotencyKey: _uuid.v4()));
 
-  Future<AssignmentDetail> accept(String id, {required String broughtMeters, required String acceptedMeters, String? defectiveMeters, String? reworkMeters, String? comment}) async =>
+  Future<AssignmentDetail> accept(String id, {required String broughtMeters, required String acceptedMeters, String? defectiveMeters, String? reworkMeters, String? comment, List<String> photoFileIds = const []}) async =>
       AssignmentDetail.fromJson(await _api.postJson('/admin/assignments/$id/accept', idempotencyKey: _uuid.v4(), body: {
         'broughtMeters': broughtMeters, 'acceptedMeters': acceptedMeters, 'defectiveMeters': ?defectiveMeters, 'reworkMeters': ?reworkMeters, 'comment': ?comment,
+        if (photoFileIds.isNotEmpty) 'photoFileIds': photoFileIds,
       }));
+
+  /// a photo of the defects, uploaded before the acceptance is sent: {id, url, thumbUrl}
+  Future<Map<String, dynamic>> qualityPhoto(List<int> bytes, String filename) => _api.uploadFile('/admin/quality-photos', bytes: bytes, filename: filename);
 
   Future<Map<String, dynamic>> ledger(String workerId) => _api.getJson('/admin/workers/$workerId/ledger');
 

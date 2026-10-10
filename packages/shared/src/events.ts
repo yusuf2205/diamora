@@ -48,7 +48,7 @@ export interface EventMap {
   'work.ready_for_pickup': { assignmentId: string; workerId: string; meters: number } & WithManager;
   'delivery.created': { deliveryId: string; workerId: string; type: string; assignmentId: string | null } & WithManager;
   'delivery.completed': { deliveryId: string; workerId: string; type: string; assignmentId: string | null } & WithManager;
-  'quality.completed': { assignmentId: string; workerId: string; result: string; acceptedMeters: number } & WithManager;
+  'quality.completed': { assignmentId: string; workerId: string; result: string; acceptedMeters: number; defectiveMeters?: number; comment?: string | null } & WithManager;
   /** two-sided QR handoff (Phase 5): staff started -> worker scanned -> worker confirmed (custody moved) | worker reported a problem */
   'handoff.started': { handoffId: string; assignmentId: string; workerId: string; staffUserId: string } & WithManager;
   'handoff.scanned': { handoffId: string; assignmentId: string; workerId: string; staffUserId: string } & WithManager;

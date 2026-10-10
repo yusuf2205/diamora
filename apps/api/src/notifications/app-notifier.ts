@@ -122,10 +122,13 @@ export class AppNotifier implements OnModuleInit {
       case 'quality.completed': {
         if (d.result === 'ACCEPTED') return; // the earning notice says it all
         const w = await this.workerUser(d.workerId as string);
+        // what exactly was wrong: the defect metres and the inspector's words (the photos are in «Мой прогресс»)
+        const defects = Number(d.defectiveMeters ?? 0) > 0 ? `Брак ${d.defectiveMeters} м. ` : '';
+        const why = d.comment ? `«${String(d.comment).slice(0, 200)}»` : '';
         await this.notify([w?.userId], {
-          type: e.type, link: '/worker/home',
+          type: e.type, link: '/worker/progress',
           title: d.result === 'REWORK_REQUIRED' ? 'Работу нужно доработать' : 'Работа принята частично',
-          body: d.result === 'REWORK_REQUIRED' ? 'Сотрудник вернул работу на доработку' : `Принято ${d.acceptedMeters} м`,
+          body: (d.result === 'REWORK_REQUIRED' ? `Сотрудник вернул работу на доработку. ${why}` : `Принято ${d.acceptedMeters} м. ${defects}${why}`).trim(),
         });
         return;
       }

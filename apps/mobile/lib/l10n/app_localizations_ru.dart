@@ -2917,4 +2917,111 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get waitingForTelegram =>
       'Ждём вас в Telegram… Потом просто вернитесь сюда.';
+
+  @override
+  String get progressTitle => 'Мой прогресс';
+
+  @override
+  String get progressOpenHint =>
+      'Сколько сдали, качество, бонус и калькулятор заработка';
+
+  @override
+  String get progressThisMonth => 'Этот месяц';
+
+  @override
+  String get progressAccepted => 'Сдано';
+
+  @override
+  String get progressQuality => 'Без брака';
+
+  @override
+  String get progressEarned => 'Заработано';
+
+  @override
+  String get progressRecord => '🏆 Новый личный рекорд!';
+
+  @override
+  String progressBest(String month, String meters) {
+    return 'Лучший месяц: $month — $meters м';
+  }
+
+  @override
+  String get progressAllTime => 'За всё время';
+
+  @override
+  String progressChecksCount(String count) {
+    return 'Проверено работ: $count';
+  }
+
+  @override
+  String get progressChecks => 'Проверки работ';
+
+  @override
+  String get progressNoChecks =>
+      'Когда вашу работу примут, здесь появится проверка: что принято и что не так';
+
+  @override
+  String get bonusQuality => 'Бонус за качество';
+
+  @override
+  String bonusRule(String percent, String maxDefect, String minMeters) {
+    return '+$percent% к заработку за месяц, если брака не больше $maxDefect% и сдано от $minMeters м';
+  }
+
+  @override
+  String bonusYes(String amount) {
+    return 'Сейчас вы получаете бонус ≈ $amount сум. Так держать!';
+  }
+
+  @override
+  String bonusTooManyDefects(String defect) {
+    return 'Брака в этом месяце $defect% — больше нормы. В следующем месяце всё получится!';
+  }
+
+  @override
+  String bonusNeedMeters(String meters) {
+    return 'Сдайте ещё $meters м без брака — и бонус ваш';
+  }
+
+  @override
+  String get bonusPaidOn1st => 'Бонус начисляется 1-го числа за прошлый месяц';
+
+  @override
+  String get calcTitle => 'Калькулятор заработка';
+
+  @override
+  String get calcHint => 'Сколько метров сдадите?';
+
+  @override
+  String calcResult(String amount) {
+    return '≈ $amount сум';
+  }
+
+  @override
+  String calcWithBonus(String amount) {
+    return '+ бонус за качество ≈ $amount сум';
+  }
+
+  @override
+  String calcRate(String rate) {
+    return 'По ставке $rate сум за 9 м';
+  }
+
+  @override
+  String get checkAccepted => 'Принято';
+
+  @override
+  String get checkDefective => 'Брак';
+
+  @override
+  String get checkRework => 'На доработку';
+
+  @override
+  String get workHowToSew => 'Как шить (видео)';
+
+  @override
+  String get acceptanceDefectPhoto => 'Фото брака';
+
+  @override
+  String get acceptanceWhatsWrong => 'Что не так? Мастерица увидит это';
 }

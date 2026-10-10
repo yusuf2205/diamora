@@ -10,6 +10,7 @@ import '../settings/pay_rate_screen.dart';
 import '../work/assignment_admin_repository.dart' show LedgerEntry;
 import '../../core/notifications/app_notifications.dart';
 import '../goals/goal_card.dart';
+import '../progress/progress_screen.dart';
 import '../work/current_work_card.dart';
 import '../work/offline_ui.dart';
 import '../work/job_requests.dart';
@@ -88,6 +89,7 @@ class WorkerHomeScreen extends ConsumerWidget {
                     ]),
                   ),
                 ),
+                if (me.status != 'PENDING_APPROVAL') const Padding(padding: EdgeInsets.only(top: 12), child: ProgressEntryCard()),
                 const MyMonthsCard(),
                 earnings.maybeWhen(
                   data: (led) => led.history.isEmpty ? const SizedBox.shrink() : _EarningsHistory(entries: led.history),
@@ -141,8 +143,8 @@ class _EarningsHistory extends StatelessWidget {
             child: Column(children: [
               for (final e in entries)
                 ListTile(
-                  leading: Icon(e.type == 'PAYOUT_CASH' ? Icons.payments_rounded : Icons.trending_up_rounded, color: e.type == 'PAYOUT_CASH' ? scheme.error : Colors.green),
-                  title: Text(e.type == 'PAYOUT_CASH' ? l.actionPayout : l.acceptanceCalculated),
+                  leading: Icon(e.type == 'PAYOUT_CASH' ? Icons.payments_rounded : e.type == 'BONUS' ? Icons.emoji_events_rounded : Icons.trending_up_rounded, color: e.type == 'PAYOUT_CASH' ? scheme.error : Colors.green),
+                  title: Text(e.type == 'PAYOUT_CASH' ? l.actionPayout : e.type == 'BONUS' ? l.bonusQuality : l.acceptanceCalculated),
                   subtitle: Text('${e.createdAt.day.toString().padLeft(2, '0')}.${e.createdAt.month.toString().padLeft(2, '0')}.${e.createdAt.year}'),
                   trailing: Text(
                     '${e.amount.startsWith('-') ? '' : '+'}${formatUzs(e.amount)} ${l.currency}',

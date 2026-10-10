@@ -432,7 +432,9 @@ export class AssignmentsService {
       return { inspection, earningAmount };
     });
 
-    await this.events.publish('quality.completed', { assignmentId, workerId: a.workerId, result, acceptedMeters: accepted, managerId: a.worker.assignedManagerId });
+    await this.events.publish('quality.completed', {
+      assignmentId, workerId: a.workerId, result, acceptedMeters: accepted, defectiveMeters: defective, comment: input.comment ?? null, managerId: a.worker.assignedManagerId,
+    });
     await this.events.publish('assignment.status_changed', { assignmentId, workerId: a.workerId, from: 'UNDER_REVIEW', to: nextStatus, managerId: a.worker.assignedManagerId });
     if (out.earningAmount > 0n) {
       await this.events.publish('earning.created', { workerId: a.workerId, assignmentId, amount: money(out.earningAmount)!, managerId: a.worker.assignedManagerId });
@@ -511,7 +513,7 @@ export class AssignmentsService {
       materials: { include: { material: { select: { name: true, unit: true } } } }, statusHistory: { orderBy: { changedAt: 'asc' as const } }, progress: { orderBy: { createdAt: 'desc' as const }, take: 20 },
       deliveries: { orderBy: { createdAt: 'desc' as const } },
       worker: { select: { id: true, code: true, fullName: true, phone: true, assignedManagerId: true } },
-      productModel: { select: { id: true, name: true } }, productVariant: { select: { id: true, label: true } }, color: { select: { id: true, name: true, hex: true } },
+      productModel: { select: { id: true, name: true, videoFileId: true } }, productVariant: { select: { id: true, label: true } }, color: { select: { id: true, name: true, hex: true } },
       qrEntities: { where: { type: 'ASSIGNMENT' as const, revokedAt: null }, orderBy: { createdAt: 'desc' as const }, take: 1, select: { code: true } },
       handoffs: { orderBy: { startedAt: 'desc' as const }, take: 10, include: { staffUser: { select: { id: true, fullName: true, role: true } } } },
     };

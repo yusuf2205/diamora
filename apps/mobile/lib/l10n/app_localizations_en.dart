@@ -2904,4 +2904,113 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get waitingForTelegram =>
       'Waiting for you in Telegram… then just come back here.';
+
+  @override
+  String get progressTitle => 'My progress';
+
+  @override
+  String get progressOpenHint =>
+      'What you handed in, quality, bonus and an earnings calculator';
+
+  @override
+  String get progressThisMonth => 'This month';
+
+  @override
+  String get progressAccepted => 'Accepted';
+
+  @override
+  String get progressQuality => 'Defect-free';
+
+  @override
+  String get progressEarned => 'Earned';
+
+  @override
+  String get progressRecord => '🏆 A new personal record!';
+
+  @override
+  String progressBest(String month, String meters) {
+    return 'Best month: $month — $meters m';
+  }
+
+  @override
+  String get progressAllTime => 'All time';
+
+  @override
+  String progressChecksCount(String count) {
+    return 'Works checked: $count';
+  }
+
+  @override
+  String get progressChecks => 'Work checks';
+
+  @override
+  String get progressNoChecks =>
+      'When your work is checked, it shows up here: what was accepted and what was wrong';
+
+  @override
+  String get bonusQuality => 'Quality bonus';
+
+  @override
+  String bonusRule(String percent, String maxDefect, String minMeters) {
+    return '+$percent% of the month\'s earnings with at most $maxDefect% defects and at least $minMeters m';
+  }
+
+  @override
+  String bonusYes(String amount) {
+    return 'Right now you get a bonus of ≈ $amount sum. Keep it up!';
+  }
+
+  @override
+  String bonusTooManyDefects(String defect) {
+    return 'Defects this month: $defect% — above the limit. Next month you\'ll make it!';
+  }
+
+  @override
+  String bonusNeedMeters(String meters) {
+    return 'Hand in $meters m more without defects and the bonus is yours';
+  }
+
+  @override
+  String get bonusPaidOn1st =>
+      'The bonus is paid on the 1st for the month before';
+
+  @override
+  String get calcTitle => 'Earnings calculator';
+
+  @override
+  String get calcHint => 'How many metres will you hand in?';
+
+  @override
+  String calcResult(String amount) {
+    return '≈ $amount sum';
+  }
+
+  @override
+  String calcWithBonus(String amount) {
+    return '+ quality bonus ≈ $amount sum';
+  }
+
+  @override
+  String calcRate(String rate) {
+    return 'At $rate sum per 9 m';
+  }
+
+  @override
+  String get checkAccepted => 'Accepted';
+
+  @override
+  String get checkDefective => 'Defects';
+
+  @override
+  String get checkRework => 'To redo';
+
+  @override
+  String get workHowToSew => 'How to sew (video)';
+
+  @override
+  String get acceptanceDefectPhoto => 'Defect photo';
+
+  @override
+  String get acceptanceWhatsWrong =>
+      'What is wrong? The craftswoman will see it';
 }

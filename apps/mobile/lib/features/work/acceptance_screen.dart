@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
@@ -24,6 +25,23 @@ class _AcceptanceScreenState extends ConsumerState<AcceptanceScreen> {
   final _rework = TextEditingController(text: '0');
   final _comment = TextEditingController();
   bool _busy = false;
+  // photos of the defects: the worker sees them with the comment in «Мой прогресс»
+  final List<Map<String, dynamic>> _photos = [];
+  bool _uploading = false;
+
+  Future<void> _addPhoto() async {
+    final x = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 2000, imageQuality: 85);
+    if (x == null) return;
+    setState(() => _uploading = true);
+    try {
+      final p = await ref.read(assignmentAdminRepositoryProvider).qualityPhoto(await x.readAsBytes(), x.name);
+      if (mounted) setState(() => _photos.add(p));
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
 
   double get _broughtVal => double.tryParse(_brought.text.replaceAll(',', '.')) ?? 0;
   double get _acceptedVal => double.tryParse(_accepted.text.replaceAll(',', '.')) ?? 0;
@@ -70,7 +88,24 @@ class _AcceptanceScreenState extends ConsumerState<AcceptanceScreen> {
           const SizedBox(height: 12),
           _MetersField(label: l.acceptanceRework, controller: _rework, onChanged: (_) => setState(() {})),
           const SizedBox(height: 20),
-          TextField(controller: _comment, maxLines: 2, decoration: InputDecoration(hintText: l.commentOptional, border: const OutlineInputBorder())),
+          TextField(controller: _comment, maxLines: 2, decoration: InputDecoration(hintText: _defectiveVal + _reworkVal > 0 ? l.acceptanceWhatsWrong : l.commentOptional, border: const OutlineInputBorder())),
+          if (_defectiveVal + _reworkVal > 0) ...[
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              for (final p in _photos)
+                Stack(clipBehavior: Clip.none, children: [
+                  ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network('${p['thumbUrl']}', width: 64, height: 64, fit: BoxFit.cover)),
+                  Positioned(right: -8, top: -8, child: IconButton.filled(iconSize: 14, visualDensity: VisualDensity.compact, onPressed: () => setState(() => _photos.remove(p)), icon: const Icon(Icons.close_rounded))),
+                ]),
+              if (_photos.length < 10)
+                OutlinedButton.icon(
+                  key: const Key('defectPhoto'),
+                  onPressed: _uploading ? null : _addPhoto,
+                  icon: _uploading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.photo_camera_rounded),
+                  label: Text(l.acceptanceDefectPhoto),
+                ),
+            ]),
+          ],
           const SizedBox(height: 20),
           if (!_isValid)
             Container(
@@ -114,6 +149,7 @@ class _AcceptanceScreenState extends ConsumerState<AcceptanceScreen> {
             broughtMeters: _broughtVal.toStringAsFixed(2), acceptedMeters: _acceptedVal.toStringAsFixed(2),
             defectiveMeters: _defectiveVal.toStringAsFixed(2), reworkMeters: _reworkVal.toStringAsFixed(2),
             comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
+            photoFileIds: [for (final p in _photos) p['id'] as String],
           );
       if (!mounted) return;
       Navigator.of(context).pop();

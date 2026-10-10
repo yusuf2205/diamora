@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import type { CompanyContact, Page, PayRate, PayRateChange } from '@/lib/types';
 import { Button, Card, ErrorState, Field, Input, PageHeader } from '@/components/ui';
 import { CommonGoalSection } from '@/components/goals';
+import { QualityBonusSection } from '@/components/quality-bonus';
 
 /** Global 9 m price (D-027) and company contact (D-029, §13). Both are settings, both are server-confirmed writes. */
 export default function SettingsPage() {
@@ -17,6 +18,7 @@ export default function SettingsPage() {
     <div className="max-w-2xl space-y-6 sm:space-y-8">
       <PageHeader title="Настройки" subtitle="Настройки компании. Личные данные — в меню снизу слева." />
       <PayRateSection canManage={hasPerm(me, 'PAY_RATE_MANAGE')} />
+      {(hasPerm(me, 'PAY_RATE_MANAGE') || hasPerm(me, 'SETTINGS_MANAGE')) && <QualityBonusSection canManage={hasPerm(me, 'PAY_RATE_MANAGE')} />}
       {hasPerm(me, 'SETTINGS_MANAGE') && <CommonGoalSection />}
       {hasPerm(me, 'SETTINGS_MANAGE') && <CompanyContactSection />}
     </div>

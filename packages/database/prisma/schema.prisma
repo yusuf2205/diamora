@@ -477,6 +477,24 @@ model GoalSettings {
   @@map("goal_settings")
 }
 
+/// «Бонус за качество» (owner, 2026-10-11): + `percent` % of a worker's month earnings when that month had at most
+/// `maxDefectPercent` % defects and at least `minMeters` accepted. Paid once on the 1st for the month before. One row (id = 1).
+model QualityBonusSettings {
+  id               Int       @id @default(1)
+  enabled          Boolean   @default(false)
+  percent          Int       @default(5)
+  maxDefectPercent Int       @default(0)
+  minMeters        Int       @default(9)
+  /// switched on at: months that ended before it are never paid
+  enabledAt        DateTime? @db.Timestamptz(3)
+  /// "2026-10": the last month already paid out
+  lastPaidMonth    String?
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  updatedById      String?   @db.Uuid
+
+  @@map("quality_bonus_settings")
+}
+
 model CompanyContactSettings {
   id               Int      @id @default(1)
   phone            String?

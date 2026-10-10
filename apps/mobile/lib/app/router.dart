@@ -36,6 +36,7 @@ import '../features/workers/collaterals_screen.dart';
 import '../features/insights/insights_screens.dart';
 import '../features/chat/chat_list_screen.dart';
 import '../features/chat/chat_room_screen.dart';
+import '../features/progress/progress_screen.dart';
 
 /// Route table. Redirects are UX only — the server rejects anything the role may not do.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -82,6 +83,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/orders', builder: (_, _) => const OrdersScreen()),
       // «Обучение»: every role (the list is filtered by role inside)
       GoRoute(path: '/learn', builder: (_, _) => const LearnScreen()),
+      // «Мой прогресс» (worker): her month, quality, the bonus, the calculator, every check of her work
+      GoRoute(path: '/worker/progress', builder: (_, _) => const ProgressScreen()),
       GoRoute(path: '/admin/collaterals', builder: (_, _) => const CollateralsScreen()),
       GoRoute(path: '/admin/rating', builder: (_, _) => const RatingScreen()),
       GoRoute(path: '/admin/finance', builder: (_, _) => const ProfitScreen()),

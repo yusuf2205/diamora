@@ -223,6 +223,12 @@ export function AcceptDialog({ assignment: a, onClose }: { assignment: Assignmen
   const [defective, setDefective] = useState('0');
   const [rework, setRework] = useState('0');
   const [comment, setComment] = useState('');
+  // photos of the defects: uploaded right away, the worker sees them with the comment in «Мой прогресс»
+  const [photos, setPhotos] = useState<{ id: string; thumbUrl: string }[]>([]);
+  const addPhoto = useMutation({
+    mutationFn: (file: File) => { const form = new FormData(); form.append('file', file); return api.upload<{ id: string; thumbUrl: string }>('/admin/quality-photos', form); },
+    onSuccess: (p) => setPhotos((x) => [...x, p]),
+  });
 
   const bV = Number(brought) || 0, acV = Number(accepted) || 0, dV = Number(defective) || 0, rV = Number(rework) || 0;
   const valid = Math.abs(acV + dV + rV - bV) < 0.01 && bV >= 0;
@@ -236,6 +242,7 @@ export function AcceptDialog({ assignment: a, onClose }: { assignment: Assignmen
   const accept = useMutation({
     mutationFn: () => api.post(`/admin/assignments/${a.id}/accept`, {
       broughtMeters: bV.toFixed(2), acceptedMeters: acV.toFixed(2), defectiveMeters: dV.toFixed(2), reworkMeters: rV.toFixed(2), comment: comment.trim() || undefined,
+      photoFileIds: photos.length ? photos.map((p) => p.id) : undefined,
     }, { idempotencyKey: crypto.randomUUID() }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assignment', a.id] }); onClose(); },
   });
@@ -247,7 +254,28 @@ export function AcceptDialog({ assignment: a, onClose }: { assignment: Assignmen
         <NumberField label="Принято, м" value={accepted} onChange={setAccepted} />
         <NumberField label="Брак, м" value={defective} onChange={setDefective} />
         <NumberField label="На доработку, м" value={rework} onChange={setRework} />
-        <Input placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} />
+        <Input placeholder={dV + rV > 0 ? 'Что не так? Мастерица увидит это' : 'Комментарий (необязательно)'} value={comment} onChange={(e) => setComment(e.target.value)} />
+        {dV + rV > 0 && (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {photos.map((p) => (
+                <div key={p.id} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.thumbUrl} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                  <button aria-label="Убрать фото" onClick={() => setPhotos((x) => x.filter((y) => y.id !== p.id))} className="absolute -right-1 -top-1 rounded-full bg-danger px-1.5 text-xs text-white">×</button>
+                </div>
+              ))}
+            </div>
+            {photos.length < 10 && (
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-border/40">
+                📷 {addPhoto.isPending ? 'Загрузка…' : 'Фото брака'}
+                <input type="file" accept="image/*" capture="environment" className="hidden" disabled={addPhoto.isPending}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) addPhoto.mutate(f); e.target.value = ''; }} />
+              </label>
+            )}
+            {addPhoto.isError && <ErrorState error={addPhoto.error} />}
+          </div>
+        )}
         {!valid && <p className="text-sm text-danger">Принято + брак + доработка должно равняться принесено</p>}
         {preview !== null && (
           <div className="rounded-lg bg-ok/10 p-3 text-sm">

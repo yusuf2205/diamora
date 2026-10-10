@@ -5,6 +5,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { AlertsApiModule } from './alerts/alerts.service';
 import { GoalsModule } from './goals/goals.service';
+import { ProgressModule } from './progress/progress.service';
 import { OrdersModule } from './orders/orders.service';
 import { PurchasesModule } from './purchases/purchases.service';
 import { VisitTimeModule } from './workers/visit-time';
@@ -79,7 +80,7 @@ class RequestMiddleware implements NestMiddleware {
       inject: [ENV],
       useFactory: (env: Env) => ({ throttlers: [{ name: 'default', ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE }], skipIf: () => !env.RATE_LIMIT_ENABLED }),
     }),
-    AlertsApiModule, GoalsModule, OrdersModule, PurchasesModule, VisitTimeModule, OffsiteModule,
+    AlertsApiModule, GoalsModule, ProgressModule, OrdersModule, PurchasesModule, VisitTimeModule, OffsiteModule,
     PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, PresenceModule, StatsModule,
     AuthModule, FilesModule, RealtimeModule, WorkersModule, CollateralModule, RegistrationModule, PayRateModule,
     UsersModule, CatalogModule, CompanyContactModule, LocationModule, DashboardModule,

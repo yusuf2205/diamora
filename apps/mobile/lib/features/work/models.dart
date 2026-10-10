@@ -5,8 +5,11 @@ class CurrentWork {
     required this.id, required this.code, required this.status, required this.kitCount, required this.plannedMeters,
     required this.reportedMeters, this.calculatedPayment, this.expectedPayment, this.dueAt, this.notes,
     required this.productName, this.variantLabel, required this.colorName, this.colorHex,
-    required this.materials, this.handoff,
+    required this.materials, this.handoff, this.productId, this.hasInstruction = false,
   });
+  final String? productId;
+  /// the model has a «Как шить» video
+  final bool hasInstruction;
   final String id;
   final String code;
   final String status;
@@ -39,7 +42,8 @@ class CurrentWork {
         plannedMeters: (j['plannedMeters'] as num).toDouble(), reportedMeters: (j['reportedMeters'] as num?)?.toDouble() ?? 0,
         calculatedPayment: j['calculatedPayment'] as String?, expectedPayment: j['expectedPayment'] as String?,
         dueAt: j['dueAt'] != null ? DateTime.tryParse(j['dueAt'] as String) : null, notes: j['notes'] as String?,
-        productName: (j['product'] as Map?)?['name'] as String? ?? '', variantLabel: (j['variant'] as Map?)?['label'] as String?,
+        productName: (j['product'] as Map?)?['name'] as String? ?? '',
+        productId: (j['product'] as Map?)?['id'] as String?, hasInstruction: (j['product'] as Map?)?['videoFileId'] != null, variantLabel: (j['variant'] as Map?)?['label'] as String?,
         colorName: (j['color'] as Map?)?['name'] as String? ?? '', colorHex: (j['color'] as Map?)?['hex'] as String?,
         materials: ((j['materials'] as List?) ?? []).map((x) => CurrentWorkMaterial.fromJson((x as Map).cast<String, dynamic>())).toList(),
         handoff: j['handoff'] is Map ? HandoffInfo.fromJson((j['handoff'] as Map).cast<String, dynamic>()) : null,

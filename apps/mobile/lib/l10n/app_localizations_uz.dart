@@ -2876,4 +2876,112 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get waitingForTelegram =>
       'Telegramda kutyapmiz… Keyin shu yerga qayting.';
+
+  @override
+  String get progressTitle => 'Mening yutuqlarim';
+
+  @override
+  String get progressOpenHint =>
+      'Qancha topshirdingiz, sifat, bonus va daromad kalkulyatori';
+
+  @override
+  String get progressThisMonth => 'Shu oy';
+
+  @override
+  String get progressAccepted => 'Topshirildi';
+
+  @override
+  String get progressQuality => 'Braksiz';
+
+  @override
+  String get progressEarned => 'Ishlab topildi';
+
+  @override
+  String get progressRecord => '🏆 Yangi shaxsiy rekord!';
+
+  @override
+  String progressBest(String month, String meters) {
+    return 'Eng yaxshi oy: $month — $meters m';
+  }
+
+  @override
+  String get progressAllTime => 'Barcha vaqt';
+
+  @override
+  String progressChecksCount(String count) {
+    return 'Tekshirilgan ishlar: $count';
+  }
+
+  @override
+  String get progressChecks => 'Ishlar tekshiruvi';
+
+  @override
+  String get progressNoChecks =>
+      'Ishingiz qabul qilinganda, bu yerda tekshiruv chiqadi: nima qabul qilindi va nima noto‘g‘ri';
+
+  @override
+  String get bonusQuality => 'Sifat uchun bonus';
+
+  @override
+  String bonusRule(String percent, String maxDefect, String minMeters) {
+    return 'Oylik daromadga +$percent%, agar brak $maxDefect% dan oshmasa va kamida $minMeters m topshirilsa';
+  }
+
+  @override
+  String bonusYes(String amount) {
+    return 'Hozir sizga bonus ≈ $amount so‘m. Shunday davom eting!';
+  }
+
+  @override
+  String bonusTooManyDefects(String defect) {
+    return 'Bu oy brak $defect% — me’yordan ko‘p. Keyingi oyda albatta bo‘ladi!';
+  }
+
+  @override
+  String bonusNeedMeters(String meters) {
+    return 'Yana $meters m braksiz topshiring — bonus sizniki';
+  }
+
+  @override
+  String get bonusPaidOn1st =>
+      'Bonus har oyning 1-sanasida o‘tgan oy uchun beriladi';
+
+  @override
+  String get calcTitle => 'Daromad kalkulyatori';
+
+  @override
+  String get calcHint => 'Necha metr topshirasiz?';
+
+  @override
+  String calcResult(String amount) {
+    return '≈ $amount so‘m';
+  }
+
+  @override
+  String calcWithBonus(String amount) {
+    return '+ sifat bonusi ≈ $amount so‘m';
+  }
+
+  @override
+  String calcRate(String rate) {
+    return '9 m uchun $rate so‘m stavka bo‘yicha';
+  }
+
+  @override
+  String get checkAccepted => 'Qabul qilindi';
+
+  @override
+  String get checkDefective => 'Brak';
+
+  @override
+  String get checkRework => 'Qayta ishlashga';
+
+  @override
+  String get workHowToSew => 'Qanday tikish (video)';
+
+  @override
+  String get acceptanceDefectPhoto => 'Brak rasmi';
+
+  @override
+  String get acceptanceWhatsWrong => 'Nima noto‘g‘ri? Usta buni ko‘radi';
 }

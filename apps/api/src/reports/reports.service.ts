@@ -150,13 +150,13 @@ export class ReportsService {
       const { from, to } = periodRange('month', i);
       const [ins, led] = await Promise.all([
         this.prisma.qualityInspection.findMany({ where: { assignment: { workerId }, inspectedAt: { gte: from, lt: to } }, select: { acceptedMeters: true } }),
-        this.prisma.workerLedgerTransaction.findMany({ where: { workerId, createdAt: { gte: from, lt: to }, type: { in: ['EARNING', 'PAYOUT_CASH'] } }, select: { type: true, amount: true } }),
+        this.prisma.workerLedgerTransaction.findMany({ where: { workerId, createdAt: { gte: from, lt: to }, type: { in: ['EARNING', 'BONUS', 'PAYOUT_CASH'] } }, select: { type: true, amount: true } }),
       ]);
       const local = new Date(from.getTime() + TASHKENT_MS);
       out.push({
         month: `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}`,
         acceptedMeters: ins.reduce((s, x) => s + Number(x.acceptedMeters), 0),
-        earned: money(led.filter((l) => l.type === 'EARNING').reduce((s, l) => s + l.amount, 0n))!,
+        earned: money(led.filter((l) => l.type !== 'PAYOUT_CASH').reduce((s, l) => s + l.amount, 0n))!,
         paid: money(-led.filter((l) => l.type === 'PAYOUT_CASH').reduce((s, l) => s + l.amount, 0n))!,
       });
     }

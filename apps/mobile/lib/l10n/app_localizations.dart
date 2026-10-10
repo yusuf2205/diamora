@@ -5397,6 +5397,180 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ждём вас в Telegram… Потом просто вернитесь сюда.'**
   String get waitingForTelegram;
+
+  /// No description provided for @progressTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мой прогресс'**
+  String get progressTitle;
+
+  /// No description provided for @progressOpenHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько сдали, качество, бонус и калькулятор заработка'**
+  String get progressOpenHint;
+
+  /// No description provided for @progressThisMonth.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот месяц'**
+  String get progressThisMonth;
+
+  /// No description provided for @progressAccepted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сдано'**
+  String get progressAccepted;
+
+  /// No description provided for @progressQuality.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без брака'**
+  String get progressQuality;
+
+  /// No description provided for @progressEarned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Заработано'**
+  String get progressEarned;
+
+  /// No description provided for @progressRecord.
+  ///
+  /// In ru, this message translates to:
+  /// **'🏆 Новый личный рекорд!'**
+  String get progressRecord;
+
+  /// No description provided for @progressBest.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лучший месяц: {month} — {meters} м'**
+  String progressBest(String month, String meters);
+
+  /// No description provided for @progressAllTime.
+  ///
+  /// In ru, this message translates to:
+  /// **'За всё время'**
+  String get progressAllTime;
+
+  /// No description provided for @progressChecksCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверено работ: {count}'**
+  String progressChecksCount(String count);
+
+  /// No description provided for @progressChecks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверки работ'**
+  String get progressChecks;
+
+  /// No description provided for @progressNoChecks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Когда вашу работу примут, здесь появится проверка: что принято и что не так'**
+  String get progressNoChecks;
+
+  /// No description provided for @bonusQuality.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бонус за качество'**
+  String get bonusQuality;
+
+  /// No description provided for @bonusRule.
+  ///
+  /// In ru, this message translates to:
+  /// **'+{percent}% к заработку за месяц, если брака не больше {maxDefect}% и сдано от {minMeters} м'**
+  String bonusRule(String percent, String maxDefect, String minMeters);
+
+  /// No description provided for @bonusYes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас вы получаете бонус ≈ {amount} сум. Так держать!'**
+  String bonusYes(String amount);
+
+  /// No description provided for @bonusTooManyDefects.
+  ///
+  /// In ru, this message translates to:
+  /// **'Брака в этом месяце {defect}% — больше нормы. В следующем месяце всё получится!'**
+  String bonusTooManyDefects(String defect);
+
+  /// No description provided for @bonusNeedMeters.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сдайте ещё {meters} м без брака — и бонус ваш'**
+  String bonusNeedMeters(String meters);
+
+  /// No description provided for @bonusPaidOn1st.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бонус начисляется 1-го числа за прошлый месяц'**
+  String get bonusPaidOn1st;
+
+  /// No description provided for @calcTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Калькулятор заработка'**
+  String get calcTitle;
+
+  /// No description provided for @calcHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сколько метров сдадите?'**
+  String get calcHint;
+
+  /// No description provided for @calcResult.
+  ///
+  /// In ru, this message translates to:
+  /// **'≈ {amount} сум'**
+  String calcResult(String amount);
+
+  /// No description provided for @calcWithBonus.
+  ///
+  /// In ru, this message translates to:
+  /// **'+ бонус за качество ≈ {amount} сум'**
+  String calcWithBonus(String amount);
+
+  /// No description provided for @calcRate.
+  ///
+  /// In ru, this message translates to:
+  /// **'По ставке {rate} сум за 9 м'**
+  String calcRate(String rate);
+
+  /// No description provided for @checkAccepted.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принято'**
+  String get checkAccepted;
+
+  /// No description provided for @checkDefective.
+  ///
+  /// In ru, this message translates to:
+  /// **'Брак'**
+  String get checkDefective;
+
+  /// No description provided for @checkRework.
+  ///
+  /// In ru, this message translates to:
+  /// **'На доработку'**
+  String get checkRework;
+
+  /// No description provided for @workHowToSew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Как шить (видео)'**
+  String get workHowToSew;
+
+  /// No description provided for @acceptanceDefectPhoto.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фото брака'**
+  String get acceptanceDefectPhoto;
+
+  /// No description provided for @acceptanceWhatsWrong.
+  ///
+  /// In ru, this message translates to:
+  /// **'Что не так? Мастерица увидит это'**
+  String get acceptanceWhatsWrong;
 }
 
 class _AppLocalizationsDelegate

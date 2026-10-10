@@ -51,7 +51,7 @@ export class LedgerService {
   private async summaryFor(workerId: string) {
     const w = await this.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
     const [earnedAgg, paidAgg, history] = await Promise.all([
-      this.prisma.workerLedgerTransaction.aggregate({ where: { workerId, type: 'EARNING' }, _sum: { amount: true } }),
+      this.prisma.workerLedgerTransaction.aggregate({ where: { workerId, type: { in: ['EARNING', 'BONUS'] } }, _sum: { amount: true } }),
       this.prisma.workerLedgerTransaction.aggregate({ where: { workerId, type: 'PAYOUT_CASH' }, _sum: { amount: true } }),
       this.prisma.workerLedgerTransaction.findMany({ where: { workerId }, orderBy: { createdAt: 'desc' }, take: 50 }),
     ]);
@@ -89,12 +89,22 @@ export class LedgerService {
   }
 
   /** The ONE place a WorkerLedgerTransaction is ever written: locks WorkerProfile, applies the signed amount, records `balanceAfter`. */
-  private async applyEntry(tx: Tx, workerId: string, type: 'EARNING' | 'PAYOUT_CASH', signedAmount: bigint, extra: { assignmentId?: string; cashPaymentId?: string; comment?: string }) {
+  /** «Бонус за качество» (progress.service.ts): once per key - false when that bonus was already paid. */
+  async bonus(workerId: string, amount: bigint, idempotencyKey: string, comment: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      if (await tx.workerLedgerTransaction.findUnique({ where: { idempotencyKey } })) return false;
+      const balanceAfter = await this.applyEntry(tx, workerId, 'BONUS', amount, { comment, idempotencyKey });
+      await this.audit.record({ action: 'ledger.quality_bonus', entity: 'WorkerProfile', entityId: workerId, after: { amount: amount.toString(), balanceAfter: balanceAfter.toString(), idempotencyKey } }, tx);
+      return true;
+    });
+  }
+
+  private async applyEntry(tx: Tx, workerId: string, type: 'EARNING' | 'PAYOUT_CASH' | 'BONUS', signedAmount: bigint, extra: { assignmentId?: string; cashPaymentId?: string; comment?: string; idempotencyKey?: string }) {
     if (!(await lockRow(tx, 'worker_profiles', workerId))) throw notFound('Worker');
     const w = await tx.workerProfile.findUniqueOrThrow({ where: { id: workerId } });
     const balanceAfter = w.balance + signedAmount;
     await tx.workerLedgerTransaction.create({
-      data: { workerId, type, amount: signedAmount, balanceAfter, assignmentId: extra.assignmentId, cashPaymentId: extra.cashPaymentId, comment: extra.comment, createdById: workerId },
+      data: { workerId, type, amount: signedAmount, balanceAfter, assignmentId: extra.assignmentId, cashPaymentId: extra.cashPaymentId, comment: extra.comment, idempotencyKey: extra.idempotencyKey, createdById: workerId },
     });
     await tx.workerProfile.update({ where: { id: workerId }, data: { balance: balanceAfter } });
     return balanceAfter;
