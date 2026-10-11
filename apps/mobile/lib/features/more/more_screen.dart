@@ -25,6 +25,8 @@ class MoreScreen extends ConsumerWidget {
       (Icons.badge_rounded, l.team, '/admin/team'),
       if (perms.contains('WORKER_VIEW_ALL') || perms.contains('WORKER_VIEW_ASSIGNED')) (Icons.hourglass_empty_rounded, l.idleTitle, '/admin/idle'),
       (Icons.alarm_rounded, l.remindersTitle, '/reminders'),
+      (Icons.search_rounded, l.searchHint, '/admin/search'),
+      if (perms.contains('FINANCE_VIEW_ALL') || perms.contains('PROFIT_VIEW')) (Icons.account_balance_wallet_rounded, l.moneyTitle, '/admin/money'),
       if (isManager) (Icons.beach_access_rounded, l.awayTitle, '/admin/away'),
       if (perms.contains('COLLATERAL_VIEW')) (Icons.lock_rounded, l.collateralsTitle, '/admin/collaterals'),
       if (perms.contains('WORKER_VIEW_ALL') || perms.contains('WORKER_VIEW_ASSIGNED')) (Icons.emoji_events_rounded, l.ratingTitle, '/admin/rating'),

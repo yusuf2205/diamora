@@ -94,6 +94,8 @@ class _Header extends StatelessWidget {
             if (role.isNotEmpty) Text(role, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
           ]),
         ),
+        // «Общий поиск»: workers, works, orders, materials, models, staff
+        IconButton(key: const Key('openSearch'), icon: const Icon(Icons.search_rounded), tooltip: AppLocalizations.of(context).searchHint, onPressed: () => context.push('/admin/search')),
         const NoticeBell(),
       ]),
     );

@@ -48,7 +48,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           final workerId = (res['worker'] as Map)['id'] as String;
           _ok('${l.qrWorkerFound}: ${(res['worker'] as Map)['fullName'] ?? ''}');
           context.pop();
-          context.push('/admin/workers/$workerId');
+          // everything for this visit at once: pick up, hand over, pay (her card is one tap away there)
+          context.push('/admin/visit/$workerId');
           return; // screen is gone; no need to reset _busy
         case QrOutcomeType.kit:
           await _showKit(l, (res['kit'] as Map).cast<String, dynamic>());

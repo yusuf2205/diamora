@@ -23,6 +23,7 @@ import { EventBus } from '../events/event-bus';
 import { FilesService } from '../files/files.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { visitTimeView } from './visit-time';
+import { WorkerDecisions, WorkerDecisionsModule } from './decisions';
 import { PrismaService } from '../prisma/prisma.module';
 
 /** An invitation link stays valid a week; after that staff simply creates a new one. */
@@ -39,7 +40,7 @@ export class WorkersService {
   constructor(
     private readonly prisma: PrismaService, private readonly files: FilesService, private readonly audit: AuditService,
     private readonly events: EventBus, private readonly notifications: NotificationsService, private readonly auth: AuthService,
-    @Inject(ENV) private readonly env: Env,
+    @Inject(ENV) private readonly env: Env, private readonly decisions: WorkerDecisions,
   ) {}
 
   // ---- staff reads -------------------------------------------------------------------------------------------------
@@ -89,49 +90,12 @@ export class WorkersService {
 
   // ---- staff actions -----------------------------------------------------------------------------------------------------
   async approve(actor: AuthUser, id: string, input: z.output<typeof approveWorkerSchema>) {
-    const events: Array<() => Promise<void>> = [];
-    await this.prisma.$transaction(async (tx) => {
-      if (!(await lockRow(tx, 'worker_profiles', id))) throw notFound('Worker');
-      const w = await tx.workerProfile.findUniqueOrThrow({ where: { id } });
-      assertWorkerInScope(actor, 'WORKER', w);
-      assertTransition('Worker', WORKER_MACHINE, w.status as WorkerStatus, 'ACTIVE', actor.role);
-      if (await tx.user.findUnique({ where: { phone: w.phone }, select: { id: true } })) throw conflict('A user with this phone already exists');
-
-      const user = await tx.user.create({ data: { phone: w.phone, fullName: w.fullName, role: 'WORKER' } });
-      const now = new Date();
-      await tx.workerProfile.update({ where: { id }, data: { userId: user.id, status: 'ACTIVE', approvedAt: now, approvedById: actor.id } });
-      await tx.qrEntity.create({ data: { code: generateQrCode(), type: 'WORKER', workerId: id } });
-
-      if (input.collateralReceived) {
-        const pending = await tx.workerCollateral.findMany({ where: { workerId: id, status: 'PENDING' } });
-        for (const c of pending) {
-          assertTransition('Collateral', COLLATERAL_MACHINE, c.status as CollateralStatus, 'HELD', actor.role);
-          const held = await tx.workerCollateral.update({ where: { id: c.id }, data: { status: 'HELD', receivedAt: now, receivedById: actor.id } });
-          await tx.collateralHistory.create({ data: { collateralId: c.id, type: 'RECEIVED', actorId: actor.id, actorLabel: actor.fullName, note: input.note ?? 'Принят при подтверждении регистрации', snapshot: { status: 'HELD', type: held.type, amount: money(held.amount) } } });
-          events.push(() => this.events.publish('collateral.updated', { collateralId: c.id, workerId: id, type: c.type, status: 'HELD', managerId: w.assignedManagerId }));
-        }
-      }
-      await this.audit.record({ action: 'worker.approve', entity: 'WorkerProfile', entityId: id, before: { status: w.status }, after: { status: 'ACTIVE', collateralReceived: input.collateralReceived } }, tx);
-      await this.notifications.telegram({ workerId: id, chatId: w.telegramChatId, type: 'worker.approved', body: `✅ Вас приняли! Откройте Diamoraa и нажмите «Войти через Telegram».\n\nНет приложения? Скачайте: ${appDownloadUrl()}` }, tx);
-      events.push(() => this.events.publish('worker.approved', { workerId: id, managerId: w.assignedManagerId }));
-    });
-    for (const e of events) await e();
+    await this.decisions.approve(actor, id, input);
     return this.get(actor, id);
   }
 
   async reject(actor: AuthUser, id: string, input: z.output<typeof rejectWorkerSchema>) {
-    let managerId: string | null = null;
-    await this.prisma.$transaction(async (tx) => {
-      if (!(await lockRow(tx, 'worker_profiles', id))) throw notFound('Worker');
-      const w = await tx.workerProfile.findUniqueOrThrow({ where: { id } });
-      assertWorkerInScope(actor, 'WORKER', w);
-      assertTransition('Worker', WORKER_MACHINE, w.status as WorkerStatus, 'REJECTED', actor.role);
-      managerId = w.assignedManagerId;
-      await tx.workerProfile.update({ where: { id }, data: { status: 'REJECTED', rejectedReason: input.reason } });
-      await this.audit.record({ action: 'worker.reject', entity: 'WorkerProfile', entityId: id, before: { status: w.status }, after: { status: 'REJECTED', reason: input.reason } }, tx);
-      await this.notifications.telegram({ workerId: id, chatId: w.telegramChatId, type: 'worker.rejected', body: `К сожалению, заявка отклонена.\nПричина: ${input.reason}` }, tx);
-    });
-    await this.events.publish('worker.rejected', { workerId: id, managerId });
+    await this.decisions.reject(actor, id, input);
     return this.get(actor, id);
   }
 
@@ -398,5 +362,5 @@ export class WorkersController {
   assignManager(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(assignManagerSchema) b: z.output<typeof assignManagerSchema>) { return this.workers.assignManager(u, id, b); }
 }
 
-@Module({ controllers: [WorkersController], providers: [WorkersService], exports: [WorkersService] })
+@Module({ imports: [WorkerDecisionsModule], controllers: [WorkersController], providers: [WorkersService], exports: [WorkersService] })
 export class WorkersModule {}

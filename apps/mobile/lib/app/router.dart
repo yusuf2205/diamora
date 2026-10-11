@@ -38,6 +38,8 @@ import '../features/chat/chat_list_screen.dart';
 import '../features/chat/chat_room_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/manager/manager_tools.dart';
+import '../features/manager/visit_screen.dart';
+import '../features/manager/office_screens.dart';
 
 /// Route table. Redirects are UX only — the server rejects anything the role may not do.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -88,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/worker/progress', builder: (_, _) => const ProgressScreen()),
       // managers: «Кто простаивает», «Напоминания», «Отпуск»
       GoRoute(path: '/admin/idle', builder: (_, _) => const IdleWorkersScreen()),
+      GoRoute(path: '/admin/search', builder: (_, _) => const SearchScreen()),
+      GoRoute(path: '/admin/money', builder: (_, _) => const MoneyScreen()),
+      // «Визит»: a worker's QR scanned at her door -> everything for this visit on one screen
+      GoRoute(path: '/admin/visit/:id', builder: (_, s) => VisitScreen(workerId: s.pathParameters['id']!)),
       GoRoute(path: '/reminders', builder: (_, _) => const RemindersScreen()),
       GoRoute(path: '/admin/away', builder: (_, _) => const AwayScreen()),
       GoRoute(path: '/admin/collaterals', builder: (_, _) => const CollateralsScreen()),

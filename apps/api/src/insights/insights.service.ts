@@ -96,7 +96,7 @@ export class InsightsService {
       const { from, to } = periodRange('month', i);
       const [sales, labor, materials, expenses, noCost] = await Promise.all([
         this.prisma.sale.aggregate({ where: { date: { gte: from, lt: to } }, _sum: { total: true } }),
-        this.prisma.workerLedgerTransaction.aggregate({ where: { type: 'EARNING', createdAt: { gte: from, lt: to } }, _sum: { amount: true } }),
+        this.prisma.workerLedgerTransaction.aggregate({ where: { type: { in: ['EARNING', 'BONUS'] }, createdAt: { gte: from, lt: to } }, _sum: { amount: true } }),
         this.prisma.$queryRaw<{ cost: string | null }[]>`
           SELECT SUM(ABS(s."warehouseDelta") * m."unitCost")::text AS cost FROM stock_movements s JOIN materials m ON m.id = s."materialId"
           WHERE s."createdAt" >= ${from} AND s."createdAt" < ${to} AND s.type IN ('ISSUE_TO_KIT', 'WRITE_OFF') AND s."warehouseDelta" < 0`,

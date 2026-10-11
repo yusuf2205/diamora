@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/widgets.dart';
+import '../auth/auth_controller.dart';
+import '../settings/pay_rate.dart';
 import '../../l10n/app_localizations.dart';
 import 'assignment_admin_repository.dart';
 import 'assignment_detail_screen.dart';
@@ -67,17 +69,46 @@ class AssignmentQueueScreen extends ConsumerWidget {
   }
 }
 
-class _QueueCard extends StatelessWidget {
+class _QueueCard extends ConsumerWidget {
   const _QueueCard({required this.a, required this.overdue});
   final AssignmentSummary a;
   final bool overdue;
 
+  /// «Принять всё» (owner, 2026-10-11): no defects - one tap and a confirmation instead of the whole form
+  Future<void> _acceptAll(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final meters = a.reportedMeters > 0 ? a.reportedMeters : a.plannedMeters;
+    final rate = int.tryParse(ref.read(payRateProvider).value?.ratePerKit ?? '');
+    final sum = rate == null ? null : formatUzs('${(rate * meters / 9).floor()}');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.acceptAllAction),
+        content: Text(l.acceptAllConfirm(a.workerName, meters.toStringAsFixed(meters == meters.roundToDouble() ? 0 : 1), sum ?? '—')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(key: const Key('acceptAllConfirm'), onPressed: () => Navigator.pop(ctx, true), child: Text(l.acceptAllAction)),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      final m = meters.toStringAsFixed(2);
+      await ref.read(assignmentAdminRepositoryProvider).accept(a.id, broughtMeters: m, acceptedMeters: m, defectiveMeters: '0', reworkMeters: '0');
+      ref.invalidate(assignmentListProvider(const AssignmentListFilter(status: 'UNDER_REVIEW')));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.acceptanceSuccess)));
+    } catch (e) {
+      if (context.mounted) showError(context, e);
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final canAccept = a.status == 'UNDER_REVIEW' && (ref.watch(authControllerProvider).value?.has('ASSIGNMENT_ACCEPT') ?? false);
     return Card(
-      child: ListTile(
+      child: Column(children: [ListTile(
         leading: CircleAvatar(
           backgroundColor: overdue ? scheme.errorContainer : scheme.primaryContainer,
           child: Text(a.workerName.isNotEmpty ? a.workerName[0] : '?'),
@@ -89,6 +120,16 @@ class _QueueCard extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))),
       ),
+      if (canAccept)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Row(children: [
+            Expanded(child: FilledButton.icon(key: Key('acceptAll-${a.id}'), onPressed: () => _acceptAll(context, ref), icon: const Icon(Icons.done_all_rounded), label: Text(l.acceptAllAction))),
+            const SizedBox(width: 8),
+            Expanded(child: OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AssignmentDetailScreen(assignmentId: a.id))), child: Text(l.acceptWithDefects))),
+          ]),
+        ),
+      ]),
     );
   }
 

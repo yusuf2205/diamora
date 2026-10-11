@@ -3142,4 +3142,148 @@ class AppLocalizationsEn extends AppLocalizations {
   String widgetOverdue(String count) {
     return 'Overdue: $count';
   }
+
+  @override
+  String get acceptAllAction => 'Accept all';
+
+  @override
+  String get acceptWithDefects => 'Has defects';
+
+  @override
+  String acceptAllConfirm(String name, String meters, String sum) {
+    return '$name: accept everything, no defects — $meters m? ≈ $sum sum will be credited.';
+  }
+
+  @override
+  String get visitTitle => 'Visit';
+
+  @override
+  String get visitOpenCard => 'Her card';
+
+  @override
+  String get visitNothing => 'Nothing to pick up or hand over right now';
+
+  @override
+  String visitPickup(String count) {
+    return 'To pick up: $count';
+  }
+
+  @override
+  String visitPickupAll(String count) {
+    return 'Pick up all ($count)';
+  }
+
+  @override
+  String visitPickedAll(String count) {
+    return 'Picked up: $count';
+  }
+
+  @override
+  String visitDeliver(String count) {
+    return 'To hand over: $count';
+  }
+
+  @override
+  String get visitDeliverHint => 'She confirms on her phone';
+
+  @override
+  String get visitInProgress => 'In progress';
+
+  @override
+  String get visitPay => 'Payment';
+
+  @override
+  String get payManyTitle => 'Pay several';
+
+  @override
+  String payManyConfirm(String count, String sum) {
+    return 'Pay $count craftswomen $sum sum in cash in total? Each gets her full balance.';
+  }
+
+  @override
+  String payManyButton(String count, String sum) {
+    return 'Pay selected: $count · $sum sum';
+  }
+
+  @override
+  String payManyDone(String count) {
+    return 'Paid: $count';
+  }
+
+  @override
+  String payManyFailed(String names) {
+    return 'failed: $names';
+  }
+
+  @override
+  String get payManyComment => 'Paid to several';
+
+  @override
+  String get permPresets => 'Ready-made sets';
+
+  @override
+  String get presetManagerBasic => 'Delivery and pickup';
+
+  @override
+  String get presetManagerCash => 'With payouts';
+
+  @override
+  String get presetManagerStock => 'Storekeeper';
+
+  @override
+  String get presetManagerFull => 'Everything for own workers';
+
+  @override
+  String get presetAdminStandard => 'Standard';
+
+  @override
+  String get presetAdminStock => 'Stock and catalog';
+
+  @override
+  String get presetAdminMoney => 'Money';
+
+  @override
+  String get searchHint => 'Search';
+
+  @override
+  String get searchExplain =>
+      'Craftswomen, works, orders, materials, models, staff — by name, phone or code';
+
+  @override
+  String get searchNothing => 'Nothing found';
+
+  @override
+  String get searchWorks => 'Works';
+
+  @override
+  String get searchMaterials => 'Materials';
+
+  @override
+  String get moneyTitle => 'Money';
+
+  @override
+  String get moneyOwed => 'Owed to craftswomen';
+
+  @override
+  String moneyOwedWorkers(String count) {
+    return 'Craftswomen: $count';
+  }
+
+  @override
+  String get moneyEarned => 'Earned for work';
+
+  @override
+  String get moneyPaid => 'Paid';
+
+  @override
+  String get moneySales => 'Sales';
+
+  @override
+  String get moneyMaterials => 'Materials';
+
+  @override
+  String get moneyExpenses => 'Expenses';
+
+  @override
+  String get moneyProfit => 'Profit';
 }

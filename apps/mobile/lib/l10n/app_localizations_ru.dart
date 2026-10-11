@@ -3154,4 +3154,149 @@ class AppLocalizationsRu extends AppLocalizations {
   String widgetOverdue(String count) {
     return 'Просрочено: $count';
   }
+
+  @override
+  String get acceptAllAction => 'Принять всё';
+
+  @override
+  String get acceptWithDefects => 'Есть брак';
+
+  @override
+  String acceptAllConfirm(String name, String meters, String sum) {
+    return '$name: принять всё без брака — $meters м? Начислится ≈ $sum сум.';
+  }
+
+  @override
+  String get visitTitle => 'Визит';
+
+  @override
+  String get visitOpenCard => 'Карточка мастерицы';
+
+  @override
+  String get visitNothing =>
+      'Сейчас у неё ничего не нужно забирать или отдавать';
+
+  @override
+  String visitPickup(String count) {
+    return 'Забрать: $count';
+  }
+
+  @override
+  String visitPickupAll(String count) {
+    return 'Забрать всё ($count)';
+  }
+
+  @override
+  String visitPickedAll(String count) {
+    return 'Забрано работ: $count';
+  }
+
+  @override
+  String visitDeliver(String count) {
+    return 'Отдать: $count';
+  }
+
+  @override
+  String get visitDeliverHint => 'Она подтвердит получение в своём приложении';
+
+  @override
+  String get visitInProgress => 'В работе';
+
+  @override
+  String get visitPay => 'Оплата';
+
+  @override
+  String get payManyTitle => 'Выплатить нескольким';
+
+  @override
+  String payManyConfirm(String count, String sum) {
+    return 'Выплатить наличными $count мастерицам всего $sum сум? Каждой — её полную сумму.';
+  }
+
+  @override
+  String payManyButton(String count, String sum) {
+    return 'Выплатить выбранным: $count · $sum сум';
+  }
+
+  @override
+  String payManyDone(String count) {
+    return 'Выплачено: $count';
+  }
+
+  @override
+  String payManyFailed(String names) {
+    return 'не получилось: $names';
+  }
+
+  @override
+  String get payManyComment => 'Выплата нескольким';
+
+  @override
+  String get permPresets => 'Готовые наборы';
+
+  @override
+  String get presetManagerBasic => 'Доставка и забор';
+
+  @override
+  String get presetManagerCash => 'С выплатами';
+
+  @override
+  String get presetManagerStock => 'Кладовщик';
+
+  @override
+  String get presetManagerFull => 'Всё для своих мастериц';
+
+  @override
+  String get presetAdminStandard => 'Стандарт';
+
+  @override
+  String get presetAdminStock => 'Склад и каталог';
+
+  @override
+  String get presetAdminMoney => 'Деньги';
+
+  @override
+  String get searchHint => 'Поиск';
+
+  @override
+  String get searchExplain =>
+      'Мастерицы, работы, заказы, материалы, модели, сотрудники — по имени, телефону или коду';
+
+  @override
+  String get searchNothing => 'Ничего не найдено';
+
+  @override
+  String get searchWorks => 'Работы';
+
+  @override
+  String get searchMaterials => 'Материалы';
+
+  @override
+  String get moneyTitle => 'Деньги';
+
+  @override
+  String get moneyOwed => 'Должны мастерицам';
+
+  @override
+  String moneyOwedWorkers(String count) {
+    return 'Мастериц: $count';
+  }
+
+  @override
+  String get moneyEarned => 'Начислено за работу';
+
+  @override
+  String get moneyPaid => 'Выплачено';
+
+  @override
+  String get moneySales => 'Продажи';
+
+  @override
+  String get moneyMaterials => 'Материалы';
+
+  @override
+  String get moneyExpenses => 'Расходы';
+
+  @override
+  String get moneyProfit => 'Прибыль';
 }

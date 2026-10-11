@@ -88,3 +88,17 @@ export function scopeFor(perms: readonly Permission[], cat: WorkerCategory): Sco
   if (has(WORKER_CATEGORIES[cat].assigned)) return 'assigned';
   return 'none';
 }
+
+/**
+ * «Готовые наборы прав» (owner, 2026-10-11): one tap sets a typical job, then single switches can still be changed.
+ * The full EFFECTIVE set for the role (defaults included); the client applies only what that role may have.
+ */
+export const PERMISSION_PRESETS: readonly { id: string; role: 'ADMIN' | 'MANAGER'; label: string; perms: readonly Permission[] }[] = [
+  { id: 'manager_basic', role: 'MANAGER', label: 'Менеджер: доставка и забор', perms: MANAGER_DEFAULTS },
+  { id: 'manager_cash', role: 'MANAGER', label: 'Менеджер с выплатами', perms: [...MANAGER_DEFAULTS, 'CASH_PAYOUT', 'COLLATERAL_VIEW'] },
+  { id: 'manager_stock', role: 'MANAGER', label: 'Менеджер-кладовщик', perms: [...MANAGER_DEFAULTS, 'INVENTORY_VIEW', 'CATALOG_VIEW', 'ASSIGNMENT_CREATE'] },
+  { id: 'manager_full', role: 'MANAGER', label: 'Менеджер: всё для своих мастериц', perms: [...MANAGER_DEFAULTS, ...MANAGER_GRANTABLE] },
+  { id: 'admin_standard', role: 'ADMIN', label: 'Админ: стандарт', perms: ADMIN_DEFAULTS },
+  { id: 'admin_stock', role: 'ADMIN', label: 'Админ: склад и каталог', perms: ['WORKER_VIEW_ALL', 'ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_CREATE', 'CATALOG_VIEW', 'CATALOG_MANAGE', 'INVENTORY_VIEW', 'INVENTORY_MANAGE'] },
+  { id: 'admin_money', role: 'ADMIN', label: 'Админ: деньги', perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ALL', 'ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_ACCEPT', 'FINANCE_VIEW_ALL', 'CASH_PAYOUT', 'PROFIT_VIEW', 'COLLATERAL_VIEW', 'COLLATERAL_MANAGE'] },
+];

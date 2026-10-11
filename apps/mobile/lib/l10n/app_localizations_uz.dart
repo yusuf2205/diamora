@@ -3114,4 +3114,3398 @@ class AppLocalizationsUz extends AppLocalizations {
   String widgetOverdue(String count) {
     return 'Muddati o‘tgan: $count';
   }
+
+  @override
+  String get acceptAllAction => 'Hammasini qabul qilish';
+
+  @override
+  String get acceptWithDefects => 'Brak bor';
+
+  @override
+  String acceptAllConfirm(String name, String meters, String sum) {
+    return '$name: hammasini braksiz qabul qilish — $meters m? ≈ $sum so‘m hisoblanadi.';
+  }
+
+  @override
+  String get visitTitle => 'Tashrif';
+
+  @override
+  String get visitOpenCard => 'Usta kartasi';
+
+  @override
+  String get visitNothing =>
+      'Hozir undan hech narsa olish yoki berish kerak emas';
+
+  @override
+  String visitPickup(String count) {
+    return 'Olib ketish: $count';
+  }
+
+  @override
+  String visitPickupAll(String count) {
+    return 'Hammasini olish ($count)';
+  }
+
+  @override
+  String visitPickedAll(String count) {
+    return 'Olingan ishlar: $count';
+  }
+
+  @override
+  String visitDeliver(String count) {
+    return 'Berish: $count';
+  }
+
+  @override
+  String get visitDeliverHint => 'U olganini o‘z ilovasida tasdiqlaydi';
+
+  @override
+  String get visitInProgress => 'Ishda';
+
+  @override
+  String get visitPay => 'To‘lov';
+
+  @override
+  String get payManyTitle => 'Bir nechtasiga to‘lash';
+
+  @override
+  String payManyConfirm(String count, String sum) {
+    return '$count ta ustaga jami $sum so‘m naqd to‘lansinmi? Har biriga — to‘liq summasi.';
+  }
+
+  @override
+  String payManyButton(String count, String sum) {
+    return 'Tanlanganlarga: $count · $sum so‘m';
+  }
+
+  @override
+  String payManyDone(String count) {
+    return 'To‘landi: $count';
+  }
+
+  @override
+  String payManyFailed(String names) {
+    return 'bo‘lmadi: $names';
+  }
+
+  @override
+  String get payManyComment => 'Bir nechtasiga to‘lov';
+
+  @override
+  String get permPresets => 'Tayyor to‘plamlar';
+
+  @override
+  String get presetManagerBasic => 'Yetkazish va olib ketish';
+
+  @override
+  String get presetManagerCash => 'To‘lovlar bilan';
+
+  @override
+  String get presetManagerStock => 'Omborchi';
+
+  @override
+  String get presetManagerFull => 'O‘z ustalari uchun hammasi';
+
+  @override
+  String get presetAdminStandard => 'Standart';
+
+  @override
+  String get presetAdminStock => 'Ombor va katalog';
+
+  @override
+  String get presetAdminMoney => 'Pul';
+
+  @override
+  String get searchHint => 'Qidiruv';
+
+  @override
+  String get searchExplain =>
+      'Ustalar, ishlar, buyurtmalar, materiallar, modellar, xodimlar — ism, telefon yoki kod bo‘yicha';
+
+  @override
+  String get searchNothing => 'Hech narsa topilmadi';
+
+  @override
+  String get searchWorks => 'Ishlar';
+
+  @override
+  String get searchMaterials => 'Materiallar';
+
+  @override
+  String get moneyTitle => 'Pul';
+
+  @override
+  String get moneyOwed => 'Ustalarga qarzdorlik';
+
+  @override
+  String moneyOwedWorkers(String count) {
+    return 'Ustalar: $count';
+  }
+
+  @override
+  String get moneyEarned => 'Ish uchun hisoblangan';
+
+  @override
+  String get moneyPaid => 'To‘langan';
+
+  @override
+  String get moneySales => 'Sotuvlar';
+
+  @override
+  String get moneyMaterials => 'Materiallar';
+
+  @override
+  String get moneyExpenses => 'Xarajatlar';
+
+  @override
+  String get moneyProfit => 'Foyda';
+}
+
+/// The translations for Uzbek, using the Cyrillic script (`uz_Cyrl`).
+class AppLocalizationsUzCyrl extends AppLocalizationsUz {
+  AppLocalizationsUzCyrl() : super('uz_Cyrl');
+
+  @override
+  String get appTitle => 'Diamoraa';
+
+  @override
+  String get welcomeTitle => 'Хуш келибсиз';
+
+  @override
+  String get phone => 'Телефон';
+
+  @override
+  String get password => 'Парол';
+
+  @override
+  String get signIn => 'Кириш';
+
+  @override
+  String get signOut => 'Чиқиш';
+
+  @override
+  String get continueAction => 'Давом этиш';
+
+  @override
+  String get signInWithTelegram => 'Телеграм орқали кириш';
+
+  @override
+  String get orDivider => 'ёки';
+
+  @override
+  String get openingTelegram => 'Телеграм очилмоқда…';
+
+  @override
+  String get telegramLoginFailed =>
+      'Телеграмни очиб бўлмади. Қайта уриниб кўринг.';
+
+  @override
+  String get workersUseTelegram =>
+      'Усталар Телеграм орқали киради — пастдаги тугмани босинг.';
+
+  @override
+  String get pendingApprovalTitle => 'Ариза юборилди';
+
+  @override
+  String get pendingApprovalBody =>
+      'Администратор тасдиқлашини кутинг. Қарор тайёр бўлиши билан Телеграмга ёзамиз.';
+
+  @override
+  String get rejectedTitle => 'Ариза рад этилди';
+
+  @override
+  String get workerPausedTitle => 'Профил тўхтатилган';
+
+  @override
+  String get workerPausedBody => 'Администраторга мурожаат қилинг.';
+
+  @override
+  String get backToLogin => 'Кириш экранига';
+
+  @override
+  String get checkAgainInTelegram => 'Телеграм орқали қайта уриниш';
+
+  @override
+  String get invalidCredentials => 'Телефон ёки парол нотўғри';
+
+  @override
+  String get invalidCode => 'Код нотўғри ёки муддати ўтган';
+
+  @override
+  String get tooManyAttempts => 'Жуда кўп уриниш. Кейинроқ уриниб кўринг.';
+
+  @override
+  String get noConnection => 'Серверга уланиб бўлмади. Интернетни текширинг.';
+
+  @override
+  String get genericError => 'Хатолик юз берди';
+
+  @override
+  String get checkYourInput => 'Киритилган маълумотларни текширинғ';
+
+  @override
+  String get phoneRequired => 'Телефон рақамини киритинғ';
+
+  @override
+  String get invalidPhoneFormat => 'Тўғри телефон рақамини киритинғ';
+
+  @override
+  String get userNotFound =>
+      'Бу рақамли фойдаланувчи топилмади. Администраторга мурожаат қилинг.';
+
+  @override
+  String get accountDisabled =>
+      'Ҳисобингиз фаол эмас. Администраторга мурожаат қилинг.';
+
+  @override
+  String get retry => 'Қайта уриниш';
+
+  @override
+  String get cancel => 'Бекор қилиш';
+
+  @override
+  String get confirm => 'Тасдиқлаш';
+
+  @override
+  String get offlineBanner =>
+      'Интернет ёъқ — сақланган маълумотлар кўрсатилмоқда';
+
+  @override
+  String get workers => 'Усталар';
+
+  @override
+  String get profile => 'Профил';
+
+  @override
+  String get home => 'Асосий';
+
+  @override
+  String get search => 'Қидирув: исм, телефон';
+
+  @override
+  String get tabPending => 'Аризалар';
+
+  @override
+  String get tabActive => 'Фаол';
+
+  @override
+  String get tabAll => 'Ҳаммаси';
+
+  @override
+  String get emptyPending => 'Янги аризалар ёъқ';
+
+  @override
+  String get emptyPendingHint =>
+      'Уста Телеграмда рўйхатдан ўтганда ариза шу ерда дарҳол пайдо бўлади';
+
+  @override
+  String get emptyWorkers => 'Бу ерда ҳозирча ҳеч ким ёъқ';
+
+  @override
+  String newRegistration(String name) {
+    return 'Янги ариза: $name';
+  }
+
+  @override
+  String get statusPending => 'Кўриб чиқилмоқда';
+
+  @override
+  String get statusActive => 'Фаол';
+
+  @override
+  String get statusPaused => 'Тўхтатилган';
+
+  @override
+  String get statusRejected => 'Рад этилган';
+
+  @override
+  String get statusArchived => 'Архивда';
+
+  @override
+  String get call => 'Қўнғироқ қилиш';
+
+  @override
+  String get route => 'Маршрут қуриш';
+
+  @override
+  String get location => 'Жойлашув';
+
+  @override
+  String get noLocation => 'Жойлашув олинмаган';
+
+  @override
+  String get secondaryPhone => 'Қўшимча телефон';
+
+  @override
+  String get notes => 'Изоҳлар';
+
+  @override
+  String get collateral => 'Гаров';
+
+  @override
+  String get collateralMoney => 'Пул';
+
+  @override
+  String get collateralItem => 'Буюм';
+
+  @override
+  String get collateralPending => 'Еълон қилинган, ҳали қабул қилинмаган';
+
+  @override
+  String get collateralHeld => 'Бизда сақланмоқда';
+
+  @override
+  String get collateralReturned => 'Қайтарилган';
+
+  @override
+  String get receiveCollateral => 'Гаровни қабул қилиш';
+
+  @override
+  String get receivedNote => 'Изоҳ (ихтиёрий)';
+
+  @override
+  String get estimatedValue => 'Баҳоланган қиймат, сўм';
+
+  @override
+  String get storageLocation => 'Сақланадиган жой';
+
+  @override
+  String get history => 'Тарих';
+
+  @override
+  String get approve => 'Тасдиқлаш';
+
+  @override
+  String get reject => 'Рад этиш';
+
+  @override
+  String get approveTitle => 'Устани тасдиқлайсизми?';
+
+  @override
+  String get collateralReceivedCheck => 'Гаров жисмонан қабул қилинди';
+
+  @override
+  String get rejectTitle => 'Аризани рад этиш';
+
+  @override
+  String get rejectReason => 'Сабаб (уста кўради)';
+
+  @override
+  String get required => 'Мажбурий майдон';
+
+  @override
+  String get approvedDone =>
+      'Уста тасдиқланди. Унга Телеграмда хабар юборилди.';
+
+  @override
+  String get rejectedDone => 'Ариза рад этилди';
+
+  @override
+  String get myStatusPending => 'Аризангиз кўриб чиқилмоқда';
+
+  @override
+  String get myStatusActive => 'Сиз жамоадасиз ✨';
+
+  @override
+  String get balanceToReceive => 'Олинадиган сумма';
+
+  @override
+  String get devices => 'Қурилмалар';
+
+  @override
+  String get thisDevice => 'шу қурилма';
+
+  @override
+  String get revoke => 'Сеансни тугатиш';
+
+  @override
+  String get logoutAll => 'Барча қурилмалардан чиқиш';
+
+  @override
+  String get language => 'Тил';
+
+  @override
+  String get currency => 'сўм';
+
+  @override
+  String get save => 'Сақлаш';
+
+  @override
+  String get payRateTitle => '9 м учун нарх';
+
+  @override
+  String payRateSubtitle(int meters) {
+    return 'Битта $meters м тўплам учун тўлов';
+  }
+
+  @override
+  String get payRateAppliesToAll =>
+      'Нарх ҳамма учун битта. Уни ўзгартирсангиз, барча усталарда дарҳол ўзгаради. Қабул қилинган иш қайта ҳисобланмайди.';
+
+  @override
+  String get payRateChange => 'Нархни ўзгартириш';
+
+  @override
+  String payRateNew(int meters) {
+    return '$meters м учун янги нарх';
+  }
+
+  @override
+  String get payRateInvalid => '1 дан 10 000 000 гача сумма киритинғ';
+
+  @override
+  String payRateSaved(String amount) {
+    return 'Нарх янгиланди: $amount сўм';
+  }
+
+  @override
+  String get payRateHistory => 'Нарх тарихи';
+
+  @override
+  String get payRateStart => 'бошланғич';
+
+  @override
+  String payRatePerKit(int meters) {
+    return '$meters метр учун тўлов';
+  }
+
+  @override
+  String get locationServicesOffTitle => 'Геолокатсияни ёқинғ';
+
+  @override
+  String get locationServicesOffBody =>
+      'Геолокатсиясиз илова иш қаерда эканини кўрсата олмайди. Уни телефон созламаларида ёқинг.';
+
+  @override
+  String get locationForegroundTitle => 'Геолокатсияга рухсат беринғ';
+
+  @override
+  String get locationForegroundBody =>
+      'Илова очиқ турганда жойлашувингиз керак, шунда администратор уни кўриб туради.';
+
+  @override
+  String get locationBackgroundTitle => 'Фонда геолокатсияга рухсат беринғ';
+
+  @override
+  String get locationBackgroundBody =>
+      'Илова ёпиқ бўлганда ҳам жойлашув аниқ бўлиши учун \"Доим\" рухсатини беринг.';
+
+  @override
+  String get locationDeniedForeverBody =>
+      'Рухсат рад этилди. Илова созламаларини очинг ва геолокатсияга қўлда рухсат беринг.';
+
+  @override
+  String get locationOpenSettings => 'Геолокатсия созламаларини очиш';
+
+  @override
+  String get locationAllow => 'Рухсат бериш';
+
+  @override
+  String get locationOpenAppSettings => 'Илова созламаларини очиш';
+
+  @override
+  String get catalog => 'Бизнинг ишларимиз';
+
+  @override
+  String get catalogEmpty => 'Ҳозирча ҳеч нарса эълон қилинмаган';
+
+  @override
+  String get catalogEmptyHint =>
+      'Администратор эълон қилиши билан янги ишлар шу ерда пайдо бўлади';
+
+  @override
+  String get catalogNew => 'Янги';
+
+  @override
+  String get catalogCall => 'Қўнғироқ қилиш';
+
+  @override
+  String get catalogTelegram => 'Телеграмга ёзиш';
+
+  @override
+  String get catalogAvailable => 'Мавжуд';
+
+  @override
+  String get catalogOnRequest => 'Буюртма билан';
+
+  @override
+  String get catalogUnavailable => 'Ҳозирча ёъқ';
+
+  @override
+  String get catalogAdminTitle => 'Ишлар каталоги';
+
+  @override
+  String get catalogAddItem => 'Иш қўшиш';
+
+  @override
+  String get catalogItemName => 'Номи';
+
+  @override
+  String get catalogItemDescription => 'Тавсиф';
+
+  @override
+  String get catalogStatusDraft => 'Қоралама';
+
+  @override
+  String get catalogStatusPublished => 'Еълон қилинган';
+
+  @override
+  String get catalogStatusHidden => 'Яширилган';
+
+  @override
+  String get catalogPublish => 'Еълон қилиш';
+
+  @override
+  String get catalogHide => 'Яшириш';
+
+  @override
+  String get catalogAddPhoto => 'Расм қўшиш';
+
+  @override
+  String get catalogMarkNew => 'Янги деб белгилаш';
+
+  @override
+  String get catalogPublishNeedsPhoto =>
+      'Еълон қилишдан олдин камида битта расм қўшинғ';
+
+  @override
+  String get catalogDeleteBlocked =>
+      'Бу иш аллақачон ишлатилган — фақат яшириш мумкин';
+
+  @override
+  String get catalogSaved => 'Сақланди';
+
+  @override
+  String get team => 'Жамоа';
+
+  @override
+  String get teamUsers => 'Фойдаланувчилар';
+
+  @override
+  String get teamManagers => 'Менежерлар';
+
+  @override
+  String get teamAddUser => 'Фойдаланувчи қўшиш';
+
+  @override
+  String get teamFullName => 'Ф.И.Ш.';
+
+  @override
+  String get teamRole => 'Рол';
+
+  @override
+  String get roleSuperAdmin => 'Бош администратор';
+
+  @override
+  String get roleAdmin => 'Администратор';
+
+  @override
+  String get roleManager => 'Менежер';
+
+  @override
+  String get roleWorker => 'Уста';
+
+  @override
+  String get teamStatusActive => 'Фаол';
+
+  @override
+  String get teamStatusSuspended => 'Ўчирилган';
+
+  @override
+  String get teamDeactivate => 'Ўчириш';
+
+  @override
+  String get teamReactivate => 'Ёқиш';
+
+  @override
+  String get teamNoAccess => 'Жамоани кўриш учун ҳуқуқ етарли эмас';
+
+  @override
+  String get teamCreated =>
+      'Фойдаланувчи яратилди. Парол бир марта кўрсатилади:';
+
+  @override
+  String teamAssignedWorkers(int count) {
+    return 'Усталар: $count';
+  }
+
+  @override
+  String get teamEditUser => 'Фойдаланувчи';
+
+  @override
+  String get teamSaveChanges => 'Сақлаш';
+
+  @override
+  String get teamPhoneTaken => 'Бу рақам бошқа фойдаланувчида банд';
+
+  @override
+  String teamConfirmRoleChange(String from, String to) {
+    return 'Ролни $from дан $to га ўзгартирасизми?';
+  }
+
+  @override
+  String get teamRoleChanged => 'Рол ўзгартирилди';
+
+  @override
+  String get teamSaved => 'Ўзгаришлар сақланди';
+
+  @override
+  String get settingsCompanyContact => 'Компания телефони ва Телеграм';
+
+  @override
+  String get settingsPhone => 'Компания телефони';
+
+  @override
+  String get settingsTelegram => 'Телеграм (@ сиз)';
+
+  @override
+  String get settingsCompanyContactHint =>
+      'Бу маълумотларни усталар каталогда \"Қўнғироқ қилиш\" ва \"Телеграмга ёзиш\" тугмаларида кўради';
+
+  @override
+  String get audit => 'Амаллар журнали';
+
+  @override
+  String get auditEmpty => 'Ҳозирча ёзувлар ёъқ';
+
+  @override
+  String get locations => 'Жамоа геолокатсияси';
+
+  @override
+  String get locationsEmpty => 'Жойлашув маълумотлари ҳали ёъқ';
+
+  @override
+  String locationStaleMinutes(int minutes) {
+    return 'Жойлашув $minutes дақиқа олдин янгиланган';
+  }
+
+  @override
+  String locationRecentMinutes(int minutes) {
+    return 'Жойлашув $minutes дақиқа олдин янгиланган';
+  }
+
+  @override
+  String get locationJustNow => 'Жойлашув: ҳозир';
+
+  @override
+  String get onlineNow => 'онлайн';
+
+  @override
+  String get offlineNow => 'офлайн';
+
+  @override
+  String get map => 'Харита';
+
+  @override
+  String get mapListView => 'Рўйхат';
+
+  @override
+  String get mapMapView => 'Харита';
+
+  @override
+  String get mapEmpty => 'Ҳозирча координата ёъқ';
+
+  @override
+  String get mapOpenProfile => 'Профилни очиш';
+
+  @override
+  String get qrScan => 'QR сканерлаш';
+
+  @override
+  String get qrScanHint => 'Камерани QR-кодга қаратинғ';
+
+  @override
+  String get qrInvalid => 'QR-код топилмади ёки мавжуд эмас';
+
+  @override
+  String get qrWorkerFound => 'Уста топилди';
+
+  @override
+  String get qrKitFound => 'Тўплам топилди';
+
+  @override
+  String get showQr => 'QR-кодни кўрсатиш';
+
+  @override
+  String get workerQrTitle => 'Шахсий QR-код';
+
+  @override
+  String get inventory => 'Омбор';
+
+  @override
+  String get materials => 'Материаллар';
+
+  @override
+  String get materialsEmpty => 'Ҳозирча материал ёъқ';
+
+  @override
+  String get materialAdd => 'Янги материал';
+
+  @override
+  String get stockLow => 'кам';
+
+  @override
+  String get stockReceipt => 'Кирим';
+
+  @override
+  String get stockReceiptHint => 'Омборга материал келиб тушиши';
+
+  @override
+  String get quantity => 'Миқдор';
+
+  @override
+  String get kits => 'Тўпламлар';
+
+  @override
+  String get kitsEmpty => 'Ҳозирча тўплам ёъқ';
+
+  @override
+  String get kitAssemble => 'Тўпламни йиғиш';
+
+  @override
+  String get kitAssembled => 'Тўплам йиғилди, QR-код тайёр';
+
+  @override
+  String get kitCount => 'Тўпламлар сони';
+
+  @override
+  String get kitTemplateName => 'Тўплам номи';
+
+  @override
+  String get kitAddMaterial => 'Материал';
+
+  @override
+  String get commentOptional => 'Изоҳ (ихтиёрий)';
+
+  @override
+  String get materialName => 'Материал номи';
+
+  @override
+  String get materialMinStock => 'Минимал қолдиқ';
+
+  @override
+  String get workMeters9 => '9 м';
+
+  @override
+  String get workMeters18 => '18 м';
+
+  @override
+  String get workMeters27 => '27 м';
+
+  @override
+  String workDoneOf(String done, String planned) {
+    return 'Бажарилди $done / $planned м';
+  }
+
+  @override
+  String get workDueDate => 'Муддат';
+
+  @override
+  String get workExpectedEarning => 'Кутилаётган тўлов';
+
+  @override
+  String get workMaterials => 'Материаллар';
+
+  @override
+  String get workUpdateProgress => 'Жараённи янгилаш';
+
+  @override
+  String get workReady => 'Иш тайёр';
+
+  @override
+  String workReadyConfirm(String planned) {
+    return 'Тасдиқланг: $planned м тайёр. Шундан кейин иш олиб кетилади.';
+  }
+
+  @override
+  String get workProblem => 'Муаммо бор';
+
+  @override
+  String get workMetersDone => 'Неча метр тайёр';
+
+  @override
+  String get workStatusReadyToDeliver => 'Қабул қилиниши кутилмоқда';
+
+  @override
+  String get workStatusDelivered => 'Уста қабул қилди';
+
+  @override
+  String get workStatusInProgress => 'Ишланмоқда';
+
+  @override
+  String get workStatusReadyForPickup => 'Тайёр, олиб кетишни кутмоқда';
+
+  @override
+  String get workStatusPickedUp => 'Олиб кетилди';
+
+  @override
+  String get workStatusUnderReview => 'Текширувда';
+
+  @override
+  String get workCurrentTitle => 'Жорий иш';
+
+  @override
+  String get workNoCurrent => 'Ҳозирча фаол иш ёъқ';
+
+  @override
+  String get workNoCurrentHint =>
+      'Сизга топшириқ берилиши билан у шу ерда пайдо бўлади';
+
+  @override
+  String get workPickedUp => 'Олдим';
+
+  @override
+  String get insufficientStockGeneric => 'Омборда материал етарли эмас';
+
+  @override
+  String get statusChangedMeanwhile =>
+      'Бу амал энди мавжуд эмас, чунки топшириқ ҳолати ўзгарди.';
+
+  @override
+  String insufficientStockDetail(String material) {
+    return 'Материал етарли эмас: $material';
+  }
+
+  @override
+  String get back => 'Орқага';
+
+  @override
+  String get next => 'Кейингиси';
+
+  @override
+  String get assignCreateTitle => 'Ишни тайёрлаш';
+
+  @override
+  String get assignStepProduct => 'Модел';
+
+  @override
+  String get assignStepVariant => 'Ранғ';
+
+  @override
+  String get assignStepVolume => 'Иш ҳажми';
+
+  @override
+  String get assignStepDue => 'Муддат';
+
+  @override
+  String get assignStepComment => 'Изоҳ';
+
+  @override
+  String get assignStepSummary => 'Тасдиқлаш';
+
+  @override
+  String get assignNoVariants =>
+      'Бу моделда ҳали ранглар ёъқ. Аввал каталогга ранг қўшинг.';
+
+  @override
+  String get assignNoKitTemplate =>
+      'Бу вариант учун материал тўплами мавжуд эмас.';
+
+  @override
+  String get assignSelectWorker => 'Мастарицани танланғ';
+
+  @override
+  String get assignSelectProduct => 'Моделни танланғ';
+
+  @override
+  String get assignSelectVariant => 'Рангни танланғ';
+
+  @override
+  String get assignDueOptional => 'Муддат (ихтиёрий)';
+
+  @override
+  String get assignNoDueDate => 'Муддатсиз';
+
+  @override
+  String get assignSummaryWorker => 'Мастарица';
+
+  @override
+  String get assignSummaryModel => 'Модел';
+
+  @override
+  String get assignSummaryColor => 'Ранғ';
+
+  @override
+  String get assignSummaryVolume => 'Ҳажм';
+
+  @override
+  String get assignSummaryMaterials => 'Материаллар';
+
+  @override
+  String get assignSummaryDue => 'Муддат';
+
+  @override
+  String get assignSummaryPayment => 'Ҳисобланган тўлов';
+
+  @override
+  String get assignSubmit => 'Ишни тайёрлаш';
+
+  @override
+  String get assignSuccess => 'Иш берилди';
+
+  @override
+  String get assignSuccessHint => 'Материаллар омбордан ечилди, QR-код тайёр';
+
+  @override
+  String get assignEmptyProducts => 'Каталогда ҳали модел ёъқ';
+
+  @override
+  String get assignEmptyWorkers => 'Фаол мастарицалар ёъқ';
+
+  @override
+  String get assignmentDetailTitle => 'Топшириқ';
+
+  @override
+  String get assignmentQr => 'Топшириқ QR-коди';
+
+  @override
+  String get assignmentHistory => 'Тарих';
+
+  @override
+  String get assignmentMaterialsIssued => 'Берилган материаллар';
+
+  @override
+  String get deliveriesTitle => 'Етказиш ва олиб кетиш';
+
+  @override
+  String get deliveryNeeded => 'Етказиш керак';
+
+  @override
+  String get deliveryConfirmTitle => 'Етказишни тасдиқланғ';
+
+  @override
+  String get deliveryConfirmBody => 'Материаллар мастарицага топширилдими?';
+
+  @override
+  String get deliveryDone => 'Топширишни бошлаш';
+
+  @override
+  String get pickupNeeded => 'Олиб кетиш керак';
+
+  @override
+  String get dashboardTab => 'Умумий кўриниш';
+
+  @override
+  String get dashActiveWorkers => 'Фаол мастарицалар';
+
+  @override
+  String get dashInProgress => 'Ишда';
+
+  @override
+  String get dashNeedsAcceptance => 'Қабулда';
+
+  @override
+  String get dashOverdue => 'Муддати ўтган';
+
+  @override
+  String get queueEmpty => 'Ҳозирча бўш';
+
+  @override
+  String get dueBy => 'муддат ';
+
+  @override
+  String get workersDueEmpty => 'Барча тўловлар ёпилган';
+
+  @override
+  String get greetingMorning => 'Хайрли тонғ';
+
+  @override
+  String get greetingDay => 'Хайрли кун';
+
+  @override
+  String get greetingEvening => 'Хайрли кеч';
+
+  @override
+  String get dashProblems => 'Муаммолар бор';
+
+  @override
+  String get dashAttention => 'Диққат талаб қилади';
+
+  @override
+  String get dashAllClear => 'Ҳаммаси назоратда';
+
+  @override
+  String get dashToday => 'Бугун';
+
+  @override
+  String get dashDueToday => 'Муддати бугун';
+
+  @override
+  String get dashDeliveredToday => 'Етказилди';
+
+  @override
+  String get dashPickedUpToday => 'Олиб кетилди';
+
+  @override
+  String get dashPaidToday => 'Тўланди';
+
+  @override
+  String get dashQuickActions => 'Тезкор амаллар';
+
+  @override
+  String get actionMap => 'Харита';
+
+  @override
+  String get actionStock => 'Омбор';
+
+  @override
+  String get more => 'Яна';
+
+  @override
+  String get managerLabel => 'Менежер';
+
+  @override
+  String get noManager => 'Менежерсиз';
+
+  @override
+  String get historyWork => 'Ишлар';
+
+  @override
+  String get historyMoney => 'Пул';
+
+  @override
+  String get historyEmpty => 'Ҳозирча ҳеч нарса ёъқ';
+
+  @override
+  String attnOverdue(int count) {
+    return '$count та иш муддати ўтган';
+  }
+
+  @override
+  String attnToDeliver(int count) {
+    return '$count та етказиш';
+  }
+
+  @override
+  String attnToPickup(int count) {
+    return '$count та иш тайёр';
+  }
+
+  @override
+  String attnAcceptance(int count) {
+    return '$count та иш қабулни кутмоқда';
+  }
+
+  @override
+  String attnRework(int count) {
+    return '$count та иш қайта ишлашда';
+  }
+
+  @override
+  String attnWorkersDue(int count) {
+    return '$count та мастарица тўловни кутмоқда';
+  }
+
+  @override
+  String get acceptanceTitle => 'Ишни қабул қилиш';
+
+  @override
+  String get acceptanceBrought => 'Келтирилди';
+
+  @override
+  String get acceptanceAccepted => 'Қабул қилинди';
+
+  @override
+  String get acceptanceDefective => 'Брак';
+
+  @override
+  String get acceptanceRework => 'Қайта ишлаш';
+
+  @override
+  String get acceptanceCalculated => 'Ҳисобланади';
+
+  @override
+  String get acceptanceSubmit => 'Ишни қабул қилиш';
+
+  @override
+  String get acceptanceSuccess => 'Иш қабул қилинди';
+
+  @override
+  String get acceptanceInvalid =>
+      'Қабул + брак + қайта ишлаш келтирилганига тенг бўлиши керак';
+
+  @override
+  String get acceptancePhotoOptional => 'Фото (ихтиёрий)';
+
+  @override
+  String get payoutTitle => 'Нақд тўлаш';
+
+  @override
+  String get payoutDue => 'Тўланадиган';
+
+  @override
+  String get payoutFull => 'Бутун сумма';
+
+  @override
+  String get payoutHalf => 'Ярми';
+
+  @override
+  String get payoutAmountLabel => 'Сумма';
+
+  @override
+  String get payoutConfirmTitle => 'Тўловни тасдиқланғ';
+
+  @override
+  String payoutConfirmBody(String amount) {
+    return 'Ҳақиқатан ҳам $amount нақд бердингизми?';
+  }
+
+  @override
+  String get payoutSubmit => 'Тўлаш';
+
+  @override
+  String get payoutSuccess => 'Тўлов ёзилди';
+
+  @override
+  String get payoutNothingDue => 'Тўланадиган: 0 сўм';
+
+  @override
+  String get payoutExceedsBalance => 'Сумма устага тегишли миқдордан катта';
+
+  @override
+  String get earningsEarned => 'Ишлаб топилди';
+
+  @override
+  String get earningsPaid => 'Тўланди';
+
+  @override
+  String get earningsHistory => 'Тарих';
+
+  @override
+  String get earningsEmpty => 'Ҳозирча ҳисобланганлар ёъқ';
+
+  @override
+  String get actionAssign => 'Ишни тайёрлаш';
+
+  @override
+  String get actionScanQr => 'QR сканерлаш';
+
+  @override
+  String get actionAccept => 'Ишни қабул қилиш';
+
+  @override
+  String get actionPayout => 'Нақд тўлаш';
+
+  @override
+  String get actionCall => 'Қўнғироқ';
+
+  @override
+  String get actionRoute => 'Ёъналиш';
+
+  @override
+  String get statusAccepted => 'Қабул қилинди';
+
+  @override
+  String get statusPartiallyAccepted => 'Қисман қабул қилинди';
+
+  @override
+  String get statusReworkRequired => 'Қайта ишлаш керак';
+
+  @override
+  String get statusCompleted => 'Якунланди';
+
+  @override
+  String get statusCancelled => 'Бекор қилинди';
+
+  @override
+  String get teamSearch => 'Исм ёки телефон';
+
+  @override
+  String get filterAll => 'Ҳаммаси';
+
+  @override
+  String get filterActive => 'Фаоллар';
+
+  @override
+  String get filterDisabled => 'Ўчирилганлар';
+
+  @override
+  String get lastSeenLabel => 'Охирги марта онлайн';
+
+  @override
+  String get createdLabel => 'Яратилган';
+
+  @override
+  String get neverSeen => 'Ҳали кирмаган';
+
+  @override
+  String get changeRole => 'Ролни ўзгартириш';
+
+  @override
+  String get changeRoleHint =>
+      'Рол ўзгаргач, фойдаланувчи барча қурилмалардан чиқади ва янги ҳуқуқлар билан қайта киради.';
+
+  @override
+  String get roleSuperAdminHint => 'Ҳаммаси, роллар ва ҳуқуқлар ҳам';
+
+  @override
+  String get roleAdminHint => 'Усталар, омбор, тўловлар, каталоғ';
+
+  @override
+  String get roleManagerHint => 'Фақат ўз усталари';
+
+  @override
+  String get permissionsTitle => 'Кириш ҳуқуқлари';
+
+  @override
+  String get permissionsAllSuper =>
+      'Бош администраторда барча ҳуқуқлар бор. Уларни чеклаб бўлмайди.';
+
+  @override
+  String get permissionsSaved => 'Ҳуқуқлар сақланди';
+
+  @override
+  String get permissionsDefault => 'рол учун стандарт';
+
+  @override
+  String permissionsCount(int on, int total) {
+    return '$on / $total';
+  }
+
+  @override
+  String get deactivateUser => 'Фойдаланувчини ўчириш';
+
+  @override
+  String deactivateConfirm(String name) {
+    return '$name ўчирилсинми? Кириш барча қурилмаларда дарҳол тақиқланади. Бутун тарих сақланади.';
+  }
+
+  @override
+  String get restoreUser => 'Тиклаш';
+
+  @override
+  String get userDeactivated => 'Фойдаланувчи ўчирилди';
+
+  @override
+  String get userRestored => 'Фойдаланувчи тикланди';
+
+  @override
+  String get resetPassword => 'Янги парол бериш';
+
+  @override
+  String get resetPasswordConfirm =>
+      'Ески парол ишламай қолади, фойдаланувчи барча қурилмалардан чиқади.';
+
+  @override
+  String get tempPasswordTitle => 'Вақтинчалик парол';
+
+  @override
+  String get tempPasswordHint =>
+      'Паролни ходимга шахсан беринг. У фақат бир марта кўрсатилади.';
+
+  @override
+  String get copy => 'Нусхалаш';
+
+  @override
+  String get copied => 'Нусха олинди';
+
+  @override
+  String get editDetails => 'Маълумотларни ўзгартириш';
+
+  @override
+  String get activeImmediately => 'Дарҳол фаол';
+
+  @override
+  String get workersOfManager => 'Менежер усталари';
+
+  @override
+  String get changeManager => 'Менежерни алмаштириш';
+
+  @override
+  String get managerChanged => 'Менежер ўзгартирилди';
+
+  @override
+  String get archiveWorker => 'Устани архивлаш';
+
+  @override
+  String get archiveConfirm =>
+      'Уста кира олмайди ва янги иш олмайди. Тарих, тўловлар ва гаров сақланади.';
+
+  @override
+  String get workerArchived => 'Уста архивда';
+
+  @override
+  String get restoreWorker => 'Устани тиклаш';
+
+  @override
+  String get workerRestored => 'Уста тикланди';
+
+  @override
+  String get workersViaTelegram =>
+      'Усталар Телеграм-бот орқали ўзлари рўйхатдан ўтади — бу ерда фақат ходимлар қўшилади.';
+
+  @override
+  String get usersEmpty => 'Ҳеч ким топилмади';
+
+  @override
+  String get youLabel => 'сиз';
+
+  @override
+  String get permGroupUsers => 'Фойдаланувчилар';
+
+  @override
+  String get permGroupWorkers => 'Усталар';
+
+  @override
+  String get permGroupCollateral => 'Гаров';
+
+  @override
+  String get permGroupAssignments => 'Топшириқлар';
+
+  @override
+  String get permGroupFinance => 'Тўловлар ва пул';
+
+  @override
+  String get permGroupCatalog => 'Каталоғ';
+
+  @override
+  String get permGroupInventory => 'Омбор';
+
+  @override
+  String get permGroupMap => 'Харита';
+
+  @override
+  String get permGroupSettings => 'Созламалар';
+
+  @override
+  String get permGroupAudit => 'Амаллар журнали';
+
+  @override
+  String get permUserViewAll => 'Ходимларни кўриш';
+
+  @override
+  String get permUserCreate => 'Ходим қўшиш';
+
+  @override
+  String get permUserUpdate => 'Ходим маълумотларини ўзгартириш';
+
+  @override
+  String get permUserDeactivate => 'Ходимларни ўчириш';
+
+  @override
+  String get permRoleAssign => 'Ролларни ўзгартириш';
+
+  @override
+  String get permPermissionManage => 'Ҳуқуқларни созлаш';
+
+  @override
+  String get permWorkerViewAll => 'Барча усталарни кўриш';
+
+  @override
+  String get permWorkerViewAssigned => 'Ўз усталарини кўриш';
+
+  @override
+  String get permWorkerApprove => 'Аризаларни тасдиқлаш';
+
+  @override
+  String get permWorkerUpdate => 'Уста картасини ўзгартириш';
+
+  @override
+  String get permWorkerAssignManager => 'Менежер тайинлаш';
+
+  @override
+  String get permCollateralView => 'Гаровни кўриш';
+
+  @override
+  String get permCollateralManage => 'Гаровни қабул қилиш ва қайтариш';
+
+  @override
+  String get permAssignmentViewAll => 'Барча топшириқларни кўриш';
+
+  @override
+  String get permAssignmentViewAssigned => 'Ўз усталари топшириқлари';
+
+  @override
+  String get permAssignmentCreate => 'Иш бериш';
+
+  @override
+  String get permAssignmentAccept => 'Ишни қабул қилиш';
+
+  @override
+  String get permFinanceViewAll => 'Барча ҳисоб-китоблар';
+
+  @override
+  String get permFinanceViewAssigned => 'Ўз усталари ҳисоб-китоби';
+
+  @override
+  String get permCashPayout => 'Нақд тўлаш';
+
+  @override
+  String get permProfitView => 'Фойдани кўриш';
+
+  @override
+  String get permCatalogView => 'Каталогни кўриш';
+
+  @override
+  String get permCatalogManage => 'Каталогни ўзгартириш';
+
+  @override
+  String get permInventoryView => 'Омборни кўриш';
+
+  @override
+  String get permInventoryManage => 'Кирим ва тўпламлар';
+
+  @override
+  String get permMapViewAll => 'Харита: ҳаммаси';
+
+  @override
+  String get permMapViewAssigned => 'Харита: ўз усталари';
+
+  @override
+  String get permLiveLocationViewAll => 'Геолокатсия: ҳаммаси';
+
+  @override
+  String get permLiveLocationViewAssigned => 'Геолокатсия: ўз усталари';
+
+  @override
+  String get permPayRateManage => '9 м нархини ўзгартириш';
+
+  @override
+  String get permSettingsManage => 'Компания созламалари';
+
+  @override
+  String get permAuditView => 'Амаллар журналини кўриш';
+
+  @override
+  String get auditUserCreate => 'Яратилди';
+
+  @override
+  String get auditUserUpdate => 'Маълумотлар ўзгартирилди';
+
+  @override
+  String get auditUserDeactivate => 'Ўчирилди';
+
+  @override
+  String get auditUserReactivate => 'Тикланди';
+
+  @override
+  String get auditUserRoleChange => 'Рол ўзгартирилди';
+
+  @override
+  String get auditUserPermissionChange => 'Ҳуқуқлар ўзгартирилди';
+
+  @override
+  String get auditUserPasswordReset => 'Янги парол берилди';
+
+  @override
+  String get settingsTitle => 'Созламалар';
+
+  @override
+  String get changePassword => 'Паролни ўзгартириш';
+
+  @override
+  String get currentPassword => 'Жорий парол';
+
+  @override
+  String get newPassword => 'Янги парол';
+
+  @override
+  String get repeatPassword => 'Янги паролни такрорланғ';
+
+  @override
+  String get passwordsDontMatch => 'Пароллар мос эмас';
+
+  @override
+  String get passwordTooShort => 'Камида 8 та белги';
+
+  @override
+  String get wrongCurrentPassword => 'Жорий парол нотўғри';
+
+  @override
+  String get passwordChanged =>
+      'Парол ўзгартирилди. Бошқа қурилмалар ҳисобдан чиқди.';
+
+  @override
+  String get setPassword => 'Парол ўрнатиш';
+
+  @override
+  String get setPasswordHint =>
+      'Фойдаланувчи барча қурилмалардан чиқади. Паролни шахсан беринг.';
+
+  @override
+  String get passwordSet => 'Парол ўрнатилди';
+
+  @override
+  String get showOnMap => 'Харитада кўрсатиш';
+
+  @override
+  String get showOnMapHint => 'Харитага рухсати борлар кўради';
+
+  @override
+  String get hiddenOnMapHint => 'Яширилган: жойлашувни фақат сиз кўрасиз';
+
+  @override
+  String locationUpdatedHours(int hours, int minutes) {
+    return 'Жойлашув $hours соат $minutes дақиқа олдин янгиланган';
+  }
+
+  @override
+  String locationUpdatedOn(String date) {
+    return 'Жойлашув: $date';
+  }
+
+  @override
+  String get permPasswordSet => 'Ходимларга парол ўрнатиш';
+
+  @override
+  String get passwordForLogin => 'Кириш пароли';
+
+  @override
+  String get passwordForLoginHint => 'Ўзингиз ўйлаб топинг ва шахсан беринғ';
+
+  @override
+  String get userCreated => 'Фойдаланувчи яратилди. Паролни шахсан беринг.';
+
+  @override
+  String get telegramLoginHint => 'Ҳамма учун — паролсиз, Телеграм орқали';
+
+  @override
+  String get staffSignIn => 'Ходимлар учун кириш';
+
+  @override
+  String get workWaitingTitle => 'Сизни янги иш кутмоқда';
+
+  @override
+  String get workKitReadyTitle => 'Тўпламингиз қабул қилишга тайёр';
+
+  @override
+  String get workKitReadyHint =>
+      'Ходим олиб келган тўпламдаги QR-кодни сканерланғ';
+
+  @override
+  String get workWaitingHint =>
+      'Ходим тўпламни олиб келади. У QR-кодни сканерлаганда, шу ерда қабул қилиш тугмаси чиқади.';
+
+  @override
+  String get workScanQr => 'QR-ни сканерлаш';
+
+  @override
+  String get receiveTitle => 'Ишни қабул қилиш';
+
+  @override
+  String get receiveCheckHint =>
+      'Тасдиқлашдан олдин иш ва материалларни текширинг.';
+
+  @override
+  String get receiveConfirm => 'Қабул қилишни тасдиқлаш';
+
+  @override
+  String get receiveProblem => 'Муаммо бор';
+
+  @override
+  String receiveKits(int count) {
+    return 'Тўпламлар: $count';
+  }
+
+  @override
+  String get receiveDone => 'Иш қабул қилинди!';
+
+  @override
+  String get receiveDoneHint => 'Материаллар энди сизда. Ишингизга омад!';
+
+  @override
+  String get receiveAlready => 'Сиз бу ишни аллақачон қабул қилгансиз';
+
+  @override
+  String get receiveForeign => 'Бу тўплам бошқа устага мўлжалланган.';
+
+  @override
+  String get receiveNotStarted => 'Аввал ходим бу QR-ни сканерлаши керак';
+
+  @override
+  String get receiveExpired =>
+      'Топшириш вақти тугади. Ходимдан QR-ни қайта сканерлашни сўранг.';
+
+  @override
+  String get receiveScanHint => 'Камерани тўпламдаги QR-кодга қаратинғ';
+
+  @override
+  String get receiveGoHome => 'Бош саҳифага';
+
+  @override
+  String get problemTitle => 'Нима нотўғри?';
+
+  @override
+  String get problemShortage => 'Материал етарли эмас';
+
+  @override
+  String get problemWrongColor => 'Ранг нотўғри';
+
+  @override
+  String get problemWrongModel => 'Модел нотўғри';
+
+  @override
+  String get problemWrongMeters => 'Метраж нотўғри';
+
+  @override
+  String get problemDamaged => 'Шикастланган';
+
+  @override
+  String get problemOther => 'Бошқа';
+
+  @override
+  String get problemComment => 'Изоҳ (ихтиёрий)';
+
+  @override
+  String get problemSend => 'Юбориш';
+
+  @override
+  String get problemSent => 'Ходим хабарингизни олди. Иш ҳали топширилмаган.';
+
+  @override
+  String get handoffStart => 'Топширишни бошлаш';
+
+  @override
+  String get handoffStartTitle => 'Тўпламни устага топширасизми?';
+
+  @override
+  String get handoffStartBody =>
+      'Шундан сўнг уста ўз иловасида ушбу QR-ни сканерлайди ва қабул қилишни тасдиқлайди. Материаллар фақат унинг тасдиғидан кейин унга ўтади.';
+
+  @override
+  String get handoffWaiting => 'Уста тасдиғи кутилмоқда';
+
+  @override
+  String get handoffWaitingHint =>
+      'Устадан иловани очиб, ушбу QR-ни сканерлашини сўранғ';
+
+  @override
+  String get handoffWorkerScanned =>
+      'Уста QR-ни сканерлади ва тўпламни текширмоқда';
+
+  @override
+  String handoffReceived(String name) {
+    return '$name тўпламни олди';
+  }
+
+  @override
+  String get handoffProblemTitle => 'Уста муаммо ҳақида хабар берди';
+
+  @override
+  String get handoffRestart => 'Топширишни қайтадан бошлаш';
+
+  @override
+  String get handoffExpiredLabel => 'Топшириш вақти тугади';
+
+  @override
+  String timelineStarted(String name) {
+    return 'Топшириш бошланди · $name';
+  }
+
+  @override
+  String get timelineScanned => 'Уста QR-ни сканерлади';
+
+  @override
+  String get timelineConfirmed => 'Уста қабул қилишни тасдиқлади';
+
+  @override
+  String get timelineProblem => 'Уста муаммо ҳақида хабар берди';
+
+  @override
+  String get handoffTimelineTitle => 'Топшириш';
+
+  @override
+  String get materialsAtWorker => 'Материаллар устада';
+
+  @override
+  String get materialsPrepared => 'Тайёрланган материаллар';
+
+  @override
+  String get workRemaining => 'Қолди';
+
+  @override
+  String get addWorker => 'Қўшиш';
+
+  @override
+  String get addWorkerTitle => 'Уста қўшиш';
+
+  @override
+  String get addWorkerHint =>
+      'Биз ҳавола берамиз. Уста уни Телеграмда очади — ва дарҳол жамоада, анкетасиз ва тасдиқсиз.';
+
+  @override
+  String get addWorkerGetLink => 'Ҳавола олиш';
+
+  @override
+  String get addWorkerFullName => 'Фамилия ва исм';
+
+  @override
+  String get addWorkerManager => 'Менежер';
+
+  @override
+  String get addWorkerNoManager => 'Менежерсиз';
+
+  @override
+  String get addWorkerLinkReady =>
+      'QR-ни устага кўрсатинг — у телефон камерасини қаратади. Ёки ҳаволани юборинг. Ҳавола 7 кун амал қилади ва бир марта очилади.';
+
+  @override
+  String get addWorkerSendTelegram => 'Телеграмда юбориш';
+
+  @override
+  String get addWorkerCopy => 'Ҳаволани нусхалаш';
+
+  @override
+  String get addWorkerCopied => 'Ҳавола нусхаланди';
+
+  @override
+  String get invitesPending => 'Таклиф қилинган — ҳаволани ҳали очмаган';
+
+  @override
+  String get inviteCancel => 'Бекор қилиш';
+
+  @override
+  String get deleteWorker => 'Устани ўчириш';
+
+  @override
+  String deleteWorkerConfirm(String name) {
+    return '$name барча рўйхатлардан, харитадан ва ҳисоботлардан ёъқолади ва бошқа кира олмайди. Олдинги ишлар ва тўловлар тарихда «Ўчирилган уста» сифатида қолади. Буни қайтариб бўлмайди.';
+  }
+
+  @override
+  String get deleteWorkerForever => 'Бутунлай ўчириш';
+
+  @override
+  String get deleteWorkerBlocked =>
+      'Ўчириб бўлмайди: устада иш, пул ёки қабул қилинган гаров бор — бу ёзувлар ҳисобот ва тўловлар учун керак. Уни архивлаш мумкин: у кира олмайди, тарих сақланади.';
+
+  @override
+  String get deleteWorkerDone => 'Уста ўчирилди';
+
+  @override
+  String get permWorkerDelete => 'Усталарни ўчириш';
+
+  @override
+  String get chooseWork => 'Иш танлаш';
+
+  @override
+  String get orderWork => 'Бу ишга буюртма бериш';
+
+  @override
+  String get orderColor => 'Ранғ';
+
+  @override
+  String get orderVolume => 'Неча метр';
+
+  @override
+  String get orderNote => 'Истак (ихтиёрий)';
+
+  @override
+  String get orderSend => 'Аризани юбориш';
+
+  @override
+  String get orderSent => 'Ариза юборилди! Менежер ишни тайёрлайди.';
+
+  @override
+  String get orderAlreadyPending =>
+      'Сизда аллақачон ариза бор — жавобни кутинг ёки бош саҳифада бекор қилинг.';
+
+  @override
+  String get myRequestPending => 'Ариза юборилди';
+
+  @override
+  String get myRequestPendingHint => 'Менежер жавобини кутяпмиз';
+
+  @override
+  String get myRequestRejected => 'Ариза қабул қилинмади';
+
+  @override
+  String get myRequestCancel => 'Аризани бекор қилиш';
+
+  @override
+  String get jobRequestsTitle => 'Ишга аризалар';
+
+  @override
+  String get jobRequestsEmpty => 'Янги аризалар ёъқ';
+
+  @override
+  String jobRequestsCount(int count) {
+    return 'Ишга аризалар: $count';
+  }
+
+  @override
+  String get jobRequestRejectReason => 'Сабаб (уста кўради)';
+
+  @override
+  String updateReady(String version) {
+    return 'Янги версия $version тайёр';
+  }
+
+  @override
+  String get updateInstall => 'Ўрнатиш';
+
+  @override
+  String get updateAllowInstall =>
+      'Diamoraa учун ўрнатишга рухсат беринг ва яна босинғ';
+
+  @override
+  String get ageNow => 'ҳозир';
+
+  @override
+  String ageMinutes(int minutes) {
+    return '$minutes дақиқа олдин';
+  }
+
+  @override
+  String ageHours(int hours, int minutes) {
+    return '$hours соат $minutes дақиқа олдин';
+  }
+
+  @override
+  String get qrRecognized => 'QR аниқланди';
+
+  @override
+  String get handoffStartedToast =>
+      'Топшириш бошланди — уста шу QR-ни сканерласин';
+
+  @override
+  String get qrPrint => 'QR-ни чоп этиш';
+
+  @override
+  String get noticesTitle => 'Билдиришномалар';
+
+  @override
+  String get noticesReadAll => 'Ҳаммасини ўқилган деб белгилаш';
+
+  @override
+  String get noticesEmpty => 'Ҳозирча билдиришномалар ёъқ';
+
+  @override
+  String get reportsTitle => 'Ҳисоботлар';
+
+  @override
+  String get reportDay => 'Кун';
+
+  @override
+  String get reportWeek => 'Ҳафта';
+
+  @override
+  String get reportMonth => 'Ой';
+
+  @override
+  String get reportIssued => 'Берилди';
+
+  @override
+  String get reportAccepted => 'Қабул қилинди';
+
+  @override
+  String get reportOverdue => 'Муддати ўтган';
+
+  @override
+  String get reportDefective => 'Брак';
+
+  @override
+  String get reportByWorker => 'Усталар бўйича';
+
+  @override
+  String get reportEmpty => 'Бу даврда ҳеч нарса бўлмаган';
+
+  @override
+  String get reportLowStock => 'Омборда тугаяпти';
+
+  @override
+  String get reportExcelHint =>
+      'Excel учун юклаб олиш — веб-панелда: Ҳисоботлар → «Excel учун юклаб олиш».';
+
+  @override
+  String get myMonthsTitle => 'Ойлар бўйича даромадим';
+
+  @override
+  String get m1 => 'Январ';
+
+  @override
+  String get m2 => 'Феврал';
+
+  @override
+  String get m3 => 'Март';
+
+  @override
+  String get m4 => 'Апрел';
+
+  @override
+  String get m5 => 'Май';
+
+  @override
+  String get m6 => 'Июн';
+
+  @override
+  String get m7 => 'Июл';
+
+  @override
+  String get m8 => 'Август';
+
+  @override
+  String get m9 => 'Сентябр';
+
+  @override
+  String get m10 => 'Октябр';
+
+  @override
+  String get m11 => 'Ноябр';
+
+  @override
+  String get m12 => 'Декабр';
+
+  @override
+  String get qaAssign => 'Иш';
+
+  @override
+  String get qaScan => 'QR';
+
+  @override
+  String get qaMap => 'Харита';
+
+  @override
+  String get qaStock => 'Омбор';
+
+  @override
+  String get qaPay => 'Тўлов';
+
+  @override
+  String get assignCancel => 'Ишни бекор қилиш';
+
+  @override
+  String get assignCancelReason => 'Сабаб';
+
+  @override
+  String get assignCancelReturned => 'Материаллар омборга қайтди';
+
+  @override
+  String get assignCancelled => 'Иш бекор қилинди';
+
+  @override
+  String get assignChangeDue => 'Муддатни ўзгартириш';
+
+  @override
+  String get userDelete => 'Ходимни ўчириш';
+
+  @override
+  String userDeleteConfirm(String name) {
+    return '$name бутунлай ўчирилади.';
+  }
+
+  @override
+  String get userDeleteBlocked =>
+      'Ўчириб бўлмайди: ходимда тарих бор (ишлар, тўловлар, омбор). Уни ўчириб қўйиш мумкин.';
+
+  @override
+  String get userDeleted => 'Ходим ўчирилди';
+
+  @override
+  String get qrNotYours =>
+      'Бу уста бошқа менежерга бириктирилган. Администратордан уни сизга бириктиришни сўранг.';
+
+  @override
+  String get qrRevoked =>
+      'Бу QR энди ишламайди: иш тугаган ёки бекор қилинган, ёки уста ўчирилган.';
+
+  @override
+  String get errOpenWork =>
+      'Аввал унинг ишларини тугатинг ёки бекор қилинг ва гаровни қайтаринг — кейин ўчириш мумкин.';
+
+  @override
+  String get errInUse =>
+      'Материал ҳозир ишлатилмоқда: устада ёки тўпламда. Аввал уни у ердан олиб ташланг.';
+
+  @override
+  String errInUseKits(String kits) {
+    return 'Материал тўпламларда бор: $kits. Аввал шу тўпламларни ўчиринг ёки ўзгартиринг.';
+  }
+
+  @override
+  String get deleteAction => 'Ўчириш';
+
+  @override
+  String get deleteDone => 'Ўчирилди';
+
+  @override
+  String catalogDeleteConfirm(String name) {
+    return '«$name» ҳаммадан каталогдан ёъқолади. Берилган ишлар тарихда қолади. Буни қайтариб бўлмайди.';
+  }
+
+  @override
+  String materialDeleteConfirm(String name, String left) {
+    return '«$name» омбордан ёъқолади. Қолдиқ ($left) ҳисобдан чиқарилади. Буни қайтариб бўлмайди.';
+  }
+
+  @override
+  String kitDeleteConfirm(String name) {
+    return '«$name» тўплами омбордан ёъқолади. Берилган ишлар тарихда қолади. Буни қайтариб бўлмайди.';
+  }
+
+  @override
+  String get permCatalogDelete => 'Каталогдан ўчириш';
+
+  @override
+  String get permInventoryDelete => 'Материал ва тўпламларни ўчириш';
+
+  @override
+  String get assignManagerTitle => 'Менежер бириктириш';
+
+  @override
+  String get assignManagerSave => 'Бириктириш';
+
+  @override
+  String assignManagerDone(int count) {
+    return 'Тайёр: $count уста';
+  }
+
+  @override
+  String get assignWorkersToManager => 'Усталарни бириктириш';
+
+  @override
+  String get auditClear => 'Журнални тозалаш';
+
+  @override
+  String get auditClearConfirm =>
+      'Журнал бошидан бошланади — биринчи қаторда сизнинг исмингиз билан «Журнал тозаланди» бўлади. Эски ёзувлар бу ерда кўринмайди, лекин базадан ўчирилмайди.';
+
+  @override
+  String get collateralsTitle => 'Гаровлар';
+
+  @override
+  String get collateralsWithUs => 'Ҳозир бизда';
+
+  @override
+  String collateralsItems(int count) {
+    return '$count та буюм';
+  }
+
+  @override
+  String get collateralsTabHeld => 'Бизда';
+
+  @override
+  String get collateralsTabPending => 'Олинмаган';
+
+  @override
+  String get collateralsTabReturned => 'Қайтарилган';
+
+  @override
+  String get collateralsEmpty => 'Бу ерда бўш';
+
+  @override
+  String get collateralReturnTitle => 'Гаровни қайтариш';
+
+  @override
+  String get collateralReturnNote => 'Қандай қайтарилди';
+
+  @override
+  String get collateralReturnConfirm => 'Уста гаровни қайтариб олди';
+
+  @override
+  String get collateralReturnedToast => 'Гаров қайтарилди';
+
+  @override
+  String get mapFilterAll => 'Ҳаммаси';
+
+  @override
+  String get mapFilterToDeliver => 'Етказиш керак';
+
+  @override
+  String get mapFilterToPickup => 'Олиб кетишга тайёр';
+
+  @override
+  String get mapFilterOverdue => 'Муддати ўтган';
+
+  @override
+  String get mapFilterAllManagers => 'Барча менежерлар';
+
+  @override
+  String get mapAtHome =>
+      'Уйда — рўйхатдан ўтгандаги манзил (телефон ҳозир жойлашувни юбормаяпти)';
+
+  @override
+  String get ratingTitle => 'Усталар рейтинги';
+
+  @override
+  String get ratingThreeMonths => '3 ой';
+
+  @override
+  String get ratingHalfYear => 'Ярим йил';
+
+  @override
+  String ratingLine(String meters, String defect, int late, int total) {
+    return '$meters м · брак $defect% · кечикди $late/$total';
+  }
+
+  @override
+  String get ratingHowScored =>
+      '100 баллдан: 40% — ҳажм (ойига ≈54 м = максимум), 35% — браксиз, 25% — ўз вақтида.';
+
+  @override
+  String get profitTitle => 'Фойда';
+
+  @override
+  String get profitAdd => 'Сотув ёки харажат';
+
+  @override
+  String get profitSale => 'Сотув';
+
+  @override
+  String get profitExpense => 'Харажат';
+
+  @override
+  String get profitSales => 'Сотувлар';
+
+  @override
+  String get profitLabor => 'Усталарга';
+
+  @override
+  String get profitMaterials => 'Материаллар';
+
+  @override
+  String get profitExpenses => 'Харажатлар';
+
+  @override
+  String get profitCustomer => 'Харидор (ихтиёрий)';
+
+  @override
+  String get profitNoPriceHint =>
+      '* Айрим материалларнинг харид нархи кўрсатилмаган — улар ҳисобланмади. Нархни веб-панелдаги омборда киритинг.';
+
+  @override
+  String get profitDeleteConfirm =>
+      'Бу ёзув ўчирилсинми? Ойлик фойда қайта ҳисобланади.';
+
+  @override
+  String get expenseFuel => 'Бензин / етказиш';
+
+  @override
+  String get expensePackaging => 'Қадоқлаш';
+
+  @override
+  String get expenseOther => 'Бошқа';
+
+  @override
+  String get stockValueTitle => 'Омбор қиймати (харид нархида)';
+
+  @override
+  String stockValueSplit(String shelf, String homes) {
+    return 'омборда $shelf · усталарда $homes';
+  }
+
+  @override
+  String stockValueNoPrice(String names) {
+    return 'Нархсиз: $names';
+  }
+
+  @override
+  String get systemTitle => 'Тизим ҳолати';
+
+  @override
+  String get systemServer => 'Сервер';
+
+  @override
+  String get systemDatabase => 'Маълумотлар базаси';
+
+  @override
+  String systemUptime(int hours) {
+    return '$hours соат ишлаяпти';
+  }
+
+  @override
+  String get systemOk => 'жойида';
+
+  @override
+  String get systemDown => 'жавоб бермаяпти';
+
+  @override
+  String get systemBackups => 'Захира нусхалар';
+
+  @override
+  String get systemBackupsHidden =>
+      'Сервер захира белгилари папкасини кўрмаяпти.';
+
+  @override
+  String get systemBackupFailed => 'хатў';
+
+  @override
+  String get systemBackupLate => 'анча бўлмади';
+
+  @override
+  String get backupDaily => 'База (ҳар куни)';
+
+  @override
+  String get backupWeekly => 'Базанинг тўлиқ нусхаси (ҳафтада бир)';
+
+  @override
+  String get backupFiles => 'Расмлар ва файллар';
+
+  @override
+  String get backupConfig => 'Созламалар';
+
+  @override
+  String get backupVerify => 'Тиклашни текшириш';
+
+  @override
+  String get backupRestore => 'Тиклаш';
+
+  @override
+  String get editName => 'Исмни ўзгартириш';
+
+  @override
+  String get firstName => 'Исм';
+
+  @override
+  String get lastName => 'Фамилия';
+
+  @override
+  String get nameSaved => 'Исм сақланди';
+
+  @override
+  String get nameTooShort => 'Исм камида 2 ҳарф бўлсин';
+
+  @override
+  String get chat => 'Чат';
+
+  @override
+  String get chatCompany => 'Умумий чат';
+
+  @override
+  String get chatNew => 'Янги чат';
+
+  @override
+  String get chatNewGroup => 'Янги гуруҳ';
+
+  @override
+  String get chatGroupName => 'Гуруҳ номи';
+
+  @override
+  String chatMembers(int count) {
+    return 'Аъзолар: $count';
+  }
+
+  @override
+  String get chatSearchPeople => 'Исм бўйича қидириш';
+
+  @override
+  String get chatEmpty => 'Ҳозирча хабар ёъқ — биринчи бўлиб ёзинғ';
+
+  @override
+  String get chatNoChats => 'Бу ерда ёзишмаларингиз бўлади';
+
+  @override
+  String get chatTypeMessage => 'Хабар';
+
+  @override
+  String get chatPhoto => 'Расм';
+
+  @override
+  String get chatCamera => 'Камера';
+
+  @override
+  String get chatVideo => 'Видеў';
+
+  @override
+  String get chatRecordVideo => 'Видео олиш';
+
+  @override
+  String get chatFile => 'Файл';
+
+  @override
+  String get chatVoice => 'Овозли хабар';
+
+  @override
+  String get chatAudio => 'Аудиў';
+
+  @override
+  String get chatHoldToRecord => 'Ёзиш учун микрофон тугмасини босиб туринғ';
+
+  @override
+  String get chatRecording => 'Ёзилмоқда… қўйиб юборинг — юборилади';
+
+  @override
+  String get chatMessageDeleted => 'Хабар ўчирилди';
+
+  @override
+  String get chatDeleteMessage => 'Хабарни ўчириш';
+
+  @override
+  String get chatDeleteMessageBody => 'Хабар барча аъзоларда ўчади.';
+
+  @override
+  String get chatCopy => 'Нусха олиш';
+
+  @override
+  String get chatCopied => 'Нусха олинди';
+
+  @override
+  String get chatFileTooLarge => 'Файл 50 MB дан катта — юбориб бўлмайди';
+
+  @override
+  String chatSendingProgress(int percent) {
+    return 'Юборилмоқда… $percent%';
+  }
+
+  @override
+  String get chatSendFailed => 'Юборилмади — қайта уриниш учун босинғ';
+
+  @override
+  String get chatRead => 'Ўқилди';
+
+  @override
+  String get chatLeaveGroup => 'Гуруҳдан чиқиш';
+
+  @override
+  String get chatLeaveGroupBody => 'Сиз бу гуруҳ хабарларини бошқа кўрмайсиз.';
+
+  @override
+  String get chatAddMembers => 'Аъзо қўшиш';
+
+  @override
+  String get chatRemoveMember => 'Гуруҳдан чиқариш';
+
+  @override
+  String get chatRename => 'Номини ўзгартириш';
+
+  @override
+  String get chatOwner => 'яратувчи';
+
+  @override
+  String get chatMicPermission =>
+      'Овозли хабар ёзиш учун микрофонга рухсат беринғ';
+
+  @override
+  String get chatYou => 'Сиз';
+
+  @override
+  String get chatDownloading => 'Юкланмоқда…';
+
+  @override
+  String get chatFileFailed => 'Файлни юклаб бўлмади';
+
+  @override
+  String get chatCreate => 'Яратиш';
+
+  @override
+  String get chatGroupInfo => 'Гуруҳ ҳақида';
+
+  @override
+  String get chatToday => 'Бугун';
+
+  @override
+  String get chatYesterday => 'Кеча';
+
+  @override
+  String get chatCompanyHint => 'Барча ходимлар ва усталар';
+
+  @override
+  String get chatAttach => 'Бириктириш';
+
+  @override
+  String get chatSend => 'Юбориш';
+
+  @override
+  String get chatReply => 'Жавоб бериш';
+
+  @override
+  String get chatEdit => 'Ўзгартириш';
+
+  @override
+  String get chatEdited => 'ўзгартирилди';
+
+  @override
+  String get chatEditing => 'Таҳрирлаш';
+
+  @override
+  String get chatForward => 'Узатиш';
+
+  @override
+  String get chatForwardTo => 'Қаерга узатиш…';
+
+  @override
+  String get chatForwarded => 'Узатилди';
+
+  @override
+  String chatForwardedFrom(String name) {
+    return '$name дан узатилган';
+  }
+
+  @override
+  String get chatPin => 'Қадаш';
+
+  @override
+  String get chatUnpin => 'Қадашни олиш';
+
+  @override
+  String get chatPinned => 'Қадалган хабар';
+
+  @override
+  String get chatPinChat => 'Чатни қадаш';
+
+  @override
+  String get chatUnpinChat => 'Чатни қадашдан олиш';
+
+  @override
+  String get chatMute => 'Билдиришномасиз';
+
+  @override
+  String get chatUnmute => 'Билдиришномаларни ёқиш';
+
+  @override
+  String get chatSearch => 'Қидирув';
+
+  @override
+  String get chatSearchHint => 'Чатлар, одамлар, хабарлар';
+
+  @override
+  String get chatSectionChats => 'Чатлар';
+
+  @override
+  String get chatSectionPeople => 'Одамлар';
+
+  @override
+  String get chatSectionMessages => 'Хабарлар';
+
+  @override
+  String get chatNothingFound => 'Ҳеч нарса топилмади';
+
+  @override
+  String get chatTyping => 'ёзмоқда…';
+
+  @override
+  String chatTypingName(String name) {
+    return '$name ёзмоқда…';
+  }
+
+  @override
+  String get chatRecordingVoice => 'овозли хабар ёзмоқда…';
+
+  @override
+  String chatRecordingVoiceName(String name) {
+    return '$name овозли хабар ёзмоқда…';
+  }
+
+  @override
+  String chatLastSeen(String time) {
+    return '$time да тармоқда эди';
+  }
+
+  @override
+  String chatReplyTo(String name) {
+    return 'Жавоб: $name';
+  }
+
+  @override
+  String get chatEmoji => 'Еможи';
+
+  @override
+  String get chatNewChannel => 'Янги канал';
+
+  @override
+  String get chatChannelName => 'Канал номи';
+
+  @override
+  String get chatDescription => 'Тавсиф';
+
+  @override
+  String get chatAudience => 'Ким ўқийди';
+
+  @override
+  String get chatAudienceAll => 'Барча ходимлар ва усталар';
+
+  @override
+  String get chatAudienceStaff => 'Фақат ходимлар';
+
+  @override
+  String get chatAudienceWorkers => 'Фақат усталар';
+
+  @override
+  String get chatAudienceCustom => 'Танланган одамлар';
+
+  @override
+  String chatChoosePeople(int count) {
+    return 'Одамларни танлаш ($count)';
+  }
+
+  @override
+  String get chatChannelHint =>
+      'Фақат канал админлари эълон қилади; ўқувчилар эълонларни кўради ва билдиришнома олади.';
+
+  @override
+  String get chatChannelReadOnly =>
+      'Бу канал: фақат унинг админлари эълон қилади';
+
+  @override
+  String get chatGroupReadOnly => 'Фақат гуруҳ админлари ёза олади';
+
+  @override
+  String get chatOnlyAdminsWrite => 'Фақат админлар ёза олади';
+
+  @override
+  String get chatMakeAdmin => 'Админ қилиш';
+
+  @override
+  String get chatRemoveAdmin => 'Админликдан олиш';
+
+  @override
+  String get chatAddAdmin => 'Админ қўшиш';
+
+  @override
+  String get chatAdmin => 'админ';
+
+  @override
+  String get chatChangePhoto => 'Расмни ўзгартириш';
+
+  @override
+  String get chatInfo => 'Чат ҳақида маълумот';
+
+  @override
+  String get chatChannelInfo => 'Канал ҳақида';
+
+  @override
+  String get chatTabMembers => 'Аъзолар';
+
+  @override
+  String get chatTabMedia => 'Медиа';
+
+  @override
+  String get chatTabFiles => 'Файллар';
+
+  @override
+  String get chatTabVoice => 'Овозли';
+
+  @override
+  String get chatTabLinks => 'Ҳаволалар';
+
+  @override
+  String get chatNothingYet => 'Ҳозирча ҳеч нарса ёъқ';
+
+  @override
+  String chatSubscribers(int count) {
+    return 'Канал · обуначилар: $count';
+  }
+
+  @override
+  String get chatLeaveChannel => 'Каналдан чиқиш';
+
+  @override
+  String get chatVideoTooLarge => 'Видео 150 MB дан катта — юбориб бўлмайди';
+
+  @override
+  String get chatMyProfile => 'Менинг профилим';
+
+  @override
+  String get chatBio => 'Ўзим ҳақимда';
+
+  @override
+  String get chatBioHint => 'Исталган тафсилот: лавозим, туман ёки иш вақти.';
+
+  @override
+  String get chatUsername => 'Фойдаланувчи номи';
+
+  @override
+  String get chatUsernameHint =>
+      'Лотин ҳарфлари, рақамлар ва _, камида 5 белги.';
+
+  @override
+  String get chatUsernameTaken => 'Бу ном банд';
+
+  @override
+  String get chatPhone => 'Телефон';
+
+  @override
+  String get chatRole => 'Рол';
+
+  @override
+  String get chatChangeAvatar => 'Профил расмини ўзгартириш';
+
+  @override
+  String get chatRemoveAvatar => 'Расмни ўчириш';
+
+  @override
+  String chatReadAt(String time) {
+    return '$time да ўқилди';
+  }
+
+  @override
+  String get chatNotReadYet => 'ҳали ўқилмаган';
+
+  @override
+  String get chatWhoRead => 'Ким ўқиди';
+
+  @override
+  String get chatNobodyYet => 'Ҳали ҳеч ким';
+
+  @override
+  String get chatClearHistory => 'Тарихни тозалаш';
+
+  @override
+  String get chatClearHistoryBody => 'Хабарлар фақат сизда ўчади.';
+
+  @override
+  String get chatDeleteChat => 'Чатни ўчириш';
+
+  @override
+  String get chatDeleteChatBody => 'Ёзишма фақат сизда ўчади.';
+
+  @override
+  String get chatProtectOn => 'Нусхалашни тақиқлаш';
+
+  @override
+  String get chatProtectOff => 'Нусхалашга рухсат бериш';
+
+  @override
+  String get chatProtected => 'Бу чатда нусхалаш ва узатиш тақиқланган';
+
+  @override
+  String get chatExport => 'Чат тарихини экспорт қилиш';
+
+  @override
+  String get chatSearchInChat => 'Шу чатда қидириш';
+
+  @override
+  String get chatOlderMessage => 'Бу хабар юқорида — юқорига суринғ';
+
+  @override
+  String get chatCancelUpload => 'Юборишни бекор қилиш';
+
+  @override
+  String chatCountPhotos(int count) {
+    return 'Расмлар: $count';
+  }
+
+  @override
+  String chatCountVideos(int count) {
+    return 'Видеолар: $count';
+  }
+
+  @override
+  String chatCountFiles(int count) {
+    return 'Файллар: $count';
+  }
+
+  @override
+  String chatCountVoice(int count) {
+    return 'Овозли: $count';
+  }
+
+  @override
+  String chatCountLinks(int count) {
+    return 'Ҳаволалар: $count';
+  }
+
+  @override
+  String get chatShowProfile => 'Профилни кўрсатиш';
+
+  @override
+  String chatTodayAt(String time) {
+    return 'бугун $time да';
+  }
+
+  @override
+  String chatYesterdayAt(String time) {
+    return 'кеча $time да';
+  }
+
+  @override
+  String chatDateAt(String date, String time) {
+    return '$date $time да';
+  }
+
+  @override
+  String get chatAudioPrev => 'Олдинги';
+
+  @override
+  String get chatAudioNext => 'Кейинги';
+
+  @override
+  String get chatAudioPlay => 'Тинглаш';
+
+  @override
+  String get chatAudioPause => 'Пауза';
+
+  @override
+  String get chatAudioSpeed => 'Тезлик';
+
+  @override
+  String get chatAudioMute => 'Овоз';
+
+  @override
+  String get chatAudioClose => 'Плеерни ёпиш';
+
+  @override
+  String updateDownloading(String version, int percent) {
+    return 'Янги версия $version юкланмоқда — $percent%';
+  }
+
+  @override
+  String get mapZoomIn => 'Яқинлаштириш';
+
+  @override
+  String get mapZoomOut => 'Узоқлаштириш';
+
+  @override
+  String get mapMyPlace => 'Мен қаердаман';
+
+  @override
+  String get mapNoMyPlace => 'Жойлашувингиз аниқланмади. Геолокатсияни ёқинг.';
+
+  @override
+  String get mapNorth => 'Шимолга';
+
+  @override
+  String get mapTraffic => 'Тирбандлик';
+
+  @override
+  String get mapShowAll => 'Ҳаммаси харитада';
+
+  @override
+  String get map3d => 'Ҳажмли кўриниш';
+
+  @override
+  String get updateAppVersion => 'Илова версияси';
+
+  @override
+  String get updateCheck => 'Текшириш';
+
+  @override
+  String get updateLatest => 'Сизда энг сўнгги версия';
+
+  @override
+  String stockLasts(int days) {
+    return '≈ $days кунга етади';
+  }
+
+  @override
+  String get goalTitle => 'Ой мақсади';
+
+  @override
+  String goalPlace(int place, int of) {
+    return '$of тадан $place-ўрин';
+  }
+
+  @override
+  String goalProgress(String done, int goal) {
+    return '$goal м дан $done м';
+  }
+
+  @override
+  String goalLeft(String left, int days) {
+    return 'Яна $left м · ой охиригача $days кун';
+  }
+
+  @override
+  String get goalDone => 'Мақсад бажарилди! Раҳмат 🎉';
+
+  @override
+  String goalNoGoal(String done) {
+    return 'Бу ой қабул қилинди: $done м';
+  }
+
+  @override
+  String get routeTitle => 'Маршрут';
+
+  @override
+  String routeReady(int count, String km) {
+    return 'Маршрут: $count та бекат, ≈ $km км';
+  }
+
+  @override
+  String routeBuild(int count) {
+    return 'Маршрут тузиш ($count)';
+  }
+
+  @override
+  String get routeOpenYandex => 'Яндех Харитада очиш';
+
+  @override
+  String get routeChange => 'Рўйхатни ўзгартириш';
+
+  @override
+  String get routeToPickup => 'ишни олиб кетиш';
+
+  @override
+  String get routeToDeliver => 'материалларни олиб бориш';
+
+  @override
+  String get routeOverdue => 'муддати ўтган';
+
+  @override
+  String get routeNobody => 'Харитада ҳали усталар ёъқ.';
+
+  @override
+  String get routeNoStart =>
+      'Жойлашувингиз аниқланмади — маршрут биринчи нуқтадан бошланади.';
+
+  @override
+  String get offlineSaved =>
+      'Интернет ёъқ — телефонда сақланди, алоқа пайдо бўлганда ўзи юборилади';
+
+  @override
+  String offlineSent(int count) {
+    return 'Интернетсиз қилинганлар юборилди: $count';
+  }
+
+  @override
+  String offlineWaiting(int count) {
+    return 'Юборилмаган: $count';
+  }
+
+  @override
+  String get offlineWillSend => 'интернет бўлганда ўзи юборилади';
+
+  @override
+  String get offlineSendNow => 'Ҳозир юбориш';
+
+  @override
+  String offlineRefused(String what) {
+    return 'Қабул қилинмади: $what';
+  }
+
+  @override
+  String get offlineRefusedHint =>
+      'Сервер бу амални қабул қилмади. Қайта бажаринг ёки менежерга қўнғироқ қилинг.';
+
+  @override
+  String get offlineKindProgress => 'қанча қилинди';
+
+  @override
+  String get offlineKindReady => 'иш тайёр';
+
+  @override
+  String get offlineKindReceive => 'ишни қабул қилиш';
+
+  @override
+  String get offlineScanNoInternet =>
+      'Интернет ёъқ. Сақлаш мумкин — алоқа пайдо бўлганда иш қабул қилинади.';
+
+  @override
+  String get offlineScanSave => 'Сақлаш ва кейинроқ қабул қилиш';
+
+  @override
+  String get assignSuggestTitle =>
+      'Аввал — кимга бериш яхшироқ (бўш, тез, нуқсонсиз, ўз вақтида)';
+
+  @override
+  String get visitTimeTitle => 'Қачон келишлари қулай';
+
+  @override
+  String get visitTimeShort => 'Қулай';
+
+  @override
+  String get visitTimeNotSet => 'Кўрсатилмаган — кун ва соатларни танланғ';
+
+  @override
+  String get visitTimeHint =>
+      'Менежер бу вақтни кўради ва материалларни сизга қулай вақтда олиб келади.';
+
+  @override
+  String get visitFrom => 'дан';
+
+  @override
+  String get visitTo => 'гача';
+
+  @override
+  String get visitTimeOrder => 'Бошланиш вақти тугашдан олдин бўлиши керак';
+
+  @override
+  String get visitTimeNote => 'Изоҳ (ихтиёрий)';
+
+  @override
+  String get visitTimeNoteHint => 'масалан: олдиндан қўнғироқ қилинғ';
+
+  @override
+  String get visitTimeClear => 'Вақтни олиб ташлаш';
+
+  @override
+  String get dayMon => 'Ду';
+
+  @override
+  String get dayTue => 'Се';
+
+  @override
+  String get dayWed => 'Ч';
+
+  @override
+  String get dayThu => 'Па';
+
+  @override
+  String get dayFri => 'Жу';
+
+  @override
+  String get daySat => 'Ш';
+
+  @override
+  String get daySun => 'Я';
+
+  @override
+  String get ordersTitle => 'Мижозлар буюртмалари';
+
+  @override
+  String get ordersEmpty => 'Ҳозирча бўш';
+
+  @override
+  String get ordersNew => 'Янги';
+
+  @override
+  String get ordersConfirmed => 'Тасдиқланган';
+
+  @override
+  String get ordersInWork => 'Ишда';
+
+  @override
+  String get ordersDone => 'Бажарилган';
+
+  @override
+  String get ordersCancelled => 'Бекор қилинган';
+
+  @override
+  String get ordersAll => 'Ҳаммаси';
+
+  @override
+  String get ordersAccept => 'Буюртмани қабул қилиш';
+
+  @override
+  String get ordersStart => 'Ишни бошлаш';
+
+  @override
+  String get ordersFinish => 'Тайёр';
+
+  @override
+  String get ordersCancel => 'Бекор қилиш';
+
+  @override
+  String get ordersCancelAsk => 'Бу буюртмани бекор қиласизми?';
+
+  @override
+  String get ordersFromSite => 'сайтдан';
+
+  @override
+  String get ordersFromBot => 'Телеграмдан';
+
+  @override
+  String get ordersFromPanel => 'ходим ёзган';
+
+  @override
+  String get ordersNoItem => 'Маҳсулот танланмаган';
+
+  @override
+  String ordersTotal(String m) {
+    return 'Жами: $m м';
+  }
+
+  @override
+  String get badgeFirstKit => 'Биринчи комплект';
+
+  @override
+  String get badge100 => '100 метр';
+
+  @override
+  String get badge500 => '500 метр';
+
+  @override
+  String get badgeGoal => 'Ой мақсади';
+
+  @override
+  String get badgeNoDefects => 'Браксиз';
+
+  @override
+  String get badgeOnTime => 'Ҳаммаси ўз вақтида';
+
+  @override
+  String get visitEveryDay => 'Ҳар куни';
+
+  @override
+  String get learnTitle => 'Ўқитиш';
+
+  @override
+  String get learnSubtitle => 'Қисқа видеолар: Diamoraa\'да қандай ишлаш';
+
+  @override
+  String get learnNone => 'Ҳозирча видео ёъқ. Кейинроқ қаранг.';
+
+  @override
+  String learnMinutes(int n) {
+    return '$n дақ';
+  }
+
+  @override
+  String get signInWithPassword => 'Парол билан кириш (ходимлар учун)';
+
+  @override
+  String get waitingForTelegram =>
+      'Телеграмда кутяпмиз… Кейин шу ерга қайтинг.';
+
+  @override
+  String get progressTitle => 'Менинг ютуқларим';
+
+  @override
+  String get progressOpenHint =>
+      'Қанча топширдингиз, сифат, бонус ва даромад калкулятори';
+
+  @override
+  String get progressThisMonth => 'Шу ой';
+
+  @override
+  String get progressAccepted => 'Топширилди';
+
+  @override
+  String get progressQuality => 'Браксиз';
+
+  @override
+  String get progressEarned => 'Ишлаб топилди';
+
+  @override
+  String get progressRecord => '🏆 Янги шахсий рекорд!';
+
+  @override
+  String progressBest(String month, String meters) {
+    return 'Енг яхши ой: $month — $meters м';
+  }
+
+  @override
+  String get progressAllTime => 'Барча вақт';
+
+  @override
+  String progressChecksCount(String count) {
+    return 'Текширилган ишлар: $count';
+  }
+
+  @override
+  String get progressChecks => 'Ишлар текшируви';
+
+  @override
+  String get progressNoChecks =>
+      'Ишингиз қабул қилинганда, бу ерда текширув чиқади: нима қабул қилинди ва нима нотўғри';
+
+  @override
+  String get bonusQuality => 'Сифат учун бонус';
+
+  @override
+  String bonusRule(String percent, String maxDefect, String minMeters) {
+    return 'Ойлик даромадга +$percent%, агар брак $maxDefect% дан ошмаса ва камида $minMeters м топширилса';
+  }
+
+  @override
+  String bonusYes(String amount) {
+    return 'Ҳозир сизга бонус ≈ $amount сўм. Шундай давом этинг!';
+  }
+
+  @override
+  String bonusTooManyDefects(String defect) {
+    return 'Бу ой брак $defect% — меъёрдан кўп. Кейинги ойда албатта бўлади!';
+  }
+
+  @override
+  String bonusNeedMeters(String meters) {
+    return 'Яна $meters м браксиз топширинг — бонус сизники';
+  }
+
+  @override
+  String get bonusPaidOn1st =>
+      'Бонус ҳар ойнинг 1-санасида ўтган ой учун берилади';
+
+  @override
+  String get calcTitle => 'Даромад калкулятори';
+
+  @override
+  String get calcHint => 'Неча метр топширасиз?';
+
+  @override
+  String calcResult(String amount) {
+    return '≈ $amount сўм';
+  }
+
+  @override
+  String calcWithBonus(String amount) {
+    return '+ сифат бонуси ≈ $amount сўм';
+  }
+
+  @override
+  String calcRate(String rate) {
+    return '9 м учун $rate сўм ставка бўйича';
+  }
+
+  @override
+  String get checkAccepted => 'Қабул қилинди';
+
+  @override
+  String get checkDefective => 'Брак';
+
+  @override
+  String get checkRework => 'Қайта ишлашга';
+
+  @override
+  String get workHowToSew => 'Қандай тикиш (видео)';
+
+  @override
+  String get acceptanceDefectPhoto => 'Брак расми';
+
+  @override
+  String get acceptanceWhatsWrong => 'Нима нотўғри? Уста буни кўради';
+
+  @override
+  String get idleTitle => 'Ишсиз турганлар';
+
+  @override
+  String get idleHint =>
+      'Ишсиз усталарингиз: аввал иш сўраганлар, кейин узоқ кутаётганлар.';
+
+  @override
+  String get idleNone => 'Барча усталар иш билан банд 🎉';
+
+  @override
+  String idleDays(String days) {
+    return '$days кундан бери ишсиз';
+  }
+
+  @override
+  String get idleNeverWorked => 'Ҳали иш олмаган';
+
+  @override
+  String idleQuality(String percent) {
+    return 'браксиз $percent%';
+  }
+
+  @override
+  String get idleWantsWork => 'Иш сўрамоқда';
+
+  @override
+  String get idleGiveWork => 'Иш бериш';
+
+  @override
+  String idleBanner(String count) {
+    return 'Ишсиз: $count';
+  }
+
+  @override
+  String get remindersTitle => 'Еслатмалар';
+
+  @override
+  String get reminderAdd => 'Еслатиш';
+
+  @override
+  String get remindersEmpty => 'Еслатмалар ёъқ';
+
+  @override
+  String get remindersEmptyHint =>
+      'Масалан: «Жума куни Нигорага қўнғироқ қилиш». «Эслатиш» тугмасини босинг.';
+
+  @override
+  String get reminderWhat => 'Нима ҳақида эслатиш';
+
+  @override
+  String get reminderWhatHint => 'Масалан: тайёр ишни олиб кетиш';
+
+  @override
+  String get reminderTomorrow => 'Ертага 9:00';
+
+  @override
+  String get reminderIn3Days => '3 кундан кейин';
+
+  @override
+  String get reminderNextMonday => 'Душанба куни';
+
+  @override
+  String reminderSaved(String when) {
+    return '$when да эслатаман';
+  }
+
+  @override
+  String get awayTitle => 'Таътил';
+
+  @override
+  String awayHint(String count) {
+    return 'Таътилга кетяпсизми? Усталарингиз ($count) шу вақтга бошқа менежерга ўтади ва белгиланган куни ўзи сизга қайтади.';
+  }
+
+  @override
+  String get awaySubstitute => 'Ким алмаштиради';
+
+  @override
+  String get awayUntilPick => 'Қайси кунгача';
+
+  @override
+  String awayUntil(String date) {
+    return '$date гача';
+  }
+
+  @override
+  String get awayGo => 'Усталарни топшириш';
+
+  @override
+  String awayNow(String date, String name) {
+    return 'Сиз $date гача таътилдасиз. Усталарингизни $name олиб бормоқда.';
+  }
+
+  @override
+  String get awayBack => 'Қайтдим — усталарни олиш';
+
+  @override
+  String get awayCovering => 'Сиз алмаштиряпсиз';
+
+  @override
+  String awayCoveringLine(String count, String date) {
+    return 'Усталар: $count · $date гача';
+  }
+
+  @override
+  String get myQrTitle => 'Менинг QR-кодим';
+
+  @override
+  String get myQrHint =>
+      'Менежерга кўрсатинг — у сканерлаб, картангизни дарҳол кўради';
+
+  @override
+  String get widgetToday => 'Бугун';
+
+  @override
+  String widgetDeliver(String count) {
+    return 'Олиб бориш: $count';
+  }
+
+  @override
+  String widgetPickup(String count) {
+    return 'Олиб кетиш: $count';
+  }
+
+  @override
+  String widgetOverdue(String count) {
+    return 'Муддати ўтган: $count';
+  }
+
+  @override
+  String get acceptAllAction => 'Ҳаммасини қабул қилиш';
+
+  @override
+  String get acceptWithDefects => 'Брак бор';
+
+  @override
+  String acceptAllConfirm(String name, String meters, String sum) {
+    return '$name: ҳаммасини браксиз қабул қилиш — $meters м? ≈ $sum сўм ҳисобланади.';
+  }
+
+  @override
+  String get visitTitle => 'Ташриф';
+
+  @override
+  String get visitOpenCard => 'Уста картаси';
+
+  @override
+  String get visitNothing => 'Ҳозир ундан ҳеч нарса олиш ёки бериш керак эмас';
+
+  @override
+  String visitPickup(String count) {
+    return 'Олиб кетиш: $count';
+  }
+
+  @override
+  String visitPickupAll(String count) {
+    return 'Ҳаммасини олиш ($count)';
+  }
+
+  @override
+  String visitPickedAll(String count) {
+    return 'Олинган ишлар: $count';
+  }
+
+  @override
+  String visitDeliver(String count) {
+    return 'Бериш: $count';
+  }
+
+  @override
+  String get visitDeliverHint => 'У олганини ўз иловасида тасдиқлайди';
+
+  @override
+  String get visitInProgress => 'Ишда';
+
+  @override
+  String get visitPay => 'Тўлов';
+
+  @override
+  String get payManyTitle => 'Бир нечтасига тўлаш';
+
+  @override
+  String payManyConfirm(String count, String sum) {
+    return '$count та устага жами $sum сўм нақд тўлансинми? Ҳар бирига — тўлиқ суммаси.';
+  }
+
+  @override
+  String payManyButton(String count, String sum) {
+    return 'Танланганларга: $count · $sum сўм';
+  }
+
+  @override
+  String payManyDone(String count) {
+    return 'Тўланди: $count';
+  }
+
+  @override
+  String payManyFailed(String names) {
+    return 'бўлмади: $names';
+  }
+
+  @override
+  String get payManyComment => 'Бир нечтасига тўлов';
+
+  @override
+  String get permPresets => 'Тайёр тўпламлар';
+
+  @override
+  String get presetManagerBasic => 'Етказиш ва олиб кетиш';
+
+  @override
+  String get presetManagerCash => 'Тўловлар билан';
+
+  @override
+  String get presetManagerStock => 'Омборчи';
+
+  @override
+  String get presetManagerFull => 'Ўз усталари учун ҳаммаси';
+
+  @override
+  String get presetAdminStandard => 'Стандарт';
+
+  @override
+  String get presetAdminStock => 'Омбор ва каталоғ';
+
+  @override
+  String get presetAdminMoney => 'Пул';
+
+  @override
+  String get searchHint => 'Қидирув';
+
+  @override
+  String get searchExplain =>
+      'Усталар, ишлар, буюртмалар, материаллар, моделлар, ходимлар — исм, телефон ёки код бўйича';
+
+  @override
+  String get searchNothing => 'Ҳеч нарса топилмади';
+
+  @override
+  String get searchWorks => 'Ишлар';
+
+  @override
+  String get searchMaterials => 'Материаллар';
+
+  @override
+  String get moneyTitle => 'Пул';
+
+  @override
+  String get moneyOwed => 'Усталарга қарздорлик';
+
+  @override
+  String moneyOwedWorkers(String count) {
+    return 'Усталар: $count';
+  }
+
+  @override
+  String get moneyEarned => 'Иш учун ҳисобланган';
+
+  @override
+  String get moneyPaid => 'Тўланган';
+
+  @override
+  String get moneySales => 'Сотувлар';
+
+  @override
+  String get moneyMaterials => 'Материаллар';
+
+  @override
+  String get moneyExpenses => 'Харажатлар';
+
+  @override
+  String get moneyProfit => 'Фойда';
 }

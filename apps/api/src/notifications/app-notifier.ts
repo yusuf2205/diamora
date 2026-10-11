@@ -54,9 +54,62 @@ export class AppNotifier implements OnModuleInit {
         await this.bus.publish('notification.created', { userId, notificationId: row.id, title: n.title, body: n.body ?? null, link: n.link ?? null });
         // instantly to her phone too, even with the app closed (no-op without Firebase credentials)
         void this.push.send(userId, { id: row.id, title: n.title, body: n.body, link: n.link });
+        await this.mirrorToTelegram(userId, n);
       } catch (e) {
         if ((e as { code?: string }).code !== 'P2002') this.log.warn(`notify ${n.type}: ${(e as Error).message}`); // P2002 = already sent (dedupe)
       }
+    }
+  }
+
+  /**
+   * A worker's notices go to her Telegram too (owner, 2026-10-11): many open the app rarely but always read Telegram.
+   * Through the outbox (the bot process sends, retries); never fails the notice itself.
+   */
+  private async mirrorToTelegram(userId: string, n: Notice) {
+    try {
+      const w = await this.prisma.workerProfile.findFirst({ where: { userId, deletedAt: null }, select: { id: true, telegramChatId: true } });
+      if (!w?.telegramChatId) return;
+      await this.prisma.notification.create({
+        data: {
+          channel: 'TELEGRAM', workerId: w.id, telegramChatId: w.telegramChatId, type: n.type,
+          body: `🔔 ${n.title}${n.body ? `
+${n.body}` : ''}`, dedupeKey: n.dedupe ? `tg:${n.dedupe}:${userId}` : null,
+        },
+      });
+    } catch (e) {
+      if ((e as { code?: string }).code !== 'P2002') this.log.warn(`telegram mirror ${n.type}: ${(e as Error).message}`);
+    }
+  }
+
+  /**
+   * A new registration -> her form, with «Одобрить» / «Отклонить» buttons, in the Telegram of every admin who may approve
+   * (owner, 2026-10-11). The bot handles the buttons (workers/decisions.ts).
+   */
+  private async approvalCard(workerId: string) {
+    const w = await this.prisma.workerProfile.findUnique({ where: { id: workerId }, include: { collaterals: { where: { status: 'PENDING' } } } });
+    if (!w || w.status !== 'PENDING_APPROVAL') return;
+    const approvers = await this.prisma.user.findMany({
+      where: { status: 'ACTIVE', role: { not: 'WORKER' }, OR: [{ alertChatId: { not: null } }, { telegramUserId: { not: null } }] }, include: { permissions: true },
+    });
+    const collateral = w.collaterals.map((c) => (c.type === 'MONEY' ? `💵 ${sum(String(c.amount ?? 0))} сум` : `💍 ${c.description ?? 'вещь'}`)).join(', ') || '—';
+    const map = w.latitude != null && w.longitude != null ? `
+📍 https://yandex.uz/maps/?pt=${w.longitude},${w.latitude}&z=16` : '';
+    const body = `🆕 Новая мастерица: ${w.fullName}
+📱 ${w.phone}
+💰 Залог: ${collateral}${map}`;
+    const buttons = [
+      [{ text: '✅ Одобрить', data: `wa:ok:${w.id}` }, { text: '✅ + залог получен', data: `wa:okc:${w.id}` }],
+      [{ text: '❌ Отклонить', data: `wa:no:${w.id}` }],
+    ];
+    const sent = new Set<string>();
+    for (const u of approvers) {
+      if (!effectivePermissions(u.role as Role, u.permissions).includes('WORKER_APPROVE')) continue;
+      const chat = u.alertChatId ?? u.telegramUserId!;
+      if (sent.has(String(chat))) continue;
+      sent.add(String(chat));
+      await this.prisma.notification.create({
+        data: { channel: 'TELEGRAM', userId: u.id, telegramChatId: chat, type: 'worker.approval', body, data: { buttons }, dedupeKey: `wa:${w.id}:${u.id}` },
+      }).catch(() => undefined); // dedupe: once per admin
     }
   }
 
@@ -164,6 +217,7 @@ export class AppNotifier implements OnModuleInit {
           type: e.type, title: invited ? `${d.fullName} пришла по приглашению` : 'Новая регистрация мастерицы', body: invited ? 'Уже в команде' : `${d.fullName} ждёт одобрения`,
           link: `/admin/workers/${d.workerId}`,
         });
+        if (!invited) await this.approvalCard(d.workerId as string);
         return;
       }
       case 'client_order.created': {

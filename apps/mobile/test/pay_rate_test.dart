@@ -95,6 +95,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ещё'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Настройки'), 100, scrollable: find.byType(Scrollable).last);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -200));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Настройки'));
     await tester.pumpAndSettle();
     expect(find.descendant(of: find.byKey(const Key('payRateTile')), matching: find.text(sum('30000'))), findsOneWidget);

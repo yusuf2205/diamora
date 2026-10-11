@@ -64,6 +64,24 @@ List<(String, IconData, List<String>)> _groups(AppLocalizations l) => [
 
 /// «Права доступа» of one ADMIN / MANAGER: switches in plain words, grouped. Only what the role can have is shown;
 /// saving sends the full picture and the server re-validates it (a MANAGER can never be given *_ALL, etc.).
+const _managerDefaults = ['WORKER_VIEW_ASSIGNED', 'ASSIGNMENT_VIEW_ASSIGNED', 'FINANCE_VIEW_ASSIGNED', 'MAP_VIEW_ASSIGNED', 'LIVE_LOCATION_VIEW_ASSIGNED'];
+const _adminDefaults = [
+  'USER_VIEW_ALL', 'WORKER_VIEW_ALL', 'WORKER_APPROVE', 'WORKER_UPDATE', 'COLLATERAL_VIEW', 'COLLATERAL_MANAGE', 'ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_CREATE',
+  'ASSIGNMENT_ACCEPT', 'FINANCE_VIEW_ALL', 'CASH_PAYOUT', 'PROFIT_VIEW', 'CATALOG_VIEW', 'CATALOG_MANAGE', 'INVENTORY_VIEW', 'INVENTORY_MANAGE', 'MAP_VIEW_ALL',
+  'LIVE_LOCATION_VIEW_ALL', 'AUDIT_VIEW',
+];
+
+/// the same sets as packages/shared PERMISSION_PRESETS: (role, name, the full set for that job)
+List<(String, String, List<String>)> _presets(AppLocalizations l) => [
+      ('MANAGER', l.presetManagerBasic, _managerDefaults),
+      ('MANAGER', l.presetManagerCash, [..._managerDefaults, 'CASH_PAYOUT', 'COLLATERAL_VIEW']),
+      ('MANAGER', l.presetManagerStock, [..._managerDefaults, 'INVENTORY_VIEW', 'CATALOG_VIEW', 'ASSIGNMENT_CREATE']),
+      ('MANAGER', l.presetManagerFull, [..._managerDefaults, 'COLLATERAL_VIEW', 'COLLATERAL_MANAGE', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_ACCEPT', 'CASH_PAYOUT', 'CATALOG_VIEW', 'INVENTORY_VIEW', 'WORKER_UPDATE']),
+      ('ADMIN', l.presetAdminStandard, _adminDefaults),
+      ('ADMIN', l.presetAdminStock, ['WORKER_VIEW_ALL', 'ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_CREATE', 'CATALOG_VIEW', 'CATALOG_MANAGE', 'INVENTORY_VIEW', 'INVENTORY_MANAGE']),
+      ('ADMIN', l.presetAdminMoney, ['USER_VIEW_ALL', 'WORKER_VIEW_ALL', 'ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_ACCEPT', 'FINANCE_VIEW_ALL', 'CASH_PAYOUT', 'PROFIT_VIEW', 'COLLATERAL_VIEW', 'COLLATERAL_MANAGE']),
+    ];
+
 class PermissionsScreen extends ConsumerStatefulWidget {
   const PermissionsScreen({super.key, required this.userId, required this.editable});
   final String userId;
@@ -116,6 +134,14 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
       final on = _on ?? d.effective.toSet();
       final defaults = d.defaults.toSet();
       body = ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 96), children: [
+        // «Готовые наборы прав»: one tap sets a typical job, single switches below still change it
+        if (widget.editable && _presets(l).any((x) => x.$1 == d.user.role)) ...[
+          Padding(padding: const EdgeInsets.fromLTRB(4, 8, 4, 6), child: Text(l.permPresets, style: Theme.of(context).textTheme.titleSmall)),
+          Wrap(spacing: 8, runSpacing: 6, children: [
+            for (final x in _presets(l).where((x) => x.$1 == d.user.role))
+              ActionChip(key: Key('preset-${x.$2}'), label: Text(x.$2), onPressed: _busy ? null : () => setState(() => _on = x.$3.where(editable.contains).toSet())),
+          ]),
+        ],
         for (final (title, icon, perms) in _groups(l))
           if (perms.any(editable.contains)) ...[
             Padding(

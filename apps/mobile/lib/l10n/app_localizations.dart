@@ -98,6 +98,7 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('ru'),
     Locale('uz'),
+    Locale.fromSubtags(languageCode: 'uz', scriptCode: 'Cyrl'),
   ];
 
   /// No description provided for @appTitle.
@@ -5781,6 +5782,252 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Просрочено: {count}'**
   String widgetOverdue(String count);
+
+  /// No description provided for @acceptAllAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Принять всё'**
+  String get acceptAllAction;
+
+  /// No description provided for @acceptWithDefects.
+  ///
+  /// In ru, this message translates to:
+  /// **'Есть брак'**
+  String get acceptWithDefects;
+
+  /// No description provided for @acceptAllConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name}: принять всё без брака — {meters} м? Начислится ≈ {sum} сум.'**
+  String acceptAllConfirm(String name, String meters, String sum);
+
+  /// No description provided for @visitTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Визит'**
+  String get visitTitle;
+
+  /// No description provided for @visitOpenCard.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карточка мастерицы'**
+  String get visitOpenCard;
+
+  /// No description provided for @visitNothing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас у неё ничего не нужно забирать или отдавать'**
+  String get visitNothing;
+
+  /// No description provided for @visitPickup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрать: {count}'**
+  String visitPickup(String count);
+
+  /// No description provided for @visitPickupAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрать всё ({count})'**
+  String visitPickupAll(String count);
+
+  /// No description provided for @visitPickedAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забрано работ: {count}'**
+  String visitPickedAll(String count);
+
+  /// No description provided for @visitDeliver.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отдать: {count}'**
+  String visitDeliver(String count);
+
+  /// No description provided for @visitDeliverHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Она подтвердит получение в своём приложении'**
+  String get visitDeliverHint;
+
+  /// No description provided for @visitInProgress.
+  ///
+  /// In ru, this message translates to:
+  /// **'В работе'**
+  String get visitInProgress;
+
+  /// No description provided for @visitPay.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оплата'**
+  String get visitPay;
+
+  /// No description provided for @payManyTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплатить нескольким'**
+  String get payManyTitle;
+
+  /// No description provided for @payManyConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплатить наличными {count} мастерицам всего {sum} сум? Каждой — её полную сумму.'**
+  String payManyConfirm(String count, String sum);
+
+  /// No description provided for @payManyButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплатить выбранным: {count} · {sum} сум'**
+  String payManyButton(String count, String sum);
+
+  /// No description provided for @payManyDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплачено: {count}'**
+  String payManyDone(String count);
+
+  /// No description provided for @payManyFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'не получилось: {names}'**
+  String payManyFailed(String names);
+
+  /// No description provided for @payManyComment.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплата нескольким'**
+  String get payManyComment;
+
+  /// No description provided for @permPresets.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готовые наборы'**
+  String get permPresets;
+
+  /// No description provided for @presetManagerBasic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доставка и забор'**
+  String get presetManagerBasic;
+
+  /// No description provided for @presetManagerCash.
+  ///
+  /// In ru, this message translates to:
+  /// **'С выплатами'**
+  String get presetManagerCash;
+
+  /// No description provided for @presetManagerStock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кладовщик'**
+  String get presetManagerStock;
+
+  /// No description provided for @presetManagerFull.
+  ///
+  /// In ru, this message translates to:
+  /// **'Всё для своих мастериц'**
+  String get presetManagerFull;
+
+  /// No description provided for @presetAdminStandard.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стандарт'**
+  String get presetAdminStandard;
+
+  /// No description provided for @presetAdminStock.
+  ///
+  /// In ru, this message translates to:
+  /// **'Склад и каталог'**
+  String get presetAdminStock;
+
+  /// No description provided for @presetAdminMoney.
+  ///
+  /// In ru, this message translates to:
+  /// **'Деньги'**
+  String get presetAdminMoney;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск'**
+  String get searchHint;
+
+  /// No description provided for @searchExplain.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастерицы, работы, заказы, материалы, модели, сотрудники — по имени, телефону или коду'**
+  String get searchExplain;
+
+  /// No description provided for @searchNothing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ничего не найдено'**
+  String get searchNothing;
+
+  /// No description provided for @searchWorks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работы'**
+  String get searchWorks;
+
+  /// No description provided for @searchMaterials.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы'**
+  String get searchMaterials;
+
+  /// No description provided for @moneyTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Деньги'**
+  String get moneyTitle;
+
+  /// No description provided for @moneyOwed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Должны мастерицам'**
+  String get moneyOwed;
+
+  /// No description provided for @moneyOwedWorkers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мастериц: {count}'**
+  String moneyOwedWorkers(String count);
+
+  /// No description provided for @moneyEarned.
+  ///
+  /// In ru, this message translates to:
+  /// **'Начислено за работу'**
+  String get moneyEarned;
+
+  /// No description provided for @moneyPaid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выплачено'**
+  String get moneyPaid;
+
+  /// No description provided for @moneySales.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продажи'**
+  String get moneySales;
+
+  /// No description provided for @moneyMaterials.
+  ///
+  /// In ru, this message translates to:
+  /// **'Материалы'**
+  String get moneyMaterials;
+
+  /// No description provided for @moneyExpenses.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расходы'**
+  String get moneyExpenses;
+
+  /// No description provided for @moneyProfit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прибыль'**
+  String get moneyProfit;
 }
 
 class _AppLocalizationsDelegate
@@ -5801,6 +6048,18 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+script codes are specified.
+  switch (locale.languageCode) {
+    case 'uz':
+      {
+        switch (locale.scriptCode) {
+          case 'Cyrl':
+            return AppLocalizationsUzCyrl();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'en':

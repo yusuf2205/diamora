@@ -1,3 +1,4 @@
+import { APPROVE_CALLBACK, WorkerDecisions } from '../workers/decisions';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Bot, type Context } from 'grammy';
 import { ENV, Env } from '../config/env';
@@ -28,7 +29,7 @@ export class TelegramBot implements TelegramSender {
   private readonly log = new Logger('TelegramBot');
   private bot?: Bot;
 
-  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot, private readonly shopBot: ShopBot, private readonly orders: OrdersService) {}
+  constructor(@Inject(ENV) private readonly env: Env, private readonly registration: RegistrationService, private readonly alerts: AlertsService, private readonly adminBot: AdminBot, private readonly supplierBot: SupplierBot, private readonly shopBot: ShopBot, private readonly orders: OrdersService, private readonly decisions: WorkerDecisions) {}
 
   get enabled() { return !!this.env.TELEGRAM_BOT_TOKEN; }
 
@@ -119,6 +120,15 @@ ${this.adminBot.menuText()}` : text, linked ? { reply_markup: adminKeyboard } : 
     });
     // the buttons under an order sent to a supplier
     bot.on('callback_query:data', async (ctx) => {
+      // an admin's «Одобрить» / «Отклонить» under a new registration
+      const wa = APPROVE_CALLBACK.exec(ctx.callbackQuery.data);
+      if (wa && ctx.chat) {
+        const text = await this.decisions.decideFromTelegram(BigInt(ctx.chat.id), wa[1], wa[2]);
+        await ctx.answerCallbackQuery({ text: text.slice(0, 190) }).catch(() => undefined);
+        await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }).catch(() => undefined);
+        await ctx.reply(text);
+        return;
+      }
       // the owner's «Подтвердить» / «Отменить» under a new customer order
       const co = CO_CALLBACK.exec(ctx.callbackQuery.data);
       if (co && ctx.chat) {

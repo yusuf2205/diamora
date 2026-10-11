@@ -16,6 +16,7 @@ import { AlertsModule } from '../alerts/alerts.service';
 import { GoalsWorkerModule } from '../goals/goals.service';
 import { ProgressWorkerModule } from '../progress/progress.service';
 import { ManagerTicksModule } from '../manager/manager-tools';
+import { WorkerDecisionsModule } from '../workers/decisions';
 import { TelegramBot } from './telegram-bot';
 import { SupplierBotModule } from '../purchases/supplier-bot';
 import { ShopFlowModule } from '../orders/shop-flow';
@@ -26,7 +27,7 @@ import { ShopBot } from './shop-bot';
 import { AppNotifierModule } from '../notifications/app-notifier';
 
 @Module({
-  imports: [EnvModule, PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, FilesModule, RegistrationModule, AppNotifierModule, AlertsModule, GoalsWorkerModule, ProgressWorkerModule, ManagerTicksModule, SupplierBotModule, ShopFlowModule, OrdersModule],
+  imports: [EnvModule, PrismaModule, RedisModule, StorageModule, AuditModule, NotificationsModule, EventBusModule, FilesModule, RegistrationModule, AppNotifierModule, AlertsModule, GoalsWorkerModule, ProgressWorkerModule, ManagerTicksModule, WorkerDecisionsModule, SupplierBotModule, ShopFlowModule, OrdersModule],
   providers: [AppLogger, TelegramBot, ShopBot, OutboxSender, MaintenanceService, ReleaseWatcher],
 })
 export class WorkerModule {}

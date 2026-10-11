@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { ago, formatDate, formatDay, roleLabel } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
 import { AUDIT_USER_LABELS, PERMISSION_GROUPS, PERMISSION_LABELS } from '@/lib/permissions';
+import { PERMISSION_PRESETS } from '@diamoraa/shared';
 import { hasPerm } from '@/lib/types';
 import type { AuditRow, Page, PermissionCatalog, UserDetail } from '@/lib/types';
 import { Badge, Button, Card, EmptyState, ErrorState, Input, Modal, PageHeader } from '@/components/ui';
@@ -204,6 +205,15 @@ function PermissionsCard({ user: u, editable, onSaved }: { user: UserDetail; edi
         {editable && dirty && <Button disabled={save.isPending} onClick={() => save.mutate(current)}>Сохранить</Button>}
       </div>
       {save.isError && <ErrorState error={save.error} />}
+      {editable && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <span className="w-full text-xs text-muted">Готовые наборы — нажмите, проверьте галочки и «Сохранить»:</span>
+          {PERMISSION_PRESETS.filter((x) => x.role === u.role).map((x) => (
+            <button key={x.id} type="button" onClick={() => setOn(new Set(x.perms.filter((p) => editableSet.has(p))))}
+              className="rounded-full border border-border px-3 py-1 text-sm hover:bg-border/40">{x.label}</button>
+          ))}
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         {PERMISSION_GROUPS.filter((g) => g.perms.some((p) => editableSet.has(p))).map((g) => (
           <div key={g.title}>

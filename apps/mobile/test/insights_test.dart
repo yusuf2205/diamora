@@ -23,6 +23,9 @@ void main() {
     await tester.tap(find.text('Ещё'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text(item), 100, scrollable: find.byType(Scrollable).last);
+    // clear of the bottom bar: the row may stop right at its edge
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -200));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(item));
     await tester.pumpAndSettle();
   }
