@@ -86,6 +86,10 @@ class ChatRepository {
   Future<List<Map<String, dynamic>>> scheduled(String roomId) async =>
       ((await _api.getJson('/chat/rooms/$roomId/scheduled'))['items'] as List).cast<Map>().map((x) => x.cast<String, dynamic>()).toList();
   Future<void> unschedule(String id) => _api.delete('/chat/scheduled/$id');
+  /// «Текст» of a voice note (ru / uz), recognised on the server
+  Future<String> transcribe(String messageId, String lang) async => (await _api.postJson('/chat/messages/$messageId/transcribe', body: {'lang': lang}))['text'] as String? ?? '';
+  /// «Перевести» to ru / uz
+  Future<String> translate(String messageId, String lang) async => (await _api.postJson('/chat/messages/$messageId/translate', body: {'lang': lang}))['text'] as String? ?? '';
 
   Future<ChatMessage> edit(String id, String text) async => ChatMessage.fromJson(await _api.patchJson('/chat/messages/$id', body: {'text': text}));
 

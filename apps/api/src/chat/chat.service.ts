@@ -18,6 +18,8 @@ import {
   type ChatMessageKind, type Role,
 } from '@diamoraa/shared';
 import { fetchLinkPreview } from './link-preview';
+import { AiNotConfigured, speechToText, translate, type AiLang } from './yandex-ai';
+const aiLangSchema = z.object({ lang: z.enum(['ru', 'uz']) });
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser } from '../common/decorators';
 import { AppError, fileRejected, forbidden, notFound, validationFailed } from '../common/errors';
@@ -481,7 +483,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   dto(m: MessageRow, meId?: string) {
     const deleted = !!m.deletedAt;
     // a video / voice note may play (and seek) for long: its link lives 12 h instead of 10 min
-    const playable = m.kind === 'VIDEO' || m.kind === 'VOICE' || m.kind === 'AUDIO';
+    const playable = m.kind === 'VIDEO' || m.kind === 'VIDEO_NOTE' || m.kind === 'VOICE' || m.kind === 'AUDIO';
     const file = !deleted && m.fileId ? this.files.ref(m.fileId, playable ? 12 * 3600 : undefined) : null;
     const counts = new Map<string, { emoji: string; count: number; mine: boolean }>();
     for (const x of deleted ? [] : (m.reactions ?? [])) {
@@ -506,7 +508,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       text: deleted ? null : m.text,
       deleted,
       file: file ? {
-        url: file.url, thumbUrl: m.kind === 'IMAGE' || (m.kind === 'VIDEO' && m.hasThumb) ? file.thumbUrl : null, name: m.fileName, size: m.fileSize === null ? null : Number(m.fileSize),
+        url: file.url, thumbUrl: m.kind === 'IMAGE' || ((m.kind === 'VIDEO' || m.kind === 'VIDEO_NOTE') && m.hasThumb) ? file.thumbUrl : null, name: m.fileName, size: m.fileSize === null ? null : Number(m.fileSize),
         mimeType: m.mimeType, durationMs: m.durationMs, width: m.width, height: m.height,
       } : null,
       createdAt: m.createdAt.toISOString(),
@@ -707,6 +709,43 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // ---- «голосовое → текст», «перевод» (Yandex Cloud) -------------------------------------------------------------------------
+  private aiError(e: unknown): never {
+    if (e instanceof AiNotConfigured) throw new AppError('AI_NOT_CONFIGURED', 'Speech recognition and translation are not set up yet', 503);
+    throw new AppError('AI_FAILED', (e as Error).message || 'Could not do it right now', 502);
+  }
+
+  /** A voice / round video as text, in the language asked; kept on the message (asked once, read by everyone). */
+  async transcribe(u: AuthUser, messageId: string, lang: AiLang) {
+    const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
+    if (!m || m.deletedAt || !m.fileId || !['VOICE', 'AUDIO', 'VIDEO_NOTE'].includes(m.kind)) throw notFound('Voice message');
+    await this.access(u, m.roomId);
+    const data = (m.data ?? {}) as { transcripts?: Record<string, string> };
+    if (data.transcripts?.[lang] !== undefined) return { text: data.transcripts[lang] };
+    const o = await this.files.open(m.fileId, 'original');
+    const chunks: Buffer[] = [];
+    for await (const c of o.stream) chunks.push(c as Buffer);
+    let text: string;
+    try { text = await speechToText(Buffer.concat(chunks), lang); } catch (e) { this.aiError(e); }
+    await this.prisma.chatMessage.update({ where: { id: messageId }, data: { data: { ...data, transcripts: { ...(data.transcripts ?? {}), [lang]: text } } } });
+    return { text };
+  }
+
+  /** «Перевести» a text message to Russian or Uzbek; kept on the message. */
+  async translateMessage(u: AuthUser, messageId: string, to: AiLang) {
+    const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
+    if (!m || m.deletedAt) throw notFound('Message');
+    await this.access(u, m.roomId);
+    const data = (m.data ?? {}) as { translations?: Record<string, string> };
+    const source = m.text ?? '';
+    if (!source.trim()) throw validationFailed('Nothing to translate');
+    if (data.translations?.[to] !== undefined) return { text: data.translations[to] };
+    let text: string;
+    try { text = await translate(source, to); } catch (e) { this.aiError(e); }
+    await this.prisma.chatMessage.update({ where: { id: messageId }, data: { data: { ...data, translations: { ...(data.translations ?? {}), [to]: text } } } });
+    return { text };
+  }
+
   // ---- link previews ----------------------------------------------------------------------------------------------------
   /** The first link in a text: its page's title / description / picture, fetched once, shown under the message. */
   private async attachPreview(room: ChatRoom, m: { id: string; text: string | null }) {
@@ -760,7 +799,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     }
     if (!stored) {
       const s = sniff(head);
-      if (s && (declared === 'VIDEO' || declared === 'VOICE' || declared === 'AUDIO')) {
+      if (s && (declared === 'VIDEO' || declared === 'VIDEO_NOTE' || declared === 'VOICE' || declared === 'AUDIO')) {
         const audio = declared === 'VOICE' || declared === 'AUDIO';
         if (audio && s.family !== 'video' && src.size <= CHAT_MAX_FILE_BYTES) {
           kind = declared;
@@ -768,7 +807,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
           const a = await raw(mime, s.ext === 'mp4' ? 'm4a' : s.ext);
           stored = { id: a.id, mimeType: mime };
         } else if (!audio && s.family !== 'audio') {
-          kind = 'VIDEO';
+          kind = declared === 'VIDEO_NOTE' ? 'VIDEO_NOTE' : 'VIDEO'; // «кружок» plays the same, shown round
           // the index to the front: it starts playing at once instead of after the whole download
           const fast = s.ext === 'mp4' || s.ext === 'mov' ? await faststart({ buffer: src.buffer, parts: src.parts }) : null;
           try {
@@ -1141,6 +1180,12 @@ export class ChatController {
 
   @Authenticated() @Get('rooms')
   rooms(@CurrentUser() u: AuthUser) { return this.chat.rooms(u); }
+
+  @Authenticated() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Post('messages/:id/transcribe') @HttpCode(200)
+  transcribe(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(aiLangSchema) b: z.output<typeof aiLangSchema>) { return this.chat.transcribe(u, id, b.lang); }
+
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('messages/:id/translate') @HttpCode(200)
+  translate(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(aiLangSchema) b: z.output<typeof aiLangSchema>) { return this.chat.translateMessage(u, id, b.lang); }
 
   @Authenticated() @Post('saved') @HttpCode(200)
   saved(@CurrentUser() u: AuthUser) { return this.chat.savedRoom(u); }

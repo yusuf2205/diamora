@@ -74,6 +74,14 @@ describe('chat like Telegram, and more: polls, location, contact, cards, «Из�
     expect(later.id).toBeTruthy();
   });
 
+  it('«Перевести» / «Текст»: a clear «not set up yet» until the Yandex keys are in .env', async () => {
+    const { a, room } = await pair();
+    const m = (await a.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'Salom, ish tayyor' }).expect(201)).body;
+    const r = await a.api.post(`/v1/chat/messages/${m.id}/translate`, { lang: 'ru' }).expect(503);
+    expect(r.body.error?.code ?? r.body.code).toBe('AI_NOT_CONFIGURED');
+    await a.api.post(`/v1/chat/messages/${m.id}/transcribe`, { lang: 'ru' }).expect(404); // not a voice note
+  });
+
   it('«без звука» is kept on the message; a link to our own network never gets fetched', async () => {
     const { a, room } = await pair();
     const m = (await a.api.post(`/v1/chat/rooms/${room.id}/messages`, { text: 'тихо', silent: true }).expect(201)).body;

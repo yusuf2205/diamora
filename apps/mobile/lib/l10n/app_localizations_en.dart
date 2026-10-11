@@ -3438,4 +3438,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatFolders => 'Folders';
+
+  @override
+  String get chatTranscribe => 'Text';
+
+  @override
+  String get chatTranscribeEmpty => 'No words recognised';
+
+  @override
+  String get chatTranslate => 'Translate';
+
+  @override
+  String get chatTranslateBy => 'Translation: Yandex';
+
+  @override
+  String get chatCameraFailed =>
+      'Could not open the camera. Allow camera and microphone in the settings';
+
+  @override
+  String get chatVideoNoteHint => 'Tap the red button to record (up to 60 s)';
+
+  @override
+  String get chatVideoNoteReady => 'Done — send it or record again';
+
+  @override
+  String get chatSwitchCamera => 'Switch camera';
+
+  @override
+  String get chatFolderAll => 'All';
+
+  @override
+  String get chatFolderNew => 'Folder';
+
+  @override
+  String get chatFolderEdit => 'Edit folder';
+
+  @override
+  String get chatFolderName => 'Name';
+
+  @override
+  String get chatFolderNameHint => 'e.g. Work';
+
+  @override
+  String get chatFolderChats => 'Chats in the folder';
+
+  @override
+  String get chatAddToFolder => 'Add to folder';
 }

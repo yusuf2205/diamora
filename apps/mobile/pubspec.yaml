@@ -1,7 +1,7 @@
 name: diamoraa_mobile
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0-rc.52+52
+version: 1.0.0-rc.53+53
 
 environment:
   sdk: ^3.13.3
@@ -10,6 +10,7 @@ dependencies:
   app_links: ^6.4.1
   audioplayers: ^6.8.1
   cached_network_image: ^4.0.0
+  camera: ^0.12.1
   connectivity_plus: ^7.3.1
   dio: ^5.11.1
   drift: ^2.35.0

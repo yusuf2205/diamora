@@ -3411,6 +3411,53 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatFolders => 'Papkalar';
+
+  @override
+  String get chatTranscribe => 'Matn';
+
+  @override
+  String get chatTranscribeEmpty => 'Soʻzlarni aniqlab boʻlmadi';
+
+  @override
+  String get chatTranslate => 'Tarjima qilish';
+
+  @override
+  String get chatTranslateBy => 'Tarjima: Yandex';
+
+  @override
+  String get chatCameraFailed =>
+      'Kamerani yoqib boʻlmadi. Sozlamalarda kamera va mikrofonga ruxsat bering';
+
+  @override
+  String get chatVideoNoteHint =>
+      'Yozish uchun qizil tugmani bosing (60 soniyagacha)';
+
+  @override
+  String get chatVideoNoteReady => 'Tayyor — yuboring yoki qayta yozing';
+
+  @override
+  String get chatSwitchCamera => 'Kamerani almashtirish';
+
+  @override
+  String get chatFolderAll => 'Hammasi';
+
+  @override
+  String get chatFolderNew => 'Papka';
+
+  @override
+  String get chatFolderEdit => 'Papkani oʻzgartirish';
+
+  @override
+  String get chatFolderName => 'Nomi';
+
+  @override
+  String get chatFolderNameHint => 'Masalan: Ish';
+
+  @override
+  String get chatFolderChats => 'Papkadagi chatlar';
+
+  @override
+  String get chatAddToFolder => 'Papkaga qoʻshish';
 }
 
 /// The translations for Uzbek, using the Cyrillic script (`uz_Cyrl`).
@@ -6812,4 +6859,51 @@ class AppLocalizationsUzCyrl extends AppLocalizationsUz {
 
   @override
   String get chatFolders => 'Папкалар';
+
+  @override
+  String get chatTranscribe => 'Матн';
+
+  @override
+  String get chatTranscribeEmpty => 'Сўзларни аниқлаб бўлмади';
+
+  @override
+  String get chatTranslate => 'Таржима қилиш';
+
+  @override
+  String get chatTranslateBy => 'Таржима: Яндех';
+
+  @override
+  String get chatCameraFailed =>
+      'Камерани ёқиб бўлмади. Созламаларда камера ва микрофонга рухсат беринғ';
+
+  @override
+  String get chatVideoNoteHint =>
+      'Ёзиш учун қизил тугмани босинг (60 сониягача)';
+
+  @override
+  String get chatVideoNoteReady => 'Тайёр — юборинг ёки қайта ёзинғ';
+
+  @override
+  String get chatSwitchCamera => 'Камерани алмаштириш';
+
+  @override
+  String get chatFolderAll => 'Ҳаммаси';
+
+  @override
+  String get chatFolderNew => 'Папка';
+
+  @override
+  String get chatFolderEdit => 'Папкани ўзгартириш';
+
+  @override
+  String get chatFolderName => 'Номи';
+
+  @override
+  String get chatFolderNameHint => 'Масалан: Иш';
+
+  @override
+  String get chatFolderChats => 'Папкадаги чатлар';
+
+  @override
+  String get chatAddToFolder => 'Папкага қўшиш';
 }

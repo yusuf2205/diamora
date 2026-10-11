@@ -6316,6 +6316,96 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Папки'**
   String get chatFolders;
+
+  /// No description provided for @chatTranscribe.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текст'**
+  String get chatTranscribe;
+
+  /// No description provided for @chatTranscribeEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слов не разобрать'**
+  String get chatTranscribeEmpty;
+
+  /// No description provided for @chatTranslate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перевести'**
+  String get chatTranslate;
+
+  /// No description provided for @chatTranslateBy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перевод: Яндекс'**
+  String get chatTranslateBy;
+
+  /// No description provided for @chatCameraFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось включить камеру. Разрешите доступ к камере и микрофону в настройках'**
+  String get chatCameraFailed;
+
+  /// No description provided for @chatVideoNoteHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нажмите красную кнопку, чтобы записать (до 60 секунд)'**
+  String get chatVideoNoteHint;
+
+  /// No description provided for @chatVideoNoteReady.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готово — отправьте или запишите заново'**
+  String get chatVideoNoteReady;
+
+  /// No description provided for @chatSwitchCamera.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сменить камеру'**
+  String get chatSwitchCamera;
+
+  /// No description provided for @chatFolderAll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все'**
+  String get chatFolderAll;
+
+  /// No description provided for @chatFolderNew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Папка'**
+  String get chatFolderNew;
+
+  /// No description provided for @chatFolderEdit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить папку'**
+  String get chatFolderEdit;
+
+  /// No description provided for @chatFolderName.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название'**
+  String get chatFolderName;
+
+  /// No description provided for @chatFolderNameHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: Работа'**
+  String get chatFolderNameHint;
+
+  /// No description provided for @chatFolderChats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чаты в папке'**
+  String get chatFolderChats;
+
+  /// No description provided for @chatAddToFolder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить в папку'**
+  String get chatAddToFolder;
 }
 
 class _AppLocalizationsDelegate

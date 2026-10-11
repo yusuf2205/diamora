@@ -11,6 +11,7 @@ import '../auth/auth_controller.dart';
 import '../team/team_screen.dart' show teamRoleLabel;
 import 'chat_audio.dart';
 import 'chat_models.dart';
+import 'chat_folders.dart';
 import 'chat_repository.dart';
 
 /// Short time for a list row: 14:05 today, «Вчера», otherwise 28.09.
@@ -58,6 +59,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   bool _searching = false;
   /// «Архив» opened: only the archived chats
   bool _archive = false;
+  /// the folder tab shown (null = «Все»)
+  String? _folder;
   // like Telegram: «✎ Новый чат» at the top of the list, only the ✎ once the list is scrolled
   bool _compactFab = false;
   final _q = TextEditingController();
@@ -108,13 +111,17 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       ),
       body: Column(children: [
         const ChatAudioBar(), // a voice keeps playing after going back to the list, like Telegram
+        // «Папки»: tabs over the list (not inside the archive)
+        if (!_archive && rooms.hasValue)
+          ChatFolderBar(selected: _folder, onSelect: (id) => setState(() => _folder = id), rooms: rooms.value!.where((r) => !r.archived).toList()),
         Expanded(child: rooms.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
         data: (all) {
           final archived = all.where((r) => r.archived).toList();
-          final items = _archive ? archived : all.where((r) => !r.archived).toList();
-          final showArchiveRow = !_archive && archived.isNotEmpty;
+          final folder = ref.watch(chatFoldersProvider).where((f) => f.id == _folder).firstOrNull;
+          final items = _archive ? archived : folder != null ? all.where((r) => folder.roomIds.contains(r.id)).toList() : all.where((r) => !r.archived).toList();
+          final showArchiveRow = !_archive && folder == null && archived.isNotEmpty;
           return items.isEmpty && !showArchiveRow
             ? EmptyState(icon: Icons.forum_rounded, title: l.chatNoChats)
             : NotificationListener<ScrollUpdateNotification>(
@@ -165,6 +172,7 @@ extension on _ChatListScreenState {
               ]),
             ),
           ],
+          ListTile(key: const Key('roomFolder'), leading: const Icon(Icons.folder_rounded), title: Text(l.chatAddToFolder), onTap: () => Navigator.pop(ctx, 'folder')),
           ListTile(
             key: const Key('roomUnread'),
             leading: Icon(room.unread > 0 || room.markedUnread ? Icons.mark_chat_read_rounded : Icons.mark_chat_unread_rounded),
@@ -175,6 +183,7 @@ extension on _ChatListScreenState {
       ),
     );
     if (choice == null) return;
+    if (choice == 'folder') return _addToFolder(room);
     try {
       final repo = ref.read(chatRepositoryProvider);
       switch (choice) {
@@ -191,6 +200,28 @@ extension on _ChatListScreenState {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
     }
+  }
+
+  /// «Добавить в папку»: into one of my folders, or a new one with this chat in it
+  Future<void> _addToFolder(ChatRoomSummary room) async {
+    final l = AppLocalizations.of(context);
+    final folders = ref.read(chatFoldersProvider);
+    final rooms = ref.read(chatRoomsProvider).value ?? const <ChatRoomSummary>[];
+    final pick = folders.isEmpty
+        ? '+'
+        : await showAppSheet<String>(
+            context: context, scrollable: true, showDragHandle: true,
+            builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final f in folders)
+                ListTile(leading: Icon(f.roomIds.contains(room.id) ? Icons.check_circle_rounded : Icons.folder_rounded), title: Text(f.name), onTap: () => Navigator.pop(ctx, f.id)),
+              ListTile(key: const Key('folderCreate'), leading: const Icon(Icons.create_new_folder_rounded), title: Text(l.chatFolderNew), onTap: () => Navigator.pop(ctx, '+')),
+            ])),
+          );
+    if (pick == null || !mounted) return;
+    if (pick == '+') return showFolderEditor(context, ref, rooms, withRoom: room.id);
+    final f = folders.firstWhere((x) => x.id == pick);
+    f.roomIds.contains(room.id) ? f.roomIds.remove(room.id) : f.roomIds.add(room.id);
+    await ref.read(chatFoldersProvider.notifier).put(f);
   }
 
   Future<void> _openSaved() async {

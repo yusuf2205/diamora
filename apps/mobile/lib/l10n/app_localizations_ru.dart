@@ -3452,4 +3452,51 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatFolders => 'Папки';
+
+  @override
+  String get chatTranscribe => 'Текст';
+
+  @override
+  String get chatTranscribeEmpty => 'Слов не разобрать';
+
+  @override
+  String get chatTranslate => 'Перевести';
+
+  @override
+  String get chatTranslateBy => 'Перевод: Яндекс';
+
+  @override
+  String get chatCameraFailed =>
+      'Не удалось включить камеру. Разрешите доступ к камере и микрофону в настройках';
+
+  @override
+  String get chatVideoNoteHint =>
+      'Нажмите красную кнопку, чтобы записать (до 60 секунд)';
+
+  @override
+  String get chatVideoNoteReady => 'Готово — отправьте или запишите заново';
+
+  @override
+  String get chatSwitchCamera => 'Сменить камеру';
+
+  @override
+  String get chatFolderAll => 'Все';
+
+  @override
+  String get chatFolderNew => 'Папка';
+
+  @override
+  String get chatFolderEdit => 'Изменить папку';
+
+  @override
+  String get chatFolderName => 'Название';
+
+  @override
+  String get chatFolderNameHint => 'Например: Работа';
+
+  @override
+  String get chatFolderChats => 'Чаты в папке';
+
+  @override
+  String get chatAddToFolder => 'Добавить в папку';
 }

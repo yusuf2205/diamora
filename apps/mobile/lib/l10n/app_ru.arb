@@ -1161,5 +1161,20 @@
   "chatMute8h": "На 8 часов",
   "chatMute2d": "На 2 дня",
   "chatMuteForever": "Навсегда",
-  "chatFolders": "Папки"
+  "chatFolders": "Папки",
+  "chatTranscribe": "Текст",
+  "chatTranscribeEmpty": "Слов не разобрать",
+  "chatTranslate": "Перевести",
+  "chatTranslateBy": "Перевод: Яндекс",
+  "chatCameraFailed": "Не удалось включить камеру. Разрешите доступ к камере и микрофону в настройках",
+  "chatVideoNoteHint": "Нажмите красную кнопку, чтобы записать (до 60 секунд)",
+  "chatVideoNoteReady": "Готово — отправьте или запишите заново",
+  "chatSwitchCamera": "Сменить камеру",
+  "chatFolderAll": "Все",
+  "chatFolderNew": "Папка",
+  "chatFolderEdit": "Изменить папку",
+  "chatFolderName": "Название",
+  "chatFolderNameHint": "Например: Работа",
+  "chatFolderChats": "Чаты в папке",
+  "chatAddToFolder": "Добавить в папку"
 }

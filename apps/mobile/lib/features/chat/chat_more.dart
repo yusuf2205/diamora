@@ -196,10 +196,12 @@ class ContactBubble extends StatelessWidget {
         ]),
         const SizedBox(height: 6),
         Row(children: [
-          TextButton.icon(onPressed: () => launchUrl(Uri.parse('tel:$phone')), icon: const Icon(Icons.call_rounded, size: 18), label: Text(l.call)),
-          TextButton.icon(
+          Expanded(child: FilledButton.tonalIcon(style: FilledButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 8)), onPressed: () => launchUrl(Uri.parse('tel:$phone')), icon: const Icon(Icons.call_rounded, size: 18), label: Text(l.call, maxLines: 1, overflow: TextOverflow.ellipsis))),
+          const SizedBox(width: 6),
+          IconButton.outlined(
+            tooltip: l.chatCopy,
             onPressed: () { Clipboard.setData(ClipboardData(text: phone)); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatCopied))); },
-            icon: const Icon(Icons.copy_rounded, size: 18), label: Text(l.chatCopy),
+            icon: const Icon(Icons.copy_rounded, size: 18),
           ),
         ]),
       ]),
@@ -565,5 +567,95 @@ Future<String?> showQuickReplies(BuildContext context, WidgetRef ref) {
         ]),
       );
     }),
+  );
+}
+
+// ---- «голосовое → текст», «перевести» (Yandex Cloud on the server) ---------------------------------------------------------
+String aiLang(BuildContext context) => Localizations.localeOf(context).languageCode == 'uz' ? 'uz' : 'ru';
+
+/// Under a voice note: «Текст» -> its words (recognised once on the server, then kept for everyone).
+class TranscribeButton extends ConsumerStatefulWidget {
+  const TranscribeButton({super.key, required this.message, required this.fg});
+  final ChatMessage message;
+  final Color fg;
+  @override
+  ConsumerState<TranscribeButton> createState() => _TranscribeButtonState();
+}
+
+class _TranscribeButtonState extends ConsumerState<TranscribeButton> {
+  String? _text;
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final lang = aiLang(context);
+    final cached = ((widget.message.data?['transcripts'] as Map?) ?? const {})[lang] as String?;
+    final text = _text ?? cached;
+    if (text != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(text.isEmpty ? l.chatTranscribeEmpty : text, style: TextStyle(color: widget.fg, fontStyle: text.isEmpty ? FontStyle.italic : null)),
+      );
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        key: Key('transcribe-${widget.message.id}'),
+        style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 6), foregroundColor: widget.fg),
+        onPressed: _busy
+            ? null
+            : () async {
+                setState(() => _busy = true);
+                try {
+                  final t = await ref.read(chatRepositoryProvider).transcribe(widget.message.id, lang);
+                  if (mounted) setState(() => _text = t);
+                } catch (e) {
+                  if (mounted) showError(this.context, e);
+                } finally {
+                  if (mounted) setState(() => _busy = false);
+                }
+              },
+        icon: _busy ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.subject_rounded, size: 18),
+        label: Text(l.chatTranscribe),
+      ),
+    );
+  }
+}
+
+/// «Перевести»: the message in Russian or Uzbek, in a sheet (switch the language there).
+Future<void> showTranslation(BuildContext context, WidgetRef ref, ChatMessage m) async {
+  final l = AppLocalizations.of(context);
+  var to = aiLang(context);
+  await showAppSheet<void>(
+    context: context,
+    scrollable: true,
+    showDragHandle: true,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, set) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            SegmentedButton<String>(
+              segments: const [ButtonSegment(value: 'ru', label: Text('Русский')), ButtonSegment(value: 'uz', label: Text('Oʻzbekcha'))],
+              selected: {to},
+              onSelectionChanged: (s) => set(() => to = s.first),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<String>(
+              key: ValueKey(to),
+              future: ref.read(chatRepositoryProvider).translate(m.id, to),
+              builder: (_, snap) => snap.hasError
+                  ? Text(errorText(ctx, snap.error!), style: TextStyle(color: Theme.of(ctx).colorScheme.error))
+                  : snap.hasData
+                      ? SelectableText(snap.data!, style: Theme.of(ctx).textTheme.bodyLarge)
+                      : const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator())),
+            ),
+            const SizedBox(height: 8),
+            Text(l.chatTranslateBy, style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Theme.of(ctx).colorScheme.outline)),
+          ]),
+        ),
+      ),
+    ),
   );
 }

@@ -229,6 +229,9 @@ services:
       BACKUP_STATUS_DIR: /backup-status
       OFFSITE_USB_ROOT: /usb
       SHOP_BOT_USERNAME: ${SHOP_BOT_USERNAME:-}
+      # chat: «голосовое → текст» and «перевод» (Yandex Cloud; empty = off)
+      YANDEX_CLOUD_API_KEY: ${YANDEX_CLOUD_API_KEY:-}
+      YANDEX_CLOUD_FOLDER_ID: ${YANDEX_CLOUD_FOLDER_ID:-}
       APP_VERSION: ${APP_VERSION:-local}
       FIREBASE_CREDENTIALS_FILE: /run/firebase/firebase-admin.json
       CHAT_UPLOAD_DIR: /uploads

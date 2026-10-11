@@ -43,9 +43,13 @@ describe('search, «Деньги», worker notices in the app only, approving fr
     const chat = BigInt(nextTelegramId());
     await t.prisma.user.update({ where: { id: admin.user.id }, data: { alertChatId: chat } });
     const reg = await registerViaBot(t);
-    await new Promise((r) => setTimeout(r, 300));
     const w = await t.prisma.workerProfile.findUniqueOrThrow({ where: { phone: reg.phone } });
-    const card = await t.prisma.notification.findFirst({ where: { channel: 'TELEGRAM', telegramChatId: chat, type: 'worker.approval' } });
+    // the card is written after the event: wait for it (up to 5 s on a busy machine)
+    let card = null;
+    for (let i = 0; i < 50 && !card; i++) {
+      card = await t.prisma.notification.findFirst({ where: { channel: 'TELEGRAM', telegramChatId: chat, type: 'worker.approval', body: { contains: w.fullName } } });
+      if (!card) await new Promise((r) => setTimeout(r, 100));
+    }
     expect(card?.body).toContain(w.fullName);
     expect(JSON.stringify(card?.data)).toContain(`wa:ok:${w.id}`);
 

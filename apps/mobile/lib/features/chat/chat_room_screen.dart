@@ -31,6 +31,7 @@ import 'chat_profile.dart';
 import 'chat_media.dart';
 import 'chat_models.dart';
 import 'chat_more.dart';
+import 'video_note.dart';
 import '../manager/manager_tools.dart' show showReminderSheet;
 import 'package:geolocator/geolocator.dart';
 import 'chat_repository.dart';
@@ -389,7 +390,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     if (!mounted) return;
     setState(() { _outgoing.insert(0, o); _replyTo = null; });
     _scrollToBottom();
-    if (kind == 'VIDEO') await _describeVideo(o);
+    if (kind == 'VIDEO' || kind == 'VIDEO_NOTE') await _describeVideo(o);
     await _sendOutgoing(o);
   }
 
@@ -427,6 +428,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           ListTile(leading: const Icon(Icons.photo_camera_rounded), title: Text(l.chatCamera), onTap: () => Navigator.pop(ctx, 'camera')),
           ListTile(leading: const Icon(Icons.video_library_rounded), title: Text(l.chatVideo), onTap: () => Navigator.pop(ctx, 'video')),
           ListTile(leading: const Icon(Icons.videocam_rounded), title: Text(l.chatRecordVideo), onTap: () => Navigator.pop(ctx, 'recordVideo')),
+          ListTile(key: const Key('attachVideoNote'), leading: const Icon(Icons.radio_button_checked_rounded), title: Text(l.chatVideoNote), onTap: () => Navigator.pop(ctx, 'videoNote')),
           ListTile(key: const Key('attachFile'), leading: const Icon(Icons.attach_file_rounded), title: Text(l.chatFile), onTap: () => Navigator.pop(ctx, 'file')),
           const Divider(height: 8),
           ListTile(key: const Key('attachPoll'), leading: const Icon(Icons.poll_rounded), title: Text(l.chatPoll), onTap: () => Navigator.pop(ctx, 'poll')),
@@ -460,6 +462,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       case 'quick':
         final t = await showQuickReplies(context, ref);
         if (t != null) setState(() => _text.text = t);
+        return;
+      case 'videoNote':
+        final path = await VideoNoteRecorder.open(context);
+        if (path != null) await _sendPath(path, 'note.mp4', 'VIDEO_NOTE');
         return;
     }
     final picker = ImagePicker();
@@ -565,6 +571,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           const Divider(),
           ListTile(key: const Key('msgReply'), leading: const Icon(Icons.reply_rounded), title: Text(l.chatReply), onTap: () => Navigator.pop(ctx, 'reply')),
           if ((m.text ?? '').isNotEmpty && !(_room?.protectContent ?? false)) ListTile(leading: const Icon(Icons.copy_rounded), title: Text(l.chatCopy), onTap: () => Navigator.pop(ctx, 'copy')),
+          if ((m.text ?? '').isNotEmpty) ListTile(key: const Key('msgTranslate'), leading: const Icon(Icons.translate_rounded), title: Text(l.chatTranslate), onTap: () => Navigator.pop(ctx, 'translate')),
           if (canEdit) ListTile(key: const Key('msgEdit'), leading: const Icon(Icons.edit_rounded), title: Text(l.chatEdit), onTap: () => Navigator.pop(ctx, 'edit')),
           if (!(_room?.protectContent ?? false)) ListTile(key: const Key('msgForward'), leading: const Icon(Icons.forward_rounded), title: Text(l.chatForward), onTap: () => Navigator.pop(ctx, 'forward')),
           if (!(_room?.protectContent ?? false) && _room?.kind != 'SAVED') ListTile(key: const Key('msgSave'), leading: const Icon(Icons.bookmark_add_rounded), title: Text(l.chatSaveToSaved), onTap: () => Navigator.pop(ctx, 'save')),
@@ -594,6 +601,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       } catch (e) {
         fail(e);
       }
+    } else if (choice == 'translate') {
+      await showTranslation(context, ref, m);
     } else if (choice == 'remind') {
       await showReminderSheet(context, text: chatPreview(l, m));
     } else if (choice == 'reply') {
@@ -1137,6 +1146,7 @@ class _Bubble extends StatelessWidget {
         'VOICE' || 'AUDIO' when f != null => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (m.kind == 'AUDIO' && f.name != null) Text(f.name!, style: TextStyle(color: fg, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
             ChatAudioBubble(message: m, color: fg),
+            if (m.kind == 'VOICE') TranscribeButton(message: m, fg: fg),
           ]),
         'POLL' => PollBubble(message: m, fg: fg, onChanged: onUpdated ?? (_) {}),
         'LOCATION' when m.data != null => LocationBubble(data: m.data!, fg: fg),

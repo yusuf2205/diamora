@@ -1035,5 +1035,20 @@
   "chatMute8h": "8 соатга",
   "chatMute2d": "2 кунга",
   "chatMuteForever": "Бутунлай",
-  "chatFolders": "Папкалар"
+  "chatFolders": "Папкалар",
+  "chatTranscribe": "Матн",
+  "chatTranscribeEmpty": "Сўзларни аниқлаб бўлмади",
+  "chatTranslate": "Таржима қилиш",
+  "chatTranslateBy": "Таржима: Яндех",
+  "chatCameraFailed": "Камерани ёқиб бўлмади. Созламаларда камера ва микрофонга рухсат беринғ",
+  "chatVideoNoteHint": "Ёзиш учун қизил тугмани босинг (60 сониягача)",
+  "chatVideoNoteReady": "Тайёр — юборинг ёки қайта ёзинғ",
+  "chatSwitchCamera": "Камерани алмаштириш",
+  "chatFolderAll": "Ҳаммаси",
+  "chatFolderNew": "Папка",
+  "chatFolderEdit": "Папкани ўзгартириш",
+  "chatFolderName": "Номи",
+  "chatFolderNameHint": "Масалан: Иш",
+  "chatFolderChats": "Папкадаги чатлар",
+  "chatAddToFolder": "Папкага қўшиш"
 }

@@ -1035,5 +1035,20 @@
   "chatMute8h": "For 8 hours",
   "chatMute2d": "For 2 days",
   "chatMuteForever": "Forever",
-  "chatFolders": "Folders"
+  "chatFolders": "Folders",
+  "chatTranscribe": "Text",
+  "chatTranscribeEmpty": "No words recognised",
+  "chatTranslate": "Translate",
+  "chatTranslateBy": "Translation: Yandex",
+  "chatCameraFailed": "Could not open the camera. Allow camera and microphone in the settings",
+  "chatVideoNoteHint": "Tap the red button to record (up to 60 s)",
+  "chatVideoNoteReady": "Done — send it or record again",
+  "chatSwitchCamera": "Switch camera",
+  "chatFolderAll": "All",
+  "chatFolderNew": "Folder",
+  "chatFolderEdit": "Edit folder",
+  "chatFolderName": "Name",
+  "chatFolderNameHint": "e.g. Work",
+  "chatFolderChats": "Chats in the folder",
+  "chatAddToFolder": "Add to folder"
 }

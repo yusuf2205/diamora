@@ -1066,5 +1066,20 @@
   "chatMute8h": "8 soatga",
   "chatMute2d": "2 kunga",
   "chatMuteForever": "Butunlay",
-  "chatFolders": "Papkalar"
+  "chatFolders": "Papkalar",
+  "chatTranscribe": "Matn",
+  "chatTranscribeEmpty": "Soʻzlarni aniqlab boʻlmadi",
+  "chatTranslate": "Tarjima qilish",
+  "chatTranslateBy": "Tarjima: Yandex",
+  "chatCameraFailed": "Kamerani yoqib boʻlmadi. Sozlamalarda kamera va mikrofonga ruxsat bering",
+  "chatVideoNoteHint": "Yozish uchun qizil tugmani bosing (60 soniyagacha)",
+  "chatVideoNoteReady": "Tayyor — yuboring yoki qayta yozing",
+  "chatSwitchCamera": "Kamerani almashtirish",
+  "chatFolderAll": "Hammasi",
+  "chatFolderNew": "Papka",
+  "chatFolderEdit": "Papkani oʻzgartirish",
+  "chatFolderName": "Nomi",
+  "chatFolderNameHint": "Masalan: Ish",
+  "chatFolderChats": "Papkadagi chatlar",
+  "chatAddToFolder": "Papkaga qoʻshish"
 }
