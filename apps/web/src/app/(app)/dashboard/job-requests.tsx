@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import type { JobRequest } from '@/lib/types';
 import { Button, Card, ErrorState, Input, Modal } from '@/components/ui';
 import { CreateAssignmentDialog } from '../assignments/page';
+import { swatch } from '@/lib/swatch';
 
 /** «Заявки на работу»: what workers ordered in the app. «Подготовить работу» opens the usual dialog already filled in. */
 export function JobRequestsCard({ canCreate }: { canCreate: boolean }) {
@@ -28,7 +29,7 @@ export function JobRequestsCard({ canCreate }: { canCreate: boolean }) {
             <div className="min-w-0">
               <p className="font-medium">{r.worker.fullName}</p>
               <p className="text-sm">
-                <span className="mr-1 inline-block h-3 w-3 rounded-full align-middle" style={{ background: r.color?.hex ?? '#ccc' }} />
+                <span className="mr-1 inline-block h-3 w-3 rounded-full align-middle" style={{ background: swatch(r.color?.hex, r.color?.name) ?? '#ccc' }} />
                 {[r.product?.name, r.color?.name].filter(Boolean).join(' · ')} · {r.meters} м
               </p>
               {r.note && <p className="text-sm text-muted">«{r.note}»</p>}

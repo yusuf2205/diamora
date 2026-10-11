@@ -156,11 +156,13 @@ class _ReminderTile extends ConsumerWidget {
 }
 
 /// «Напомнить»: what, when (quick: tomorrow 9:00, in 3 days, next Monday, or any date and time), optionally about a worker.
-Future<void> showReminderSheet(BuildContext context, {String? workerId, String? workerName}) =>
-    showFormSheet<void>(context, showDragHandle: true, useSafeArea: false, builder: (_) => _ReminderSheet(workerId: workerId, workerName: workerName));
+Future<void> showReminderSheet(BuildContext context, {String? workerId, String? workerName, String? text}) =>
+    showFormSheet<void>(context, showDragHandle: true, useSafeArea: false, builder: (_) => _ReminderSheet(workerId: workerId, workerName: workerName, text: text));
 
 class _ReminderSheet extends ConsumerStatefulWidget {
-  const _ReminderSheet({this.workerId, this.workerName});
+  const _ReminderSheet({this.workerId, this.workerName, this.text});
+  /// «Напомнить» from a chat message: its words, ready to edit
+  final String? text;
   final String? workerId;
   final String? workerName;
   @override
@@ -168,7 +170,7 @@ class _ReminderSheet extends ConsumerStatefulWidget {
 }
 
 class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
-  final _text = TextEditingController();
+  late final _text = TextEditingController(text: widget.text);
   late DateTime _at = _tomorrowAt9();
   bool _busy = false;
 

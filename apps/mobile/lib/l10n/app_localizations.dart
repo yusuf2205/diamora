@@ -6034,6 +6034,288 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Влево — отмена'**
   String get chatSlideToCancel;
+
+  /// No description provided for @chatPoll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опрос'**
+  String get chatPoll;
+
+  /// No description provided for @chatPollQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вопрос'**
+  String get chatPollQuestion;
+
+  /// No description provided for @chatPollQuestionHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: кто сможет взять работу в субботу?'**
+  String get chatPollQuestionHint;
+
+  /// No description provided for @chatPollOption.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вариант {n}'**
+  String chatPollOption(String n);
+
+  /// No description provided for @chatPollAddOption.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить вариант'**
+  String get chatPollAddOption;
+
+  /// No description provided for @chatPollMultiple.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно выбрать несколько'**
+  String get chatPollMultiple;
+
+  /// No description provided for @chatPollSingle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Один ответ'**
+  String get chatPollSingle;
+
+  /// No description provided for @chatPollAnswer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответить'**
+  String get chatPollAnswer;
+
+  /// No description provided for @chatPollVotes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответили: {n}'**
+  String chatPollVotes(String n);
+
+  /// No description provided for @chatPollWho.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто ответил'**
+  String get chatPollWho;
+
+  /// No description provided for @chatPollVoters.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кто как ответил'**
+  String get chatPollVoters;
+
+  /// No description provided for @chatLocation.
+  ///
+  /// In ru, this message translates to:
+  /// **'Геопозиция'**
+  String get chatLocation;
+
+  /// No description provided for @chatMyLocation.
+  ///
+  /// In ru, this message translates to:
+  /// **'Моё местоположение'**
+  String get chatMyLocation;
+
+  /// No description provided for @chatOpenMap.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть на карте'**
+  String get chatOpenMap;
+
+  /// No description provided for @chatLocationDenied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешите доступ к местоположению в настройках телефона'**
+  String get chatLocationDenied;
+
+  /// No description provided for @chatLocationFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось определить место. Включите геолокацию и попробуйте ещё раз'**
+  String get chatLocationFailed;
+
+  /// No description provided for @chatContact.
+  ///
+  /// In ru, this message translates to:
+  /// **'Контакт'**
+  String get chatContact;
+
+  /// No description provided for @chatCardAttach.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа / заказ / мастерица'**
+  String get chatCardAttach;
+
+  /// No description provided for @chatCardSearch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Найдите работу, мастерицу или заказ'**
+  String get chatCardSearch;
+
+  /// No description provided for @chatOpenCard.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть'**
+  String get chatOpenCard;
+
+  /// No description provided for @chatVideoNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеосообщение'**
+  String get chatVideoNote;
+
+  /// No description provided for @chatSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Избранное'**
+  String get chatSaved;
+
+  /// No description provided for @chatSaveToSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'В Избранное'**
+  String get chatSaveToSaved;
+
+  /// No description provided for @chatSavedDone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранено в Избранное'**
+  String get chatSavedDone;
+
+  /// No description provided for @chatSendSilent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить без звука'**
+  String get chatSendSilent;
+
+  /// No description provided for @chatSendLater.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить позже'**
+  String get chatSendLater;
+
+  /// No description provided for @chatLaterInPast.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите время в будущем'**
+  String get chatLaterInPast;
+
+  /// No description provided for @chatLaterSaved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Будет отправлено {when}'**
+  String chatLaterSaved(String when);
+
+  /// No description provided for @chatScheduled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отложенные сообщения'**
+  String get chatScheduled;
+
+  /// No description provided for @chatScheduledNone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отложенных сообщений нет'**
+  String get chatScheduledNone;
+
+  /// No description provided for @quickReplies.
+  ///
+  /// In ru, this message translates to:
+  /// **'Быстрые ответы'**
+  String get quickReplies;
+
+  /// No description provided for @quickReplyAdd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить ответ'**
+  String get quickReplyAdd;
+
+  /// No description provided for @quickReply1.
+  ///
+  /// In ru, this message translates to:
+  /// **'Еду к вам'**
+  String get quickReply1;
+
+  /// No description provided for @quickReply2.
+  ///
+  /// In ru, this message translates to:
+  /// **'Буду через 30 минут'**
+  String get quickReply2;
+
+  /// No description provided for @quickReply3.
+  ///
+  /// In ru, this message translates to:
+  /// **'Работа готова? Могу забрать сегодня'**
+  String get quickReply3;
+
+  /// No description provided for @quickReply4.
+  ///
+  /// In ru, this message translates to:
+  /// **'Спасибо, всё получил(а)'**
+  String get quickReply4;
+
+  /// No description provided for @chatArchive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Архив'**
+  String get chatArchive;
+
+  /// No description provided for @chatArchiveAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Архивировать'**
+  String get chatArchiveAction;
+
+  /// No description provided for @chatUnarchive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вернуть из архива'**
+  String get chatUnarchive;
+
+  /// No description provided for @chatMarkUnread.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пометить как непрочитанное'**
+  String get chatMarkUnread;
+
+  /// No description provided for @chatMarkRead.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пометить как прочитанное'**
+  String get chatMarkRead;
+
+  /// No description provided for @chatMuteFor.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без звука…'**
+  String get chatMuteFor;
+
+  /// No description provided for @chatMute1h.
+  ///
+  /// In ru, this message translates to:
+  /// **'На 1 час'**
+  String get chatMute1h;
+
+  /// No description provided for @chatMute8h.
+  ///
+  /// In ru, this message translates to:
+  /// **'На 8 часов'**
+  String get chatMute8h;
+
+  /// No description provided for @chatMute2d.
+  ///
+  /// In ru, this message translates to:
+  /// **'На 2 дня'**
+  String get chatMute2d;
+
+  /// No description provided for @chatMuteForever.
+  ///
+  /// In ru, this message translates to:
+  /// **'Навсегда'**
+  String get chatMuteForever;
+
+  /// No description provided for @chatFolders.
+  ///
+  /// In ru, this message translates to:
+  /// **'Папки'**
+  String get chatFolders;
 }
 
 class _AppLocalizationsDelegate

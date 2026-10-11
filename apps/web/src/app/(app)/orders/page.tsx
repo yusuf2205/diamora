@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatDate } from '@/lib/format';
 import { Button, Card, EmptyState, ErrorState, Field, Input, ListSkeleton, Modal, PageHeader, Select } from '@/components/ui';
+import { swatch } from '@/lib/swatch';
 
 interface Order { id: string; code: string; name: string; phone: string; product: { id: string; name: string } | null; colorName: string | null; quantity: number | null; comment: string | null; status: Status; staffNote: string | null; source: 'PANEL' | 'SITE' | 'BOT'; followsInBot: boolean; lines: { colorName: string; quantity?: number }[] | null; createdAt: string }
 type Status = 'NEW' | 'CONFIRMED' | 'IN_WORK' | 'DONE' | 'CANCELLED';
@@ -139,7 +140,7 @@ function NewOrderModal({ onClose }: { onClose: () => void }) {
               return (
                 <button key={c.name} type="button" aria-pressed={on} onClick={() => setPicked((p) => (on ? p.filter((x) => x !== c.name) : [...p, c.name]))}
                   className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm ${on ? 'border-primary bg-primary/10' : 'border-border'}`}>
-                  <span className="h-3.5 w-3.5 rounded-full border border-border" style={{ background: c.hex ?? undefined }} />{c.name}
+                  <span className="h-3.5 w-3.5 rounded-full border border-border" style={{ background: swatch(c.hex, c.name) }} />{c.name}
                 </button>
               );
             })}

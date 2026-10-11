@@ -33,6 +33,11 @@ String chatPreview(AppLocalizations l, ChatMessage m) {
     'VOICE' => '🎤 ${l.chatVoice}',
     'AUDIO' => '🎵 ${l.chatAudio}',
     'FILE' => '📎 ${m.file?.name ?? l.chatFile}',
+    'POLL' => '📊 ${m.data?['question'] ?? l.chatPoll}',
+    'LOCATION' => '📍 ${m.data?['label'] ?? l.chatLocation}',
+    'CONTACT' => '👤 ${m.data?['name'] ?? l.chatContact}',
+    'CARD' => '📋 ${m.data?['title'] ?? ''}',
+    'VIDEO_NOTE' => '⭕ ${l.chatVideoNote}',
     _ => null,
   };
   final text = (m.text ?? '').trim();
@@ -40,7 +45,7 @@ String chatPreview(AppLocalizations l, ChatMessage m) {
   return text.isEmpty ? label : '$label · $text';
 }
 
-String chatTitle(AppLocalizations l, {required String kind, String? title}) => kind == 'COMPANY' ? l.chatCompany : (title ?? '');
+String chatTitle(AppLocalizations l, {required String kind, String? title}) => kind == 'COMPANY' ? l.chatCompany : kind == 'SAVED' ? l.chatSaved : (title ?? '');
 
 /// «Чат»: my pinned chats, the company chat, then every conversation (newest first) with unread counts; search on top.
 class ChatListScreen extends ConsumerStatefulWidget {
@@ -51,6 +56,8 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   bool _searching = false;
+  /// «Архив» opened: only the archived chats
+  bool _archive = false;
   // like Telegram: «✎ Новый чат» at the top of the list, only the ✎ once the list is scrolled
   bool _compactFab = false;
   final _q = TextEditingController();
@@ -83,8 +90,13 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     if (_searching) return _searchScaffold(context, l);
     return Scaffold(
       appBar: AppBar(
-        title: Text(l.chat),
-        actions: [IconButton(key: const Key('chatSearch'), tooltip: l.chatSearch, icon: const Icon(Icons.search_rounded), onPressed: () => setState(() => _searching = true))],
+        leading: _archive ? IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => setState(() => _archive = false)) : null,
+        title: Text(_archive ? l.chatArchive : l.chat),
+        actions: [
+          // «Избранное»: my own chat for notes and things to keep
+          if (!_archive) IconButton(key: const Key('chatSaved'), tooltip: l.chatSaved, icon: const Icon(Icons.bookmark_rounded), onPressed: _openSaved),
+          IconButton(key: const Key('chatSearch'), tooltip: l.chatSearch, icon: const Icon(Icons.search_rounded), onPressed: () => setState(() => _searching = true)),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('chatNew'),
@@ -99,7 +111,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         Expanded(child: rooms.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e)),
-        data: (items) => items.isEmpty
+        data: (all) {
+          final archived = all.where((r) => r.archived).toList();
+          final items = _archive ? archived : all.where((r) => !r.archived).toList();
+          final showArchiveRow = !_archive && archived.isNotEmpty;
+          return items.isEmpty && !showArchiveRow
             ? EmptyState(icon: Icons.forum_rounded, title: l.chatNoChats)
             : NotificationListener<ScrollUpdateNotification>(
                 onNotification: (n) {
@@ -111,12 +127,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                 onRefresh: () => ref.refresh(chatRoomsProvider.future),
                 child: ListView.separated(
                   padding: const EdgeInsets.only(bottom: 96),
-                  itemCount: items.length,
+                  itemCount: items.length + (showArchiveRow ? 1 : 0),
                   separatorBuilder: (_, _) => const Divider(height: 1, indent: 76),
-                  itemBuilder: (context, i) => _RoomTile(room: items[i], meId: me?.id, onLongPress: () => _roomMenu(items[i])),
+                  itemBuilder: (context, i) {
+                    if (showArchiveRow && i == 0) return _ArchiveRow(rooms: archived, onTap: () => setState(() => _archive = true));
+                    final r = items[i - (showArchiveRow ? 1 : 0)];
+                    return _RoomTile(room: r, meId: me?.id, onLongPress: () => _roomMenu(r));
+                  },
                 ),
-              )),
-        )),
+              ));
+        })),
       ]),
     );
   }
@@ -131,15 +151,52 @@ extension on _ChatListScreenState {
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
-          ListTile(key: const Key('roomPin'), leading: Icon(room.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded), title: Text(room.pinned ? l.chatUnpinChat : l.chatPinChat), onTap: () => Navigator.pop(ctx, 'pin')),
-          ListTile(key: const Key('roomMute'), leading: Icon(room.muted ? Icons.notifications_active_rounded : Icons.notifications_off_rounded), title: Text(room.muted ? l.chatUnmute : l.chatMute), onTap: () => Navigator.pop(ctx, 'mute')),
+          ListTile(key: const Key('roomArchive'), leading: Icon(room.archived ? Icons.unarchive_rounded : Icons.archive_rounded), title: Text(room.archived ? l.chatUnarchive : l.chatArchiveAction), onTap: () => Navigator.pop(ctx, 'archive')),
+          if (!room.archived) ListTile(key: const Key('roomPin'), leading: Icon(room.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded), title: Text(room.pinned ? l.chatUnpinChat : l.chatPinChat), onTap: () => Navigator.pop(ctx, 'pin')),
+          if (room.muted)
+            ListTile(key: const Key('roomMute'), leading: const Icon(Icons.notifications_active_rounded), title: Text(l.chatUnmute), onTap: () => Navigator.pop(ctx, 'unmute'))
+          else ...[
+            ListTile(key: const Key('roomMute'), leading: const Icon(Icons.notifications_off_rounded), title: Text(l.chatMuteFor), enabled: false),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
+              child: Wrap(spacing: 8, runSpacing: 6, children: [
+                for (final (k, t) in [('m60', l.chatMute1h), ('m480', l.chatMute8h), ('m2880', l.chatMute2d), ('forever', l.chatMuteForever)])
+                  ActionChip(key: Key('mute-$k'), label: Text(t), onPressed: () => Navigator.pop(ctx, 'mute:$k')),
+              ]),
+            ),
+          ],
+          ListTile(
+            key: const Key('roomUnread'),
+            leading: Icon(room.unread > 0 || room.markedUnread ? Icons.mark_chat_read_rounded : Icons.mark_chat_unread_rounded),
+            title: Text(room.unread > 0 || room.markedUnread ? l.chatMarkRead : l.chatMarkUnread),
+            onTap: () => Navigator.pop(ctx, room.unread > 0 || room.markedUnread ? 'read' : 'unread'),
+          ),
         ]),
       ),
     );
     if (choice == null) return;
     try {
-      await ref.read(chatRepositoryProvider).prefs(room.id, pinned: choice == 'pin' ? !room.pinned : null, muted: choice == 'mute' ? !room.muted : null);
+      final repo = ref.read(chatRepositoryProvider);
+      switch (choice) {
+        case 'pin': await repo.prefs(room.id, pinned: !room.pinned);
+        case 'archive': await repo.prefs(room.id, archived: !room.archived);
+        case 'unmute': await repo.prefs(room.id, muted: false);
+        case 'mute:forever': await repo.prefs(room.id, muted: true);
+        case 'unread': await repo.prefs(room.id, unread: true);
+        case 'read': await repo.prefs(room.id, unread: false);
+        default:
+          if (choice.startsWith('mute:m')) await repo.prefs(room.id, muteMinutes: int.parse(choice.substring(6)));
+      }
       ref.invalidate(chatRoomsProvider);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+    }
+  }
+
+  Future<void> _openSaved() async {
+    try {
+      final s = await ref.read(chatRepositoryProvider).saved();
+      if (mounted) context.push('/chat/${s.id}');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
     }
@@ -225,7 +282,8 @@ class _RoomTile extends StatelessWidget {
       trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
         if (last != null) Text(chatWhen(l, last.createdAt), style: TextStyle(fontSize: 12, color: room.unread > 0 ? scheme.primary : scheme.outline)),
         const SizedBox(height: 4),
-        if (room.unread == 0 && room.pinned) Icon(Icons.push_pin_rounded, size: 16, color: scheme.outline),
+        if (room.unread == 0 && room.markedUnread) Container(width: 12, height: 12, decoration: BoxDecoration(color: room.muted ? scheme.outline : scheme.primary, shape: BoxShape.circle))
+        else if (room.unread == 0 && room.pinned) Icon(Icons.push_pin_rounded, size: 16, color: scheme.outline),
         if (room.unread > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -508,6 +566,31 @@ class _NewChannelSheetState extends ConsumerState<NewChannelSheet> {
           ),
         ]),
       ),
+    );
+  }
+}
+
+/// «Архив» on top of the list: the archived chats in one row (their names, how many unread)
+class _ArchiveRow extends StatelessWidget {
+  const _ArchiveRow({required this.rooms, required this.onTap});
+  final List<ChatRoomSummary> rooms;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final unread = rooms.fold<int>(0, (n, r) => n + r.unread);
+    return ListTile(
+      key: const Key('archiveRow'),
+      onTap: onTap,
+      leading: CircleAvatar(radius: 24, backgroundColor: scheme.surfaceContainerHighest, child: Icon(Icons.archive_rounded, color: scheme.outline)),
+      title: Text(l.chatArchive, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(rooms.map((r) => chatTitle(l, kind: r.kind, title: r.title)).join(', '), maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: unread > 0 ? Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(color: scheme.outline, borderRadius: BorderRadius.circular(10)),
+        child: Text('$unread', style: TextStyle(color: scheme.onPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+      ) : null,
     );
   }
 }

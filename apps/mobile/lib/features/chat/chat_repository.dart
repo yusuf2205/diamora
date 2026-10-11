@@ -65,8 +65,27 @@ class ChatRepository {
     return ChatPage(((j['items'] as List).map((m) => ChatMessage.fromJson((m as Map).cast<String, dynamic>()))).toList(), j['hasMore'] as bool? ?? false);
   }
 
-  Future<ChatMessage> sendText(String roomId, String text, String clientId, {String? replyToId}) async =>
-      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/messages', body: {'text': text, 'clientId': clientId, 'replyToId': ?replyToId}));
+  Future<ChatMessage> sendText(String roomId, String text, String clientId, {String? replyToId, bool silent = false}) async =>
+      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/messages', body: {'text': text, 'clientId': clientId, 'replyToId': ?replyToId, if (silent) 'silent': true}));
+
+  // ---- like Telegram, and more (owner, 2026-10-11) -----------------------------------------------------------------------
+  Future<ChatMessage> sendPoll(String roomId, {required String question, required List<String> options, bool multiple = false, required String clientId}) async =>
+      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/poll', body: {'question': question, 'options': options, 'multiple': multiple, 'clientId': clientId}));
+  Future<ChatMessage> vote(String messageId, List<int> options) async => ChatMessage.fromJson(await _api.postJson('/chat/messages/$messageId/vote', body: {'options': options}));
+  Future<Map<String, dynamic>> voters(String messageId) => _api.getJson('/chat/messages/$messageId/voters');
+  Future<ChatMessage> sendLocation(String roomId, {required double latitude, required double longitude, String? label, required String clientId}) async =>
+      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/location', body: {'latitude': latitude, 'longitude': longitude, 'label': ?label, 'clientId': clientId}));
+  Future<ChatMessage> sendContact(String roomId, {required String name, required String phone, required String clientId}) async =>
+      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/contact', body: {'name': name, 'phone': phone, 'clientId': clientId}));
+  Future<ChatMessage> sendCard(String roomId, {required String type, required String id, required String clientId}) async =>
+      ChatMessage.fromJson(await _api.postJson('/chat/rooms/$roomId/card', body: {'type': type, 'id': id, 'clientId': clientId}));
+  /// «Избранное»: my chat with myself
+  Future<ChatRoomDetail> saved() async => ChatRoomDetail.fromJson(await _api.postJson('/chat/saved'));
+  Future<void> schedule(String roomId, String text, DateTime sendAt, {String? replyToId}) =>
+      _api.postJson('/chat/rooms/$roomId/scheduled', body: {'text': text, 'sendAt': sendAt.toUtc().toIso8601String(), 'replyToId': ?replyToId});
+  Future<List<Map<String, dynamic>>> scheduled(String roomId) async =>
+      ((await _api.getJson('/chat/rooms/$roomId/scheduled'))['items'] as List).cast<Map>().map((x) => x.cast<String, dynamic>()).toList();
+  Future<void> unschedule(String id) => _api.delete('/chat/scheduled/$id');
 
   Future<ChatMessage> edit(String id, String text) async => ChatMessage.fromJson(await _api.patchJson('/chat/messages/$id', body: {'text': text}));
 
@@ -77,7 +96,8 @@ class ChatRepository {
   Future<ChatRoomDetail> pin(String roomId, String? messageId) async => ChatRoomDetail.fromJson(await _api.postJson('/chat/rooms/$roomId/pin', body: {'messageId': messageId}));
 
   /// My own settings for a chat (keep on top / no notifications).
-  Future<void> prefs(String roomId, {bool? pinned, bool? muted}) => _api.patchJson('/chat/rooms/$roomId/me', body: {'pinned': ?pinned, 'muted': ?muted});
+  Future<void> prefs(String roomId, {bool? pinned, bool? muted, int? muteMinutes, bool? archived, bool? unread}) =>
+      _api.patchJson('/chat/rooms/$roomId/me', body: {'pinned': ?pinned, 'muted': ?muted, 'muteMinutes': ?muteMinutes, 'archived': ?archived, 'unread': ?unread});
 
   Future<ChatSearchResult> search(String q) async {
     final j = await _api.getJson('/chat/search', query: {'q': q});

@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Card, ErrorState, Input, PageHeader } from '@/components/ui';
@@ -17,7 +18,8 @@ interface Found {
 
 /** «Поиск» (owner, 2026-10-11): one line for workers, works, customer orders, materials, models and staff. */
 export default function SearchPage() {
-  const [q, setQ] = useState('');
+  const params = useSearchParams();
+  const [q, setQ] = useState(() => params.get('q') ?? '');
   const [debounced, setDebounced] = useState('');
   useEffect(() => { const t = setTimeout(() => setDebounced(q.trim()), 300); return () => clearTimeout(t); }, [q]);
   const found = useQuery<Found>({ queryKey: ['search', debounced], queryFn: () => api.get<Found>('/admin/search', { q: debounced }), enabled: debounced.length >= 2 });

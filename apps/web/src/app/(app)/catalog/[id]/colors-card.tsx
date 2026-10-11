@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import type { CatalogItem } from '@/lib/types';
 import { Button, Card, ErrorState, Field, Input, Select } from '@/components/ui';
+import { swatch } from '@/lib/swatch';
 
 interface Color { id: string; name: string; hex: string | null; isActive: boolean }
 
@@ -42,7 +43,7 @@ export function ColorsCard({ item, canManage }: { item: CatalogItem; canManage: 
         <div className="flex flex-wrap gap-2">
           {item.variants.map((v) => (
             <span key={v.id} className={`inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm ${v.active ? '' : 'opacity-50'}`}>
-              <span className="h-3 w-3 rounded-full border border-border" style={{ background: v.color?.hex ?? 'transparent' }} />
+              <span className="h-3 w-3 rounded-full border border-border" style={{ background: swatch(v.color?.hex, v.color?.name) ?? 'transparent' }} />
               {v.color?.name ?? '—'}{v.label ? ` · ${v.label}` : ''}
             </span>
           ))}

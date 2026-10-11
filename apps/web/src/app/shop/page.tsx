@@ -5,6 +5,7 @@ import { CheckCircle2, Phone, PlayCircle, Send, ShoppingBag, X } from 'lucide-re
 import { fetchTutorials, type Tutorial, VideoModal } from '@/components/tutorials';
 import { apiOrigin } from '@/lib/api';
 import { Logo } from '@/components/ui';
+import { swatch } from '@/lib/swatch';
 
 interface Item { id: string; name: string; isNew: boolean; availability: string; coverPhoto: { url: string; thumbUrl: string } | null; colors: { id: string; name: string | null; hex: string | null }[] }
 const num = (v?: string) => (v && Number(v.replace(',', '.')) > 0 ? Number(v.replace(',', '.')) : undefined);
@@ -106,7 +107,7 @@ export default function ShopPage() {
               <p className="font-semibold leading-tight">{it.name}</p>
               {it.availability === 'ON_REQUEST' && <p className="text-xs text-muted">под заказ</p>}
               <div className="mt-2 flex flex-wrap gap-1">
-                {it.colors.slice(0, 10).map((c) => <span key={c.id} title={c.name ?? ''} className="h-4 w-4 rounded-full border border-border" style={{ background: c.hex ?? undefined }} />)}
+                {it.colors.slice(0, 10).map((c) => <span key={c.id} title={c.name ?? ''} className="h-4 w-4 rounded-full border border-border" style={{ background: swatch(c.hex, c.name) }} />)}
               </div>
             </div>
           </button>
@@ -205,7 +206,7 @@ function OrderSheet({ item, onClose, onDone }: { item: Item; onClose: () => void
                       <button key={c.id} type="button" aria-pressed={on}
                         onClick={() => c.name && setPicked((p) => (on ? p.filter((x) => x !== c.name) : [...p, c.name!]))}
                         className={`flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-medium ${on ? 'border-primary bg-primary/10' : 'border-border'}`}>
-                        <span className="grid h-4 w-4 place-items-center rounded-full border border-border text-[10px] text-white" style={{ background: c.hex ?? undefined }}>{on ? '✓' : ''}</span>{c.name}
+                        <span className="grid h-4 w-4 place-items-center rounded-full border border-border text-[10px] text-white" style={{ background: swatch(c.hex, c.name) }}>{on ? '✓' : ''}</span>{c.name}
                       </button>
                     );
                   })}

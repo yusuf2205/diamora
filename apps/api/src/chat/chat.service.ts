@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Header, HttpCode, Inject, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Delete, Get, Header, HttpCode, Inject, Injectable, Logger, Module, OnModuleDestroy, OnModuleInit, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import { Throttle } from '@nestjs/throttler';
 import type { Socket } from 'socket.io';
@@ -14,8 +14,10 @@ import { Prisma, type ChatAudience, type ChatMember, type ChatMessage, type Chat
 import {
   CHAT_CHUNK_BYTES, CHAT_MAX_FILE_BYTES, CHAT_MAX_VIDEO_BYTES, chatUploadStartSchema, chatChannelSchema, chatContactsQuerySchema, chatMediaQuerySchema, chatDirectSchema, chatEditSchema, chatFileFieldsSchema, chatForwardSchema, chatGroupSchema,
   chatGroupUpdateSchema, chatMemberPrefsSchema, chatProtectSchema, chatMessagesQuerySchema, chatPinSchema, chatReactSchema, chatSearchSchema, chatTextSchema, scopeFor,
-  type ChatMessageKind,
+  chatCardSchema, chatContactSchema, chatLocationSchema, chatPollSchema, chatScheduleSchema, chatVoteSchema, effectivePermissions,
+  type ChatMessageKind, type Role,
 } from '@diamoraa/shared';
+import { fetchLinkPreview } from './link-preview';
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser } from '../common/decorators';
 import { AppError, fileRejected, forbidden, notFound, validationFailed } from '../common/errors';
@@ -35,6 +37,7 @@ export const COMPANY_ROOM_ID = '00000000-0000-4000-8000-00000000c4a7';
 
 const PREVIEW: Record<Exclude<ChatMessageKind, 'TEXT'>, string> = {
   IMAGE: '📷 Фото', VIDEO: '🎬 Видео', VOICE: '🎤 Голосовое сообщение', AUDIO: '🎵 Аудио', FILE: '📎 Файл',
+  POLL: '📊 Опрос', LOCATION: '📍 Геопозиция', CONTACT: '👤 Контакт', CARD: '📋 Карточка', VIDEO_NOTE: '⭕ Видеосообщение',
 };
 const isAdmin = (u: AuthUser) => u.role === 'SUPER_ADMIN' || u.role === 'ADMIN';
 const directKey = (a: string, b: string) => [a, b].sort().join(':');
@@ -47,7 +50,7 @@ type MessageRow = ChatMessage & {
 };
 const SENDER = { select: { id: true, fullName: true, role: true, avatarFileId: true } } as const;
 /** everything a message row needs to be shown (who, what it answers, reactions) */
-const MSG_INCLUDE = { sender: SENDER, replyTo: { include: { sender: SENDER } }, reactions: { select: { userId: true, emoji: true } } } as const;
+const MSG_INCLUDE = { sender: SENDER, replyTo: { include: { sender: SENDER } }, reactions: { select: { userId: true, emoji: true } }, pollVotes: { select: { userId: true, option: true } } } as const;
 /** a sent message can be edited for 48 hours */
 const EDIT_WINDOW_MS = 48 * 3600_000;
 const FAR_FUTURE = new Date('9999-01-01T00:00:00Z');
@@ -91,7 +94,9 @@ function safeExt(name: string | undefined): string {
  * 403: rooms are not enumerable). New messages reach members at once over the socket (chat.message) and as a push.
  */
 @Injectable()
-export class ChatService {
+export class ChatService implements OnModuleInit, OnModuleDestroy {
+  private readonly log = new Logger('Chat');
+  private dueTimer?: NodeJS.Timeout;
   constructor(
     private readonly prisma: PrismaService,
     private readonly files: FilesService,
@@ -101,6 +106,10 @@ export class ChatService {
     private readonly audit: AuditService,
     @Inject(ENV) private readonly env: Env,
   ) {}
+
+  /** «Отправить позже»: the API process sends what is due every 20 s */
+  onModuleInit() { if (process.env.NODE_ENV !== 'test') this.dueTimer = setInterval(() => void this.sendDue().catch(() => undefined), 20_000); }
+  onModuleDestroy() { if (this.dueTimer) clearInterval(this.dueTimer); }
 
   // ---- channels: an audience reads, admins post --------------------------------------------------------------------------
   private audienceWhere(a: ChatAudience): Prisma.UserWhereInput | null {
@@ -490,6 +499,9 @@ export class ChatService {
       reactions: [...counts.values()].sort((a, b) => b.count - a.count),
       sender: m.sender ? { id: m.sender.id, fullName: m.sender.fullName, role: m.sender.role, avatar: m.sender.avatarFileId ? (this.files.ref(m.sender.avatarFileId)?.thumbUrl ?? null) : null } : null,
       waveform: m.waveform ?? null,
+      data: deleted ? null : (m.data ?? null),
+      poll: !deleted && m.kind === 'POLL' ? this.pollView(m, meId) : null,
+      linkPreview: deleted ? null : (m.linkPreview ?? null),
       kind: deleted ? 'TEXT' : m.kind,
       text: deleted ? null : m.text,
       deleted,
@@ -501,8 +513,22 @@ export class ChatService {
     };
   }
 
-  private preview(m: Pick<ChatMessage, 'kind' | 'text'>) {
-    return m.kind === 'TEXT' ? (m.text ?? '') : m.text ? `${PREVIEW[m.kind]} · ${m.text}` : PREVIEW[m.kind];
+  private preview(m: Pick<ChatMessage, 'kind' | 'text'> & { data?: Prisma.JsonValue | null }) {
+    const d = (m.data ?? {}) as Record<string, string | undefined>;
+    const what = m.kind === 'POLL' ? d.question : m.kind === 'CONTACT' ? d.name : m.kind === 'CARD' ? d.title : m.kind === 'LOCATION' ? d.label : undefined;
+    if (m.kind === 'TEXT') return m.text ?? '';
+    const head = what ? `${PREVIEW[m.kind]}: ${what}` : PREVIEW[m.kind];
+    return m.text ? `${head} · ${m.text}` : head;
+  }
+
+  /** a poll's answers: how many chose each, which mine are, how many people answered */
+  private pollView(m: MessageRow, meId?: string) {
+    const d = (m.data ?? {}) as { question?: string; options?: string[]; multiple?: boolean };
+    const votes = (m as MessageRow & { pollVotes?: { userId: string; option: number }[] }).pollVotes ?? [];
+    return {
+      question: d.question ?? '', multiple: !!d.multiple, voters: new Set(votes.map((v) => v.userId)).size,
+      options: (d.options ?? []).map((text, i) => ({ text, count: votes.filter((v) => v.option === i).length, mine: votes.some((v) => v.option === i && v.userId === meId) })),
+    };
   }
 
   /** «Очистить историю» for me: messages before this are not shown to this person. */
@@ -535,7 +561,8 @@ export class ChatService {
     const muted = new Set((await this.prisma.chatMember.findMany({ where: { roomId: room.id, mutedUntil: { gt: new Date() } }, select: { userId: true } })).map((x) => x.userId));
     const title = room.kind === 'DIRECT' ? u.fullName : room.kind === 'COMPANY' ? 'Общий чат' : (room.title ?? 'Группа');
     const body = room.kind === 'DIRECT' ? preview : `${u.fullName}: ${preview}`;
-    for (const id of userIds) if (id !== u.id && !muted.has(id)) void this.push.send(id, { id: m.id, title, body: body.slice(0, 300), link: `/chat/${room.id}`, kind: 'chat' });
+    // «без звука»: in the chat as usual, only no push
+    if (!m.silent) for (const id of userIds) if (id !== u.id && !muted.has(id)) void this.push.send(id, { id: m.id, title, body: body.slice(0, 300), link: `/chat/${room.id}`, kind: 'chat' });
   }
 
   private async existing(u: AuthUser, clientId: string | undefined) {
@@ -549,12 +576,148 @@ export class ChatService {
     if (again) return this.dto(again, u.id); // a retried send (bad connection): the same message, not a second one
     const replyToId = await this.replyTarget(roomId, b.replyToId);
     const m = await this.prisma.chatMessage.create({
-      data: { roomId, senderId: u.id, kind: 'TEXT', text: b.text, clientId: b.clientId, replyToId },
+      data: { roomId, senderId: u.id, kind: 'TEXT', text: b.text, clientId: b.clientId, replyToId, silent: !!b.silent },
+      include: MSG_INCLUDE,
+    });
+    await this.deliver(u, room, m);
+    void this.attachPreview(room, m).catch(() => undefined); // the link's card arrives a moment later
+    return this.dto(m, u.id);
+  }
+
+  // ---- like Telegram, and more (owner, 2026-10-11): polls, location, contact, work cards, «Избранное», «отправить позже» ----
+  /** One message of a special kind (poll, location, contact, card): stored with its data, delivered like any other. */
+  private async sendSpecial(u: AuthUser, roomId: string, kind: ChatMessageKind, data: Prisma.InputJsonValue, base: { clientId?: string; replyToId?: string; silent?: boolean }, text?: string) {
+    const room = await this.writable(u, roomId);
+    const again = await this.existing(u, base.clientId);
+    if (again) return this.dto(again, u.id);
+    const m = await this.prisma.chatMessage.create({
+      data: { roomId, senderId: u.id, kind, text: text ?? null, data, clientId: base.clientId, replyToId: await this.replyTarget(roomId, base.replyToId), silent: !!base.silent },
       include: MSG_INCLUDE,
     });
     await this.deliver(u, room, m);
     return this.dto(m, u.id);
   }
+
+  sendPoll(u: AuthUser, roomId: string, b: z.output<typeof chatPollSchema>) {
+    return this.sendSpecial(u, roomId, 'POLL', { question: b.question, options: b.options, multiple: b.multiple }, b);
+  }
+
+  /** My answer: the options I pick now (a single-answer poll takes one; an empty list takes my vote back). */
+  async vote(u: AuthUser, messageId: string, b: z.output<typeof chatVoteSchema>) {
+    const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
+    if (!m || m.deletedAt || m.kind !== 'POLL') throw notFound('Poll');
+    const room = await this.access(u, m.roomId);
+    const poll = m.data as { options: string[]; multiple?: boolean };
+    const picked = [...new Set(b.options)].filter((o) => o < poll.options.length);
+    if (!poll.multiple && picked.length > 1) throw validationFailed('Only one answer in this poll');
+    await this.prisma.$transaction([
+      this.prisma.chatPollVote.deleteMany({ where: { messageId, userId: u.id } }),
+      ...(picked.length ? [this.prisma.chatPollVote.createMany({ data: picked.map((option) => ({ messageId, userId: u.id, option })) })] : []),
+    ]);
+    await this.updated(room, messageId);
+    return this.dto((await this.prisma.chatMessage.findUniqueOrThrow({ where: { id: messageId }, include: MSG_INCLUDE })), u.id);
+  }
+
+  /** Who answered what (not for the other members of a channel: there only the counts). */
+  async pollVoters(u: AuthUser, messageId: string) {
+    const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
+    if (!m || m.kind !== 'POLL') throw notFound('Poll');
+    const room = await this.access(u, m.roomId);
+    if (room.kind === 'CHANNEL' && !this.canManage(u, room, await this.me(u, room.id))) throw forbidden('Only the channel admins see who answered');
+    const votes = await this.prisma.chatPollVote.findMany({ where: { messageId }, orderBy: { createdAt: 'asc' } });
+    const people = await this.prisma.user.findMany({ where: { id: { in: [...new Set(votes.map((v) => v.userId))] } }, select: { id: true, fullName: true } });
+    const name = new Map(people.map((p) => [p.id, p.fullName]));
+    const options = (m.data as { options: string[] }).options;
+    return { options: options.map((text, i) => ({ text, people: votes.filter((v) => v.option === i).map((v) => ({ id: v.userId, fullName: name.get(v.userId) ?? '' })) })) };
+  }
+
+  sendLocation(u: AuthUser, roomId: string, b: z.output<typeof chatLocationSchema>) {
+    return this.sendSpecial(u, roomId, 'LOCATION', { latitude: b.latitude, longitude: b.longitude, label: b.label ?? null }, b);
+  }
+
+  sendContact(u: AuthUser, roomId: string, b: z.output<typeof chatContactSchema>) {
+    return this.sendSpecial(u, roomId, 'CONTACT', { name: b.name, phone: b.phone }, b);
+  }
+
+  /** «Карточка»: a work / an order / a worker in the chat, with what it is now and a button that opens it. Staff only. */
+  async sendCard(u: AuthUser, roomId: string, b: z.output<typeof chatCardSchema>) {
+    if (u.role === 'WORKER') throw forbidden();
+    let data: Record<string, string | number | null>;
+    if (b.type === 'assignment') {
+      const a = await this.prisma.workAssignment.findUnique({ where: { id: b.id }, include: { worker: { select: { fullName: true } }, productModel: { select: { name: true } }, color: { select: { name: true } } } });
+      if (!a) throw notFound('Work');
+      data = { type: 'assignment', id: a.id, title: `${a.code} · ${a.worker.fullName}`, subtitle: `${a.productModel.name} · ${a.color.name} · ${Number(a.plannedMeters)} м`, status: a.status, link: `/admin/assignments/${a.id}` };
+    } else if (b.type === 'order') {
+      const o = await this.prisma.clientOrder.findUnique({ where: { id: b.id } });
+      if (!o) throw notFound('Order');
+      data = { type: 'order', id: o.id, title: `${o.code} · ${o.name}`, subtitle: o.phone, status: o.status, link: '/admin/orders' };
+    } else {
+      const w = await this.prisma.workerProfile.findUnique({ where: { id: b.id } });
+      if (!w) throw notFound('Worker');
+      data = { type: 'worker', id: w.id, title: w.fullName, subtitle: `${w.code} · ${w.phone}`, status: w.status, link: `/admin/workers/${w.id}` };
+    }
+    return this.sendSpecial(u, roomId, 'CARD', data, b);
+  }
+
+  /** «Избранное»: my own chat with myself (made the first time it is opened). */
+  async savedRoom(u: AuthUser) {
+    const mine = await this.prisma.chatMember.findFirst({ where: { userId: u.id, room: { kind: 'SAVED' } }, select: { roomId: true } });
+    if (mine) return this.room(u, mine.roomId);
+    const room = await this.prisma.chatRoom.create({
+      data: { kind: 'SAVED', title: 'Избранное', createdById: u.id, members: { create: [{ userId: u.id, isOwner: true, lastReadAt: new Date() }] } },
+    });
+    return this.room(u, room.id);
+  }
+
+  // ---- «Отправить позже» --------------------------------------------------------------------------------------------------
+  async schedule(u: AuthUser, roomId: string, b: z.output<typeof chatScheduleSchema>) {
+    await this.writable(u, roomId);
+    const row = await this.prisma.chatScheduledMessage.create({ data: { roomId, senderId: u.id, text: b.text, replyToId: b.replyToId ?? null, sendAt: b.sendAt } });
+    return { id: row.id, text: row.text, sendAt: row.sendAt.toISOString() };
+  }
+
+  async scheduled(u: AuthUser, roomId: string) {
+    await this.access(u, roomId);
+    const rows = await this.prisma.chatScheduledMessage.findMany({ where: { roomId, senderId: u.id, sentAt: null }, orderBy: { sendAt: 'asc' } });
+    return { items: rows.map((r) => ({ id: r.id, text: r.text, sendAt: r.sendAt.toISOString() })) };
+  }
+
+  async unschedule(u: AuthUser, id: string) {
+    const r = await this.prisma.chatScheduledMessage.deleteMany({ where: { id, senderId: u.id, sentAt: null } });
+    if (!r.count) throw notFound('Scheduled message');
+    return { ok: true };
+  }
+
+  /** Every 20 s (API process): the scheduled messages whose time came are sent as their author, once. */
+  async sendDue(now = new Date()) {
+    const due = await this.prisma.chatScheduledMessage.findMany({ where: { sentAt: null, sendAt: { lte: now } }, take: 50 });
+    for (const s of due) {
+      const claimed = await this.prisma.chatScheduledMessage.updateMany({ where: { id: s.id, sentAt: null }, data: { sentAt: now } });
+      if (!claimed.count) continue; // another tick took it
+      try {
+        const user = await this.prisma.user.findUnique({ where: { id: s.senderId }, include: { permissions: true } });
+        if (!user || user.status !== 'ACTIVE') continue;
+        const w = user.role === 'WORKER' ? await this.prisma.workerProfile.findFirst({ where: { userId: user.id }, select: { id: true } }) : null;
+        const actor: AuthUser = { id: user.id, role: user.role as Role, fullName: user.fullName, sessionId: 'scheduled', workerId: w?.id ?? null, permissions: effectivePermissions(user.role as Role, user.permissions) };
+        const m = await this.sendText(actor, s.roomId, { text: s.text, replyToId: s.replyToId ?? undefined, clientId: `sched-${s.id}` });
+        await this.prisma.chatScheduledMessage.update({ where: { id: s.id }, data: { messageId: m.id } });
+      } catch (e) {
+        this.log.warn(`scheduled message ${s.id}: ${(e as Error).message}`);
+      }
+    }
+  }
+
+  // ---- link previews ----------------------------------------------------------------------------------------------------
+  /** The first link in a text: its page's title / description / picture, fetched once, shown under the message. */
+  private async attachPreview(room: ChatRoom, m: { id: string; text: string | null }) {
+    const url = /https?:\/\/[^\s<>"]+/i.exec(m.text ?? '')?.[0];
+    if (!url) return;
+    const p = await fetchLinkPreview(url).catch(() => null);
+    if (!p) return;
+    await this.prisma.chatMessage.update({ where: { id: m.id }, data: { linkPreview: p as unknown as Prisma.InputJsonValue } });
+    await this.updated(room, m.id);
+  }
+
 
   /** One file message (multipart ≤ 50 MB). Larger videos come in parts: startUpload / putChunk / completeUpload. */
   async sendFile(u: AuthUser, roomId: string, b: z.output<typeof chatFileFieldsSchema>, file: { buffer: Buffer; originalName?: string; mimetype?: string; thumb?: Buffer }) {
@@ -978,6 +1141,36 @@ export class ChatController {
 
   @Authenticated() @Get('rooms')
   rooms(@CurrentUser() u: AuthUser) { return this.chat.rooms(u); }
+
+  @Authenticated() @Post('saved') @HttpCode(200)
+  saved(@CurrentUser() u: AuthUser) { return this.chat.savedRoom(u); }
+
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('rooms/:id/poll') @ApiZodBody(chatPollSchema)
+  poll(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatPollSchema) b: z.output<typeof chatPollSchema>) { return this.chat.sendPoll(u, id, b); }
+
+  @Authenticated() @Post('messages/:id/vote') @HttpCode(200) @ApiZodBody(chatVoteSchema)
+  vote(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatVoteSchema) b: z.output<typeof chatVoteSchema>) { return this.chat.vote(u, id, b); }
+
+  @Authenticated() @Get('messages/:id/voters')
+  voters(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.pollVoters(u, id); }
+
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('rooms/:id/location') @ApiZodBody(chatLocationSchema)
+  location(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatLocationSchema) b: z.output<typeof chatLocationSchema>) { return this.chat.sendLocation(u, id, b); }
+
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('rooms/:id/contact') @ApiZodBody(chatContactSchema)
+  contact(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatContactSchema) b: z.output<typeof chatContactSchema>) { return this.chat.sendContact(u, id, b); }
+
+  @Authenticated() @Throttle({ default: { limit: 30, ttl: 60_000 } }) @Post('rooms/:id/card') @ApiZodBody(chatCardSchema)
+  card(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatCardSchema) b: z.output<typeof chatCardSchema>) { return this.chat.sendCard(u, id, b); }
+
+  @Authenticated() @Post('rooms/:id/scheduled') @ApiZodBody(chatScheduleSchema)
+  schedule(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string, @ZodBody(chatScheduleSchema) b: z.output<typeof chatScheduleSchema>) { return this.chat.schedule(u, id, b); }
+
+  @Authenticated() @Get('rooms/:id/scheduled')
+  scheduled(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.scheduled(u, id); }
+
+  @Authenticated() @Delete('scheduled/:id') @HttpCode(200)
+  unschedule(@CurrentUser() u: AuthUser, @Param('id', new ParseUUIDPipe()) id: string) { return this.chat.unschedule(u, id); }
 
   @Authenticated() @Get('unread')
   unread(@CurrentUser() u: AuthUser) { return this.chat.unread(u); }

@@ -30,6 +30,9 @@ import 'chat_gallery.dart';
 import 'chat_profile.dart';
 import 'chat_media.dart';
 import 'chat_models.dart';
+import 'chat_more.dart';
+import '../manager/manager_tools.dart' show showReminderSheet;
+import 'package:geolocator/geolocator.dart';
 import 'chat_repository.dart';
 
 const _uuid = Uuid();
@@ -62,6 +65,8 @@ class _Outgoing {
   int? durationMs;
   double progress = 0;
   bool failed = false;
+  /// «Отправить без звука»
+  bool silent = false;
   final createdAt = DateTime.now();
 }
 
@@ -97,6 +102,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   // voice
   final _recorder = AudioRecorder();
   bool _recording = false;
+  /// messages that arrived while open: they pop in once
+  final _fresh = <String>{};
   /// slid up onto the lock: the recording goes on without the finger
   bool _recLocked = false;
   DateTime? _recStarted;
@@ -216,7 +223,10 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   /// Adds messages by id (a socket hint and my own send can deliver the same one), newest first.
   void _merge(List<ChatMessage> items) {
     final byId = {for (final m in _messages) m.id: m};
+    final firstLoad = _messages.isEmpty;
     for (final m in items) {
+      // a message that arrives while the chat is open pops in (not the history loaded on opening)
+      if (!firstLoad && !byId.containsKey(m.id)) _fresh.add(m.id);
       byId[m.id] = m;
       _outgoing.removeWhere((o) => o.clientId == m.clientId);
     }
@@ -232,7 +242,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     setState(() { o.failed = false; o.progress = 0; });
     try {
       final m = o.path == null
-          ? await _repo.sendText(widget.roomId, o.text!, o.clientId, replyToId: o.replyToId)
+          ? await _repo.sendText(widget.roomId, o.text!, o.clientId, replyToId: o.replyToId, silent: o.silent)
           : await _repo.sendFile(widget.roomId, path: o.path!, filename: o.filename!, kind: o.kind, clientId: o.clientId, text: o.text, durationMs: o.durationMs, replyToId: o.replyToId,
               width: o.width, height: o.height, thumb: o.thumb, waveform: o.waveform, cancel: o.cancel,
               onProgress: (p) { if (mounted) setState(() => o.progress = p); });
@@ -247,6 +257,100 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
       }
     }
+  }
+
+  /// a poll / location / contact / card: sent at once, shown when the server answers
+  Future<void> _sendSpecial(Future<ChatMessage> Function(String clientId) send) async {
+    try {
+      final m = await send(_uuid.v4());
+      if (!mounted) return;
+      setState(() => _merge([m]));
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+    }
+  }
+
+  Future<void> _sendMyLocation() async {
+    final l = AppLocalizations.of(context);
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatLocationDenied)));
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)));
+      await _sendSpecial((id) => _repo.sendLocation(widget.roomId, latitude: pos.latitude, longitude: pos.longitude, label: l.chatMyLocation, clientId: id));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatLocationFailed)));
+    }
+  }
+
+  /// a long press on «send»: without sound, or later (like Telegram)
+  Future<void> _sendOptions() async {
+    final l = AppLocalizations.of(context);
+    final text = _text.text.trim();
+    if (text.isEmpty || _editing != null) return;
+    final choice = await showAppSheet<String>(
+      context: context, scrollable: true, showDragHandle: true,
+      builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(key: const Key('sendSilent'), leading: const Icon(Icons.notifications_off_rounded), title: Text(l.chatSendSilent), onTap: () => Navigator.pop(ctx, 'silent')),
+        ListTile(key: const Key('sendLater'), leading: const Icon(Icons.schedule_send_rounded), title: Text(l.chatSendLater), onTap: () => Navigator.pop(ctx, 'later')),
+      ])),
+    );
+    if (choice == null || !mounted) return;
+    if (choice == 'silent') {
+      _text.clear();
+      final o = _Outgoing(clientId: _uuid.v4(), kind: 'TEXT', text: text, replyToId: _replyTo?.id)..silent = true;
+      setState(() { _outgoing.insert(0, o); _replyTo = null; });
+      _saveDraft();
+      await _sendOutgoing(o);
+      return;
+    }
+    final now = DateTime.now();
+    final d = await showDatePicker(context: context, initialDate: now, firstDate: now, lastDate: now.add(const Duration(days: 365)));
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))));
+    if (t == null || !mounted) return;
+    final at = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    if (at.isBefore(DateTime.now().add(const Duration(minutes: 1)))) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatLaterInPast)));
+      return;
+    }
+    try {
+      await _repo.schedule(widget.roomId, text, at, replyToId: _replyTo?.id);
+      _text.clear();
+      _saveDraft();
+      if (!mounted) return;
+      setState(() => _replyTo = null);
+      String two(int v) => v.toString().padLeft(2, '0');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatLaterSaved('${two(at.day)}.${two(at.month)} ${two(at.hour)}:${two(at.minute)}'))));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e))));
+    }
+  }
+
+  /// «Отложенные»: what I scheduled here, cancellable
+  Future<void> _showScheduled() async {
+    final l = AppLocalizations.of(context);
+    final items = await _repo.scheduled(widget.roomId).catchError((_) => <Map<String, dynamic>>[]);
+    if (!mounted) return;
+    String two(int v) => v.toString().padLeft(2, '0');
+    await showAppSheet<void>(
+      context: context, scrollable: true, showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, set) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), child: Text(l.chatScheduled, style: Theme.of(ctx).textTheme.titleMedium)),
+        if (items.isEmpty) Padding(padding: const EdgeInsets.all(16), child: Text(l.chatScheduledNone)),
+        for (final it in [...items])
+          ListTile(
+            leading: const Icon(Icons.schedule_rounded),
+            title: Text('${it['text']}', maxLines: 2, overflow: TextOverflow.ellipsis),
+            subtitle: Builder(builder: (_) { final d = DateTime.parse('${it['sendAt']}').toLocal(); return Text('${two(d.day)}.${two(d.month)} ${two(d.hour)}:${two(d.minute)}'); }),
+            trailing: IconButton(icon: const Icon(Icons.delete_outline_rounded), onPressed: () async { await _repo.unschedule('${it['id']}'); set(() => items.remove(it)); }),
+          ),
+      ]))),
+    );
   }
 
   void _sendText() {
@@ -324,10 +428,40 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           ListTile(leading: const Icon(Icons.video_library_rounded), title: Text(l.chatVideo), onTap: () => Navigator.pop(ctx, 'video')),
           ListTile(leading: const Icon(Icons.videocam_rounded), title: Text(l.chatRecordVideo), onTap: () => Navigator.pop(ctx, 'recordVideo')),
           ListTile(key: const Key('attachFile'), leading: const Icon(Icons.attach_file_rounded), title: Text(l.chatFile), onTap: () => Navigator.pop(ctx, 'file')),
+          const Divider(height: 8),
+          ListTile(key: const Key('attachPoll'), leading: const Icon(Icons.poll_rounded), title: Text(l.chatPoll), onTap: () => Navigator.pop(ctx, 'poll')),
+          ListTile(key: const Key('attachLocation'), leading: const Icon(Icons.location_on_rounded), title: Text(l.chatLocation), onTap: () => Navigator.pop(ctx, 'location')),
+          ListTile(key: const Key('attachContact'), leading: const Icon(Icons.person_rounded), title: Text(l.chatContact), onTap: () => Navigator.pop(ctx, 'contact')),
+          if (ref.read(authControllerProvider).value?.isStaff ?? false) ...[
+            ListTile(key: const Key('attachCard'), leading: const Icon(Icons.assignment_rounded), title: Text(l.chatCardAttach), onTap: () => Navigator.pop(ctx, 'card')),
+            ListTile(key: const Key('attachQuick'), leading: const Icon(Icons.bolt_rounded), title: Text(l.quickReplies), onTap: () => Navigator.pop(ctx, 'quick')),
+          ],
         ]),
       ),
     );
     if (choice == null) return;
+    if (!mounted) return;
+    switch (choice) {
+      case 'poll':
+        final r = await showPollSheet(context);
+        if (r != null) await _sendSpecial((id) => _repo.sendPoll(widget.roomId, question: r.question, options: r.options, multiple: r.multiple, clientId: id));
+        return;
+      case 'location':
+        await _sendMyLocation();
+        return;
+      case 'contact':
+        final r = await showContactSheet(context);
+        if (r != null) await _sendSpecial((id) => _repo.sendContact(widget.roomId, name: r.name, phone: r.phone, clientId: id));
+        return;
+      case 'card':
+        final r = await showCardPicker(context, ref);
+        if (r != null) await _sendSpecial((id) => _repo.sendCard(widget.roomId, type: r.type, id: r.id, clientId: id));
+        return;
+      case 'quick':
+        final t = await showQuickReplies(context, ref);
+        if (t != null) setState(() => _text.text = t);
+        return;
+    }
     final picker = ImagePicker();
     switch (choice) {
       case 'photo':
@@ -433,6 +567,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           if ((m.text ?? '').isNotEmpty && !(_room?.protectContent ?? false)) ListTile(leading: const Icon(Icons.copy_rounded), title: Text(l.chatCopy), onTap: () => Navigator.pop(ctx, 'copy')),
           if (canEdit) ListTile(key: const Key('msgEdit'), leading: const Icon(Icons.edit_rounded), title: Text(l.chatEdit), onTap: () => Navigator.pop(ctx, 'edit')),
           if (!(_room?.protectContent ?? false)) ListTile(key: const Key('msgForward'), leading: const Icon(Icons.forward_rounded), title: Text(l.chatForward), onTap: () => Navigator.pop(ctx, 'forward')),
+          if (!(_room?.protectContent ?? false) && _room?.kind != 'SAVED') ListTile(key: const Key('msgSave'), leading: const Icon(Icons.bookmark_add_rounded), title: Text(l.chatSaveToSaved), onTap: () => Navigator.pop(ctx, 'save')),
+          if (ref.read(authControllerProvider).value?.isStaff ?? false) ListTile(key: const Key('msgRemind'), leading: const Icon(Icons.alarm_add_rounded), title: Text(l.reminderAdd), onTap: () => Navigator.pop(ctx, 'remind')),
           if (_room?.canPin ?? false)
             ListTile(key: const Key('msgPin'), leading: Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded), title: Text(isPinned ? l.chatUnpin : l.chatPin), onTap: () => Navigator.pop(ctx, 'pin')),
           if (canDelete)
@@ -450,6 +586,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     void fail(Object e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context, e)))); }
     if (choice.startsWith('react:')) {
       await _react(m, choice.substring(6));
+    } else if (choice == 'save') {
+      try {
+        final saved = await _repo.saved();
+        await _repo.forward(m.id, [saved.id]);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatSavedDone)));
+      } catch (e) {
+        fail(e);
+      }
+    } else if (choice == 'remind') {
+      await showReminderSheet(context, text: chatPreview(l, m));
     } else if (choice == 'reply') {
       setState(() { _replyTo = m; _editing = null; });
     } else if (choice == 'edit') {
@@ -516,6 +662,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final room = _room;
     if (room == null) return;
     final messenger = ScaffoldMessenger.of(context);
+    if (a == 'scheduled') return _showScheduled();
     try {
       switch (a) {
         case 'mute':
@@ -652,6 +799,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               onSelected: _roomAction,
               itemBuilder: (_) => [
                 PopupMenuItem(value: 'mute', child: Text(room.muted ? l.chatUnmute : l.chatMute)),
+                PopupMenuItem(value: 'scheduled', child: Text(l.chatScheduled)),
                 PopupMenuItem(value: 'info', child: Text(room.kind == 'DIRECT' ? l.chatShowProfile : l.chatInfo)),
                 if (room.canProtect) PopupMenuItem(value: 'protect', child: Text(room.protectContent ? l.chatProtectOff : l.chatProtectOn)),
                 if (!room.protectContent || room.canProtect) PopupMenuItem(value: 'export', child: Text(l.chatExport)),
@@ -759,6 +907,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                                     onReact: (e) => _react(row, e),
                                     onOpenMedia: () => ChatGalleryScreen.open(context, _messages.reversed.toList(), row),
                                     onSwipeReply: () => setState(() { _replyTo = row; _editing = null; }),
+                                    onUpdated: (m) { if (mounted) setState(() => _merge([m])); },
+                                    fresh: _fresh.remove(row.id),
                                   )
                                 : _OutgoingBubble(o: row as _Outgoing, onRetry: () => _sendOutgoing(row), onCancel: () => _cancelOutgoing(row));
                             final other = row is ChatMessage && groupChat && row.sender?.id != me?.id;
@@ -817,6 +967,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         _Composer(
           controller: _text,
           onSend: _sendText,
+          onSendLong: _sendOptions,
           onAttach: _attach,
           onRecordStart: _startRecording,
           onRecordEnd: () => _stopRecording(),
@@ -907,8 +1058,12 @@ class _ChatRichTextState extends State<ChatRichText> {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine, required this.showSender, required this.read, required this.onLongPress, this.onReact, this.onSwipeReply, this.onOpenMedia});
+  const _Bubble({required this.message, required this.mine, required this.showSender, required this.read, required this.onLongPress, this.onReact, this.onSwipeReply, this.onOpenMedia, this.onUpdated, this.fresh = false});
   final VoidCallback? onOpenMedia;
+  /// a poll answered: the message as the server has it now
+  final ValueChanged<ChatMessage>? onUpdated;
+  /// arrived while the chat is open: pops in
+  final bool fresh;
   final ChatMessage message;
   final bool mine;
   final bool showSender;
@@ -983,6 +1138,23 @@ class _Bubble extends StatelessWidget {
             if (m.kind == 'AUDIO' && f.name != null) Text(f.name!, style: TextStyle(color: fg, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
             ChatAudioBubble(message: m, color: fg),
           ]),
+        'POLL' => PollBubble(message: m, fg: fg, onChanged: onUpdated ?? (_) {}),
+        'LOCATION' when m.data != null => LocationBubble(data: m.data!, fg: fg),
+        'CONTACT' when m.data != null => ContactBubble(data: m.data!, fg: fg),
+        'CARD' when m.data != null => CardBubble(data: m.data!, fg: fg),
+        'VIDEO_NOTE' when f != null => GestureDetector(
+            key: Key('videonote-${m.id}'),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatVideoScreen(message: m))),
+            child: SizedBox(
+              width: 200, height: 200,
+              child: ClipOval(
+                child: Stack(fit: StackFit.expand, children: [
+                  if (f.thumbUrl != null) CachedNetworkImage(imageUrl: f.thumbUrl!, cacheKey: fileCacheKey(f.thumbUrl!), fit: BoxFit.cover) else const ColoredBox(color: Colors.black87),
+                  const Center(child: CircleAvatar(radius: 24, backgroundColor: Colors.black45, child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30))),
+                ]),
+              ),
+            ),
+          ),
         'FILE' when f != null => InkWell(
             key: Key('file-${m.id}'),
             onTap: () => ChatFiles.open(context, m),
@@ -1023,16 +1195,22 @@ class _Bubble extends StatelessWidget {
         ?media,
         if (media != null && text != null) const SizedBox(height: 6),
         ?text,
+        if (m.linkPreview != null) LinkPreviewCard(preview: m.linkPreview!, fg: fg),
       ]);
     }
 
-    return Align(
+    return PopIn(
+      animate: fresh,
+      fromRight: mine,
+      child: SwipeToReply(
+      enabled: onSwipeReply != null && !m.deleted,
+      onReply: () => onSwipeReply?.call(),
+      child: Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8),
         child: GestureDetector(
           onLongPress: onLongPress,
-          onHorizontalDragEnd: onSwipeReply == null || m.deleted ? null : (d) { if ((d.primaryVelocity ?? 0) > 250) onSwipeReply!(); },
           child: Container(
             key: Key('msg-${m.id}'),
             margin: EdgeInsets.only(top: 3, bottom: 3, left: mine ? 40 : 0, right: mine ? 0 : 40),
@@ -1056,7 +1234,7 @@ class _Bubble extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Wrap(spacing: 4, runSpacing: 4, children: [
                     for (final r in m.reactions)
-                      InkWell(
+                      ReactionPop(count: r.count, child: InkWell(
                         key: Key('reaction-${m.id}-${r.emoji}'),
                         borderRadius: BorderRadius.circular(12),
                         onTap: onReact == null ? null : () => onReact!(r.emoji),
@@ -1069,7 +1247,7 @@ class _Bubble extends StatelessWidget {
                           ),
                           child: Text('${r.emoji} ${r.count}', style: TextStyle(fontSize: 13, color: fg)),
                         ),
-                      ),
+                      )),
                   ]),
                 ),
               const SizedBox(height: 2),
@@ -1085,6 +1263,8 @@ class _Bubble extends StatelessWidget {
           ),
         ),
       ),
+    ),
+    ),
     );
   }
 }
@@ -1186,8 +1366,10 @@ class _OutgoingBubble extends StatelessWidget {
 class _Composer extends StatefulWidget {
   const _Composer({
     required this.controller, required this.onSend, required this.onAttach, required this.onRecordStart, required this.onRecordEnd,
-    required this.onRecordCancel, this.recording = false, this.elapsed = Duration.zero, this.level = 0, this.locked = false, required this.onLock,
+    required this.onRecordCancel, this.recording = false, this.elapsed = Duration.zero, this.level = 0, this.locked = false, required this.onLock, this.onSendLong,
   });
+  /// a long press on «send»: without sound / later
+  final VoidCallback? onSendLong;
   final TextEditingController controller;
   final VoidCallback onSend;
   final VoidCallback onAttach;
@@ -1397,7 +1579,7 @@ class _ComposerState extends State<_Composer> with SingleTickerProviderStateMixi
               Expanded(child: field),
               const SizedBox(width: 6),
               if (hasText && !rec)
-                IconButton.filled(key: const Key('chatSend'), tooltip: l.chatSend, icon: const Icon(Icons.send_rounded), onPressed: widget.onSend)
+                GestureDetector(onLongPress: widget.onSendLong, child: IconButton.filled(key: const Key('chatSend'), tooltip: l.chatSend, icon: const Icon(Icons.send_rounded), onPressed: widget.onSend))
               else if (widget.locked)
                 IconButton.filled(key: const Key('recordSend'), tooltip: l.chatSend, iconSize: 26, icon: const Icon(Icons.send_rounded), onPressed: widget.onRecordEnd)
               else

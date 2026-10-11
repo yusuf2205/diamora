@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { formatUzs } from '@/lib/format';
 import { Button, Card, ErrorState, Input, ListSkeleton, Modal } from '@/components/ui';
+import { swatch } from '@/lib/swatch';
 
 interface Work {
   id: string; status: string; kitCount: number; plannedMeters: number; reportedMeters: number; expectedPayment: string | null; dueAt: string | null;
@@ -136,7 +137,7 @@ function CurrentWork({ w }: { w: Work }) {
         </div>
       )}
       <div className="flex items-center gap-2">
-        <span className="inline-block h-3 w-3 rounded-full" style={{ background: w.color?.hex ?? '#ccc' }} />
+        <span className="inline-block h-3 w-3 rounded-full" style={{ background: swatch(w.color?.hex, w.color?.name) ?? '#ccc' }} />
         <p className="font-bold">{w.product?.name}</p>
       </div>
       <p className="text-sm text-muted">{w.color?.name} · {w.plannedMeters} м · комплектов: {w.kitCount}{w.dueAt ? ` · срок ${day(w.dueAt)}` : ''}</p>

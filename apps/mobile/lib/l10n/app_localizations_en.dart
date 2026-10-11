@@ -3289,4 +3289,153 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatSlideToCancel => 'Slide left to cancel';
+
+  @override
+  String get chatPoll => 'Poll';
+
+  @override
+  String get chatPollQuestion => 'Question';
+
+  @override
+  String get chatPollQuestionHint => 'e.g. Who can take work on Saturday?';
+
+  @override
+  String chatPollOption(String n) {
+    return 'Option $n';
+  }
+
+  @override
+  String get chatPollAddOption => 'Add an option';
+
+  @override
+  String get chatPollMultiple => 'Several answers allowed';
+
+  @override
+  String get chatPollSingle => 'One answer';
+
+  @override
+  String get chatPollAnswer => 'Answer';
+
+  @override
+  String chatPollVotes(String n) {
+    return 'Answered: $n';
+  }
+
+  @override
+  String get chatPollWho => 'Who answered';
+
+  @override
+  String get chatPollVoters => 'Who answered what';
+
+  @override
+  String get chatLocation => 'Location';
+
+  @override
+  String get chatMyLocation => 'My location';
+
+  @override
+  String get chatOpenMap => 'Open on the map';
+
+  @override
+  String get chatLocationDenied =>
+      'Allow location access in the phone settings';
+
+  @override
+  String get chatLocationFailed =>
+      'Could not get the location. Turn location on and try again';
+
+  @override
+  String get chatContact => 'Contact';
+
+  @override
+  String get chatCardAttach => 'Work / order / craftswoman';
+
+  @override
+  String get chatCardSearch => 'Find a work, craftswoman or order';
+
+  @override
+  String get chatOpenCard => 'Open';
+
+  @override
+  String get chatVideoNote => 'Video message';
+
+  @override
+  String get chatSaved => 'Saved messages';
+
+  @override
+  String get chatSaveToSaved => 'Save to Saved';
+
+  @override
+  String get chatSavedDone => 'Saved';
+
+  @override
+  String get chatSendSilent => 'Send without sound';
+
+  @override
+  String get chatSendLater => 'Send later';
+
+  @override
+  String get chatLaterInPast => 'Pick a time in the future';
+
+  @override
+  String chatLaterSaved(String when) {
+    return 'Will be sent $when';
+  }
+
+  @override
+  String get chatScheduled => 'Scheduled messages';
+
+  @override
+  String get chatScheduledNone => 'No scheduled messages';
+
+  @override
+  String get quickReplies => 'Quick replies';
+
+  @override
+  String get quickReplyAdd => 'Add a reply';
+
+  @override
+  String get quickReply1 => 'On my way to you';
+
+  @override
+  String get quickReply2 => 'I will be there in 30 minutes';
+
+  @override
+  String get quickReply3 => 'Is the work ready? I can pick it up today';
+
+  @override
+  String get quickReply4 => 'Thank you, got everything';
+
+  @override
+  String get chatArchive => 'Archive';
+
+  @override
+  String get chatArchiveAction => 'Archive';
+
+  @override
+  String get chatUnarchive => 'Unarchive';
+
+  @override
+  String get chatMarkUnread => 'Mark as unread';
+
+  @override
+  String get chatMarkRead => 'Mark as read';
+
+  @override
+  String get chatMuteFor => 'Mute…';
+
+  @override
+  String get chatMute1h => 'For 1 hour';
+
+  @override
+  String get chatMute8h => 'For 8 hours';
+
+  @override
+  String get chatMute2d => 'For 2 days';
+
+  @override
+  String get chatMuteForever => 'Forever';
+
+  @override
+  String get chatFolders => 'Folders';
 }

@@ -1302,6 +1302,8 @@ enum ChatKind {
   GROUP
   COMPANY
   CHANNEL
+  /// «Избранное»: a chat with oneself (notes, forwarded things to keep)
+  SAVED
 }
 
 /// Who reads a channel: everyone, staff, workers - or only the members added by hand.
@@ -1319,6 +1321,16 @@ enum ChatMessageKind {
   VOICE
   AUDIO
   FILE
+  /// «Опрос»: data = { question, options[], multiple }
+  POLL
+  /// data = { latitude, longitude, label? }
+  LOCATION
+  /// data = { name, phone }
+  CONTACT
+  /// a work / order card with a button: data = { type, id, title, subtitle, link }
+  CARD
+  /// «Кружок»: a short round video
+  VIDEO_NOTE
 }
 
 /// A conversation. DIRECT: exactly two people (directKey = the two user ids, sorted); GROUP: chosen members;
@@ -1406,6 +1418,13 @@ model ChatMessage {
   /// «Переслано от …» (the original sender's name at the time)
   forwardedFrom String?
   reactions     ChatReaction[]
+  pollVotes     ChatPollVote[]
+  /// what the kind needs (poll, location, contact, card)
+  data          Json?
+  /// the first link's page: { url, title, description, image, site }
+  linkPreview   Json?
+  /// «Отправить без звука»: no push notification
+  silent        Boolean         @default(false)
   createdAt     DateTime        @default(now()) @db.Timestamptz(3)
   deletedAt     DateTime?       @db.Timestamptz(3)
 
@@ -1416,6 +1435,34 @@ model ChatMessage {
 }
 
 /// One reaction per person per message (choosing another emoji replaces it).
+model ChatPollVote {
+  messageId String      @db.Uuid
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String      @db.Uuid
+  option    Int
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@id([messageId, userId, option])
+  @@map("chat_poll_votes")
+}
+
+/// «Отправить позже»: sent by the server at `sendAt` (then `messageId` is set)
+model ChatScheduledMessage {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  roomId    String    @db.Uuid
+  senderId  String    @db.Uuid
+  text      String
+  replyToId String?   @db.Uuid
+  sendAt    DateTime  @db.Timestamptz(3)
+  sentAt    DateTime? @db.Timestamptz(3)
+  messageId String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([sentAt, sendAt])
+  @@index([roomId, senderId])
+  @@map("chat_scheduled_messages")
+}
+
 model ChatReaction {
   messageId String      @db.Uuid
   message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)

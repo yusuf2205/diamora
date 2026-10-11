@@ -428,9 +428,9 @@ export const cashPayoutSchema = z.object({
 });
 
 // ---- chat (everyone with everyone: direct, groups, one company-wide chat) -------------------------------------------------
-export const CHAT_KINDS = ['DIRECT', 'GROUP', 'COMPANY', 'CHANNEL'] as const;
+export const CHAT_KINDS = ['DIRECT', 'GROUP', 'COMPANY', 'CHANNEL', 'SAVED'] as const;
 export type ChatKind = (typeof CHAT_KINDS)[number];
-export const CHAT_MESSAGE_KINDS = ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE'] as const;
+export const CHAT_MESSAGE_KINDS = ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE', 'POLL', 'LOCATION', 'CONTACT', 'CARD', 'VIDEO_NOTE'] as const;
 export type ChatMessageKind = (typeof CHAT_MESSAGE_KINDS)[number];
 /** the largest file a chat message may carry (photos, videos, voice, documents) */
 export const CHAT_MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -465,7 +465,32 @@ export const chatMediaQuerySchema = z.object({
   before: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(60),
 });
-export const chatTextSchema = z.object({ text: z.string().trim().min(1).max(4000), clientId: z.string().max(64).optional(), replyToId: z.string().uuid().optional() });
+export const chatTextSchema = z.object({
+  text: z.string().trim().min(1).max(4000), clientId: z.string().max(64).optional(), replyToId: z.string().uuid().optional(),
+  /** «Отправить без звука»: delivered, but no push */
+  silent: z.boolean().optional(),
+});
+const chatSendBase = { clientId: z.string().max(64).optional(), replyToId: z.string().uuid().optional(), silent: z.boolean().optional() };
+/** «Опрос»: «Кто сможет взять работу в субботу?» */
+export const chatPollSchema = z.object({
+  ...chatSendBase,
+  question: z.string().trim().min(1).max(300),
+  options: z.array(z.string().trim().min(1).max(100)).min(2).max(10),
+  multiple: z.boolean().default(false),
+});
+/** my answer to a poll: the options I pick now (an empty list takes my vote back) */
+export const chatVoteSchema = z.object({ options: z.array(z.number().int().min(0).max(9)).max(10) });
+export const chatLocationSchema = z.object({
+  ...chatSendBase, latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180), label: z.string().trim().max(200).optional(),
+});
+export const chatContactSchema = z.object({ ...chatSendBase, name: z.string().trim().min(1).max(120), phone: z.string().trim().min(3).max(30) });
+/** a work / order / worker card with a button that opens it */
+export const chatCardSchema = z.object({ ...chatSendBase, type: z.enum(['assignment', 'order', 'worker']), id: z.string().uuid() });
+/** «Отправить позже» */
+export const chatScheduleSchema = z.object({
+  text: z.string().trim().min(1).max(4000), replyToId: z.string().uuid().optional(),
+  sendAt: z.coerce.date().refine((d) => d.getTime() > Date.now() + 30_000 && d.getTime() < Date.now() + 366 * 86_400_000, 'sendAt must be in the future (within a year)'),
+});
 export const chatEditSchema = z.object({ text: z.string().trim().min(1).max(4000) });
 /** the reactions offered (a fixed, safe set) */
 export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'] as const;
@@ -483,7 +508,7 @@ export const chatMemberPrefsSchema = z.object({
 export const chatSearchSchema = z.object({ q: z.string().trim().min(2).max(80) });
 export const chatProtectSchema = z.object({ on: z.boolean() });
 export const chatFileFieldsSchema = z.object({
-  kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE']).optional(),
+  kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE', 'VIDEO_NOTE']).optional(),
   text: z.string().trim().max(4000).optional(),
   durationMs: z.coerce.number().int().min(0).max(6 * 3600_000).optional(),
   clientId: z.string().max(64).optional(),
@@ -496,7 +521,7 @@ export const chatFileFieldsSchema = z.object({
 export const chatUploadStartSchema = z.object({
   name: z.string().trim().min(1).max(200),
   size: z.coerce.number().int().min(1).max(150 * 1024 * 1024),
-  kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE']),
+  kind: z.enum(['IMAGE', 'VIDEO', 'VOICE', 'AUDIO', 'FILE', 'VIDEO_NOTE']),
   clientId: z.string().min(8).max(64),
   text: z.string().trim().max(4000).optional(),
   durationMs: z.coerce.number().int().min(0).max(6 * 3600_000).optional(),

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { Button, Card, ErrorState, Input, ListSkeleton, Modal } from '@/components/ui';
+import { swatch } from '@/lib/swatch';
 
 /** A card of the list (GET /catalog): no colours or description — those come with the item itself. */
 interface Item { id: string; name: string; availability: string; isNew: boolean; coverPhoto: { url: string; thumbUrl?: string } | null }
@@ -76,7 +77,7 @@ function OrderForm({ item, cover }: { item: ItemDetail; cover: string | null }) 
             <div className="flex flex-wrap gap-2">
               {variants.map((v) => (
                 <button key={v.id} onClick={() => setVariantId(v.id)} className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${variantId === v.id ? 'border-primary bg-primary/10 font-bold' : 'border-border'}`}>
-                  <span className="h-3 w-3 rounded-full" style={{ background: v.color!.hex ?? '#ccc' }} />{v.color!.name}{v.label ? ` · ${v.label}` : ''}
+                  <span className="h-3 w-3 rounded-full" style={{ background: swatch(v.color!.hex, v.color!.name) ?? '#ccc' }} />{v.color!.name}{v.label ? ` · ${v.label}` : ''}
                 </button>
               ))}
             </div>

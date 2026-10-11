@@ -3302,4 +3302,154 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatSlideToCancel => 'Влево — отмена';
+
+  @override
+  String get chatPoll => 'Опрос';
+
+  @override
+  String get chatPollQuestion => 'Вопрос';
+
+  @override
+  String get chatPollQuestionHint =>
+      'Например: кто сможет взять работу в субботу?';
+
+  @override
+  String chatPollOption(String n) {
+    return 'Вариант $n';
+  }
+
+  @override
+  String get chatPollAddOption => 'Добавить вариант';
+
+  @override
+  String get chatPollMultiple => 'Можно выбрать несколько';
+
+  @override
+  String get chatPollSingle => 'Один ответ';
+
+  @override
+  String get chatPollAnswer => 'Ответить';
+
+  @override
+  String chatPollVotes(String n) {
+    return 'Ответили: $n';
+  }
+
+  @override
+  String get chatPollWho => 'Кто ответил';
+
+  @override
+  String get chatPollVoters => 'Кто как ответил';
+
+  @override
+  String get chatLocation => 'Геопозиция';
+
+  @override
+  String get chatMyLocation => 'Моё местоположение';
+
+  @override
+  String get chatOpenMap => 'Открыть на карте';
+
+  @override
+  String get chatLocationDenied =>
+      'Разрешите доступ к местоположению в настройках телефона';
+
+  @override
+  String get chatLocationFailed =>
+      'Не удалось определить место. Включите геолокацию и попробуйте ещё раз';
+
+  @override
+  String get chatContact => 'Контакт';
+
+  @override
+  String get chatCardAttach => 'Работа / заказ / мастерица';
+
+  @override
+  String get chatCardSearch => 'Найдите работу, мастерицу или заказ';
+
+  @override
+  String get chatOpenCard => 'Открыть';
+
+  @override
+  String get chatVideoNote => 'Видеосообщение';
+
+  @override
+  String get chatSaved => 'Избранное';
+
+  @override
+  String get chatSaveToSaved => 'В Избранное';
+
+  @override
+  String get chatSavedDone => 'Сохранено в Избранное';
+
+  @override
+  String get chatSendSilent => 'Отправить без звука';
+
+  @override
+  String get chatSendLater => 'Отправить позже';
+
+  @override
+  String get chatLaterInPast => 'Выберите время в будущем';
+
+  @override
+  String chatLaterSaved(String when) {
+    return 'Будет отправлено $when';
+  }
+
+  @override
+  String get chatScheduled => 'Отложенные сообщения';
+
+  @override
+  String get chatScheduledNone => 'Отложенных сообщений нет';
+
+  @override
+  String get quickReplies => 'Быстрые ответы';
+
+  @override
+  String get quickReplyAdd => 'Добавить ответ';
+
+  @override
+  String get quickReply1 => 'Еду к вам';
+
+  @override
+  String get quickReply2 => 'Буду через 30 минут';
+
+  @override
+  String get quickReply3 => 'Работа готова? Могу забрать сегодня';
+
+  @override
+  String get quickReply4 => 'Спасибо, всё получил(а)';
+
+  @override
+  String get chatArchive => 'Архив';
+
+  @override
+  String get chatArchiveAction => 'Архивировать';
+
+  @override
+  String get chatUnarchive => 'Вернуть из архива';
+
+  @override
+  String get chatMarkUnread => 'Пометить как непрочитанное';
+
+  @override
+  String get chatMarkRead => 'Пометить как прочитанное';
+
+  @override
+  String get chatMuteFor => 'Без звука…';
+
+  @override
+  String get chatMute1h => 'На 1 час';
+
+  @override
+  String get chatMute8h => 'На 8 часов';
+
+  @override
+  String get chatMute2d => 'На 2 дня';
+
+  @override
+  String get chatMuteForever => 'Навсегда';
+
+  @override
+  String get chatFolders => 'Папки';
 }

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { formatUzs } from '@/lib/format';
 import { Button, Card, Input } from '@/components/ui';
+import { swatch } from '@/lib/swatch';
 
 interface Scan {
   handoffId: string; state: 'AWAITING_WORKER' | 'CONFIRMED';
@@ -88,7 +89,7 @@ export default function WorkerScan() {
       <div className="space-y-3">
         <h1 className="text-2xl font-extrabold">Получение работы</h1>
         <Card>
-          <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ background: a.color?.hex ?? '#ccc' }} /><p className="font-bold">{a.product?.name}</p></div>
+          <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ background: swatch(a.color?.hex, a.color?.name) ?? '#ccc' }} /><p className="font-bold">{a.product?.name}</p></div>
           <p className="text-sm text-muted">{a.color?.name} · {a.plannedMeters} м · комплектов: {a.kitCount}{a.dueAt ? ` · срок ${new Date(a.dueAt).toLocaleDateString('ru-RU')}` : ''}</p>
           {a.expectedPayment && <p className="mt-1 text-sm">Ожидаемая оплата: <b>{formatUzs(a.expectedPayment)}</b></p>}
           <ul className="mt-2 text-sm">{a.materials.map((m) => <li key={m.materialId}>{m.name} — {m.quantity} {unit(m.unit)}</li>)}</ul>

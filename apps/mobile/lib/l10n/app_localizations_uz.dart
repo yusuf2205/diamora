@@ -3262,6 +3262,155 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatSlideToCancel => 'Chapga — bekor qilish';
+
+  @override
+  String get chatPoll => 'So‘rovnoma';
+
+  @override
+  String get chatPollQuestion => 'Savol';
+
+  @override
+  String get chatPollQuestionHint => 'Masalan: shanba kuni kim ish ola oladi?';
+
+  @override
+  String chatPollOption(String n) {
+    return '$n-variant';
+  }
+
+  @override
+  String get chatPollAddOption => 'Variant qo‘shish';
+
+  @override
+  String get chatPollMultiple => 'Bir nechtasini tanlash mumkin';
+
+  @override
+  String get chatPollSingle => 'Bitta javob';
+
+  @override
+  String get chatPollAnswer => 'Javob berish';
+
+  @override
+  String chatPollVotes(String n) {
+    return 'Javob berganlar: $n';
+  }
+
+  @override
+  String get chatPollWho => 'Kim javob berdi';
+
+  @override
+  String get chatPollVoters => 'Kim qanday javob berdi';
+
+  @override
+  String get chatLocation => 'Joylashuv';
+
+  @override
+  String get chatMyLocation => 'Mening joylashuvim';
+
+  @override
+  String get chatOpenMap => 'Xaritada ochish';
+
+  @override
+  String get chatLocationDenied =>
+      'Telefon sozlamalarida joylashuvga ruxsat bering';
+
+  @override
+  String get chatLocationFailed =>
+      'Joylashuv aniqlanmadi. Geolokatsiyani yoqib, qayta urinib ko‘ring';
+
+  @override
+  String get chatContact => 'Kontakt';
+
+  @override
+  String get chatCardAttach => 'Ish / buyurtma / usta';
+
+  @override
+  String get chatCardSearch => 'Ish, usta yoki buyurtmani toping';
+
+  @override
+  String get chatOpenCard => 'Ochish';
+
+  @override
+  String get chatVideoNote => 'Video xabar';
+
+  @override
+  String get chatSaved => 'Saqlanganlar';
+
+  @override
+  String get chatSaveToSaved => 'Saqlanganlarga';
+
+  @override
+  String get chatSavedDone => 'Saqlanganlarga qo‘shildi';
+
+  @override
+  String get chatSendSilent => 'Ovozsiz yuborish';
+
+  @override
+  String get chatSendLater => 'Keyinroq yuborish';
+
+  @override
+  String get chatLaterInPast => 'Kelajakdagi vaqtni tanlang';
+
+  @override
+  String chatLaterSaved(String when) {
+    return '$when da yuboriladi';
+  }
+
+  @override
+  String get chatScheduled => 'Rejalashtirilgan xabarlar';
+
+  @override
+  String get chatScheduledNone => 'Rejalashtirilgan xabarlar yo‘q';
+
+  @override
+  String get quickReplies => 'Tezkor javoblar';
+
+  @override
+  String get quickReplyAdd => 'Javob qo‘shish';
+
+  @override
+  String get quickReply1 => 'Sizga kelyapman';
+
+  @override
+  String get quickReply2 => '30 daqiqada boraman';
+
+  @override
+  String get quickReply3 => 'Ish tayyormi? Bugun olib keta olaman';
+
+  @override
+  String get quickReply4 => 'Rahmat, hammasini oldim';
+
+  @override
+  String get chatArchive => 'Arxiv';
+
+  @override
+  String get chatArchiveAction => 'Arxivlash';
+
+  @override
+  String get chatUnarchive => 'Arxivdan qaytarish';
+
+  @override
+  String get chatMarkUnread => 'O‘qilmagan deb belgilash';
+
+  @override
+  String get chatMarkRead => 'O‘qilgan deb belgilash';
+
+  @override
+  String get chatMuteFor => 'Ovozsiz…';
+
+  @override
+  String get chatMute1h => '1 soatga';
+
+  @override
+  String get chatMute8h => '8 soatga';
+
+  @override
+  String get chatMute2d => '2 kunga';
+
+  @override
+  String get chatMuteForever => 'Butunlay';
+
+  @override
+  String get chatFolders => 'Papkalar';
 }
 
 /// The translations for Uzbek, using the Cyrillic script (`uz_Cyrl`).
@@ -6514,4 +6663,153 @@ class AppLocalizationsUzCyrl extends AppLocalizationsUz {
 
   @override
   String get chatSlideToCancel => 'Чапга — бекор қилиш';
+
+  @override
+  String get chatPoll => 'Сўровнома';
+
+  @override
+  String get chatPollQuestion => 'Савол';
+
+  @override
+  String get chatPollQuestionHint => 'Масалан: шанба куни ким иш ола олади?';
+
+  @override
+  String chatPollOption(String n) {
+    return '$n-вариант';
+  }
+
+  @override
+  String get chatPollAddOption => 'Вариант қўшиш';
+
+  @override
+  String get chatPollMultiple => 'Бир нечтасини танлаш мумкин';
+
+  @override
+  String get chatPollSingle => 'Битта жавоб';
+
+  @override
+  String get chatPollAnswer => 'Жавоб бериш';
+
+  @override
+  String chatPollVotes(String n) {
+    return 'Жавоб берганлар: $n';
+  }
+
+  @override
+  String get chatPollWho => 'Ким жавоб берди';
+
+  @override
+  String get chatPollVoters => 'Ким қандай жавоб берди';
+
+  @override
+  String get chatLocation => 'Жойлашув';
+
+  @override
+  String get chatMyLocation => 'Менинг жойлашувим';
+
+  @override
+  String get chatOpenMap => 'Харитада очиш';
+
+  @override
+  String get chatLocationDenied =>
+      'Телефон созламаларида жойлашувга рухсат беринғ';
+
+  @override
+  String get chatLocationFailed =>
+      'Жойлашув аниқланмади. Геолокатсияни ёқиб, қайта уриниб кўринғ';
+
+  @override
+  String get chatContact => 'Контакт';
+
+  @override
+  String get chatCardAttach => 'Иш / буюртма / уста';
+
+  @override
+  String get chatCardSearch => 'Иш, уста ёки буюртмани топинғ';
+
+  @override
+  String get chatOpenCard => 'Очиш';
+
+  @override
+  String get chatVideoNote => 'Видео хабар';
+
+  @override
+  String get chatSaved => 'Сақланганлар';
+
+  @override
+  String get chatSaveToSaved => 'Сақланганларга';
+
+  @override
+  String get chatSavedDone => 'Сақланганларга қўшилди';
+
+  @override
+  String get chatSendSilent => 'Овозсиз юбориш';
+
+  @override
+  String get chatSendLater => 'Кейинроқ юбориш';
+
+  @override
+  String get chatLaterInPast => 'Келажакдаги вақтни танланғ';
+
+  @override
+  String chatLaterSaved(String when) {
+    return '$when да юборилади';
+  }
+
+  @override
+  String get chatScheduled => 'Режалаштирилган хабарлар';
+
+  @override
+  String get chatScheduledNone => 'Режалаштирилган хабарлар ёъқ';
+
+  @override
+  String get quickReplies => 'Тезкор жавоблар';
+
+  @override
+  String get quickReplyAdd => 'Жавоб қўшиш';
+
+  @override
+  String get quickReply1 => 'Сизга келяпман';
+
+  @override
+  String get quickReply2 => '30 дақиқада бораман';
+
+  @override
+  String get quickReply3 => 'Иш тайёрми? Бугун олиб кета оламан';
+
+  @override
+  String get quickReply4 => 'Раҳмат, ҳаммасини олдим';
+
+  @override
+  String get chatArchive => 'Архив';
+
+  @override
+  String get chatArchiveAction => 'Архивлаш';
+
+  @override
+  String get chatUnarchive => 'Архивдан қайтариш';
+
+  @override
+  String get chatMarkUnread => 'Ўқилмаган деб белгилаш';
+
+  @override
+  String get chatMarkRead => 'Ўқилган деб белгилаш';
+
+  @override
+  String get chatMuteFor => 'Овозсиз…';
+
+  @override
+  String get chatMute1h => '1 соатга';
+
+  @override
+  String get chatMute8h => '8 соатга';
+
+  @override
+  String get chatMute2d => '2 кунга';
+
+  @override
+  String get chatMuteForever => 'Бутунлай';
+
+  @override
+  String get chatFolders => 'Папкалар';
 }

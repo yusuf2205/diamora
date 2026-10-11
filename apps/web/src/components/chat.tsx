@@ -9,6 +9,8 @@ const apiBaseUrl = () => (typeof window === 'undefined' ? '' : apiOrigin());
 import { emitLive, onLiveEvent } from '@/lib/live';
 import { ChatMainMenu, FloatingMenu, MenuItem, MyProfileModal, PersonAvatar, ProfileCard, VoicePlayer, WALLPAPERS, albumsOf, useWallpaper, waveformRecorder } from './chat-extras';
 import { AudioBar } from './audio-player';
+import { GlobalSearch } from './global-search';
+import { ContactCard, LinkPreviewCard, LocationCard, PollCard, VideoNote, WorkCard, type LinkPreview, type PollView } from './chat-more';
 import { useAuth } from '@/lib/auth';
 import { errorMessage, initials, roleLabel } from '@/lib/format';
 import { Button, ErrorState, Input, Modal, Spinner } from '@/components/ui';
@@ -18,9 +20,10 @@ export interface ChatPerson { id: string; fullName: string; role: string; online
 export interface ChatReaction { emoji: string; count: number; mine: boolean }
 export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'] as const;
 export interface ChatFile { url: string; thumbUrl: string | null; name: string | null; size: number | null; mimeType: string | null; durationMs: number | null; width: number | null; height: number | null }
-export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null; waveform?: string | null;
+export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE' | 'POLL' | 'LOCATION' | 'CONTACT' | 'CARD' | 'VIDEO_NOTE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null; waveform?: string | null;
+  data?: Record<string, unknown> | null; poll?: PollView | null; linkPreview?: LinkPreview | null;
   replyTo?: { id: string; sender: string | null; preview: string | null; deleted: boolean } | null; forwardedFrom?: string | null; editedAt?: string | null; reactions?: ChatReaction[] }
-export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY' | 'CHANNEL'; photo?: string | null; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean; mutedUntil?: string | null; archived?: boolean; markedUnread?: boolean }
+export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY' | 'CHANNEL' | 'SAVED'; photo?: string | null; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean; mutedUntil?: string | null; archived?: boolean; markedUnread?: boolean }
 export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[];
   canPin?: boolean; pinned?: boolean; muted?: boolean; pinnedMessage?: ChatMessage | null;
   description?: string | null; photo?: { url: string; thumbUrl: string } | null; audience?: 'ALL' | 'STAFF' | 'WORKERS' | 'CUSTOM' | null;
@@ -65,7 +68,11 @@ export const chatTitle = (r: { kind: string; title: string | null }) => (r.kind 
 
 export function chatPreview(m: ChatMessage): string {
   if (m.deleted) return 'Сообщение удалено';
-  const label = { IMAGE: '📷 Фото', VIDEO: '🎬 Видео', VOICE: '🎤 Голосовое сообщение', AUDIO: '🎵 Аудио', FILE: `📎 ${m.file?.name ?? 'Файл'}`, TEXT: null }[m.kind];
+  const d = (m.data ?? {}) as Record<string, string | undefined>;
+  const label = {
+    IMAGE: '📷 Фото', VIDEO: '🎬 Видео', VOICE: '🎤 Голосовое сообщение', AUDIO: '🎵 Аудио', FILE: `📎 ${m.file?.name ?? 'Файл'}`, TEXT: null,
+    POLL: `📊 ${d.question ?? 'Опрос'}`, LOCATION: `📍 ${d.label ?? 'Геопозиция'}`, CONTACT: `👤 ${d.name ?? 'Контакт'}`, CARD: `📋 ${d.title ?? 'Карточка'}`, VIDEO_NOTE: '⭕ Видеосообщение',
+  }[m.kind];
   const text = (m.text ?? '').trim();
   if (!label) return text;
   return text ? `${label} · ${text}` : label;
@@ -211,6 +218,7 @@ function RoomList({ selected, onOpen, collapsed = false, onToggleCollapsed }: { 
       <div className={`flex items-center gap-2 border-b border-border py-2.5 ${collapsed ? 'flex-col px-2' : 'px-3'}`}>
         <button aria-label="Меню" onClick={() => setMainMenu(true)} className="rounded-full p-2 text-muted hover:bg-border/50"><Menu size={22} aria-hidden /></button>
         {!collapsed && <h2 className="flex-1 text-lg font-semibold">Чат</h2>}
+        {!collapsed && <GlobalSearch compact />}
         {collapsed && <button aria-label="Новый чат" title="Новый чат" onClick={() => setCreating(true)} className="rounded-full bg-primary p-2 text-white shadow hover:opacity-90"><Pencil size={18} aria-hidden /></button>}
       </div>
       {!collapsed && <div className="border-b border-border px-3 py-2">
@@ -757,7 +765,7 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
               onClick={() => p.failed && send(p)}
               className="max-w-[80%] rounded-2xl bg-primary/10 px-3 py-2 text-left opacity-80"
             >
-              <span className="block whitespace-pre-wrap break-words">{p.text ?? `${{ IMAGE: '📷', VIDEO: '🎬', VOICE: '🎤', AUDIO: '🎵', FILE: '📎', TEXT: '' }[p.kind]} ${p.file?.name ?? ''}`}</span>
+              <span className="block whitespace-pre-wrap break-words">{p.text ?? `${({ IMAGE: '📷', VIDEO: '🎬', VOICE: '🎤', AUDIO: '🎵', FILE: '📎', TEXT: '' } as Record<string, string>)[p.kind] ?? ''} ${p.file?.name ?? ''}`}</span>
               <span className={`block text-right text-xs ${p.failed ? 'font-semibold text-danger' : 'text-muted'}`}>{p.failed ? 'Не отправлено — нажмите, чтобы повторить' : p.file && p.progress > 0 ? `Отправка… ${Math.round(p.progress * 100)}%` : 'Отправка…'}</span>
             </button>
           </div>
@@ -937,7 +945,13 @@ function Bubble({ m, mine, showSender, read, onReact, pinned, onOpenMedia, onCon
                 {!protect && <Download size={18} className="shrink-0 text-muted" aria-hidden />}
               </a>
             )}
+            {m.kind === 'POLL' && m.poll && <PollCard messageId={m.id} poll={m.poll} onChanged={() => emitLive('chat.message_updated', { roomId: m.roomId })} />}
+            {m.kind === 'LOCATION' && m.data && <LocationCard data={m.data as { latitude: number; longitude: number; label?: string }} />}
+            {m.kind === 'CONTACT' && m.data && <ContactCard data={m.data as { name: string; phone: string }} />}
+            {m.kind === 'CARD' && m.data && <WorkCard data={m.data as { type: string; id: string; title: string; subtitle?: string }} />}
+            {m.kind === 'VIDEO_NOTE' && f && <VideoNote thumb={f.thumbUrl} onOpen={onOpenMedia} />}
             {m.text && <p className={`whitespace-pre-wrap break-words ${f ? 'mt-1' : ''}`}><RichText text={m.text} /></p>}
+            {m.linkPreview && <LinkPreviewCard p={m.linkPreview} />}
           </>
         )}
         {!m.deleted && !!m.reactions?.length && (

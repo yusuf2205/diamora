@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/providers.dart';
+import '../../core/ui/color_swatch.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import '../catalog/catalog_repository.dart';
@@ -359,21 +360,21 @@ class _VariantPicker extends StatelessWidget {
       itemBuilder: (_, i) {
         final v = variants[i];
         final sel = selected?.id == v.id;
-        final color = _hexColor(v.color?.hex);
+        // the real colour: its hex, or guessed from the name («Желтый», «Бардовый»…) - never a grey dot
+        final color = swatchColor(v.color?.hex, v.color?.name);
         return _SelectCard(
           selected: sel, onTap: () => onSelected(v),
           title: v.label?.isNotEmpty == true ? '${v.color!.name} · ${v.label}' : v.color!.name,
-          leading: Container(width: 28, height: 28, decoration: BoxDecoration(color: color ?? Theme.of(context).colorScheme.outline, shape: BoxShape.circle)),
+          leading: Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(color: color ?? Theme.of(context).colorScheme.surfaceContainerHighest, shape: BoxShape.circle, border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
+            child: color == null ? Icon(Icons.palette_outlined, size: 16, color: Theme.of(context).colorScheme.outline) : null,
+          ),
         );
       },
     );
   }
 
-  Color? _hexColor(String? hex) {
-    if (hex == null || hex.isEmpty) return null;
-    final v = int.tryParse(hex.replaceFirst('#', ''), radix: 16);
-    return v == null ? null : Color(0xFF000000 | v);
-  }
 }
 
 class _VolumePicker extends StatelessWidget {

@@ -96,7 +96,16 @@ class ChatMessage {
     this.editedAt,
     this.reactions = const [],
     this.waveform,
+    this.data,
+    this.poll,
+    this.linkPreview,
   });
+  /// POLL / LOCATION / CONTACT / CARD: what it carries
+  final Map<String, dynamic>? data;
+  /// a poll's answers: { question, multiple, voters, options: [{ text, count, mine }] }
+  final Map<String, dynamic>? poll;
+  /// the first link's card: { url, title, description, image, site }
+  final Map<String, dynamic>? linkPreview;
   /// a voice message's loudness: bars 0-31
   final List<int>? waveform;
   final String id;
@@ -128,6 +137,9 @@ class ChatMessage {
         editedAt: _dtn(j['editedAt']),
         reactions: ((j['reactions'] as List?) ?? const []).map((r) => ChatReaction.fromJson((r as Map).cast<String, dynamic>())).toList(),
         waveform: (j['waveform'] as String?)?.split(',').map((x) => int.tryParse(x) ?? 1).toList(),
+        data: (j['data'] as Map?)?.cast<String, dynamic>(),
+        poll: (j['poll'] as Map?)?.cast<String, dynamic>(),
+        linkPreview: (j['linkPreview'] as Map?)?.cast<String, dynamic>(),
       );
 
   ChatMessage asDeleted() => ChatMessage(id: id, roomId: roomId, kind: 'TEXT', createdAt: createdAt, sender: sender, deleted: true, clientId: clientId);
@@ -148,9 +160,15 @@ class ChatRoomSummary {
     this.pinned = false,
     this.muted = false,
     this.photo,
+    this.archived = false,
+    this.markedUnread = false,
   });
   final bool pinned;
   final bool muted;
+  /// «Архив»: out of the main list
+  final bool archived;
+  /// «Пометить как непрочитанное»: a dot until opened
+  final bool markedUnread;
   /// group / channel photo (thumbnail URL)
   final String? photo;
   final String id;
@@ -176,6 +194,8 @@ class ChatRoomSummary {
         pinned: j['pinned'] as bool? ?? false,
         muted: j['muted'] as bool? ?? false,
         photo: j['photo'] as String?,
+        archived: j['archived'] as bool? ?? false,
+        markedUnread: j['markedUnread'] as bool? ?? false,
       );
 }
 

@@ -7,14 +7,14 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { Search, Wallet, PlayCircle, ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, UserCog, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { Wallet, PlayCircle, ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 import { useChatUnread } from '@/components/chat';
 import { HeaderBadges } from '@/components/header-badges';
+import { GlobalSearch } from '@/components/global-search';
 
 const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
   { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
-  { href: '/search', label: 'Поиск', icon: Search },
   { href: '/workers', label: 'Мастерицы', icon: Sparkles, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/collaterals', label: 'Залоги', icon: Lock, perms: ['COLLATERAL_VIEW'] },
   { href: '/assignments', label: 'Задания', icon: ClipboardList, perms: ['ASSIGNMENT_VIEW_ALL', 'ASSIGNMENT_VIEW_ASSIGNED'] },
@@ -28,7 +28,6 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/money', label: 'Деньги', icon: Wallet, perms: ['FINANCE_VIEW_ALL', 'PROFIT_VIEW'] },
   { href: '/finance', label: 'Прибыль', icon: TrendingUp, perms: ['PROFIT_VIEW'] },
   { href: '/team', label: 'Команда', icon: Users, perms: ['USER_VIEW_ALL'] },
-  { href: '/managers', label: 'Менеджеры', icon: UserCog, perms: ['USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/settings', label: 'Настройки', icon: Settings, perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },
   { href: '/audit', label: 'Журнал', icon: ScrollText, perms: ['AUDIT_VIEW'] },
   { href: '/system', label: 'Система', icon: Activity, perms: ['SETTINGS_MANAGE'] },
@@ -64,7 +63,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const items = NAV.filter((n) => !n.perms || hasPerm(me, ...n.perms));
 
-  const current = pathname.startsWith('/chat') ? 'Чат' : items.find((n) => pathname.startsWith(n.href))?.label ?? 'Diamoraa';
+  const isChat = pathname.startsWith('/chat');
+  const current = isChat ? 'Чат' : items.find((n) => pathname.startsWith(n.href))?.label ?? 'Diamoraa';
 
   // Desktop: a fixed sidebar. Phone / portrait tablet (< lg): a slim top bar with the page name and a ☰ button; the same menu slides in
   // over the page, so the content always gets the full screen width.
@@ -72,7 +72,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen lg:flex lg:h-screen lg:overflow-hidden">
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
         <button aria-label="Меню" onClick={() => setMenuOpen(true)} className="-ml-1 rounded-lg p-2 hover:bg-border/50"><Menu size={22} aria-hidden /></button>
-        <p className="flex-1 truncate text-base font-semibold">{current}</p>
+        <p className={`truncate text-base font-semibold ${isChat ? 'flex-1' : 'max-w-[30%] shrink-0'}`}>{current}</p>
+        {/* «Поиск» on every page (the chat has its own magnifier in the list) */}
+        {!isChat && <GlobalSearch className="min-w-0 flex-1" />}
         <HeaderBadges chatUnread={unread} />
       </header>
       {menuOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMenuOpen(false)} />}
@@ -110,7 +112,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <button onClick={() => logout()} className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-border/50"><LogOut size={16} aria-hidden />Выйти</button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 lg:h-screen lg:overflow-y-auto lg:px-8 lg:py-8">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 lg:h-screen lg:overflow-y-auto lg:px-8 lg:py-8">
+        {!isChat && <div className="mb-6 hidden lg:block"><GlobalSearch className="max-w-2xl" /></div>}
+        {children}
+      </main>
     </div>
   );
 }
