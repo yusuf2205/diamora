@@ -335,6 +335,8 @@ model TelegramLoginSession {
   linkedAt       DateTime? @db.Timestamptz(3)
   expiresAt      DateTime  @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  /// started in a browser (the web version, e.g. on an iPhone): the bot says «вернитесь в браузер», no app button
+  web            Boolean   @default(false)
 
   @@index([telegramUserId])
   @@map("telegram_login_sessions")

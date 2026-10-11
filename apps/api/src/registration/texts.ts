@@ -44,6 +44,8 @@ export interface BotReply {
    * for an organic bot conversation. Renders as ONE inline URL button, replacing whatever keyboard the prompt would
    * otherwise show, so confirming (or just reading a status) and opening Diamoraa is a single tap. */
   telegramHandoffUrl?: string;
+  /** the login was started in a browser (the web version): no app button - «вернитесь в браузер» */
+  webLogin?: boolean;
 }
 
 export interface BotButton { text: string; requestContact?: boolean; requestLocation?: boolean }
@@ -121,6 +123,11 @@ export function summaryText(s: RegSummary): string {
   ].join('\n');
 }
 
+/** a login from the web version: that browser tab signs in by itself */
+const WEB_BACK = (hello: string) => `${hello} 👋 Вход выполнен ✅
+
+Вернитесь в браузер — Diamoraa уже открывается.`;
+
 export function render(r: BotReply): Rendered {
   const err = r.error ? `${ERRORS[r.error]}\n\n` : '';
   const ask = (text: string, keyboard: BotKeyboard = REMOVE): Rendered => ({
@@ -156,6 +163,7 @@ export function render(r: BotReply): Rendered {
     case 'EDIT_MENU':
       return ask('Что хотите изменить?', kb([{ text: BTN.editName }, { text: BTN.editPhone }], [{ text: BTN.editLocation }, { text: BTN.editCollateral }], [{ text: BTN.back }]));
     case 'SUBMITTED':
+      if (r.webLogin) return ask('Спасибо! Заявка отправлена ✅ Мы сообщим о решении здесь, в Telegram. Когда вас одобрят, вернитесь в браузер — вход произойдёт сам.');
       return ask(
         r.telegramHandoffUrl
           ? 'Спасибо! Заявка отправлена. Нажмите «Открыть Diamoraa».'
@@ -166,6 +174,7 @@ export function render(r: BotReply): Rendered {
     case 'STATUS_PENDING':
       return ask('Ваша заявка на рассмотрении. Мы сообщим о решении здесь, в Telegram.');
     case 'STATUS_ACTIVE':
+      if (r.webLogin) return ask(WEB_BACK('С возвращением!'));
       return ask(
         r.telegramHandoffUrl ? 'С возвращением! 👋 Нажмите «Открыть Diamoraa».' : `Вы уже зарегистрированы ✅ Откройте Diamoraa и нажмите «Войти через Telegram».\n\nНет приложения? Скачайте: ${appDownloadUrl()}`,
       );
@@ -185,6 +194,7 @@ export function render(r: BotReply): Rendered {
     case 'LOGIN_ASK_PHONE':
       return ask('Здравствуйте! 👋 Нажмите кнопку ниже, чтобы отправить ваш номер телефона — так мы узнаем, есть ли вы уже в Diamoraa.', kb([{ text: BTN.contact, requestContact: true }]));
     case 'STAFF_LOGIN':
+      if (r.webLogin) return ask(WEB_BACK(`С возвращением${r.fullName ? `, ${r.fullName}` : ''}!`));
       return ask(`С возвращением${r.fullName ? `, ${r.fullName}` : ''}! 👋 Нажмите «Открыть Diamoraa».`);
     case 'STAFF_HELLO':
       return ask(`Здравствуйте${r.fullName ? `, ${r.fullName}` : ''}! Чтобы войти, откройте приложение Diamoraa и нажмите «Войти через Telegram».`);

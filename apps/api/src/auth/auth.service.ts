@@ -79,7 +79,7 @@ export class AuthService {
   async telegramSession(device: DeviceInput): Promise<{ deepLink: string; expiresAt: string }> {
     const token = newRefresh();
     const expiresAt = new Date(Date.now() + this.env.TELEGRAM_LOGIN_SESSION_TTL_MINUTES * MIN);
-    await this.prisma.telegramLoginSession.create({ data: { tokenHash: sha256(token), installId: device.installId, expiresAt } });
+    await this.prisma.telegramLoginSession.create({ data: { tokenHash: sha256(token), installId: device.installId, expiresAt, web: device.platform === 'WEB' } });
     return { deepLink: `https://t.me/${this.env.TELEGRAM_BOT_USERNAME}?start=${token}`, expiresAt: expiresAt.toISOString() };
   }
 

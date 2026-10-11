@@ -11,6 +11,8 @@ import { generateQrCode, newOpaqueToken, nextCode, sha256, type Tx } from '../co
 import { money } from '../common/serialize';
 import type { BotError, BotPrompt, BotReply, RegSummary } from './texts';
 
+type Handoff = { telegramHandoffUrl: string } | { webLogin: true };
+
 /** Channel-agnostic input: the bot process translates Telegram updates into this (D-005). `payload` is the
  * `/start <payload>` deep-link parameter (§ WORKER Telegram-only auth) — absent for an organic `/start`. */
 export type BotInput =
@@ -128,8 +130,7 @@ export class RegistrationService {
       }
       // one tap already covered "confirm" (the questionnaire's own ✅ Подтвердить) — if it arrived via the app's
       // Telegram-login deep link, the SAME reply also carries the handoff button: no second, separate confirmation.
-      const telegramHandoffUrl = await this.issueHandoffTicketIfLinked(tx, ctx, workerId);
-      return telegramHandoffUrl ? { prompt: 'SUBMITTED', telegramHandoffUrl } : { prompt: 'SUBMITTED' };
+      return { prompt: 'SUBMITTED', ...(await this.issueHandoffTicketIfLinked(tx, ctx, workerId)) };
     }
 
     // the phone came from «Войти через Telegram» already: not asked a second time
@@ -177,8 +178,7 @@ export class RegistrationService {
   private async staffLogin(tx: Tx, ctx: BotContext, user: User, sessionId: string | null): Promise<BotReply> {
     if (user.status !== 'ACTIVE') return { prompt: 'STATUS_PAUSED' };
     if (!sessionId) return { prompt: 'STAFF_HELLO', fullName: user.fullName };
-    const telegramHandoffUrl = await this.issueHandoffTicket(tx, sessionId, ctx, { userId: user.id });
-    return { prompt: 'STAFF_LOGIN', fullName: user.fullName, telegramHandoffUrl };
+    return { prompt: 'STAFF_LOGIN', fullName: user.fullName, ...(await this.issueHandoffTicket(tx, sessionId, ctx, { userId: user.id })) };
   }
 
   private async latestLinkedSession(tx: Tx, ctx: BotContext): Promise<string | null> {
@@ -230,16 +230,20 @@ export class RegistrationService {
 
   /** Only if THIS telegramUserId has a session linked (and not yet turned into an unconsumed ticket for this same
    * worker) — a bot conversation that never went through the app's "Войти через Telegram" gets no button, ever. */
-  private async issueHandoffTicketIfLinked(tx: Tx, ctx: BotContext, workerId: string): Promise<string | null> {
+  private async issueHandoffTicketIfLinked(tx: Tx, ctx: BotContext, workerId: string): Promise<Handoff | Record<string, never>> {
     const sessionId = await this.latestLinkedSession(tx, ctx);
-    return sessionId ? this.issueHandoffTicket(tx, sessionId, ctx, { workerId }) : null;
+    return sessionId ? this.issueHandoffTicket(tx, sessionId, ctx, { workerId }) : {};
   }
 
-  private async issueHandoffTicket(tx: Tx, sessionId: string, ctx: BotContext, who: { workerId: string } | { userId: string }): Promise<string> {
+  /** The app gets a one-tap «Открыть Diamoraa» button; a login started in a browser (the web version - an iPhone) has
+   *  nothing to open: that tab signs in by itself, so the bot just says «вернитесь в браузер». */
+  private async issueHandoffTicket(tx: Tx, sessionId: string, ctx: BotContext, who: { workerId: string } | { userId: string }): Promise<Handoff> {
+    const session = await tx.telegramLoginSession.findUnique({ where: { id: sessionId }, select: { web: true } });
+    if (session?.web) return { webLogin: true };
     const token = newOpaqueToken();
     const expiresAt = new Date(Date.now() + this.env.TELEGRAM_HANDOFF_TICKET_TTL_MINUTES * 60_000);
     await tx.telegramHandoffTicket.create({ data: { tokenHash: sha256(token), sessionId, telegramUserId: ctx.telegramUserId, ...who, expiresAt } });
-    return `${this.env.PUBLIC_API_URL}/app/auth/telegram?t=${token}`;
+    return { telegramHandoffUrl: `${this.env.PUBLIC_API_URL}/app/auth/telegram?t=${token}` };
   }
 
   private statusReply(w: WorkerProfile): BotReply {
@@ -279,8 +283,7 @@ export class RegistrationService {
     if (input.kind === 'command' && input.command === 'start' && input.payload) {
       const sessionId = await this.linkTelegramSession(tx, ctx, input.payload);
       if (sessionId) {
-        const telegramHandoffUrl = await this.issueHandoffTicket(tx, sessionId, ctx, { workerId: w.id });
-        return { ...this.statusReply(w), telegramHandoffUrl };
+        return { ...this.statusReply(w), ...(await this.issueHandoffTicket(tx, sessionId, ctx, { workerId: w.id })) };
       }
     }
     return this.statusReply(w);
