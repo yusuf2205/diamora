@@ -311,8 +311,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
 
   Future<void> _attach() async {
     final l = AppLocalizations.of(context);
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showAppSheet<String>(
       context: context,
+      scrollable: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
@@ -404,8 +405,9 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final canEdit = mine && (m.text ?? '').isNotEmpty && m.forwardedFrom == null && DateTime.now().difference(m.createdAt) < const Duration(hours: 48);
     final isPinned = _room?.pinnedMessage?.id == m.id;
     if (m.deleted) return;
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showAppSheet<String>(
       context: context,
+      scrollable: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
@@ -452,7 +454,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       await Clipboard.setData(ClipboardData(text: m.text ?? ''));
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.chatCopied)));
     } else if (choice == 'forward') {
-      final to = await showModalBottomSheet<String>(
+      final to = await showAppSheet<String>(
         context: context,
         showDragHandle: true,
         isScrollControlled: true,
@@ -546,7 +548,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   Future<void> _groupInfo() async {
     final room = _room;
     if (room == null) return;
-    await showModalBottomSheet<void>(
+    await showAppSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -1215,8 +1217,9 @@ class _ComposerState extends State<_Composer> {
     '💪', '🤝', '❤️', '💔', '🔥', '✨', '🎉', '🌸', '🌹', '💎', '✅', '❌', '⏰', '📦', '🧵', '✂️', '📍', '🚗', '☕', '🍰'];
 
   Future<void> _pickEmoji(BuildContext context) async {
-    final e = await showModalBottomSheet<String>(
+    final e = await showAppSheet<String>(
       context: context,
+      scrollable: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: GridView.count(
@@ -1339,7 +1342,7 @@ class _RoomInfoSheetState extends ConsumerState<_RoomInfoSheet> {
   }
 
   Future<void> _add({bool admins = false}) async {
-    final ids = await showModalBottomSheet<List<String>>(
+    final ids = await showAppSheet<List<String>>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,

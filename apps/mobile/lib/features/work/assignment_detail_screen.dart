@@ -195,7 +195,7 @@ class _QrBlock extends StatelessWidget {
         child: Column(children: [
           Text(l.assignmentQr, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 12),
-          QrImageView(data: code, size: 180),
+          QrImageView(data: code, size: qrSide(context, 180)),
           const SizedBox(height: 12),
           // the label goes on the kit: staff and worker both scan THIS code at the handoff
           PrintQrButton(code: code, title: '${a.productName} · ${a.colorName}', lines: [a.workerName, '${a.plannedMeters.toStringAsFixed(0)} м · ${a.code}']),
@@ -354,8 +354,9 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
 
   Future<void> _confirmDeliver(BuildContext context) async {
     final l = AppLocalizations.of(context);
-    final ok = await showModalBottomSheet<bool>(
+    final ok = await showAppSheet<bool>(
       context: context,
+      scrollable: true,
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),

@@ -61,6 +61,13 @@ class CurrentWorkMaterial {
       );
 }
 
+/// A unit in words people use («уп.», «m», «pack»), never the code («PACKAGE»).
+String unitShort(String? unit, [String lang = 'ru']) => switch (lang) {
+      'uz' => switch (unit) { 'METER' => 'm', 'GRAM' => 'g', 'PCS' => 'dona', 'SET' => 'to‘plam', 'ROLL' => 'rulon', 'PACKAGE' => 'qadoq', _ => unit ?? '' },
+      'en' => switch (unit) { 'METER' => 'm', 'GRAM' => 'g', 'PCS' => 'pcs', 'SET' => 'set', 'ROLL' => 'roll', 'PACKAGE' => 'pack', _ => unit ?? '' },
+      _ => switch (unit) { 'METER' => 'м', 'GRAM' => 'г', 'PCS' => 'шт', 'SET' => 'компл.', 'ROLL' => 'рул.', 'PACKAGE' => 'уп.', _ => unit ?? '' },
+    };
+
 /// «Органза — 18 м», «Бисер — 80 г»: a material line in plain words.
 String materialLine(String? name, double quantity, String? unit) {
   final q = quantity == quantity.truncateToDouble() ? quantity.toStringAsFixed(0) : quantity.toStringAsFixed(2);

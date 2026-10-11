@@ -160,7 +160,7 @@ class _Body extends ConsumerWidget {
 
   Future<void> _changeRole(BuildContext context, WidgetRef ref, TeamUser u) async {
     final l = AppLocalizations.of(context);
-    final picked = await showModalBottomSheet<String>(
+    final picked = await showAppSheet<String>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

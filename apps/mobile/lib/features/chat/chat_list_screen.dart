@@ -88,7 +88,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('chatNew'),
-        onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet()),
+        onPressed: () => showAppSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet()),
         tooltip: l.chatNew,
         isExtended: !_compactFab,
         icon: const Icon(Icons.edit_rounded),
@@ -125,8 +125,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 extension on _ChatListScreenState {
   Future<void> _roomMenu(ChatRoomSummary room) async {
     final l = AppLocalizations.of(context);
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showAppSheet<String>(
       context: context,
+      scrollable: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
@@ -360,7 +361,7 @@ class _NewChatSheetState extends ConsumerState<NewChatSheet> {
                   onPressed: () {
                     final nav = Navigator.of(context);
                     nav.pop();
-                    showModalBottomSheet<void>(context: nav.context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChannelSheet());
+                    showAppSheet<void>(context: nav.context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChannelSheet());
                   },
                 ),
               if (!widget.pickOnly)
@@ -491,7 +492,7 @@ class _NewChannelSheetState extends ConsumerState<NewChannelSheet> {
           if (_audience == 'CUSTOM')
             OutlinedButton(
               onPressed: () async {
-                final ids = await showModalBottomSheet<List<String>>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet(pickOnly: true));
+                final ids = await showAppSheet<List<String>>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const NewChatSheet(pickOnly: true));
                 if (ids != null) setState(() => _members = ids);
               },
               child: Text(l.chatChoosePeople(_members.length)),

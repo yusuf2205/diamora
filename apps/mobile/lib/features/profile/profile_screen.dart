@@ -37,7 +37,7 @@ class ProfileScreen extends ConsumerWidget {
             subtitle: Text([me?.phone ?? '', if (me != null) teamRoleLabel(l, me.role), if (ref.watch(myProfileProvider).value?.username != null) '@${ref.watch(myProfileProvider).value!.username}'].join(' · ')),
             trailing: const Icon(Icons.chevron_right_rounded),
             // photo, «о себе», @username - like Telegram's «Информация»
-            onTap: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const MyProfileSheet()),
+            onTap: () => showAppSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, useSafeArea: true, builder: (_) => const MyProfileSheet()),
           ),
         ),
         const SizedBox(height: 8),
@@ -255,7 +255,7 @@ class _MyQrTile extends ConsumerWidget {
           builder: (ctx) => AlertDialog(
             title: Text(l.myQrTitle, textAlign: TextAlign.center),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(color: Colors.white, padding: const EdgeInsets.all(12), child: QrImageView(data: code, size: 240)),
+              Container(color: Colors.white, padding: const EdgeInsets.all(12), child: QrImageView(data: code, size: qrSide(ctx, 240))),
               const SizedBox(height: 12),
               Text(l.myQrHint, textAlign: TextAlign.center),
             ]),

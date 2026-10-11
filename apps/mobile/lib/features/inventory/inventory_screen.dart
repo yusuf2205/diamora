@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../work/models.dart' show unitShort;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -51,8 +52,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
 
   Future<void> _materialActions(BuildContext context) async {
     final l = AppLocalizations.of(context);
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showAppSheet<String>(
       context: context,
+      scrollable: true,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(leading: const Icon(Icons.add_box_rounded), title: Text(l.materialAdd), onTap: () => Navigator.of(ctx).pop('new')),
@@ -135,7 +137,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
             DropdownButtonFormField<String>(
               initialValue: materialId,
               isExpanded: true,
-              items: [for (final m in materials) DropdownMenuItem(value: m.id, child: Text('${m.name} (${m.unit})', overflow: TextOverflow.ellipsis))],
+              items: [for (final m in materials) DropdownMenuItem(value: m.id, child: Text('${m.name} (${unitShort(m.unit, Localizations.localeOf(context).languageCode)})', overflow: TextOverflow.ellipsis))],
               onChanged: (v) => setState(() => materialId = v ?? materialId),
             ),
             const SizedBox(height: 8),
@@ -240,9 +242,9 @@ class _MaterialsTab extends ConsumerWidget {
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(backgroundColor: m.low ? Theme.of(context).colorScheme.errorContainer : Theme.of(context).colorScheme.primaryContainer, child: const Icon(Icons.inventory_2_rounded)),
-                      title: Text(m.name),
+                      title: Text(m.name, maxLines: 2, overflow: TextOverflow.ellipsis),
                       subtitle: Text([if (m.categoryName != null) m.categoryName!, if (m.low) l.stockLow, if (m.daysLeft != null) l.stockLasts(m.daysLeft!)].join(' · '), style: m.low ? TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600) : null),
-                      trailing: Text('${m.balance} ${m.unit}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600)),
+                      trailing: Text('${m.balance} ${unitShort(m.unit, Localizations.localeOf(context).languageCode)}', style: TextStyle(color: m.low ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600)),
                       onTap: canDelete ? () => _materialSheet(context, ref, m) : null,
                     ),
                   );
@@ -253,7 +255,7 @@ class _MaterialsTab extends ConsumerWidget {
   }
   Future<void> _materialSheet(BuildContext context, WidgetRef ref, MaterialItem m) async {
     final l = AppLocalizations.of(context);
-    if (!await confirmDelete(context, title: '${l.deleteAction}: ${m.name}', body: l.materialDeleteConfirm(m.name, '${m.balance} ${m.unit}')) || !context.mounted) return;
+    if (!await confirmDelete(context, title: '${l.deleteAction}: ${m.name}', body: l.materialDeleteConfirm(m.name, '${m.balance} ${unitShort(m.unit, Localizations.localeOf(context).languageCode)}')) || !context.mounted) return;
     try {
       await ref.read(inventoryRepositoryProvider).deleteMaterial(m.id);
       ref.invalidate(materialsProvider);
@@ -347,8 +349,9 @@ class _KitsTab extends ConsumerWidget {
     }
   }
 
-  Future<void> _showQr(BuildContext context, AppLocalizations l, KitAssembled result) => showModalBottomSheet<void>(
+  Future<void> _showQr(BuildContext context, AppLocalizations l, KitAssembled result) => showAppSheet<void>(
         context: context,
+        scrollable: true,
         builder: (ctx) => SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -357,7 +360,7 @@ class _KitsTab extends ConsumerWidget {
               const SizedBox(height: 4),
               Text('${result.kitTemplateName} × ${result.count} = ${result.totalMeters} м'),
               const SizedBox(height: 16),
-              QrImageView(data: result.qrCode, size: 200),
+              QrImageView(data: result.qrCode, size: qrSide(ctx, 200)),
               const SizedBox(height: 8),
               SelectableText(result.qrCode, style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: 12),

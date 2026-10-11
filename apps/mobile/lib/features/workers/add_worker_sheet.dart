@@ -137,7 +137,7 @@ class _AddWorkerSheetState extends ConsumerState<AddWorkerSheet> {
           ] else ...[
             Text(created.fullName, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Center(child: Container(color: Colors.white, padding: const EdgeInsets.all(8), child: QrImageView(data: created.url!, size: 220))),
+            Center(child: Container(color: Colors.white, padding: const EdgeInsets.all(8), child: QrImageView(data: created.url!, size: qrSide(context)))),
             const SizedBox(height: 8),
             Text(l.addWorkerLinkReady, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 16),

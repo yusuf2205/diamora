@@ -50,21 +50,13 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
           : null,
       appBar: AppBar(
         title: Text(l.workers),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.local_shipping_rounded),
-            tooltip: l.deliveryNeeded,
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DeliveriesScreen())),
-          ),
+        actions: barActions(context, keep: 2, [
+          BarAction(icon: Icons.local_shipping_rounded, label: l.deliveryNeeded, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DeliveriesScreen()))),
+          BarAction(icon: Icons.qr_code_scanner_rounded, label: l.qrScan, onTap: () => context.push('/admin/qr-scan')),
           if (ref.watch(authControllerProvider).value?.has('WORKER_ASSIGN_MANAGER') ?? false)
-            IconButton(
-              key: const Key('assignManagerOpen'),
-              icon: const Icon(Icons.manage_accounts_rounded),
-              tooltip: l.assignManagerTitle,
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AssignManagerScreen())),
-            ),
-          IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.qrScan, onPressed: () => context.push('/admin/qr-scan')),
-        ],
+            BarAction(key: const Key('assignManagerOpen'), icon: Icons.manage_accounts_rounded, label: l.assignManagerTitle,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AssignManagerScreen()))),
+        ]),
         bottom: TabBar(controller: _tabs, tabs: [Tab(text: l.tabPending), Tab(text: l.tabActive), Tab(text: l.tabAll)]),
       ),
       body: Column(children: [
@@ -136,13 +128,21 @@ class _WorkerTile extends StatelessWidget {
       'REJECTED' => l.statusRejected,
       _ => l.statusArchived,
     };
+    final narrow = MediaQuery.sizeOf(context).width < 400;
     return Card(
       child: ListTile(
         onTap: () => context.push('/admin/workers/${worker.id}'),
         leading: CircleAvatar(backgroundColor: worker.isPending ? scheme.tertiaryContainer : scheme.primaryContainer, child: Text(initials(worker.fullName))),
-        title: Text(worker.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text([worker.code, worker.phone, if (c != null) (c.isMoney ? '${formatUzs(c.amount)} ${l.currency}' : (c.description ?? ''))].where((s) => s.isNotEmpty).join(' · ')),
-        trailing: Text(status, style: TextStyle(color: worker.isPending ? scheme.tertiary : scheme.outline, fontSize: 12)),
+        title: Text(worker.fullName, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+        // a narrow phone: the status goes into the lines below instead of squeezing the name into three lines
+        subtitle: Text(
+          [
+            [worker.code, if (narrow) status].join(' · '),
+            [worker.phone, if (c != null) (c.isMoney ? '${formatUzs(c.amount)} ${l.currency}' : (c.description ?? ''))].where((s) => s.isNotEmpty).join(' · '),
+          ].join('\n'),
+          maxLines: 2, overflow: TextOverflow.ellipsis,
+        ),
+        trailing: narrow ? null : Text(status, style: TextStyle(color: worker.isPending ? scheme.tertiary : scheme.outline, fontSize: 12)),
       ),
     );
   }

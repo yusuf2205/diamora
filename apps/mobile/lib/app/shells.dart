@@ -1,3 +1,4 @@
+import '../core/theme/app_theme.dart';
 import '../core/notifications/app_notifications.dart';
 import '../core/update/app_updater.dart';
 import 'package:flutter/material.dart';
@@ -199,6 +200,8 @@ class AdaptiveShell extends StatelessWidget {
           indicatorColor: shell.currentIndex == chatIndex ? Colors.transparent : null,
           // six tabs on a 411 dp phone: «Мастерицы» would break in two - icons only when a tab gets under 72 dp
           labelBehavior: width < 400 || width / destinations.length < 72 ? NavigationDestinationLabelBehavior.alwaysHide : NavigationDestinationLabelBehavior.alwaysShow,
+          // icons only: no room is kept for labels that are not there (80 dp of a 480 dp phone was a bar)
+          height: width < 400 || width / destinations.length < 72 ? (AppTheme.isCompact(MediaQuery.sizeOf(context)) ? 58 : 64) : null,
           destinations: [
             for (final (i, d) in destinations.indexed)
               i == chatIndex

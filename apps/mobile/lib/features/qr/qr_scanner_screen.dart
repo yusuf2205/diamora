@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/ui/widgets.dart' show showAppSheet;
 import '../../l10n/app_localizations.dart';
 import '../work/assignment_admin_repository.dart';
 import '../work/models.dart';
@@ -74,8 +75,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
 
   Future<void> _showKit(AppLocalizations l, Map<String, dynamic> kit) {
     final items = (kit['items'] as List).cast<Map<String, dynamic>>();
-    return showModalBottomSheet<void>(
+    return showAppSheet<void>(
       context: context,
+      scrollable: true,
       isScrollControlled: true,
       builder: (ctx) => SafeArea(
         child: Padding(
@@ -110,7 +112,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     final color = (a['color'] as Map?)?.cast<String, dynamic>();
     final status = a['status'] as String;
     var busy = false;
-    await showModalBottomSheet<void>(
+    await showAppSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(

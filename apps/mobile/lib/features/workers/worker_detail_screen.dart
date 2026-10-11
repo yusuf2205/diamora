@@ -46,20 +46,16 @@ class WorkerDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(async.value?.fullName ?? l.workers),
-        actions: [
-          IconButton(icon: const Icon(Icons.qr_code_scanner_rounded), tooltip: l.actionScanQr, onPressed: () => context.push('/admin/qr-scan')),
+        actions: barActions(context, [
           if (async.value != null)
-            IconButton(key: const Key('remindAboutWorker'), icon: const Icon(Icons.alarm_add_rounded), tooltip: l.reminderAdd,
-                onPressed: () => showReminderSheet(context, workerId: async.value!.id, workerName: async.value!.fullName)),
-          if (async.value?.qrCode != null)
-            IconButton(icon: const Icon(Icons.qr_code_2_rounded), tooltip: l.showQr, onPressed: () => _showQr(context, l, async.value!.qrCode!)),
+            BarAction(icon: Icons.history_rounded, label: l.history,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => WorkerHistoryScreen(workerId: workerId, name: async.value!.fullName)))),
           if (async.value != null)
-            IconButton(
-              icon: const Icon(Icons.history_rounded),
-              tooltip: l.history,
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => WorkerHistoryScreen(workerId: workerId, name: async.value!.fullName))),
-            ),
-        ],
+            BarAction(key: const Key('remindAboutWorker'), icon: Icons.alarm_add_rounded, label: l.reminderAdd,
+                onTap: () => showReminderSheet(context, workerId: async.value!.id, workerName: async.value!.fullName)),
+          if (async.value?.qrCode != null) BarAction(icon: Icons.qr_code_2_rounded, label: l.showQr, onTap: () => _showQr(context, l, async.value!.qrCode!)),
+          BarAction(icon: Icons.qr_code_scanner_rounded, label: l.actionScanQr, onTap: () => context.push('/admin/qr-scan')),
+        ]),
       ),
       body: Column(children: [
         const ConnectionBanner(),
@@ -263,15 +259,16 @@ class WorkerDetailScreen extends ConsumerWidget {
 
   /// The worker's opaque, personal QR (M2 §13): rendered locally from the code text, nothing downloaded or printed
   /// server-side. Scanning it later resolves through the exact same scope check as this very screen (`GET /qr/:code`).
-  Future<void> _showQr(BuildContext context, AppLocalizations l, String code) => showModalBottomSheet<void>(
+  Future<void> _showQr(BuildContext context, AppLocalizations l, String code) => showAppSheet<void>(
         context: context,
+        scrollable: true,
         builder: (ctx) => SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text(l.workerQrTitle, style: Theme.of(ctx).textTheme.titleMedium),
               const SizedBox(height: 16),
-              QrImageView(data: code, size: 220),
+              QrImageView(data: code, size: qrSide(ctx)),
               const SizedBox(height: 8),
               SelectableText(code, style: Theme.of(ctx).textTheme.bodySmall),
               const SizedBox(height: 12),
@@ -511,7 +508,7 @@ class _Contacts extends ConsumerWidget {
 
 /// «Сменить менеджера»: pick one of the active managers (or none). The server moves her whole scope - the old manager's
 /// lists, map and QR lose her at once, the new one's gain her - and tells both over realtime.
-Future<void> showChangeManagerSheet(BuildContext context, Worker worker) => showModalBottomSheet<void>(
+Future<void> showChangeManagerSheet(BuildContext context, Worker worker) => showAppSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

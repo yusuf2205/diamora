@@ -256,5 +256,54 @@ Future<T?> showFormSheet<T>(BuildContext context, {required WidgetBuilder builde
       ),
     );
   }
-  return showModalBottomSheet<T>(context: context, isScrollControlled: true, useSafeArea: useSafeArea, showDragHandle: showDragHandle, builder: builder);
+  return showModalBottomSheet<T>(context: context, useRootNavigator: true, isScrollControlled: true, useSafeArea: useSafeArea, showDragHandle: showDragHandle, builder: builder);
+}
+
+/// Every bottom sheet in the app: above the bottom bar (root navigator - the bar used to cut the sheet off), as tall as
+/// the screen allows, and - for short menus/cards (`scrollable`) - scrolling instead of being cut on a 480 dp phone.
+Future<T?> showAppSheet<T>({
+  required BuildContext context, required WidgetBuilder builder, bool showDragHandle = false, bool useSafeArea = true,
+  bool scrollable = false, bool? isScrollControlled,
+}) =>
+    showModalBottomSheet<T>(
+      context: context, useRootNavigator: true, isScrollControlled: true, useSafeArea: useSafeArea, showDragHandle: showDragHandle,
+      builder: scrollable ? (ctx) => SingleChildScrollView(child: builder(ctx)) : builder,
+    );
+
+/// A QR picture that fits a small phone (60 % of the width at most).
+double qrSide(BuildContext context, [double max = 220]) {
+  final w = MediaQuery.sizeOf(context).width * 0.6;
+  return w < max ? w : max;
+}
+
+/// One top-bar action: an icon on a wide screen, a line in the «⋮» menu on a narrow one.
+class BarAction {
+  const BarAction({required this.icon, required this.label, required this.onTap, this.key});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Key? key;
+}
+
+/// Top-bar actions that never squeeze the title: on a phone narrower than 400 dp only the first [keep] stay as icons,
+/// the rest go into «⋮» with their names (a 320 dp phone showed the title as «S...»).
+List<Widget> barActions(BuildContext context, List<BarAction> actions, {int keep = 1}) {
+  final narrow = MediaQuery.sizeOf(context).width < 400;
+  if (!narrow || actions.length <= keep + 1) {
+    return [for (final a in actions) IconButton(key: a.key, icon: Icon(a.icon), tooltip: a.label, onPressed: a.onTap)];
+  }
+  final shown = actions.take(keep).toList();
+  final rest = actions.skip(keep).toList();
+  return [
+    for (final a in shown) IconButton(key: a.key, icon: Icon(a.icon), tooltip: a.label, onPressed: a.onTap),
+    PopupMenuButton<int>(
+      key: const Key('barMore'),
+      icon: const Icon(Icons.more_vert_rounded),
+      onSelected: (i) => rest[i].onTap(),
+      itemBuilder: (_) => [
+        for (var i = 0; i < rest.length; i++)
+          PopupMenuItem<int>(key: rest[i].key, value: i, child: Row(children: [Icon(rest[i].icon, size: 20), const SizedBox(width: 12), Flexible(child: Text(rest[i].label))])),
+      ],
+    ),
+  ];
 }

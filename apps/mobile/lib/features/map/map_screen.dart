@@ -100,6 +100,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _tilted = false;
   double _azimuth = 0;
   _CameraListener? _cameraListener;
+  // a tap on the map itself (not on a person) closes her card, like any map app (held: MapKit keeps listeners weakly)
+  _InputListener? _inputListener;
   List<LiveLocationRow> _shown = const [];
   int _markerGeneration = 0;
 
@@ -210,7 +212,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   onTraffic: _toggleTraffic,
                   onShowAll: () => _showAll(_shown),
                   onTilt: _toggleTilt,
-                  onRoute: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => RouteSheet(rows: _shown)),
+                  onRoute: () => showAppSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => RouteSheet(rows: _shown)),
                   bottomInset: _selected != null && MediaQuery.sizeOf(context).width < 600 ? 250 : 0,
                 ),
               ),
@@ -241,6 +243,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (mounted && (a - _azimuth).abs() > 1) setState(() => _azimuth = a);
     });
     window.map.addCameraListener(_cameraListener!);
+    _inputListener = _InputListener(() { if (mounted && _selected != null) setState(() => _selected = null); });
+    window.map.addInputListener(_inputListener!);
     final rows = ref.read(liveLocationsProvider).value;
     if (rows != null) _applyMarkers(_visible(rows));
   }
@@ -430,17 +434,23 @@ class _PersonCard extends StatelessWidget {
           if (row.overdue) Text('● ${l.mapFilterOverdue}', style: const TextStyle(color: workOverdueColor, fontWeight: FontWeight.w600)),
           if (row.phone != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text(row.phone!)),
           if (row.visitText != null) Padding(padding: const EdgeInsets.only(top: 4), child: Text('🕒 ${l.visitTimeShort}: ${row.visitText}', style: const TextStyle(fontWeight: FontWeight.w600))),
-          const SizedBox(height: 12),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            if (row.phone != null) FilledButton.tonalIcon(onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded), label: Text(l.call)),
-            OutlinedButton.icon(
-              onPressed: () => openRoute(row.latitude, row.longitude),
-              icon: const Icon(Icons.directions_rounded), label: Text(l.route),
-            ),
+          const SizedBox(height: 10),
+          // one row: call and route as round buttons, «Профиль» with its name (the full-width buttons made the card
+          // cover half of a small phone's map)
+          Row(children: [
+            if (row.phone != null) ...[
+              IconButton.filledTonal(key: const Key('mapCall'), tooltip: l.call, onPressed: () => launchUrl(Uri.parse('tel:${row.phone}')), icon: const Icon(Icons.call_rounded)),
+              const SizedBox(width: 6),
+            ],
+            IconButton.outlined(key: const Key('mapRouteTo'), tooltip: l.route, onPressed: () => openRoute(row.latitude, row.longitude), icon: const Icon(Icons.directions_rounded)),
+            const SizedBox(width: 8),
             if (row.workerId != null)
-              FilledButton.icon(
-                onPressed: () => context.push('/admin/workers/${row.workerId}'),
-                icon: const Icon(Icons.badge_rounded), label: Text(l.mapOpenProfile),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                  onPressed: () => context.push('/admin/workers/${row.workerId}'),
+                  icon: const Icon(Icons.badge_rounded), label: Text(l.mapOpenProfile, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
               ),
           ]),
         ]),
@@ -454,6 +464,15 @@ class _TapListener implements ymk.MapObjectTapListener {
   final bool Function(ymk.MapObject, ymk.Point) _onTap;
   @override
   bool onMapObjectTap(ymk.MapObject mapObject, ymk.Point point) => _onTap(mapObject, point);
+}
+
+class _InputListener implements ymk.MapInputListener {
+  _InputListener(this._onTap);
+  final VoidCallback _onTap;
+  @override
+  void onMapTap(ymk.Map map, ymk.Point point) => _onTap();
+  @override
+  void onMapLongTap(ymk.Map map, ymk.Point point) {}
 }
 
 class _CameraListener implements ymk.MapCameraListener {
@@ -508,28 +527,36 @@ class MapControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final turned = azimuth.abs() > 1 && (360 - azimuth).abs() > 1;
+    return LayoutBuilder(builder: (context, box) {
+    // a short map (a 480 dp phone): smaller gaps, and «+ / −» only when both columns fit (pinch zooms anyway)
+    final short = box.maxHeight < 520;
+    final gap = short ? 6.0 : 10.0;
+    final top = (onRoute != null ? 4 : 3) * (short ? 42.0 : 52.0) + 3 * gap;
+    final showZoom = box.maxHeight - bottomInset - top - 16 >= (short ? 42.0 * 2 + 60 + 50 : 52.0 * 2 + 94);
     return Stack(children: [
       Positioned(
         top: 8, right: 12,
         child: Column(children: [
           MapButton(key: const Key('mapTraffic'), tooltip: l.mapTraffic, icon: Icons.traffic_rounded, active: traffic, onTap: onTraffic),
-          const SizedBox(height: 10),
+          SizedBox(height: gap),
           MapButton(key: const Key('mapShowAll'), tooltip: l.mapShowAll, icon: Icons.groups_rounded, onTap: onShowAll),
-          const SizedBox(height: 10),
+          SizedBox(height: gap),
           MapButton(key: const Key('mapTilt'), tooltip: l.map3d, label: tilted ? '2D' : '3D', active: tilted, onTap: onTilt),
           if (onRoute != null) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: gap),
             MapButton(key: const Key('mapRoute'), tooltip: l.routeTitle, icon: Icons.route_rounded, onTap: onRoute!),
           ],
         ]),
       ),
       Positioned(
-        right: 12, bottom: 16 + bottomInset,
+        right: 12, bottom: (short ? 10 : 16) + bottomInset,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          MapButton(key: const Key('mapZoomIn'), tooltip: l.mapZoomIn, icon: Icons.add_rounded, onTap: () => onZoom(1)),
-          const SizedBox(height: 10),
-          MapButton(key: const Key('mapZoomOut'), tooltip: l.mapZoomOut, icon: Icons.remove_rounded, onTap: () => onZoom(-1)),
-          const SizedBox(height: 24),
+          if (showZoom) ...[
+            MapButton(key: const Key('mapZoomIn'), tooltip: l.mapZoomIn, icon: Icons.add_rounded, onTap: () => onZoom(1)),
+            SizedBox(height: gap),
+            MapButton(key: const Key('mapZoomOut'), tooltip: l.mapZoomOut, icon: Icons.remove_rounded, onTap: () => onZoom(-1)),
+            SizedBox(height: short ? 12 : 24),
+          ],
           if (turned || tilted) ...[
             MapButton(
               key: const Key('mapNorth'),
@@ -544,6 +571,7 @@ class MapControls extends StatelessWidget {
         ]),
       ),
     ]);
+    });
   }
 }
 
@@ -561,7 +589,9 @@ class MapButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final size = big ? 60.0 : 52.0;
+    // a small phone: 42 / 50 dp (still easy to hit), so the buttons do not run into each other
+    final small = MediaQuery.sizeOf(context).height < 640;
+    final size = big ? (small ? 50.0 : 60.0) : (small ? 42.0 : 52.0);
     final fg = active ? scheme.onPrimary : scheme.onSurface;
     final shape = round ? const CircleBorder() : RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
     return Tooltip(
