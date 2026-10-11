@@ -121,3 +121,7 @@ export function errorMessage(error: unknown): string {
   if (error instanceof TypeError) return 'Нет соединения с сервером'; // fetch() network failure
   return 'Не удалось выполнить действие';
 }
+
+/** A worker's lead in a picker: «Малика», «Азиз · Администратор», «Юсуф (я) · Владелец» (an admin can look after workers too). */
+export const leadLabel = (m: { id: string; fullName: string; role: string }, meId?: string) =>
+  `${m.fullName}${m.id === meId ? ' (я)' : ''}${m.role !== 'MANAGER' ? ` · ${roleLabel(m.role)}` : ''}`;

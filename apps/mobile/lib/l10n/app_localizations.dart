@@ -6406,6 +6406,66 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Добавить в папку'**
   String get chatAddToFolder;
+
+  /// No description provided for @leadMe.
+  ///
+  /// In ru, this message translates to:
+  /// **'я'**
+  String get leadMe;
+
+  /// No description provided for @chatWatchTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все переписки'**
+  String get chatWatchTitle;
+
+  /// No description provided for @chatWatchSearch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Имя сотрудника или группы'**
+  String get chatWatchSearch;
+
+  /// No description provided for @chatWatchDirect.
+  ///
+  /// In ru, this message translates to:
+  /// **'Личные'**
+  String get chatWatchDirect;
+
+  /// No description provided for @chatWatchGroup.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группа'**
+  String get chatWatchGroup;
+
+  /// No description provided for @chatWatchGroups.
+  ///
+  /// In ru, this message translates to:
+  /// **'Группы и каналы'**
+  String get chatWatchGroups;
+
+  /// No description provided for @chatWatchChannel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Канал'**
+  String get chatWatchChannel;
+
+  /// No description provided for @chatWatchEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переписок пока нет'**
+  String get chatWatchEmpty;
+
+  /// No description provided for @chatWatchMessages.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} сообщение} few{{count} сообщения} other{{count} сообщений}}'**
+  String chatWatchMessages(int count);
+
+  /// No description provided for @chatWatchingNotice.
+  ///
+  /// In ru, this message translates to:
+  /// **'👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно.'**
+  String get chatWatchingNotice;
 }
 
 class _AppLocalizationsDelegate

@@ -28,6 +28,8 @@ import { PrismaService } from '../prisma/prisma.module';
 
 /** An invitation link stays valid a week; after that staff simply creates a new one. */
 const INVITE_TTL_DAYS = 7;
+/** who can look after a worker: a manager, and also an admin or the SUPER_ADMIN (themselves too - owner, 2026-10-11) */
+const STAFF_LEADS: readonly string[] = ['MANAGER', 'ADMIN', 'SUPER_ADMIN'];
 
 type WorkerWithCollateral = WorkerProfile & { collaterals: (WorkerCollateral & { photos: CollateralPhoto[] })[] };
 
@@ -129,7 +131,7 @@ export class WorkersService {
     let managerName: string | null = null;
     if (input.managerId) {
       const m = await this.prisma.user.findUnique({ where: { id: input.managerId }, select: { id: true, role: true, fullName: true, status: true } });
-      if (!m || m.role !== 'MANAGER') throw invariant('managerId must be an active user with role MANAGER');
+      if (!m || !STAFF_LEADS.includes(m.role)) throw invariant('managerId must be an active manager, admin or super admin');
       if (m.status !== 'ACTIVE') throw invariant('This manager is deactivated');
       managerName = m.fullName;
     }
@@ -146,7 +148,7 @@ export class WorkersService {
     let managerName: string | null = null;
     if (input.managerId) {
       const m = await this.prisma.user.findUnique({ where: { id: input.managerId }, select: { role: true, fullName: true, status: true } });
-      if (!m || m.role !== 'MANAGER') throw invariant('managerId must be an active user with role MANAGER');
+      if (!m || !STAFF_LEADS.includes(m.role)) throw invariant('managerId must be an active manager, admin or super admin');
       if (m.status !== 'ACTIVE') throw invariant('This manager is deactivated');
       managerName = m.fullName;
     }
@@ -171,7 +173,7 @@ export class WorkersService {
     if (await this.prisma.user.findUnique({ where: { phone: input.phone }, select: { id: true } })) throw conflict('This phone number already has a login');
     if (input.managerId) {
       const m = await this.prisma.user.findUnique({ where: { id: input.managerId }, select: { role: true, status: true } });
-      if (!m || m.role !== 'MANAGER' || m.status !== 'ACTIVE') throw invariant('managerId must be an active user with role MANAGER');
+      if (!m || !STAFF_LEADS.includes(m.role) || m.status !== 'ACTIVE') throw invariant('managerId must be an active manager, admin or super admin');
     }
     const token = newOpaqueToken();
     const now = new Date();

@@ -99,7 +99,8 @@ class _AddWorkerSheetState extends ConsumerState<AddWorkerSheet> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final canManager = ref.watch(authControllerProvider).value?.has('WORKER_ASSIGN_MANAGER') ?? false;
-    final managers = canManager ? ref.watch(managersProvider).value ?? const [] : const [];
+    final managers = canManager ? ref.watch(leadsProvider).value ?? const [] : const [];
+    final meId = ref.watch(authControllerProvider).value?.id;
     final created = _created;
     return Padding(
       padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
@@ -119,7 +120,7 @@ class _AddWorkerSheetState extends ConsumerState<AddWorkerSheet> {
                 decoration: InputDecoration(labelText: l.addWorkerManager),
                 items: [
                   DropdownMenuItem<String?>(value: null, child: Text(l.addWorkerNoManager)),
-                  for (final m in managers.where((m) => m.user.status == 'ACTIVE')) DropdownMenuItem<String?>(value: m.user.id, child: Text(m.user.fullName, overflow: TextOverflow.ellipsis)),
+                  for (final m in managers.where((m) => m.user.status == 'ACTIVE')) DropdownMenuItem<String?>(value: m.user.id, child: Text(leadLabel(l, m.user, meId), overflow: TextOverflow.ellipsis)),
                 ],
                 onChanged: (v) => setState(() => _managerId = v),
               ),

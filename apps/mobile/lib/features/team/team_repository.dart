@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import 'models.dart';
 
 const _uuid = Uuid();
@@ -54,7 +55,8 @@ class TeamRepository {
 
   Future<TeamUser> changeRole(String userId, String role) async => TeamUser.fromJson(await _api.putJson('/users/$userId/role', body: {'role': role}));
 
-  Future<List<ManagerSummary>> managers() async => ((await _api.getJson('/managers'))['items'] as List).map((j) => ManagerSummary.fromJson((j as Map).cast<String, dynamic>())).toList();
+  /// `all`: everyone who can look after workers - managers, admins and the owner (owner, 2026-10-11)
+  Future<List<ManagerSummary>> managers({bool all = false}) async => ((await _api.getJson('/managers', query: all ? {'all': '1'} : null))['items'] as List).map((j) => ManagerSummary.fromJson((j as Map).cast<String, dynamic>())).toList();
 
   /// «Очистить журнал» (SUPER_ADMIN): the journal starts over; the rows are never deleted on the server.
   Future<void> clearAudit() => _api.postJson('/audit/clear');
@@ -112,6 +114,19 @@ final managersProvider = FutureProvider.autoDispose<List<ManagerSummary>>((ref) 
   });
   return ref.watch(teamRepositoryProvider).managers();
 });
+
+/// Who a worker can be given to: managers, admins and the SUPER_ADMIN herself (the pickers).
+final leadsProvider = FutureProvider.autoDispose<List<ManagerSummary>>((ref) {
+  ref.listen(realtimeEventsProvider, (_, next) {
+    final t = next.value?.type;
+    if (t != null && (t.startsWith('user.') || t == 'worker.manager_changed')) ref.invalidateSelf();
+  });
+  return ref.watch(teamRepositoryProvider).managers(all: true);
+});
+
+/// «Малика», «Азиз · Администратор», «Юсуф (я) · Главный администратор»
+String leadLabel(AppLocalizations l, TeamUser u, String? meId) =>
+    '${u.fullName}${u.id == meId ? ' (${l.leadMe})' : ''}${switch (u.role) { 'SUPER_ADMIN' => ' · ${l.roleSuperAdmin}', 'ADMIN' => ' · ${l.roleAdmin}', _ => '' }}';
 
 final auditProvider = FutureProvider.autoDispose<List<AuditEntry>>((ref) => ref.watch(teamRepositoryProvider).audit());
 

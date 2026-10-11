@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../core/ui/widgets.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 import '../team/team_repository.dart';
 import 'models.dart';
 import 'workers_providers.dart';
@@ -28,7 +29,8 @@ class _AssignManagerScreenState extends ConsumerState<AssignManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final managers = ref.watch(managersProvider).value?.where((m) => m.user.isActive).toList() ?? const [];
+    final managers = ref.watch(leadsProvider).value?.where((m) => m.user.isActive).toList() ?? const [];
+    final meId = ref.watch(authControllerProvider).value?.id;
     final all = (ref.watch(workersListProvider(WorkersFilter(query: _query))).value ?? const <Worker>[]).where((w) => _assignable.contains(w.status)).toList();
     // start from «who is already hers» once the list has loaded (it streams in from the local cache / the server)
     if (_picked == null && all.isNotEmpty) _picked = {for (final w in all) if (_managerId != null && w.managerId == _managerId) w.id};
@@ -40,14 +42,15 @@ class _AssignManagerScreenState extends ConsumerState<AssignManagerScreen> {
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: DropdownButtonFormField<String?>(
+          // the list of people arrives first: a dropdown whose chosen person is not (yet) among its items breaks
+          child: ref.watch(leadsProvider).value == null ? const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: LinearProgressIndicator()) : DropdownButtonFormField<String?>(
             key: const Key('assignManagerPick'),
             initialValue: _managerId,
             isExpanded: true,
             decoration: InputDecoration(labelText: l.managerLabel),
             items: [
               DropdownMenuItem<String?>(value: null, child: Text(l.noManager)),
-              for (final m in managers) DropdownMenuItem<String?>(value: m.user.id, child: Text('${m.user.fullName} · ${m.assignedWorkers}', overflow: TextOverflow.ellipsis)),
+              for (final m in managers) DropdownMenuItem<String?>(value: m.user.id, child: Text('${leadLabel(l, m.user, meId)} · ${m.assignedWorkers}', overflow: TextOverflow.ellipsis)),
             ],
             onChanged: (v) => setState(() {
               _managerId = v;
@@ -95,6 +98,7 @@ class _AssignManagerScreenState extends ConsumerState<AssignManagerScreen> {
     try {
       await ref.read(workerRepositoryProvider).assignManagerBulk(ids, _managerId);
       ref.invalidate(managersProvider);
+      ref.invalidate(leadsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.assignManagerDone(ids.length))));
       Navigator.of(context).maybePop();

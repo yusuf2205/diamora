@@ -12,19 +12,22 @@ const w = (id: string, fullName: string, manager: { id: string; fullName: string
   id, code: `W-${id}`, fullName, phone: '+998900000000', secondaryPhone: null, status: 'ACTIVE', latitude: null, longitude: null, locationReceivedAt: null,
   balance: '0', manager, collateral: null, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z',
 });
-const MGR = { id: 'm1', fullName: 'Дилноза', phone: '+998901000000', status: 'ACTIVE', stats: { workers: 1 } };
+const MGR = { id: 'm1', fullName: 'Дилноза', phone: '+998901000000', role: 'MANAGER', status: 'ACTIVE', stats: { workers: 1 } };
+// an admin - and the owner herself - can look after workers too (owner, 2026-10-11)
+const SELF = { id: 's1', fullName: 'Owner', phone: '+998901112233', role: 'SUPER_ADMIN', status: 'ACTIVE', stats: { workers: 0 } };
 
 describe('«Назначить менеджера» for several workers; «Очистить журнал»', () => {
   it('pick a manager, tick workers, one request with only the ones that change', async () => {
     signIn(OWNER);
     const fetchMock = mockFetch({
-      '/auth/me': OWNER, '/managers': { items: [MGR] }, '/workers/manager-bulk': { changed: 1 },
+      '/auth/me': OWNER, '/managers': { items: [MGR, SELF] }, '/workers/manager-bulk': { changed: 1 },
       '/workers': { items: [w('1', 'Нигора', { id: 'm1', fullName: 'Дилноза' }), w('2', 'Юлдуз', null)], nextCursor: null },
     });
     renderWithProviders(<WorkersPage />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Назначить менеджера' }));
-    await user.selectOptions(await screen.findByLabelText('Менеджер'), await screen.findByRole('option', { name: 'Дилноза · 1' }));
+    expect(await screen.findByRole('option', { name: /^Owner \(я\) · / })).toBeInTheDocument();
+    await user.selectOptions(await screen.findByLabelText('Кто ведёт (менеджер, админ или вы)'), await screen.findByRole('option', { name: 'Дилноза · 1' }));
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Нигора' })).toBeChecked()); // already hers
     await user.click(screen.getByRole('checkbox', { name: 'Юлдуз' }));
     await user.click(screen.getByRole('button', { name: 'Назначить (1)' }));

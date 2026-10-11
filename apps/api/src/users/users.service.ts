@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma, User, UserPermission } from '@diamoraa/database';
 import {
@@ -124,10 +124,6 @@ export class UsersService {
       from = before.role as Role;
       if (from === input.role) return;
       if (from === 'SUPER_ADMIN') await this.assertNotLastSuperAdmin(tx, before);
-      if (from === 'MANAGER') {
-        const n = await tx.workerProfile.count({ where: { assignedManagerId: id } });
-        if (n > 0) throw invariant(`This manager still has ${n} worker(s): assign them to another manager first`, { workers: n });
-      }
       await tx.user.update({ where: { id }, data: { role: input.role } });
       // overrides that make no sense for the new role are dropped with it
       const keep = new Set<string>([...grantablePermissions(input.role), ...ROLE_DEFAULT_PERMISSIONS[input.role]]);
@@ -194,9 +190,11 @@ export class UsersService {
   }
 
   // ---- managers ---------------------------------------------------------------------------------------------------------------
-  async managers(viewer: AuthUser) {
+  /** The managers (the map, «Менеджеры»); `all`: everyone a worker can be given to - managers, admins and the SUPER_ADMIN
+   *  (an admin may look after her own workers, owner 2026-10-11). */
+  async managers(viewer: AuthUser, all = false) {
     const managers = await this.prisma.user.findMany({
-      where: { role: 'MANAGER', ...(viewer.permissions.includes('USER_VIEW_ALL') ? {} : { id: viewer.id }) },
+      where: { role: all ? { in: ['MANAGER', 'ADMIN', 'SUPER_ADMIN'] } : 'MANAGER', ...(viewer.permissions.includes('USER_VIEW_ALL') ? {} : { id: viewer.id }) },
       include: { permissions: true, liveLocation: true, workerProfile: { select: { id: true, assignedManagerId: true } } },
       orderBy: { fullName: 'asc' },
     });
@@ -206,7 +204,7 @@ export class UsersService {
   }
 
   async managerDetail(id: string) {
-    const m = await this.prisma.user.findFirst({ where: { id, role: 'MANAGER' }, include: { permissions: true, liveLocation: true, workerProfile: { select: { id: true, assignedManagerId: true } } } });
+    const m = await this.prisma.user.findFirst({ where: { id, role: { in: ['MANAGER', 'ADMIN', 'SUPER_ADMIN'] } }, include: { permissions: true, liveLocation: true, workerProfile: { select: { id: true, assignedManagerId: true } } } });
     if (!m) throw notFound('Manager');
     const workers = await this.prisma.workerProfile.findMany({ where: { assignedManagerId: id }, select: { id: true, code: true, fullName: true, phone: true, status: true, userId: true }, orderBy: { fullName: 'asc' } });
     const per = await this.stats.perWorker(workers.map((w) => w.id));
@@ -335,7 +333,7 @@ export class UsersController {
   }
 
   @Perm('USER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED') @Get('managers')
-  managers(@CurrentUser() u: AuthUser) { return this.users.managers(u); }
+  managers(@CurrentUser() u: AuthUser, @Query('all') all?: string) { return this.users.managers(u, all === '1' || all === 'true'); }
 
   @Perm('USER_VIEW_ALL') @Get('managers/:id')
   manager(@Param('id', new ParseUUIDPipe()) id: string) { return this.users.managerDetail(id); }

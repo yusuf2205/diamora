@@ -1081,5 +1081,16 @@
   "chatFolderName": "Nomi",
   "chatFolderNameHint": "Masalan: Ish",
   "chatFolderChats": "Papkadagi chatlar",
-  "chatAddToFolder": "Papkaga qoʻshish"
+  "chatAddToFolder": "Papkaga qoʻshish",
+  "leadMe": "men",
+  "chatWatchTitle": "Barcha yozishmalar",
+  "chatWatchSearch": "Xodim yoki guruh nomi",
+  "chatWatchDirect": "Shaxsiy",
+  "chatWatchGroup": "Guruh",
+  "chatWatchGroups": "Guruhlar va kanallar",
+  "chatWatchChannel": "Kanal",
+  "chatWatchEmpty": "Hozircha yozishmalar yo‘q",
+  "chatWatchMessages": "{count, plural, one{{count} ta xabar} other{{count} ta xabar}}",
+  "@chatWatchMessages": {"placeholders": {"count": {"type": "int"}}},
+  "chatWatchingNotice": "👁 Siz bu yozishmani egasi sifatida ko‘ryapsiz — qatnashchilar sizni ko‘rmaydi. Bu yerda yozib bo‘lmaydi, xabarni o‘chirish mumkin."
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
+import 'live_refresh.dart';
 import '../features/chat/chat_repository.dart';
 import '../features/location/location_gate.dart';
 import '../features/work/offline_ui.dart';
@@ -37,6 +38,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    ref.watch(liveRefreshProvider); // every screen refreshes itself on server events
 
     // realtime hints -> refresh the cache (the API stays the source of truth)
     ref.listen(realtimeEventsProvider, (_, next) {
@@ -81,6 +83,7 @@ class WorkerShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    ref.watch(liveRefreshProvider); // her screens (work, money, goal, catalog) refresh themselves on server events
     return AdaptiveShell(
       shell: shell,
       body: UpdateBanner(child: NoticeDelivery(child: LocationGate(child: OfflineSync(child: shell)))),

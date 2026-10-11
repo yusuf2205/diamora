@@ -124,8 +124,10 @@ void main() {
   testWidgets('«Сменить менеджера»: pick another manager in a sheet, the server call carries exactly that id', (tester) async {
     stubCommon();
     when(() => api.getJson('/admin/assignments', query: any(named: 'query'))).thenAnswer((_) async => {'items': <Object>[]});
-    when(() => api.getJson('/managers')).thenAnswer((_) async => {
+    // everyone who can look after her: managers, and an admin too (owner, 2026-10-11)
+    when(() => api.getJson('/managers', query: {'all': '1'})).thenAnswer((_) async => {
           'items': [
+            {'id': 'a1', 'phone': '+998900', 'fullName': 'Азиз Админ', 'role': 'ADMIN', 'status': 'ACTIVE', 'stats': {'workers': 0}},
             {'id': 'm1', 'phone': '+998901', 'fullName': 'Дилноза Менеджер', 'role': 'MANAGER', 'status': 'ACTIVE', 'stats': {'workers': 4}},
             {'id': 'm2', 'phone': '+998902', 'fullName': 'Гульнора Новая', 'role': 'MANAGER', 'status': 'ACTIVE', 'stats': {'workers': 1}},
             {'id': 'm3', 'phone': '+998903', 'fullName': 'Отключённый Менеджер', 'role': 'MANAGER', 'status': 'SUSPENDED', 'stats': {'workers': 0}},
@@ -138,6 +140,7 @@ void main() {
 
     await tester.tap(find.text('Сменить менеджера'));
     await tester.pumpAndSettle();
+    expect(find.text('Азиз Админ · Администратор'), findsOneWidget);
     expect(find.text('Отключённый Менеджер'), findsNothing); // a disabled manager cannot take workers
     await tester.tap(find.text('Гульнора Новая'));
     await tester.pumpAndSettle();

@@ -34,6 +34,7 @@ class MoreScreen extends ConsumerWidget {
       if (perms.contains('FINANCE_VIEW_ALL') || perms.contains('FINANCE_VIEW_ASSIGNED') || perms.contains('PROFIT_VIEW')) (Icons.bar_chart_rounded, l.reportsTitle, '/admin/reports'),
       if (canOpenSettings(perms)) (Icons.settings_rounded, l.settingsTitle, '/admin/settings'),
       if (isSuper || perms.contains('SETTINGS_MANAGE')) (Icons.monitor_heart_rounded, l.systemTitle, '/admin/system'),
+      if (isSuper) (Icons.visibility_rounded, l.chatWatchTitle, '/admin/chat-watch'),
       (Icons.person_outline_rounded, l.profile, '/admin/profile'),
     ];
     return Scaffold(

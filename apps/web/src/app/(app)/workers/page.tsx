@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { formatUzs, statusLabel } from '@/lib/format';
+import { formatUzs, leadLabel, statusLabel } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import type { ManagerSummary, Page, Worker } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
@@ -107,7 +107,7 @@ export function AddWorkerDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const { me } = useAuth();
   const canManager = hasPerm(me, 'WORKER_ASSIGN_MANAGER');
-  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers'), enabled: canManager });
+  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers', 'all'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers', { all: 1 }), enabled: canManager });
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('+998 ');
   const [managerId, setManagerId] = useState('');
@@ -149,7 +149,7 @@ ${link}`;
             <Field label="Менеджер" htmlFor="inv-manager">
               <select id="inv-manager" className="min-h-10 w-full rounded-lg border border-border bg-card px-3 py-1.5" value={managerId} onChange={(e) => setManagerId(e.target.value)}>
                 <option value="">Без менеджера</option>
-                {managers.data?.items.filter((m) => m.status === 'ACTIVE').map((m) => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+                {managers.data?.items.filter((m) => m.status === 'ACTIVE').map((m) => <option key={m.id} value={m.id}>{leadLabel(m, me?.id)}</option>)}
               </select>
             </Field>
           )}

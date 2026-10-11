@@ -2,6 +2,7 @@ import { Controller, Get, Injectable, Module, Param, ParseUUIDPipe, Put } from '
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
+import { EventBus } from '../events/event-bus';
 import { CurrentUser, Perm, Roles } from '../common/decorators';
 import { forbidden, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
@@ -23,7 +24,7 @@ export interface Badge { code: string; title: string; hint: string; earned: bool
  */
 @Injectable()
 export class GoalsService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus) {}
 
   async settings() {
     const s = await this.prisma.goalSettings.findUnique({ where: { id: 1 } });
@@ -34,6 +35,7 @@ export class GoalsService {
     const before = await this.settings();
     await this.prisma.goalSettings.upsert({ where: { id: 1 }, create: { id: 1, monthlyMeters, updatedById: actor.id }, update: { monthlyMeters, updatedById: actor.id } });
     await this.audit.record({ action: 'goals.common', entity: 'GoalSettings', entityId: null, before, after: { monthlyMeters } });
+    await this.events.publish('goal.changed', { workerId: null });
     return { monthlyMeters };
   }
 
@@ -43,6 +45,7 @@ export class GoalsService {
     if (!w) throw notFound('Worker');
     await this.prisma.workerProfile.update({ where: { id: workerId }, data: { monthlyGoalMeters: monthlyMeters } });
     await this.audit.record({ action: 'goals.worker', entity: 'WorkerProfile', entityId: workerId, before: { monthlyGoalMeters: w.monthlyGoalMeters }, after: { monthlyGoalMeters: monthlyMeters } });
+    await this.events.publish('goal.changed', { workerId });
     return this.forWorker(workerId);
   }
 

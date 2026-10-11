@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Header, HttpCode, Inject, Injectable, Logger, Module, OnModuleDestroy, OnModuleInit, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Delete, Get, Header, HttpCode, Inject, Injectable, Logger, Module, OnModuleDestroy, OnModuleInit, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import { Throttle } from '@nestjs/throttler';
 import type { Socket } from 'socket.io';
@@ -20,7 +20,7 @@ import {
 import { fetchLinkPreview } from './link-preview';
 import { AiNotConfigured, speechToText, translate, type AiLang } from './yandex-ai';
 import { z } from 'zod';
-import { ApiZodBody, Authenticated, CurrentUser } from '../common/decorators';
+import { ApiZodBody, Authenticated, CurrentUser, Roles } from '../common/decorators';
 import { AppError, fileRejected, forbidden, notFound, validationFailed } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
@@ -195,6 +195,45 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     throw notFound('Chat');
   }
 
+  /** The room for READING: mine, or - for the SUPER_ADMIN - any conversation («Все переписки», read-only oversight;
+   *  never someone's «Избранное»). Writing still needs `access` (membership). */
+  private async view(u: AuthUser, roomId: string): Promise<ChatRoom> {
+    try {
+      return await this.access(u, roomId);
+    } catch (e) {
+      if (u.role !== 'SUPER_ADMIN') throw e;
+      const room = await this.prisma.chatRoom.findUnique({ where: { id: roomId } });
+      if (!room || room.kind === 'SAVED') throw e;
+      return room;
+    }
+  }
+
+  /** «Все переписки» (SUPER_ADMIN): every conversation in the company, newest first - who with whom, the last message. */
+  async watchRooms(u: AuthUser, q?: string) {
+    if (u.role !== 'SUPER_ADMIN') throw forbidden();
+    const needle = q?.trim();
+    const rooms = await this.prisma.chatRoom.findMany({
+      where: {
+        kind: { in: ['DIRECT', 'GROUP', 'CHANNEL', 'COMPANY'] }, lastMessageAt: { not: null },
+        ...(needle ? { OR: [{ title: { contains: needle, mode: 'insensitive' } }, { members: { some: { user: { fullName: { contains: needle, mode: 'insensitive' } } } } }] } : {}),
+      },
+      orderBy: { lastMessageAt: 'desc' }, take: 200,
+      include: { members: { take: 5, orderBy: { joinedAt: 'asc' }, include: { user: { select: { id: true, fullName: true, role: true } } } }, _count: { select: { members: true, messages: true } } },
+    });
+    const lasts = await Promise.all(rooms.map((r) => this.prisma.chatMessage.findFirst({ where: { roomId: r.id }, orderBy: { id: 'desc' }, include: MSG_INCLUDE })));
+    return {
+      items: rooms.map((r, i) => ({
+        id: r.id, kind: r.kind,
+        title: r.kind === 'DIRECT' ? r.members.map((m) => m.user.fullName).join(' ↔ ') : r.title,
+        people: r.members.map((m) => m.user),
+        memberCount: r._count.members,
+        messageCount: r._count.messages,
+        lastMessage: lasts[i] ? this.dto(lasts[i]!, u.id) : null,
+        lastMessageAt: (r.lastMessageAt ?? r.createdAt).toISOString(),
+      })),
+    };
+  }
+
   private async unreadByRoom(userId: string): Promise<Map<string, number>> {
     const rows = await this.prisma.$queryRaw<{ roomId: string; n: bigint }[]>(Prisma.sql`
       SELECT m."roomId" AS "roomId", count(*)::bigint AS n
@@ -267,7 +306,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
 
   async room(u: AuthUser, roomId: string) {
-    const room = await this.access(u, roomId);
+    const room = await this.view(u, roomId);
     // an audience channel lists only its admins (everyone of that audience reads it)
     const audienceChannel = room.kind === 'CHANNEL' && room.audience !== 'CUSTOM';
     const members = room.kind === 'COMPANY' ? [] : await this.prisma.chatMember.findMany({
@@ -276,22 +315,25 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     });
     const me = members.find((m) => m.userId === u.id) ?? (await this.prisma.chatMember.findUnique({ where: { roomId_userId: { roomId, userId: u.id } } }));
     const pinned = room.pinnedMessageId ? await this.prisma.chatMessage.findFirst({ where: { id: room.pinnedMessageId, roomId, deletedAt: null }, include: MSG_INCLUDE }) : null;
+    // not a member: the SUPER_ADMIN looking in (read-only; she may only delete a message)
+    const watching = !me && room.kind !== 'COMPANY';
     const peer = room.kind === 'DIRECT' ? members.find((m) => m.userId !== u.id) : undefined;
     return {
       id: room.id, kind: room.kind,
-      title: room.kind === 'DIRECT' ? (peer?.user.fullName ?? null) : room.title,
+      title: room.kind === 'DIRECT' ? (watching ? members.map((m) => m.user.fullName).join(' ↔ ') : (peer?.user.fullName ?? null)) : room.title,
+      watching,
       isOwner: me?.isOwner ?? false,
       isAdmin: !!me?.isAdmin,
-      canManage: this.canManage(u, room, me ?? null),
-      canEditAdmins: (room.kind === 'GROUP' || room.kind === 'CHANNEL') && (!!me?.isOwner || isAdmin(u)),
-      canWrite: this.canWrite(u, room, me ?? null),
-      canPin: this.canPin(u, room, me ?? null),
+      canManage: !watching && this.canManage(u, room, me ?? null),
+      canEditAdmins: !watching && (room.kind === 'GROUP' || room.kind === 'CHANNEL') && (!!me?.isOwner || isAdmin(u)),
+      canWrite: !watching && this.canWrite(u, room, me ?? null),
+      canPin: !watching && this.canPin(u, room, me ?? null),
       description: room.description,
       photo: room.photoFileId ? this.files.ref(room.photoFileId) : null,
       audience: room.kind === 'CHANNEL' ? room.audience : null,
       onlyAdminsWrite: room.onlyAdminsWrite,
       protectContent: room.protectContent,
-      canProtect: room.kind === 'DIRECT' || this.canManage(u, room, me ?? null),
+      canProtect: !watching && (room.kind === 'DIRECT' || this.canManage(u, room, me ?? null)),
       pinned: !!me?.pinnedAt,
       muted: !!me?.mutedUntil && me.mutedUntil > new Date(),
       pinnedMessage: pinned ? this.dto(pinned, u.id) : null,
@@ -453,7 +495,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
 
   /** «Медиа», «Файлы», «Голосовые», «Ссылки» of a chat (newest first). */
   async media(u: AuthUser, roomId: string, q: z.output<typeof chatMediaQuerySchema>) {
-    await this.access(u, roomId);
+    await this.view(u, roomId);
     const where: Prisma.ChatMessageWhereInput = { roomId, deletedAt: null, ...(await this.since(u, roomId)), ...(q.before ? { id: { lt: q.before } } : {}) };
     if (q.kind === 'media') where.kind = { in: ['IMAGE', 'VIDEO'] };
     if (q.kind === 'files') where.kind = { in: ['FILE', 'AUDIO'] };
@@ -540,9 +582,13 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
 
   async messages(u: AuthUser, roomId: string, q: z.output<typeof chatMessagesQuerySchema>) {
-    await this.access(u, roomId);
+    const room = await this.view(u, roomId);
     const include = MSG_INCLUDE;
     const since = await this.since(u, roomId);
+    // the SUPER_ADMIN opening someone else's conversation is on record (which chat, when - not what she read)
+    if (!q.after && !q.before && room.kind !== 'COMPANY' && !(await this.me(u, roomId))) {
+      await this.audit.record({ action: 'chat.watch', entity: 'ChatRoom', entityId: roomId, after: { kind: room.kind } });
+    }
     if (q.after) {
       const rows = await this.prisma.chatMessage.findMany({ where: { roomId, id: { gt: q.after }, ...since }, orderBy: { id: 'asc' }, take: q.limit, include });
       return { items: rows.reverse().map((m) => this.dto(m, u.id)), hasMore: false };
@@ -624,7 +670,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async pollVoters(u: AuthUser, messageId: string) {
     const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
     if (!m || m.kind !== 'POLL') throw notFound('Poll');
-    const room = await this.access(u, m.roomId);
+    const room = await this.view(u, m.roomId);
     if (room.kind === 'CHANNEL' && !this.canManage(u, room, await this.me(u, room.id))) throw forbidden('Only the channel admins see who answered');
     const votes = await this.prisma.chatPollVote.findMany({ where: { messageId }, orderBy: { createdAt: 'asc' } });
     const people = await this.prisma.user.findMany({ where: { id: { in: [...new Set(votes.map((v) => v.userId))] } }, select: { id: true, fullName: true } });
@@ -719,7 +765,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async transcribe(u: AuthUser, messageId: string, lang: AiLang) {
     const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
     if (!m || m.deletedAt || !m.fileId || !['VOICE', 'AUDIO', 'VIDEO_NOTE'].includes(m.kind)) throw notFound('Voice message');
-    await this.access(u, m.roomId);
+    await this.view(u, m.roomId);
     const data = (m.data ?? {}) as { transcripts?: Record<string, string> };
     if (data.transcripts?.[lang] !== undefined) return { text: data.transcripts[lang] };
     const o = await this.files.open(m.fileId, 'original');
@@ -735,7 +781,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async translateMessage(u: AuthUser, messageId: string, to: AiLang) {
     const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
     if (!m || m.deletedAt) throw notFound('Message');
-    await this.access(u, m.roomId);
+    await this.view(u, m.roomId);
     const data = (m.data ?? {}) as { translations?: Record<string, string> };
     const source = m.text ?? '';
     if (!source.trim()) throw validationFailed('Nothing to translate');
@@ -966,7 +1012,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async forward(u: AuthUser, id: string, roomIds: string[]) {
     const src = await this.prisma.chatMessage.findUnique({ where: { id }, include: { sender: SENDER } });
     if (!src || src.deletedAt) throw notFound('Message');
-    const from = await this.access(u, src.roomId); // I may read the original
+    const from = await this.view(u, src.roomId); // I may read the original
     if (from.protectContent) throw forbidden('Forwarding is turned off in this chat');
     const targets = [];
     for (const roomId of [...new Set(roomIds)]) targets.push(await this.writable(u, roomId)); // and may write where it goes
@@ -1064,7 +1110,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
 
   /** «Экспорт истории чата» as plain text (what I can see; not for a protected chat unless I administer it). */
   async exportHistory(u: AuthUser, roomId: string) {
-    const room = await this.access(u, roomId);
+    const room = await this.view(u, roomId);
     if (room.protectContent && !isAdmin(u) && !this.canManage(u, room, await this.me(u, roomId))) throw forbidden('Saving is turned off in this chat');
     const rows = await this.prisma.chatMessage.findMany({ where: { roomId, deletedAt: null, ...(await this.since(u, roomId)) }, orderBy: { id: 'asc' }, take: 20_000, include: MSG_INCLUDE });
     const two = (v: number) => String(v).padStart(2, '0');
@@ -1082,7 +1128,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async reads(u: AuthUser, messageId: string) {
     const m = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
     if (!m) throw notFound('Message');
-    await this.access(u, m.roomId);
+    await this.view(u, m.roomId);
     const rows = await this.prisma.chatMember.findMany({
       where: { roomId: m.roomId, userId: { notIn: [u.id, ...(m.senderId ? [m.senderId] : [])] }, lastReadAt: { gte: m.createdAt } },
       include: { user: { select: { id: true, fullName: true, role: true, avatarFileId: true, username: true } } }, orderBy: { lastReadAt: 'asc' }, take: 200,
@@ -1092,7 +1138,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
 
   /** Search inside one chat. */
   async roomSearch(u: AuthUser, roomId: string, q: string) {
-    await this.access(u, roomId);
+    await this.view(u, roomId);
     const rows = await this.prisma.chatMessage.findMany({
       where: { roomId, deletedAt: null, text: { contains: q, mode: 'insensitive' }, ...(await this.since(u, roomId)) }, orderBy: { id: 'desc' }, take: 50, include: MSG_INCLUDE,
     });
@@ -1101,7 +1147,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
 
   /** «520 фотографий, 134 видео …» of a chat. */
   async counts(u: AuthUser, roomId: string) {
-    await this.access(u, roomId);
+    await this.view(u, roomId);
     const base: Prisma.ChatMessageWhereInput = { roomId, deletedAt: null, ...(await this.since(u, roomId)) };
     const [photos, videos, files, audio, voice, links] = await Promise.all([
       this.prisma.chatMessage.count({ where: { ...base, kind: 'IMAGE' } }),
@@ -1143,7 +1189,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
 
   async read(u: AuthUser, roomId: string) {
-    const room = await this.access(u, roomId);
+    const room = await this.view(u, roomId);
+    if (!(await this.me(u, roomId))) return { ok: true }; // the SUPER_ADMIN looking in: nobody sees «прочитано» from her
     await this.prisma.chatMember.updateMany({ where: { roomId, userId: u.id }, data: { lastReadAt: new Date(), markedUnread: false } });
     // a direct chat shows «прочитано» to the other person; everywhere else only my other devices care
     const userIds = room.kind === 'DIRECT' ? await this.memberIds(room) : [u.id];
@@ -1155,7 +1202,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async deleteMessage(u: AuthUser, id: string) {
     const m = await this.prisma.chatMessage.findUnique({ where: { id } });
     if (!m) throw notFound('Message');
-    const room = await this.access(u, m.roomId);
+    const room = await this.view(u, m.roomId);
     const own = m.senderId === u.id;
     if (!own && !isAdmin(u) && !(room.kind !== 'DIRECT' && room.kind !== 'COMPANY' && this.canManage(u, room, await this.me(u, room.id)))) {
       throw forbidden('You can delete only your own messages');
@@ -1177,6 +1224,9 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chat: ChatService) {}
+
+  @Roles('SUPER_ADMIN') @Get('watch/rooms')
+  watchRooms(@CurrentUser() u: AuthUser, @Query('q') q?: string) { return this.chat.watchRooms(u, q); }
 
   @Authenticated() @Get('rooms')
   rooms(@CurrentUser() u: AuthUser) { return this.chat.rooms(u); }

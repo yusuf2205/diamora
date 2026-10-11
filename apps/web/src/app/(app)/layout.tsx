@@ -7,13 +7,13 @@ import { hasPerm } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useLivePanel } from '@/lib/live';
 import { Logo } from '@/components/ui';
-import { Wallet, PlayCircle, ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, Users, type LucideIcon, BarChart3 } from 'lucide-react';
+import { Eye, Wallet, PlayCircle, ShoppingBag, Truck, Activity, ClipboardList, Gem, LayoutDashboard, Lock, LogOut, Medal, TrendingUp, MapPin, Menu, Package, ScrollText, Settings, Sparkles, Users, type LucideIcon, BarChart3 } from 'lucide-react';
 import { initials, roleLabel } from '@/lib/format';
 import { useChatUnread } from '@/components/chat';
 import { HeaderBadges } from '@/components/header-badges';
 import { GlobalSearch } from '@/components/global-search';
 
-const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[] = [
+const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[]; superAdmin?: boolean }[] = [
   { href: '/dashboard', label: 'Обзор', icon: LayoutDashboard },
   { href: '/workers', label: 'Мастерицы', icon: Sparkles, perms: ['WORKER_VIEW_ALL', 'WORKER_VIEW_ASSIGNED'] },
   { href: '/collaterals', label: 'Залоги', icon: Lock, perms: ['COLLATERAL_VIEW'] },
@@ -30,6 +30,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; perms?: string[] }[]
   { href: '/team', label: 'Команда', icon: Users, perms: ['USER_VIEW_ALL'] },
   { href: '/settings', label: 'Настройки', icon: Settings, perms: ['PAY_RATE_MANAGE', 'SETTINGS_MANAGE'] },
   { href: '/audit', label: 'Журнал', icon: ScrollText, perms: ['AUDIT_VIEW'] },
+  { href: '/oversight', label: 'Все переписки', icon: Eye, superAdmin: true }, // read any conversation (owner, 2026-10-11)
   { href: '/system', label: 'Система', icon: Activity, perms: ['SETTINGS_MANAGE'] },
   { href: '/learn', label: 'Обучение', icon: PlayCircle }, // short videos for each role
 ];
@@ -61,10 +62,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const items = NAV.filter((n) => !n.perms || hasPerm(me, ...n.perms));
+  const items = NAV.filter((n) => (!n.superAdmin || me.role === 'SUPER_ADMIN') && (!n.perms || hasPerm(me, ...n.perms)));
 
-  const isChat = pathname.startsWith('/chat');
-  const current = isChat ? 'Чат' : items.find((n) => pathname.startsWith(n.href))?.label ?? 'Diamoraa';
+  const isChat = pathname.startsWith('/chat') || pathname.startsWith('/oversight'); // full-height chat screens: no search bar on top
+  const current = pathname.startsWith('/chat') ? 'Чат' : items.find((n) => pathname.startsWith(n.href))?.label ?? 'Diamoraa';
 
   // Desktop: a fixed sidebar. Phone / portrait tablet (< lg): a slim top bar with the page name and a ☰ button; the same menu slides in
   // over the page, so the content always gets the full screen width.

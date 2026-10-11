@@ -36,6 +36,7 @@ import '../features/workers/collaterals_screen.dart';
 import '../features/insights/insights_screens.dart';
 import '../features/chat/chat_list_screen.dart';
 import '../features/chat/chat_room_screen.dart';
+import '../features/chat/chat_watch_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/manager/manager_tools.dart';
 import '../features/manager/visit_screen.dart';
@@ -81,6 +82,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // a conversation (staff and workers alike; the server decides who may read it)
       GoRoute(path: '/chat/:id', builder: (_, s) => ChatRoomScreen(key: ValueKey(s.pathParameters['id']), roomId: s.pathParameters['id']!)),
+      // «Все переписки» (SUPER_ADMIN; the server refuses anyone else)
+      GoRoute(path: '/admin/chat-watch', builder: (_, _) => const ChatWatchScreen()),
       GoRoute(path: '/admin/qr-scan', builder: (_, _) => const QrScannerScreen()),
       GoRoute(path: '/admin/job-requests', builder: (_, _) => const JobRequestsScreen()),
       GoRoute(path: '/admin/orders', builder: (_, _) => const OrdersScreen()),

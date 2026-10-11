@@ -120,7 +120,12 @@ describe('RBAC (D-028): SUPER_ADMIN / ADMIN / MANAGER / WORKER, permissions, man
     const workerId: string = list.body.items[0].id;
 
     await admin.api.post(`/v1/workers/${workerId}/manager`, { managerId: manager.user.id }).expect(403);
-    await superAdmin.api.post(`/v1/workers/${workerId}/manager`, { managerId: admin.user.id }).expect(409); // admin.user is not a MANAGER
+    // an admin, or the SUPER_ADMIN herself, can look after a worker too (owner, 2026-10-11)
+    expect((await superAdmin.api.post(`/v1/workers/${workerId}/manager`, { managerId: admin.user.id }).expect(201)).body.manager).toMatchObject({ id: admin.user.id });
+    expect((await superAdmin.api.post(`/v1/workers/${workerId}/manager`, { managerId: superAdmin.user.id }).expect(201)).body.manager).toMatchObject({ id: superAdmin.user.id });
+    const assignable = (await superAdmin.api.get('/v1/managers?all=1').expect(200)).body.items.map((m: { id: string }) => m.id);
+    expect(assignable).toEqual(expect.arrayContaining([admin.user.id, superAdmin.user.id, manager.user.id]));
+    expect((await superAdmin.api.get('/v1/managers').expect(200)).body.items.map((m: { id: string }) => m.id)).not.toContain(admin.user.id);
     const assigned = await superAdmin.api.post(`/v1/workers/${workerId}/manager`, { managerId: manager.user.id }).expect(201);
     expect(assigned.body.manager).toMatchObject({ id: manager.user.id });
   });

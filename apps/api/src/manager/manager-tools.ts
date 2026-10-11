@@ -8,6 +8,7 @@ import { invariant, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
 import { inWorkerScope, workerScope } from '../common/scope';
 import { ZodBody } from '../common/zod.pipe';
+import { EventBus } from '../events/event-bus';
 import { AppNotifier } from '../notifications/app-notifier';
 import { PrismaService } from '../prisma/prisma.module';
 import { WorkersModule, WorkersService } from '../workers/workers.service';
@@ -31,7 +32,7 @@ const managerInviteSchema = createWorkerInviteSchema.omit({ managerId: true });
 /** The timed side (worker process): reminders that are due, holidays that ended. Also «Я вернулся» from the app. */
 @Injectable()
 export class ManagerTicks {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly events: EventBus) {}
 
   private async workerNames(ids: (string | null)[]) {
     const list = ids.filter((x): x is string => !!x);
@@ -57,12 +58,17 @@ export class ManagerTicks {
   async comeBack(userId: string, notifier: AppNotifier) {
     const me = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, fullName: true, awayUntil: true, awaySubstituteId: true } });
     if (!me?.awayUntil) return;
-    const back = await this.prisma.$transaction(async (tx) => {
-      const r = await tx.workerProfile.updateMany({ where: { homeManagerId: userId }, data: { assignedManagerId: userId, homeManagerId: null } });
+    const moved = await this.prisma.$transaction(async (tx) => {
+      const ws = await tx.workerProfile.findMany({ where: { homeManagerId: userId }, select: { id: true, assignedManagerId: true } });
+      await tx.workerProfile.updateMany({ where: { id: { in: ws.map((w) => w.id) } }, data: { assignedManagerId: userId, homeManagerId: null } });
       await tx.user.update({ where: { id: userId }, data: { awayUntil: null, awaySubstituteId: null } });
-      await this.audit.record({ action: 'manager.back', entity: 'User', entityId: userId, after: { workers: r.count } }, tx);
-      return r.count;
+      await this.audit.record({ action: 'manager.back', entity: 'User', entityId: userId, after: { workers: ws.length } }, tx);
+      return ws;
     });
+    const back = moved.length;
+    // both lists change on the screens at once
+    for (const w of moved) await this.events.publish('worker.manager_changed', { workerId: w.id, managerId: userId, previousManagerId: w.assignedManagerId });
+    await this.events.publish('user.updated', { userId });
     if (me.awaySubstituteId) {
       await notifier.notify([me.awaySubstituteId], { type: 'manager.cover', title: `${me.fullName} вернулся из отпуска`, body: `Мастерицы (${back}) снова у него. Спасибо!`, link: '/admin/workers' });
     }
@@ -83,7 +89,7 @@ export class ManagerTicks {
  */
 @Injectable()
 export class ManagerToolsService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly workers: WorkersService, private readonly ticks: ManagerTicks) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly workers: WorkersService, private readonly ticks: ManagerTicks, private readonly events: EventBus) {}
 
   // ---- «Кто простаивает» --------------------------------------------------------------------------------------------------
   async idle(actor: AuthUser, now = new Date()) {
@@ -149,6 +155,7 @@ export class ManagerToolsService {
       if (!w || !inWorkerScope(actor, 'WORKER', w)) throw notFound('Worker');
     }
     const r = await this.prisma.staffReminder.create({ data: { userId: actor.id, text: b.text, dueAt: b.dueAt, workerId: b.workerId ?? null } });
+    await this.events.publish('reminder.changed', { userId: actor.id });
     return this.reminderDto(r, await this.workerNames([r.workerId]));
   }
 
@@ -163,12 +170,14 @@ export class ManagerToolsService {
         ...(b.dueAt ? { dueAt: b.dueAt, notifiedAt: null } : {}),
       },
     });
+    await this.events.publish('reminder.changed', { userId: actor.id });
     return this.reminderDto(next, await this.workerNames([next.workerId]));
   }
 
   async deleteReminder(actor: AuthUser, id: string) {
     const r = await this.prisma.staffReminder.deleteMany({ where: { id, userId: actor.id } });
     if (!r.count) throw notFound('Reminder');
+    await this.events.publish('reminder.changed', { userId: actor.id });
     return { ok: true };
   }
 
@@ -195,14 +204,18 @@ export class ManagerToolsService {
     if (b.until.getTime() > Date.now() + 120 * DAY) throw invariant('At most 120 days');
     const sub = await this.prisma.user.findUnique({ where: { id: b.substituteId }, select: { id: true, role: true, status: true, awayUntil: true, fullName: true } });
     if (!sub || sub.id === actor.id || sub.role !== 'MANAGER' || sub.status !== 'ACTIVE' || sub.awayUntil) throw invariant('Pick an active manager who is not on holiday');
-    const moved = await this.prisma.$transaction(async (tx) => {
+    const movedIds = await this.prisma.$transaction(async (tx) => {
       const me = await tx.user.findUniqueOrThrow({ where: { id: actor.id }, select: { awayUntil: true } });
       if (me.awayUntil) throw invariant('Already on holiday');
-      const r = await tx.workerProfile.updateMany({ where: { assignedManagerId: actor.id, homeManagerId: null, deletedAt: null }, data: { assignedManagerId: sub.id, homeManagerId: actor.id } });
+      const ws = await tx.workerProfile.findMany({ where: { assignedManagerId: actor.id, homeManagerId: null, deletedAt: null }, select: { id: true } });
+      await tx.workerProfile.updateMany({ where: { id: { in: ws.map((w) => w.id) } }, data: { assignedManagerId: sub.id, homeManagerId: actor.id } });
       await tx.user.update({ where: { id: actor.id }, data: { awayUntil: b.until, awaySubstituteId: sub.id } });
-      await this.audit.record({ action: 'manager.away', entity: 'User', entityId: actor.id, after: { substituteId: sub.id, until: b.until.toISOString(), workers: r.count } }, tx);
-      return r.count;
+      await this.audit.record({ action: 'manager.away', entity: 'User', entityId: actor.id, after: { substituteId: sub.id, until: b.until.toISOString(), workers: ws.length } }, tx);
+      return ws.map((w) => w.id);
     });
+    for (const id of movedIds) await this.events.publish('worker.manager_changed', { workerId: id, managerId: sub.id, previousManagerId: actor.id });
+    await this.events.publish('user.updated', { userId: actor.id });
+    const moved = movedIds.length;
     await notifier.notify([sub.id], {
       type: 'manager.cover', title: `Вам переданы мастерицы: ${moved}`, link: '/admin/workers',
       body: `${actor.fullName} в отпуске до ${day(b.until)} — его мастерицы пока у вас. Потом они вернутся сами.`,

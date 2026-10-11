@@ -3458,6 +3458,45 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chatAddToFolder => 'Papkaga qoʻshish';
+
+  @override
+  String get leadMe => 'men';
+
+  @override
+  String get chatWatchTitle => 'Barcha yozishmalar';
+
+  @override
+  String get chatWatchSearch => 'Xodim yoki guruh nomi';
+
+  @override
+  String get chatWatchDirect => 'Shaxsiy';
+
+  @override
+  String get chatWatchGroup => 'Guruh';
+
+  @override
+  String get chatWatchGroups => 'Guruhlar va kanallar';
+
+  @override
+  String get chatWatchChannel => 'Kanal';
+
+  @override
+  String get chatWatchEmpty => 'Hozircha yozishmalar yo‘q';
+
+  @override
+  String chatWatchMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ta xabar',
+      one: '$count ta xabar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatWatchingNotice =>
+      '👁 Siz bu yozishmani egasi sifatida ko‘ryapsiz — qatnashchilar sizni ko‘rmaydi. Bu yerda yozib bo‘lmaydi, xabarni o‘chirish mumkin.';
 }
 
 /// The translations for Uzbek, using the Cyrillic script (`uz_Cyrl`).
@@ -6906,4 +6945,43 @@ class AppLocalizationsUzCyrl extends AppLocalizationsUz {
 
   @override
   String get chatAddToFolder => 'Папкага қўшиш';
+
+  @override
+  String get leadMe => 'мен';
+
+  @override
+  String get chatWatchTitle => 'Барча ёзишмалар';
+
+  @override
+  String get chatWatchSearch => 'Ходим ёки гуруҳ номи';
+
+  @override
+  String get chatWatchDirect => 'Шахсий';
+
+  @override
+  String get chatWatchGroup => 'Гуруҳ';
+
+  @override
+  String get chatWatchGroups => 'Гуруҳлар ва каналлар';
+
+  @override
+  String get chatWatchChannel => 'Канал';
+
+  @override
+  String get chatWatchEmpty => 'Ҳозирча ёзишмалар ёъқ';
+
+  @override
+  String chatWatchMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count та хабар',
+      one: '$count та хабар',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatWatchingNotice =>
+      '👁 Сиз бу ёзишмани эгаси сифатида кўряпсиз — қатнашчилар сизни кўрмайди. Бу ерда ёзиб бўлмайди, хабарни ўчириш мумкин.';
 }

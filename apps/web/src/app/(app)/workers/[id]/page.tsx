@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
-import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, statusLabel } from '@/lib/format';
+import { assignmentStatusLabel, assignmentStatusTone, formatDate, formatDay, formatUzs, leadLabel, statusLabel } from '@/lib/format';
 import { hasPerm } from '@/lib/types';
 import { WorkerGoalCard } from '@/components/goals';
 import { VisitTimeCard } from '@/components/visit-time';
@@ -214,7 +214,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['workers'] }); router.push('/workers'); },
   });
   const removeBlocked = remove.error instanceof ApiError && (remove.error.code === 'HAS_HISTORY' || remove.error.code === 'OPEN_WORK');
-  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers'), enabled: canManager });
+  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers', 'all'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers', { all: 1 }), enabled: canManager });
   const [picked, setPicked] = useState<string>(w.manager?.id ?? '');
   const [archiving, setArchiving] = useState(false);
   const done = () => {
@@ -238,7 +238,7 @@ function ManagerAndStatusCard({ worker: w }: { worker: Worker }) {
             <>
               <select aria-label="Менеджер" className="min-h-10 w-full rounded-lg border border-border bg-card px-3 py-1.5 sm:w-auto" value={picked} onChange={(e) => setPicked(e.target.value)}>
                 <option value="">Без менеджера</option>
-                {managers.data?.items.filter((m) => m.status === 'ACTIVE' || m.id === w.manager?.id).map((m) => <option key={m.id} value={m.id}>{m.fullName} · {m.stats.workers}</option>)}
+                {managers.data?.items.filter((m) => m.status === 'ACTIVE' || m.id === w.manager?.id).map((m) => <option key={m.id} value={m.id}>{leadLabel(m, me?.id)} · {m.stats.workers}</option>)}
               </select>
               <Button variant="outline" disabled={picked === (w.manager?.id ?? '') || assign.isPending} onClick={() => assign.mutate()}>Сменить менеджера</Button>
             </>

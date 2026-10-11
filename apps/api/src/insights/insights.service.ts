@@ -5,6 +5,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { AuditService } from '../audit/audit.service';
+import { EventBus } from '../events/event-bus';
 import { ApiZodBody, Authenticated, CurrentUser, Perm } from '../common/decorators';
 import { forbidden, notFound } from '../common/errors';
 import type { AuthUser } from '../common/request-context';
@@ -30,7 +31,7 @@ const OPEN = ['READY_TO_DELIVER', 'DELIVERED', 'IN_PROGRESS', 'READY_FOR_PICKUP'
 export class InsightsService {
   constructor(
     private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly redis: RedisService,
-    @Inject(ENV) private readonly env: Env,
+    @Inject(ENV) private readonly env: Env, private readonly events: EventBus,
   ) {}
 
   // ---- «Рейтинг мастериц» ---------------------------------------------------------------------------------------------
@@ -199,6 +200,7 @@ export class InsightsService {
       await this.audit.record({ action: 'sale.create', entity: 'Sale', entityId: s.id, after: { total: input.total, customer: input.customer } }, tx);
       return s;
     });
+    await this.events.publish('profit.updated', { period: 'sale' });
     return { id: row.id, code: row.code };
   }
 
@@ -209,6 +211,7 @@ export class InsightsService {
       await tx.sale.delete({ where: { id } });
       await this.audit.record({ action: 'sale.delete', entity: 'Sale', entityId: id, before: { total: s.total.toString(), customer: s.customer } }, tx);
     });
+    await this.events.publish('profit.updated', { period: 'sale' });
     return { deleted: true };
   }
 
@@ -223,6 +226,7 @@ export class InsightsService {
       await this.audit.record({ action: 'expense.create', entity: 'Expense', entityId: e.id, after: { amount: input.amount, category: input.category } }, tx);
       return e;
     });
+    await this.events.publish('profit.updated', { period: 'expense' });
     return { id: row.id };
   }
 
@@ -233,6 +237,7 @@ export class InsightsService {
       await tx.expense.delete({ where: { id } });
       await this.audit.record({ action: 'expense.delete', entity: 'Expense', entityId: id, before: { amount: e.amount.toString(), category: e.category } }, tx);
     });
+    await this.events.publish('profit.updated', { period: 'expense' });
     return { deleted: true };
   }
 

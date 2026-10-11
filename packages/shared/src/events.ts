@@ -57,6 +57,10 @@ export interface EventMap {
   // money
   /** The global price of a 9 m kit changed: everybody's screens must refresh (D-027). */
   'pay_rate.changed': { ratePerKit: string; previousRatePerKit: string | null; changedAt: string };
+  /** a monthly goal changed (the common one: workerId null) */
+  'goal.changed': { workerId: string | null };
+  /** «Напоминания себе» changed (on another device of the same person) */
+  'reminder.changed': { userId: string };
   'earning.created': { workerId: string; assignmentId: string | null; amount: string } & WithManager;
   'cash_payment.created': { workerId: string; paymentId: string; amount: string } & WithManager;
   'worker.balance_updated': { workerId: string; balance: string; earned: string; paid: string } & WithManager;
@@ -114,6 +118,8 @@ export interface EventRoute {
   user?: boolean;
   /** every user named in data.userIds (chat members) */
   users?: boolean;
+  /** the SUPER_ADMIN's «Все переписки» (she sees every conversation, read-only) */
+  watch?: boolean;
 }
 
 const w = (cat: WorkerCategory, worker = true): EventRoute => ({ cat, worker });
@@ -157,6 +163,8 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'handoff.confirmed': w('ASSIGNMENT'),
   'handoff.problem': w('ASSIGNMENT'),
   'pay_rate.changed': { staff: true, allWorkers: true },
+  'goal.changed': { staff: true, allWorkers: true },
+  'reminder.changed': { user: true },
   'earning.created': w('FINANCE'),
   'cash_payment.created': w('FINANCE'),
   'worker.balance_updated': w('FINANCE'),
@@ -172,11 +180,11 @@ export const EVENT_ROUTES: Record<EventType, EventRoute> = {
   'qr.created': { perms: ['INVENTORY_VIEW'] },
   'sale.created': { perms: ['PROFIT_VIEW'] },
   'profit.updated': { perms: ['PROFIT_VIEW'] },
-  'chat.message': { users: true },
-  'chat.message_deleted': { users: true },
-  'chat.room': { users: true },
+  'chat.message': { users: true, watch: true },
+  'chat.message_deleted': { users: true, watch: true },
+  'chat.room': { users: true, watch: true },
   'chat.read': { users: true },
-  'chat.message_updated': { users: true },
+  'chat.message_updated': { users: true, watch: true },
   'chat.typing': { users: true },
   'app.release': { staff: true, allWorkers: true },
   'client_order.created': { perms: ['CATALOG_VIEW', 'CATALOG_MANAGE'] },
@@ -198,6 +206,8 @@ export interface RealtimeEnvelope<T extends EventType = EventType> {
 export const STAFF_ROOM = 'staff';
 /** Every connected WORKER socket joins this room (broadcasts such as `pay_rate.changed`). */
 export const WORKERS_ROOM = 'workers';
+/** SUPER_ADMIN sockets: every conversation's activity («Все переписки»). */
+export const CHAT_WATCH_ROOM = 'chat:watch';
 export const workerRoom = (workerId: string) => `worker:${workerId}`;
 export const userRoom = (userId: string) => `user:${userId}`;
 export const permRoom = (p: Permission) => `perm:${p}`;
@@ -216,6 +226,7 @@ export function roomsForUser(u: SocketPrincipal): string[] {
     return rooms;
   }
   rooms.push(STAFF_ROOM);
+  if (u.role === 'SUPER_ADMIN') rooms.push(CHAT_WATCH_ROOM);
   for (const p of u.permissions) rooms.push(permRoom(p));
   for (const cat of Object.keys(WORKER_CATEGORIES) as WorkerCategory[]) {
     const s = scopeFor(u.permissions, cat);
@@ -242,5 +253,6 @@ export function roomsForEvent(type: EventType, data: unknown): string[] {
   if (route.staff) rooms.push(STAFF_ROOM);
   if (route.user && d.userId) rooms.push(userRoom(d.userId));
   if (route.users) for (const id of d.userIds ?? []) rooms.push(userRoom(id));
+  if (route.watch) rooms.push(CHAT_WATCH_ROOM);
   return [...new Set(rooms)];
 }

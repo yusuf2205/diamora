@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { leadLabel } from '@/lib/format';
 import type { ManagerSummary, Page, Worker } from '@/lib/types';
 import { Button, ErrorState, Field, Input, Modal } from '@/components/ui';
 
@@ -12,7 +14,8 @@ import { Button, ErrorState, Field, Input, Modal } from '@/components/ui';
  */
 export function AssignManagerDialog({ onClose, initialManagerId = '' }: { onClose: () => void; initialManagerId?: string }) {
   const qc = useQueryClient();
-  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers') });
+  const { me } = useAuth();
+  const managers = useQuery<{ items: ManagerSummary[] }>({ queryKey: ['managers', 'all'], queryFn: () => api.get<{ items: ManagerSummary[] }>('/managers', { all: 1 }) });
   const [managerId, setManagerId] = useState(initialManagerId);
   const [search, setSearch] = useState('');
   const workers = useQuery<Page<Worker>>({
@@ -38,10 +41,10 @@ export function AssignManagerDialog({ onClose, initialManagerId = '' }: { onClos
   return (
     <Modal title="Назначить менеджера" onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Менеджер" htmlFor="bulk-manager">
+        <Field label="Кто ведёт (менеджер, админ или вы)" htmlFor="bulk-manager">
           <select id="bulk-manager" className="min-h-10 w-full rounded-lg border border-border bg-card px-3 py-1.5" value={managerId} onChange={(e) => setManagerId(e.target.value)}>
             <option value="">Без менеджера</option>
-            {managers.data?.items.filter((m) => m.status === 'ACTIVE').map((m) => <option key={m.id} value={m.id}>{m.fullName} · {m.stats.workers}</option>)}
+            {managers.data?.items.filter((m) => m.status === 'ACTIVE').map((m) => <option key={m.id} value={m.id}>{leadLabel(m, me?.id)} · {m.stats.workers}</option>)}
           </select>
         </Field>
         <Input type="search" placeholder="Поиск: имя, телефон, код" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Поиск мастерицы" />

@@ -533,6 +533,7 @@ class _ChangeManagerSheetState extends ConsumerState<_ChangeManagerSheet> {
       await ref.read(workerRepositoryProvider).assignManager(widget.worker.id, _picked);
       ref.invalidate(workerDetailProvider(widget.worker.id));
       ref.invalidate(managersProvider);
+      ref.invalidate(leadsProvider);
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
@@ -547,7 +548,8 @@ class _ChangeManagerSheetState extends ConsumerState<_ChangeManagerSheet> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final managers = ref.watch(managersProvider);
+    final managers = ref.watch(leadsProvider);
+    final meId = ref.watch(authControllerProvider).value?.id;
     final active = managers.value?.where((m) => m.user.isActive).toList();
     Widget option(String? id, String title, String? subtitle) => ListTile(
           enabled: !_busy,
@@ -569,7 +571,7 @@ class _ChangeManagerSheetState extends ConsumerState<_ChangeManagerSheet> {
           else
             Flexible(
               child: ListView(shrinkWrap: true, children: [
-                for (final m in active) option(m.user.id, m.user.fullName, l.teamAssignedWorkers(m.assignedWorkers)),
+                for (final m in active) option(m.user.id, leadLabel(l, m.user, meId), l.teamAssignedWorkers(m.assignedWorkers)),
                 option(null, l.noManager, null),
               ]),
             ),

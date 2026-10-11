@@ -1,7 +1,7 @@
 'use client';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, ExternalLink, MailOpen, MessageCircle, Bell, ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Menu, PanelRight, ShieldOff, Shield, Eraser, FileDown, Wallpaper, CheckSquare, User as UserIcon, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Eye, ExternalLink, MailOpen, MessageCircle, Bell, ArrowLeft, ChevronLeft, ChevronRight, Play, Camera, Menu, PanelRight, ShieldOff, Shield, Eraser, FileDown, Wallpaper, CheckSquare, User as UserIcon, Megaphone, BellOff, Check, CheckCheck, Copy, Download, FileText, Forward, Info, Mic, MoreVertical, Paperclip, Pencil, Pin, Plus, Reply, Search, Send, Smile, Trash2, Users, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { accessToken, api, apiOrigin } from '@/lib/api';
@@ -27,7 +27,7 @@ export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPA
 export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[];
   canPin?: boolean; pinned?: boolean; muted?: boolean; pinnedMessage?: ChatMessage | null;
   description?: string | null; photo?: { url: string; thumbUrl: string } | null; audience?: 'ALL' | 'STAFF' | 'WORKERS' | 'CUSTOM' | null;
-  onlyAdminsWrite?: boolean; canWrite?: boolean; canEditAdmins?: boolean; isAdmin?: boolean; protectContent?: boolean; canProtect?: boolean }
+  onlyAdminsWrite?: boolean; canWrite?: boolean; watching?: boolean; canEditAdmins?: boolean; isAdmin?: boolean; protectContent?: boolean; canProtect?: boolean }
 interface ChatSearch { rooms: ChatRoomSummary[]; people: ChatPerson[]; messages: (ChatMessage & { room: { id: string; kind: string; title: string | null } })[] }
 
 export const CHAT_MAX_BYTES = 50 * 1024 * 1024;
@@ -141,7 +141,7 @@ function Avatar({ kind, name, online, size = 40, photo }: { kind: string; name: 
 
 // ---- the whole chat: list + conversation (side by side on a wide screen, one at a time on a phone) ------------------------
 /** `single`: always one pane (the worker web is phone-width even on a big screen). */
-export function ChatApp({ single = false }: { single?: boolean }) {
+export function ChatApp({ single = false, watch = false }: { single?: boolean; watch?: boolean }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -155,10 +155,62 @@ export function ChatApp({ single = false }: { single?: boolean }) {
   return (
     <div className={`flex overflow-hidden rounded-xl border border-border bg-card ${single ? 'h-[calc(100dvh-8.5rem)] min-h-[380px]' : 'h-[calc(100dvh-9rem)] min-h-[420px] lg:h-[calc(100vh-4rem)]'}`}>
       <div className={`${roomId ? (single ? 'hidden' : 'hidden md:flex') : 'flex'} w-full flex-col ${single ? '' : `border-r border-border md:shrink-0 ${narrow ? 'md:w-[76px]' : 'md:w-80'}`}`}>
-        <RoomList selected={roomId} onOpen={open} collapsed={narrow && !!roomId} onToggleCollapsed={single ? undefined : toggleCollapsed} />
+        {watch ? <WatchList selected={roomId} onOpen={open} /> : <RoomList selected={roomId} onOpen={open} collapsed={narrow && !!roomId} onToggleCollapsed={single ? undefined : toggleCollapsed} />}
       </div>
       <div className={`${roomId ? 'flex' : single ? 'hidden' : 'hidden md:flex'} min-w-0 flex-1 flex-col`}>
         {roomId ? <Conversation key={roomId} roomId={roomId} onBack={() => open(null)} single={single} /> : <div className="m-auto p-6 text-center text-muted">Выберите чат слева</div>}
+      </div>
+    </div>
+  );
+}
+
+interface WatchRoom { id: string; kind: ChatRoomSummary['kind']; title: string | null; memberCount: number; messageCount: number; lastMessage: ChatMessage | null; lastMessageAt: string }
+const WATCH_KIND: Record<string, string> = { DIRECT: 'Личный', GROUP: 'Группа', CHANNEL: 'Канал', COMPANY: 'Общий чат' };
+
+/** «Все переписки» (SUPER_ADMIN): every conversation in the company, newest first; opening one reads it without joining. */
+function WatchList({ selected, onOpen }: { selected: string | null; onOpen: (id: string) => void }) {
+  const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
+  useEffect(() => { const id = setTimeout(() => setDebounced(search.trim()), 300); return () => clearTimeout(id); }, [search]);
+  const [kind, setKind] = useState<'' | 'DIRECT' | 'GROUP'>('');
+  const q = useQuery({ queryKey: ['chat-watch', debounced], queryFn: () => api.get<{ items: WatchRoom[] }>('/chat/watch/rooms', { q: debounced || undefined }) });
+  const items = (q.data?.items ?? []).filter((r) => !kind || r.kind === kind || (kind === 'GROUP' && r.kind !== 'DIRECT'));
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="space-y-2 border-b border-border p-3">
+        <div className="flex items-center gap-2">
+          <Eye size={18} className="text-primary" aria-hidden />
+          <p className="flex-1 font-semibold">Все переписки</p>
+          <span className="text-xs text-muted">{q.data ? items.length : ''}</span>
+        </div>
+        <label className="flex items-center gap-2 rounded-lg bg-background px-3 py-1.5">
+          <Search size={16} className="text-muted" aria-hidden />
+          <input aria-label="Поиск по имени" placeholder="Имя сотрудника или группы" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" />
+        </label>
+        <div className="flex gap-1.5 text-xs">
+          {([['', 'Все'], ['DIRECT', 'Личные'], ['GROUP', 'Группы и каналы']] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setKind(k)} className={`rounded-full border px-3 py-1 ${kind === k ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted hover:bg-border/40'}`}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {q.isLoading && <div className="flex justify-center p-4"><Spinner /></div>}
+        {q.isError && <div className="p-3"><ErrorState error={q.error} /></div>}
+        {q.data && !items.length && <p className="p-4 text-center text-sm text-muted">Переписок нет</p>}
+        {items.map((r) => {
+          const title = r.kind === 'COMPANY' ? 'Общий чат' : (r.title ?? 'Без названия');
+          const last = r.lastMessage;
+          return (
+            <button key={r.id} onClick={() => onOpen(r.id)} className={`flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-border/30 ${selected === r.id ? 'bg-primary/10' : ''}`}>
+              <Avatar kind={r.kind} name={title} size={44} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-2"><b className="truncate">{title}</b><span className="ml-auto shrink-0 text-xs text-muted">{chatWhen(r.lastMessageAt)}</span></span>
+                <span className="block truncate text-sm text-muted">{last ? `${last.sender?.fullName ? `${last.sender.fullName}: ` : ''}${chatPreview(last)}` : '—'}</span>
+                <span className="block text-[11px] text-muted">{WATCH_KIND[r.kind] ?? r.kind} · сообщений: {r.messageCount}{r.kind !== 'DIRECT' && r.kind !== 'COMPANY' ? ` · участников: ${r.memberCount}` : ''}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -789,7 +841,9 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
           {EMOJIS.map((e) => <button key={e} className="rounded p-1 text-xl hover:bg-border/50" onClick={() => { setText((t) => t + e); setEmoji(false); }}>{e}</button>)}
         </div>
       )}
-      {r && r.canWrite === false ? (
+      {r?.watching ? (
+        <p className="flex items-center justify-center gap-2 border-t border-border bg-primary/5 p-3 text-center text-sm text-muted"><Eye size={16} className="shrink-0 text-primary" aria-hidden /> Вы смотрите эту переписку как владелец — участники вас не видят</p>
+      ) : r && r.canWrite === false ? (
         <p className="border-t border-border p-3 text-center text-sm text-muted">{r.kind === 'CHANNEL' ? 'Это канал: публикуют только его администраторы' : 'Писать могут только администраторы группы'}</p>
       ) : (
       <div className="flex items-end gap-2 border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -815,24 +869,26 @@ function Conversation({ roomId, onBack, single }: { roomId: string; onBack: () =
         : <RoomInfo room={r} onClose={() => setInfo(false)} onLeft={() => { setInfo(false); onBack(); }} onOpenMessage={() => setInfo(false)} />)}
       {menuAt && r && (
         <FloatingMenu x={menuAt.x} y={menuAt.y} onClose={() => setMenuAt(null)}>
-          <MenuItem icon={r.muted ? <Bell size={16} aria-hidden /> : <BellOff size={16} aria-hidden />} label={r.muted ? 'Включить уведомления' : 'Выключить уведомления'} onClick={() => { setMenuAt(null); toggleMute(); }} />
+          {!r.watching && <MenuItem icon={r.muted ? <Bell size={16} aria-hidden /> : <BellOff size={16} aria-hidden />} label={r.muted ? 'Включить уведомления' : 'Выключить уведомления'} onClick={() => { setMenuAt(null); toggleMute(); }} />}
           <MenuItem icon={<UserIcon size={16} aria-hidden />} label={r.kind === 'DIRECT' ? 'Показать профиль' : 'Информация'} onClick={() => { setMenuAt(null); openInfo(); }} />
           <MenuItem icon={<Wallpaper size={16} aria-hidden />} label="Установить обои" onClick={() => { setMenuAt(null); setWallPick(true); }} />
           {r.canProtect && <MenuItem icon={r.protectContent ? <ShieldOff size={16} aria-hidden /> : <Shield size={16} aria-hidden />} label={r.protectContent ? 'Разрешить копирование' : 'Запретить копирование'} onClick={() => { setMenuAt(null); act.mutate({ path: `/chat/rooms/${roomId}/protect`, body: { on: !r.protectContent } }); }} />}
           {(!r.protectContent || r.canProtect) && <MenuItem icon={<FileDown size={16} aria-hidden />} label="Экспорт истории чата" onClick={() => { setMenuAt(null); void exportHistory(); }} />}
           <MenuItem icon={<CheckSquare size={16} aria-hidden />} label="Выделить сообщения" onClick={() => { setMenuAt(null); setSelected([]); setSelecting(true); }} />
-          <MenuItem icon={<Eraser size={16} aria-hidden />} label="Очистить историю" onClick={() => { setMenuAt(null); if (confirm('Очистить историю? Сообщения исчезнут только у вас.')) act.mutate({ path: `/chat/rooms/${roomId}/clear` }); }} />
-          {r.kind !== 'COMPANY' && !(r.kind === 'CHANNEL' && r.audience !== 'CUSTOM') && (
+          {!r.watching && <MenuItem icon={<Eraser size={16} aria-hidden />} label="Очистить историю" onClick={() => { setMenuAt(null); if (confirm('Очистить историю? Сообщения исчезнут только у вас.')) act.mutate({ path: `/chat/rooms/${roomId}/clear` }); }} />}
+          {!r.watching && r.kind !== 'COMPANY' && !(r.kind === 'CHANNEL' && r.audience !== 'CUSTOM') && (
             <MenuItem danger icon={<Trash2 size={16} aria-hidden />} label={r.kind === 'DIRECT' ? 'Удалить чат' : r.kind === 'CHANNEL' ? 'Покинуть канал' : 'Покинуть группу'} onClick={() => { setMenuAt(null); void deleteChat(); }} />
           )}
         </FloatingMenu>
       )}
       {ctx && (
         <FloatingMenu x={ctx.x} y={ctx.y} onClose={() => setCtx(null)}>
-          <div className="flex justify-between gap-0.5 border-b border-border px-2 pb-1.5 pt-1">
-            {CHAT_REACTIONS.map((e) => <button key={e} aria-label={`Реакция ${e}`} className="rounded-full p-1 text-xl transition hover:scale-125 hover:bg-border/50" onClick={() => { react(ctx.m, e); setCtx(null); }}>{e}</button>)}
-          </div>
-          <MenuItem icon={<Reply size={16} aria-hidden />} label="Ответить" onClick={() => { setReplyTo(ctx.m); setEditing(null); setCtx(null); }} />
+          {!r?.watching && (
+            <div className="flex justify-between gap-0.5 border-b border-border px-2 pb-1.5 pt-1">
+              {CHAT_REACTIONS.map((e) => <button key={e} aria-label={`Реакция ${e}`} className="rounded-full p-1 text-xl transition hover:scale-125 hover:bg-border/50" onClick={() => { react(ctx.m, e); setCtx(null); }}>{e}</button>)}
+            </div>
+          )}
+          {!r?.watching && <MenuItem icon={<Reply size={16} aria-hidden />} label="Ответить" onClick={() => { setReplyTo(ctx.m); setEditing(null); setCtx(null); }} />}
           {canEdit(ctx.m) && <MenuItem icon={<Pencil size={16} aria-hidden />} label="Изменить" onClick={() => { setEditing(ctx.m); setReplyTo(null); setText(ctx.m.text ?? ''); setCtx(null); }} />}
           {r?.canPin && <MenuItem icon={<Pin size={16} aria-hidden />} label={r.pinnedMessage?.id === ctx.m.id ? 'Открепить' : 'Закрепить'} onClick={() => { pin(r.pinnedMessage?.id === ctx.m.id ? null : ctx.m.id); setCtx(null); }} />}
           {ctx.m.text && !r?.protectContent && <MenuItem icon={<Copy size={16} aria-hidden />} label="Копировать текст" onClick={() => { void navigator.clipboard?.writeText(ctx.m.text ?? ''); setCtx(null); }} />}

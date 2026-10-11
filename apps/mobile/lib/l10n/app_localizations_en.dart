@@ -3484,4 +3484,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatAddToFolder => 'Add to folder';
+
+  @override
+  String get leadMe => 'я';
+
+  @override
+  String get chatWatchTitle => 'Все переписки';
+
+  @override
+  String get chatWatchSearch => 'Имя сотрудника или группы';
+
+  @override
+  String get chatWatchDirect => 'Личные';
+
+  @override
+  String get chatWatchGroup => 'Группа';
+
+  @override
+  String get chatWatchGroups => 'Группы и каналы';
+
+  @override
+  String get chatWatchChannel => 'Канал';
+
+  @override
+  String get chatWatchEmpty => 'Переписок пока нет';
+
+  @override
+  String chatWatchMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count сообщений',
+      few: '$count сообщения',
+      one: '$count сообщение',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatWatchingNotice =>
+      '👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно.';
 }

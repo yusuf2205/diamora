@@ -223,7 +223,10 @@ class ChatRoomDetail {
     this.isAdmin = false,
     this.protectContent = false,
     this.canProtect = false,
+    this.watching = false,
   });
+  /// the SUPER_ADMIN reading someone else's conversation («Все переписки»): read-only, she is not a member
+  final bool watching;
   /// «Запретить копирование»
   final bool protectContent;
   final bool canProtect;
@@ -272,6 +275,7 @@ class ChatRoomDetail {
         isAdmin: j['isAdmin'] as bool? ?? false,
         protectContent: j['protectContent'] as bool? ?? false,
         canProtect: j['canProtect'] as bool? ?? false,
+        watching: j['watching'] as bool? ?? false,
       );
 }
 

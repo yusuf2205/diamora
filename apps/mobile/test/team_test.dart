@@ -36,6 +36,7 @@ void main() {
     when(() => api.getJson('/users', query: any(named: 'query'))).thenAnswer((_) async => {'items': [owner(), manager1(), worker1()]});
     when(() => api.getJson('/users/a1')).thenAnswer((_) async => manager1());
     when(() => api.getJson('/managers')).thenAnswer((_) async => {'items': [{...manager1(), 'stats': {'workers': 3}}]});
+    when(() => api.getJson('/managers', query: {'all': '1'})).thenAnswer((_) async => {'items': [{...manager1(), 'stats': {'workers': 3}}, {...owner(), 'stats': {'workers': 0}}]});
     when(() => api.getJson('/permissions')).thenAnswer((_) async => {
           'permissions': [..._managerDefaults, ..._managerGrantable], 'superAdminOnly': ['ROLE_ASSIGN', 'PERMISSION_MANAGE'],
           'roleDefaults': {'MANAGER': _managerDefaults, 'ADMIN': <String>[]}, 'grantable': {'MANAGER': _managerGrantable, 'ADMIN': <String>[]},

@@ -548,6 +548,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     final canDelete = mine || me?.role == 'SUPER_ADMIN' || me?.role == 'ADMIN';
     final canEdit = mine && (m.text ?? '').isNotEmpty && m.forwardedFrom == null && DateTime.now().difference(m.createdAt) < const Duration(hours: 48);
     final isPinned = _room?.pinnedMessage?.id == m.id;
+    final watching = _room?.watching ?? false;
     if (m.deleted) return;
     final choice = await showAppSheet<String>(
       context: context,
@@ -555,8 +556,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
-          // one tap = a reaction
-          Padding(
+          // one tap = a reaction (not while only looking in)
+          if (!watching) Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
               for (final e in chatReactions)
@@ -568,8 +569,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                 ),
             ]),
           ),
-          const Divider(),
-          ListTile(key: const Key('msgReply'), leading: const Icon(Icons.reply_rounded), title: Text(l.chatReply), onTap: () => Navigator.pop(ctx, 'reply')),
+          if (!watching) const Divider(),
+          if (!watching) ListTile(key: const Key('msgReply'), leading: const Icon(Icons.reply_rounded), title: Text(l.chatReply), onTap: () => Navigator.pop(ctx, 'reply')),
           if ((m.text ?? '').isNotEmpty && !(_room?.protectContent ?? false)) ListTile(leading: const Icon(Icons.copy_rounded), title: Text(l.chatCopy), onTap: () => Navigator.pop(ctx, 'copy')),
           if ((m.text ?? '').isNotEmpty) ListTile(key: const Key('msgTranslate'), leading: const Icon(Icons.translate_rounded), title: Text(l.chatTranslate), onTap: () => Navigator.pop(ctx, 'translate')),
           if (canEdit) ListTile(key: const Key('msgEdit'), leading: const Icon(Icons.edit_rounded), title: Text(l.chatEdit), onTap: () => Navigator.pop(ctx, 'edit')),
@@ -807,13 +808,13 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               key: const Key('chatMore'),
               onSelected: _roomAction,
               itemBuilder: (_) => [
-                PopupMenuItem(value: 'mute', child: Text(room.muted ? l.chatUnmute : l.chatMute)),
-                PopupMenuItem(value: 'scheduled', child: Text(l.chatScheduled)),
+                if (!room.watching) PopupMenuItem(value: 'mute', child: Text(room.muted ? l.chatUnmute : l.chatMute)),
+                if (!room.watching) PopupMenuItem(value: 'scheduled', child: Text(l.chatScheduled)),
                 PopupMenuItem(value: 'info', child: Text(room.kind == 'DIRECT' ? l.chatShowProfile : l.chatInfo)),
                 if (room.canProtect) PopupMenuItem(value: 'protect', child: Text(room.protectContent ? l.chatProtectOff : l.chatProtectOn)),
                 if (!room.protectContent || room.canProtect) PopupMenuItem(value: 'export', child: Text(l.chatExport)),
-                PopupMenuItem(value: 'clear', child: Text(l.chatClearHistory)),
-                if (room.kind == 'DIRECT') PopupMenuItem(value: 'delete', child: Text(l.chatDeleteChat, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+                if (!room.watching) PopupMenuItem(value: 'clear', child: Text(l.chatClearHistory)),
+                if (room.kind == 'DIRECT' && !room.watching) PopupMenuItem(value: 'delete', child: Text(l.chatDeleteChat, style: TextStyle(color: Theme.of(context).colorScheme.error))),
               ],
             ),
         ],
@@ -969,7 +970,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             child: Padding(
               key: const Key('readOnlyNotice'),
               padding: const EdgeInsets.all(16),
-              child: Text(room.kind == 'CHANNEL' ? l.chatChannelReadOnly : l.chatGroupReadOnly, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+              child: Text(room.watching ? l.chatWatchingNotice : room.kind == 'CHANNEL' ? l.chatChannelReadOnly : l.chatGroupReadOnly, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.outline)),
             ),
           )
         else

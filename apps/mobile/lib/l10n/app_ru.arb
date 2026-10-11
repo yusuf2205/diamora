@@ -1176,5 +1176,16 @@
   "chatFolderName": "Название",
   "chatFolderNameHint": "Например: Работа",
   "chatFolderChats": "Чаты в папке",
-  "chatAddToFolder": "Добавить в папку"
+  "chatAddToFolder": "Добавить в папку",
+  "leadMe": "я",
+  "chatWatchTitle": "Все переписки",
+  "chatWatchSearch": "Имя сотрудника или группы",
+  "chatWatchDirect": "Личные",
+  "chatWatchGroup": "Группа",
+  "chatWatchGroups": "Группы и каналы",
+  "chatWatchChannel": "Канал",
+  "chatWatchEmpty": "Переписок пока нет",
+  "chatWatchMessages": "{count, plural, one{{count} сообщение} few{{count} сообщения} other{{count} сообщений}}",
+  "@chatWatchMessages": {"placeholders": {"count": {"type": "int"}}},
+  "chatWatchingNotice": "👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно."
 }

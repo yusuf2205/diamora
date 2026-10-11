@@ -23,9 +23,11 @@ describe('«Назначить менеджера» for many workers; «Очис
     await admin.api.post('/v1/workers/manager-bulk', { managerId: null, workerIds: [a.workerId] }).expect(200);
     await mgr.api.get(`/v1/workers/${a.workerId}`).expect(404);
 
-    // only an active MANAGER can receive workers; the right is needed
+    // staff can receive workers (an admin too - owner, 2026-10-11), a worker cannot; the right is needed
     const other = await staffActor(t, 'ADMIN');
-    await admin.api.post('/v1/workers/manager-bulk', { managerId: other.user.id, workerIds: [a.workerId] }).expect(409);
+    await admin.api.post('/v1/workers/manager-bulk', { managerId: other.user.id, workerIds: [a.workerId] }).expect(200);
+    const workerUser = (await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: b.workerId } })).userId!;
+    await admin.api.post('/v1/workers/manager-bulk', { managerId: workerUser, workerIds: [a.workerId] }).expect(409);
     await mgr.api.post('/v1/workers/manager-bulk', { managerId: mgr.user.id, workerIds: [a.workerId] }).expect(403);
   });
 
