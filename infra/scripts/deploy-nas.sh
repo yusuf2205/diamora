@@ -15,6 +15,14 @@ DIR="${2:-/volume1/docker/yusmus}"
 ADDR="${HOST#*@}"
 cd "$(dirname "$0")/../.."
 
+# a server that compiles but crashes on start (e.g. a module-load order mistake) must never reach the NAS: build the API
+# here and load every module once (no database needed), before anything is uploaded
+if [ "${SKIP_LOAD_CHECK:-}" != "1" ]; then
+  pnpm --filter @diamoraa/shared build >/dev/null && pnpm --filter @diamoraa/api build >/dev/null || { echo "deploy aborted: the API does not build"; exit 1; }
+  (cd apps/api && node -e "require('./dist/app.module.js'); require('./dist/worker/worker.module.js')") >/dev/null || { echo "deploy aborted: the API crashes when it loads (see above)"; exit 1; }
+  echo "==> API builds and loads"
+fi
+
 # the NAS re-owns the project folder to root after a Docker restart: give source/config back first (data/ untouched)
 ssh "$HOST" "sh -s -- '$DIR'" < infra/scripts/nas-fix-owner.sh || { echo "deploy aborted: ownership could not be fixed"; exit 1; }
 # ownership/health gate: abort before anything on the NAS is touched
