@@ -22,7 +22,9 @@ export const CHAT_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏',
 export interface ChatFile { url: string; thumbUrl: string | null; name: string | null; size: number | null; mimeType: string | null; durationMs: number | null; width: number | null; height: number | null }
 export interface ChatMessage { id: string; roomId: string; kind: 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'AUDIO' | 'FILE' | 'POLL' | 'LOCATION' | 'CONTACT' | 'CARD' | 'VIDEO_NOTE'; sender: ChatPerson | null; text: string | null; file: ChatFile | null; deleted: boolean; createdAt: string; clientId: string | null; waveform?: string | null;
   data?: Record<string, unknown> | null; poll?: PollView | null; linkPreview?: LinkPreview | null;
-  replyTo?: { id: string; sender: string | null; preview: string | null; deleted: boolean } | null; forwardedFrom?: string | null; editedAt?: string | null; reactions?: ChatReaction[] }
+  replyTo?: { id: string; sender: string | null; preview: string | null; deleted: boolean } | null;
+  /** a deleted message as the SUPER_ADMIN sees it (nobody else receives deleted messages) */
+  deletedBy?: { id: string | null; fullName: string | null; at: string } | null; forwardedFrom?: string | null; editedAt?: string | null; reactions?: ChatReaction[] }
 export interface ChatRoomSummary { id: string; kind: 'DIRECT' | 'GROUP' | 'COMPANY' | 'CHANNEL' | 'SAVED'; photo?: string | null; title: string | null; peer: ChatPerson | null; memberCount: number; isOwner: boolean; unread: number; lastMessage: ChatMessage | null; lastMessageAt: string; pinned?: boolean; muted?: boolean; mutedUntil?: string | null; archived?: boolean; markedUnread?: boolean }
 export interface ChatRoomDetail { id: string; kind: ChatRoomSummary['kind']; title: string | null; isOwner: boolean; canManage: boolean; memberCount: number; peer: ChatPerson | null; members: ChatPerson[];
   canPin?: boolean; pinned?: boolean; muted?: boolean; pinnedMessage?: ChatMessage | null;
@@ -958,22 +960,27 @@ function Bubble({ m, mine, showSender, read, onReact, pinned, onOpenMedia, onCon
 }) {
   const f = m.file;
   const preload = usePreload(m.kind === 'IMAGE' ? f?.url : undefined);
+  // the owner still sees a deleted message - dimmed, with who deleted it; for anyone else it is gone
+  const gone = m.deleted && !m.deletedBy;
   const mediaOnly = !m.deleted && !m.text && !m.replyTo && !m.forwardedFrom && (m.kind === 'IMAGE' || m.kind === 'VIDEO');
   return (
     <div className={`group my-0.5 flex ${mine ? 'justify-end' : 'justify-start'}`} onContextMenu={onContext}>
       <div className={`relative max-w-[80%] ${mediaOnly ? 'overflow-hidden rounded-2xl' : `rounded-2xl px-3 py-2 ${mine ? 'rounded-br-md bg-primary/15' : 'rounded-bl-md bg-card shadow-sm ring-1 ring-border'}`} ${protect ? 'select-none' : ''}`}>
         {showSender && m.sender && !mediaOnly && <p className="mb-0.5 text-xs font-bold text-primary">{m.sender.fullName}</p>}
-        {!m.deleted && m.forwardedFrom && <p className="mb-1 text-xs italic text-muted">Переслано от {m.forwardedFrom}</p>}
-        {!m.deleted && m.replyTo && (
+        {m.deletedBy && (
+          <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-danger"><Trash2 size={13} aria-hidden /> Удалено · {m.deletedBy.fullName ?? '—'} · {chatWhen(m.deletedBy.at)}</p>
+        )}
+        {!gone && m.forwardedFrom && <p className="mb-1 text-xs italic text-muted">Переслано от {m.forwardedFrom}</p>}
+        {!gone && m.replyTo && (
           <button onClick={() => onJump?.(m.replyTo!.id)} className="mb-1.5 block w-full rounded-md border-l-[3px] border-primary bg-border/40 px-2 py-1 text-left text-sm hover:bg-border/60">
             {m.replyTo.sender && <p className="text-xs font-bold text-primary">{m.replyTo.sender}</p>}
             <p className="line-clamp-2 text-muted">{m.replyTo.deleted ? 'Сообщение удалено' : m.replyTo.preview}</p>
           </button>
         )}
-        {m.deleted ? (
+        {gone ? (
           <p className="italic text-muted">Сообщение удалено</p>
         ) : (
-          <>
+          <div className={m.deletedBy ? 'opacity-55' : 'contents'}>
             {m.kind === 'IMAGE' && f && (
               <button ref={preload} onClick={onOpenMedia} aria-label="Открыть фото" className="relative block">
                 <img src={f.thumbUrl ?? f.url} alt={m.text ?? 'Фото'} draggable={!protect} className={`max-h-80 max-w-full object-cover ${mediaOnly ? '' : 'rounded-lg'}`} style={{ aspectRatio: f.width && f.height ? `${f.width} / ${f.height}` : undefined, minWidth: 160 }} />
@@ -1008,7 +1015,7 @@ function Bubble({ m, mine, showSender, read, onReact, pinned, onOpenMedia, onCon
             {m.kind === 'VIDEO_NOTE' && f && <VideoNote thumb={f.thumbUrl} onOpen={onOpenMedia} />}
             {m.text && <p className={`whitespace-pre-wrap break-words ${f ? 'mt-1' : ''}`}><RichText text={m.text} /></p>}
             {m.linkPreview && <LinkPreviewCard p={m.linkPreview} />}
-          </>
+          </div>
         )}
         {!m.deleted && !!m.reactions?.length && (
           <div className={`mt-1 flex flex-wrap gap-1 ${mediaOnly ? 'absolute left-1.5 bottom-1.5' : ''}`}>

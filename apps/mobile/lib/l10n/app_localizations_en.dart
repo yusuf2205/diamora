@@ -3524,4 +3524,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatWatchingNotice =>
       '👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно.';
+
+  @override
+  String chatDeletedBy(String name, String when) {
+    return 'Удалено · $name$when';
+  }
 }

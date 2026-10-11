@@ -49,13 +49,18 @@ type MessageRow = ChatMessage & {
   sender: Sender;
   replyTo?: (ChatMessage & { sender: Sender }) | null;
   reactions?: { userId: string; emoji: string }[];
+  deletedBy?: { id: string; fullName: string } | null;
 };
 const SENDER = { select: { id: true, fullName: true, role: true, avatarFileId: true } } as const;
 /** everything a message row needs to be shown (who, what it answers, reactions) */
-const MSG_INCLUDE = { sender: SENDER, replyTo: { include: { sender: SENDER } }, reactions: { select: { userId: true, emoji: true } }, pollVotes: { select: { userId: true, option: true } } } as const;
+const MSG_INCLUDE = { sender: SENDER, deletedBy: { select: { id: true, fullName: true } }, replyTo: { include: { sender: SENDER } }, reactions: { select: { userId: true, emoji: true } }, pollVotes: { select: { userId: true, option: true } } } as const;
 /** a sent message can be edited for 48 hours */
 const EDIT_WINDOW_MS = 48 * 3600_000;
 const FAR_FUTURE = new Date('9999-01-01T00:00:00Z');
+/** the owner sees deleted messages (content + who deleted them); for everyone else they are gone */
+const isBoss = (u: Pick<AuthUser, 'role'>) => u.role === 'SUPER_ADMIN';
+/** messages a person may see: deleted ones only for the SUPER_ADMIN */
+const visible = (u: Pick<AuthUser, 'role'>): Prisma.ChatMessageWhereInput => (isBoss(u) ? {} : { deletedAt: null });
 
 /** Real bytes decide what a file is (the phone's claim is only a hint). */
 function sniff(buf: Buffer): { family: 'video' | 'audio' | 'mp4'; mime: string; ext: string } | null {
@@ -228,7 +233,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
         people: r.members.map((m) => m.user),
         memberCount: r._count.members,
         messageCount: r._count.messages,
-        lastMessage: lasts[i] ? this.dto(lasts[i]!, u.id) : null,
+        lastMessage: lasts[i] ? this.dto(lasts[i]!, u.id, isBoss(u)) : null,
         lastMessageAt: (r.lastMessageAt ?? r.createdAt).toISOString(),
       })),
     };
@@ -264,7 +269,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
         include: { user: { select: { id: true, fullName: true, role: true, status: true, lastSeenAt: true, avatarFileId: true, username: true } } },
       }),
       this.prisma.chatMember.groupBy({ by: ['roomId'], where: { roomId: { in: ids.filter((id) => id !== COMPANY_ROOM_ID) } }, _count: { _all: true } }),
-      Promise.all(mine.map((m) => this.prisma.chatMessage.findFirst({ where: { roomId: m.roomId, ...(m.clearedAt ? { createdAt: { gt: m.clearedAt } } : {}) }, orderBy: { id: 'desc' }, include: MSG_INCLUDE }))),
+      Promise.all(mine.map((m) => this.prisma.chatMessage.findFirst({ where: { roomId: m.roomId, ...visible(u), ...(m.clearedAt ? { createdAt: { gt: m.clearedAt } } : {}) }, orderBy: { id: 'desc' }, include: MSG_INCLUDE }))),
     ]);
     const activeUsers = mine.some((m) => m.roomId === COMPANY_ROOM_ID) ? await this.prisma.user.count({ where: { status: 'ACTIVE' } }) : 0;
     const peerOf = new Map(peers.map((p) => [p.roomId, p]));
@@ -292,7 +297,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
         archived: !!m.archivedAt && ((!!m.mutedUntil && m.mutedUntil > new Date()) || !(m.room.lastMessageAt && m.room.lastMessageAt > m.archivedAt)),
         markedUnread: m.markedUnread,
         unread: unread.get(m.roomId) ?? 0,
-        lastMessage: last ? this.dto(last, u.id) : null,
+        lastMessage: last ? this.dto(last, u.id, isBoss(u)) : null,
         lastMessageAt: (m.room.lastMessageAt ?? m.room.createdAt).toISOString(),
       };
     });
@@ -336,7 +341,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       canProtect: !watching && (room.kind === 'DIRECT' || this.canManage(u, room, me ?? null)),
       pinned: !!me?.pinnedAt,
       muted: !!me?.mutedUntil && me.mutedUntil > new Date(),
-      pinnedMessage: pinned ? this.dto(pinned, u.id) : null,
+      pinnedMessage: pinned ? this.dto(pinned, u.id, isBoss(u)) : null,
       memberCount: room.kind === 'COMPANY'
         ? await this.prisma.user.count({ where: { status: 'ACTIVE' } })
         : audienceChannel ? await this.prisma.user.count({ where: this.audienceWhere(room.audience)! }) : members.length,
@@ -502,7 +507,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (q.kind === 'voice') where.kind = 'VOICE';
     if (q.kind === 'links') where.OR = [{ text: { contains: 'http', mode: 'insensitive' } }, { text: { contains: 'www.', mode: 'insensitive' } }];
     const rows = await this.prisma.chatMessage.findMany({ where, orderBy: { id: 'desc' }, take: q.limit + 1, include: MSG_INCLUDE });
-    return { items: rows.slice(0, q.limit).map((m) => this.dto(m, u.id)), hasMore: rows.length > q.limit };
+    return { items: rows.slice(0, q.limit).map((m) => this.dto(m, u.id, isBoss(u))), hasMore: rows.length > q.limit };
   }
 
   /** Leave a group. The owner leaving hands the group to the longest-standing member. */
@@ -522,13 +527,14 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ---- messages ---------------------------------------------------------------------------------------------------------
-  dto(m: MessageRow, meId?: string) {
-    const deleted = !!m.deletedAt;
+  /** `boss`: the SUPER_ADMIN also sees what a deleted message said and who deleted it (nobody else gets it at all) */
+  dto(m: MessageRow, meId?: string, boss = false) {
+    const deleted = !!m.deletedAt && !boss;
     // a video / voice note may play (and seek) for long: its link lives 12 h instead of 10 min
     const playable = m.kind === 'VIDEO' || m.kind === 'VIDEO_NOTE' || m.kind === 'VOICE' || m.kind === 'AUDIO';
     const file = !deleted && m.fileId ? this.files.ref(m.fileId, playable ? 12 * 3600 : undefined) : null;
     const counts = new Map<string, { emoji: string; count: number; mine: boolean }>();
-    for (const x of deleted ? [] : (m.reactions ?? [])) {
+    for (const x of m.deletedAt ? [] : (m.reactions ?? [])) {
       const c = counts.get(x.emoji) ?? { emoji: x.emoji, count: 0, mine: false };
       c.count++;
       if (x.userId === meId) c.mine = true;
@@ -548,7 +554,8 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       linkPreview: deleted ? null : (m.linkPreview ?? null),
       kind: deleted ? 'TEXT' : m.kind,
       text: deleted ? null : m.text,
-      deleted,
+      deleted: !!m.deletedAt,
+      deletedBy: boss && m.deletedAt ? { id: m.deletedBy?.id ?? null, fullName: m.deletedBy?.fullName ?? null, at: m.deletedAt.toISOString() } : null,
       file: file ? {
         url: file.url, thumbUrl: m.kind === 'IMAGE' || ((m.kind === 'VIDEO' || m.kind === 'VIDEO_NOTE') && m.hasThumb) ? file.thumbUrl : null, name: m.fileName, size: m.fileSize === null ? null : Number(m.fileSize),
         mimeType: m.mimeType, durationMs: m.durationMs, width: m.width, height: m.height,
@@ -590,13 +597,13 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       await this.audit.record({ action: 'chat.watch', entity: 'ChatRoom', entityId: roomId, after: { kind: room.kind } });
     }
     if (q.after) {
-      const rows = await this.prisma.chatMessage.findMany({ where: { roomId, id: { gt: q.after }, ...since }, orderBy: { id: 'asc' }, take: q.limit, include });
-      return { items: rows.reverse().map((m) => this.dto(m, u.id)), hasMore: false };
+      const rows = await this.prisma.chatMessage.findMany({ where: { roomId, id: { gt: q.after }, ...since, ...visible(u) }, orderBy: { id: 'asc' }, take: q.limit, include });
+      return { items: rows.reverse().map((m) => this.dto(m, u.id, isBoss(u))), hasMore: false };
     }
     const rows = await this.prisma.chatMessage.findMany({
-      where: { roomId, ...since, ...(q.before ? { id: { lt: q.before } } : {}) }, orderBy: { id: 'desc' }, take: q.limit + 1, include,
+      where: { roomId, ...since, ...visible(u), ...(q.before ? { id: { lt: q.before } } : {}) }, orderBy: { id: 'desc' }, take: q.limit + 1, include,
     });
-    return { items: rows.slice(0, q.limit).map((m) => this.dto(m, u.id)), hasMore: rows.length > q.limit }; // newest first
+    return { items: rows.slice(0, q.limit).map((m) => this.dto(m, u.id, isBoss(u))), hasMore: rows.length > q.limit }; // newest first
   }
 
   private async deliver(u: AuthUser, room: ChatRoom, m: MessageRow) {
@@ -621,7 +628,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async sendText(u: AuthUser, roomId: string, b: z.output<typeof chatTextSchema>) {
     const room = await this.writable(u, roomId);
     const again = await this.existing(u, b.clientId);
-    if (again) return this.dto(again, u.id); // a retried send (bad connection): the same message, not a second one
+    if (again) return this.dto(again, u.id, isBoss(u)); // a retried send (bad connection): the same message, not a second one
     const replyToId = await this.replyTarget(roomId, b.replyToId);
     const m = await this.prisma.chatMessage.create({
       data: { roomId, senderId: u.id, kind: 'TEXT', text: b.text, clientId: b.clientId, replyToId, silent: !!b.silent },
@@ -629,7 +636,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     });
     await this.deliver(u, room, m);
     void this.attachPreview(room, m).catch(() => undefined); // the link's card arrives a moment later
-    return this.dto(m, u.id);
+    return this.dto(m, u.id, isBoss(u));
   }
 
   // ---- like Telegram, and more (owner, 2026-10-11): polls, location, contact, work cards, «Избранное», «отправить позже» ----
@@ -637,13 +644,13 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   private async sendSpecial(u: AuthUser, roomId: string, kind: ChatMessageKind, data: Prisma.InputJsonValue, base: { clientId?: string; replyToId?: string; silent?: boolean }, text?: string) {
     const room = await this.writable(u, roomId);
     const again = await this.existing(u, base.clientId);
-    if (again) return this.dto(again, u.id);
+    if (again) return this.dto(again, u.id, isBoss(u));
     const m = await this.prisma.chatMessage.create({
       data: { roomId, senderId: u.id, kind, text: text ?? null, data, clientId: base.clientId, replyToId: await this.replyTarget(roomId, base.replyToId), silent: !!base.silent },
       include: MSG_INCLUDE,
     });
     await this.deliver(u, room, m);
-    return this.dto(m, u.id);
+    return this.dto(m, u.id, isBoss(u));
   }
 
   sendPoll(u: AuthUser, roomId: string, b: z.output<typeof chatPollSchema>) {
@@ -663,7 +670,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       ...(picked.length ? [this.prisma.chatPollVote.createMany({ data: picked.map((option) => ({ messageId, userId: u.id, option })) })] : []),
     ]);
     await this.updated(room, messageId);
-    return this.dto((await this.prisma.chatMessage.findUniqueOrThrow({ where: { id: messageId }, include: MSG_INCLUDE })), u.id);
+    return this.dto((await this.prisma.chatMessage.findUniqueOrThrow({ where: { id: messageId }, include: MSG_INCLUDE })), u.id, isBoss(u));
   }
 
   /** Who answered what (not for the other members of a channel: there only the counts). */
@@ -808,7 +815,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
   async sendFile(u: AuthUser, roomId: string, b: z.output<typeof chatFileFieldsSchema>, file: { buffer: Buffer; originalName?: string; mimetype?: string; thumb?: Buffer }) {
     const room = await this.writable(u, roomId);
     const again = await this.existing(u, b.clientId);
-    if (again) return this.dto(again, u.id);
+    if (again) return this.dto(again, u.id, isBoss(u));
     return this.storeMessage(u, room, b, { buffer: file.buffer, size: file.buffer.length, originalName: file.originalName, mimetype: file.mimetype, thumb: file.thumb });
   }
 
@@ -886,7 +893,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       include: MSG_INCLUDE,
     });
     await this.deliver(u, room, m);
-    return this.dto(m, u.id);
+    return this.dto(m, u.id, isBoss(u));
   }
 
   // ---- files sent in parts (big videos; resumable after a dropped connection) -------------------------------------------
@@ -900,7 +907,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
       throw fileRejected(b.kind === 'VIDEO' ? 'The video is larger than 150 MB' : 'The file is larger than 50 MB');
     }
     const again = await this.existing(u, b.clientId);
-    if (again) return { done: true, message: this.dto(again, u.id) };
+    if (again) return { done: true, message: this.dto(again, u.id, isBoss(u)) };
     const id = createHash('sha256').update(`${u.id}:${b.clientId}`).digest('hex').slice(0, 32); // the same send resumes the same upload
     const dir = this.uploadDir(id);
     await mkdir(dir, { recursive: true });
@@ -941,7 +948,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const meta = await this.uploadMeta(u, id);
     const dir = this.uploadDir(id);
     const again = await this.existing(u, meta.clientId);
-    if (again) { await rm(dir, { recursive: true, force: true }); return this.dto(again, u.id); }
+    if (again) { await rm(dir, { recursive: true, force: true }); return this.dto(again, u.id, isBoss(u)); }
     const room = await this.writable(u, meta.roomId);
     const parts = Math.ceil(meta.size / CHAT_CHUNK_BYTES);
     const have = await this.receivedParts(dir);
@@ -993,7 +1000,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (Date.now() - m.createdAt.getTime() > EDIT_WINDOW_MS) throw validationFailed('A message can be edited for 48 hours');
     const row = await this.prisma.chatMessage.update({ where: { id }, data: { text: b.text, editedAt: new Date() }, include: MSG_INCLUDE });
     await this.updated(room, id);
-    return this.dto(row, u.id);
+    return this.dto(row, u.id, isBoss(u));
   }
 
   /** One reaction per person: the same emoji again takes it back, another one replaces it. */
@@ -1005,7 +1012,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     if (mine?.emoji === emoji) await this.prisma.chatReaction.delete({ where: { messageId_userId: { messageId: id, userId: u.id } } });
     else await this.prisma.chatReaction.upsert({ where: { messageId_userId: { messageId: id, userId: u.id } }, create: { messageId: id, userId: u.id, emoji }, update: { emoji, createdAt: new Date() } });
     await this.updated(room, id);
-    return this.dto(await this.prisma.chatMessage.findUniqueOrThrow({ where: { id }, include: MSG_INCLUDE }), u.id);
+    return this.dto(await this.prisma.chatMessage.findUniqueOrThrow({ where: { id }, include: MSG_INCLUDE }), u.id, isBoss(u));
   }
 
   /** Copies of a message (its file is shared, not copied) into chats I am in; «Переслано от …». */
@@ -1026,7 +1033,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
         include: MSG_INCLUDE,
       });
       await this.deliver(u, room, m);
-      out.push(this.dto(m, u.id));
+      out.push(this.dto(m, u.id, isBoss(u)));
     }
     return { items: out };
   }
@@ -1072,7 +1079,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     return {
       rooms: matchedRooms,
       people,
-      messages: hits.map((m) => ({ ...this.dto(m, u.id), room: { id: m.roomId, kind: kinds.get(m.roomId), title: titles.get(m.roomId) ?? null } })),
+      messages: hits.map((m) => ({ ...this.dto(m, u.id, isBoss(u)), room: { id: m.roomId, kind: kinds.get(m.roomId), title: titles.get(m.roomId) ?? null } })),
     };
   }
 
@@ -1142,7 +1149,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     const rows = await this.prisma.chatMessage.findMany({
       where: { roomId, deletedAt: null, text: { contains: q, mode: 'insensitive' }, ...(await this.since(u, roomId)) }, orderBy: { id: 'desc' }, take: 50, include: MSG_INCLUDE,
     });
-    return { items: rows.map((m) => this.dto(m, u.id)) };
+    return { items: rows.map((m) => this.dto(m, u.id, isBoss(u))) };
   }
 
   /** «520 фотографий, 134 видео …» of a chat. */
@@ -1209,7 +1216,7 @@ export class ChatService implements OnModuleInit, OnModuleDestroy {
     }
     if (!m.deletedAt) {
       await this.prisma.$transaction(async (tx) => {
-        await tx.chatMessage.update({ where: { id }, data: { deletedAt: new Date(), text: null } });
+        await tx.chatMessage.update({ where: { id }, data: { deletedAt: new Date(), deletedById: u.id } }); // the content stays: the owner may see it
         // someone else's message removed by an admin: recorded (who, which chat, whose message) - never its content
         if (!own) await this.audit.record({ action: 'chat.message_deleted', entity: 'ChatMessage', entityId: id, after: { roomId: m.roomId, senderId: m.senderId } }, tx);
       });

@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:diamoraa_mobile/app/live_refresh.dart';
 import 'package:diamoraa_mobile/core/providers.dart';
 import 'package:diamoraa_mobile/core/realtime/realtime_client.dart';
+import 'package:diamoraa_mobile/features/chat/chat_models.dart';
 import 'package:diamoraa_mobile/features/chat/chat_watch_screen.dart';
 import 'package:diamoraa_mobile/features/settings/company_contact.dart';
 import 'package:diamoraa_mobile/l10n/app_localizations.dart';
@@ -88,5 +89,17 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(calls, 2);
+  });
+
+  test('a deleted message as the owner gets it: its content and who deleted it', () {
+    final m = ChatMessage.fromJson({
+      'id': 'x', 'roomId': 'r', 'kind': 'TEXT', 'text': 'Скидка 20%', 'deleted': true, 'createdAt': '2026-10-11T10:00:00.000Z',
+      'deletedBy': {'id': 'u2', 'fullName': 'Азиз Админ', 'at': '2026-10-11T11:30:00.000Z'},
+    });
+    expect(m.deleted, isTrue);
+    expect(m.text, 'Скидка 20%');
+    expect(m.deletedByName, 'Азиз Админ');
+    expect(m.deletedAt, isNotNull);
+    expect(ChatMessage.fromJson({'id': 'y', 'roomId': 'r', 'kind': 'TEXT', 'createdAt': '2026-10-11T10:00:00.000Z'}).deletedByName, isNull);
   });
 }

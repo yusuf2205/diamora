@@ -160,31 +160,31 @@ enum NotificationStatus {
 // ------------------------------------------------------------------------------------------------ access
 
 model User {
-  id             String     @id @default(uuid(7)) @db.Uuid
-  phone          String     @unique
-  fullName       String
-  role           Role
-  status         UserStatus @default(ACTIVE)
+  id               String     @id @default(uuid(7)) @db.Uuid
+  phone            String     @unique
+  fullName         String
+  role             Role
+  status           UserStatus @default(ACTIVE)
   /// argon2id; null for WORKER (workers sign in with a one-time code sent by the Telegram bot)
-  passwordHash   String?
-  lastLoginAt    DateTime?  @db.Timestamptz(3)
+  passwordHash     String?
+  lastLoginAt      DateTime?  @db.Timestamptz(3)
   /// last time the app was seen online (WebSocket heartbeat); presence itself is live, this is the fallback
-  lastSeenAt     DateTime?  @db.Timestamptz(3)
+  lastSeenAt       DateTime?  @db.Timestamptz(3)
   /// SUPER_ADMIN decides: a hidden person's position is shown to nobody but SUPER_ADMIN (the phone keeps reporting it)
-  locationHidden Boolean    @default(false)
+  locationHidden   Boolean    @default(false)
   /// profile photo (chat, lists), «о себе», and a public @username (lowercase)
-  avatarFileId   String?    @db.Uuid
-  bio            String?
-  username       String?    @unique
+  avatarFileId     String?    @db.Uuid
+  bio              String?
+  username         String?    @unique
   /// staff: the Telegram chat that gets owner alerts («сервер не отвечает», «снова работает», «мало места»)
-  alertChatId    BigInt?
+  alertChatId      BigInt?
   /// staff: their own Telegram account, linked by sharing their phone number with the bot - «Войти через Telegram»
-  telegramUserId BigInt?    @unique
+  telegramUserId   BigInt?    @unique
   /// a MANAGER on holiday: her workers are with `awaySubstituteId` until then (they come back by themselves)
-  awayUntil        DateTime? @db.Timestamptz(3)
-  awaySubstituteId String?   @db.Uuid
-  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
+  awayUntil        DateTime?  @db.Timestamptz(3)
+  awaySubstituteId String?    @db.Uuid
+  createdAt        DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(3)
 
   sessions        UserSession[]
   workerProfile   WorkerProfile?
@@ -196,6 +196,7 @@ model User {
   pushTokens      PushToken[]
   chatMembers     ChatMember[]
   chatMessages    ChatMessage[]       @relation("ChatSender")
+  chatDeleted     ChatMessage[]       @relation("ChatDeletedBy")
   chatReactions   ChatReaction[]
 
   @@index([role, status])
@@ -933,19 +934,19 @@ model AssignmentHandoff {
 /// «Добавить мастерицу»: staff enters name + phone, gets a Telegram link `t.me/<bot>?start=inv_<token>`. When she opens
 /// it, the bot creates her ACTIVE profile at once (no questionnaire, no approval). Only the sha256 of the token is stored.
 model WorkerInvitation {
-  id          String    @id @default(uuid(7)) @db.Uuid
-  tokenHash   String    @unique
-  fullName    String
-  phone       String
-  managerId   String?   @db.Uuid
-  createdById String    @db.Uuid
+  id            String    @id @default(uuid(7)) @db.Uuid
+  tokenHash     String    @unique
+  fullName      String
+  phone         String
+  managerId     String?   @db.Uuid
+  createdById   String    @db.Uuid
   /// made by a MANAGER on the spot: she still goes through an admin's approval (collateral)
-  needsApproval Boolean @default(false)
-  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
-  expiresAt   DateTime  @db.Timestamptz(3)
-  usedAt      DateTime? @db.Timestamptz(3)
-  workerId    String?   @db.Uuid
-  revokedAt   DateTime? @db.Timestamptz(3)
+  needsApproval Boolean   @default(false)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt     DateTime  @db.Timestamptz(3)
+  usedAt        DateTime? @db.Timestamptz(3)
+  workerId      String?   @db.Uuid
+  revokedAt     DateTime? @db.Timestamptz(3)
 
   @@index([phone])
   @@map("worker_invitations")
@@ -1362,27 +1363,27 @@ model ChatRoom {
 }
 
 model ChatMember {
-  roomId     String    @db.Uuid
-  room       ChatRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  userId     String    @db.Uuid
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isOwner    Boolean   @default(false)
+  roomId       String    @db.Uuid
+  room         ChatRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId       String    @db.Uuid
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isOwner      Boolean   @default(false)
   /// a group / channel admin (manages members, writes in a channel)
-  isAdmin    Boolean   @default(false)
-  lastReadAt DateTime? @db.Timestamptz(3)
-  joinedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  isAdmin      Boolean   @default(false)
+  lastReadAt   DateTime? @db.Timestamptz(3)
+  joinedAt     DateTime  @default(now()) @db.Timestamptz(3)
   /// this person keeps the chat on top of their list
-  pinnedAt   DateTime? @db.Timestamptz(3)
+  pinnedAt     DateTime? @db.Timestamptz(3)
   /// no push for this person until then (far future = muted for good)
-  mutedUntil DateTime? @db.Timestamptz(3)
+  mutedUntil   DateTime? @db.Timestamptz(3)
   /// «Очистить историю» for me: older messages are not shown to this person
-  clearedAt  DateTime? @db.Timestamptz(3)
+  clearedAt    DateTime? @db.Timestamptz(3)
   /// «Удалить чат» (a direct chat) for me: hidden from my list until a new message arrives
-  hiddenAt   DateTime? @db.Timestamptz(3)
+  hiddenAt     DateTime? @db.Timestamptz(3)
   /// «Архивировать» for me: out of the main list (an unmuted chat comes back with a new message, like Telegram)
-  archivedAt DateTime? @db.Timestamptz(3)
+  archivedAt   DateTime? @db.Timestamptz(3)
   /// «Пометить как непрочитанное»: a dot on the chat until I open it
-  markedUnread Boolean  @default(false)
+  markedUnread Boolean   @default(false)
 
   @@id([roomId, userId])
   @@index([userId])
@@ -1427,6 +1428,9 @@ model ChatMessage {
   silent        Boolean         @default(false)
   createdAt     DateTime        @default(now()) @db.Timestamptz(3)
   deletedAt     DateTime?       @db.Timestamptz(3)
+  /// who deleted it (the content stays for the SUPER_ADMIN only; everyone else no longer sees the message at all)
+  deletedById   String?         @db.Uuid
+  deletedBy     User?           @relation("ChatDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
 
   @@unique([senderId, clientId])
   @@index([roomId, createdAt])

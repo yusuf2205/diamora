@@ -214,6 +214,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   }
 
   /// An edit or a reaction: the newest page again (where it almost always is) and the pinned message.
+  /// A deleted message disappears for everyone; the SUPER_ADMIN keeps it, marked with who deleted it.
+  void _dropDeleted(String? id) {
+    if (id == null || !mounted) return;
+    if (ref.read(authControllerProvider).value?.role == 'SUPER_ADMIN') {
+      _refreshRecent();
+    } else {
+      setState(() => _messages.removeWhere((m) => m.id == id));
+    }
+  }
+
   Future<void> _refreshRecent() async {
     try {
       final page = await _repo.messages(widget.roomId);
@@ -639,7 +649,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
       if (!await confirmDelete(context, title: l.chatDeleteMessage, body: l.chatDeleteMessageBody)) return;
       try {
         await _repo.deleteMessage(m.id);
-        if (mounted) setState(() => _merge([m.asDeleted()]));
+        _dropDeleted(m.id);
       } catch (e) {
         fail(e);
       }
@@ -742,9 +752,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
             if (_typing.isEmpty) { t.cancel(); _typingSweep = null; }
           });
         case 'chat.message_deleted':
-          final id = e.data['messageId'];
-          final i = _messages.indexWhere((m) => m.id == id);
-          if (i >= 0) setState(() => _messages[i] = _messages[i].asDeleted());
+          _dropDeleted(e.data['messageId'] as String?);
         case 'chat.read':
         case 'chat.room':
           _repo.room(widget.roomId).then((r) { if (mounted) setState(() => _room = r); }).catchError((_) {});
@@ -1093,7 +1101,9 @@ class _Bubble extends StatelessWidget {
     final time = '${two(m.createdAt.hour)}:${two(m.createdAt.minute)}';
 
     Widget content;
-    if (m.deleted) {
+    // the SUPER_ADMIN still sees a deleted message: what it was, dimmed, and who deleted it
+    final ownerView = m.deleted && m.deletedByName != null;
+    if (m.deleted && !ownerView) {
       content = Text(l.chatMessageDeleted, style: TextStyle(fontStyle: FontStyle.italic, color: fg.withValues(alpha: 0.7)));
     } else {
       final f = m.file;
@@ -1207,6 +1217,19 @@ class _Bubble extends StatelessWidget {
         if (media != null && text != null) const SizedBox(height: 6),
         ?text,
         if (m.linkPreview != null) LinkPreviewCard(preview: m.linkPreview!, fg: fg),
+      ]);
+    }
+    if (ownerView) {
+      final at = m.deletedAt;
+      final when = at == null ? '' : ' · ${two(at.day)}.${two(at.month)} ${two(at.hour)}:${two(at.minute)}';
+      content = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Row(key: Key('deletedBy-${m.id}'), mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.delete_outline_rounded, size: 15, color: scheme.error),
+          const SizedBox(width: 4),
+          Flexible(child: Text(l.chatDeletedBy(m.deletedByName!, when), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.error))),
+        ]),
+        const SizedBox(height: 4),
+        Opacity(opacity: 0.55, child: content),
       ]);
     }
 

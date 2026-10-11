@@ -3497,6 +3497,11 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get chatWatchingNotice =>
       '👁 Siz bu yozishmani egasi sifatida ko‘ryapsiz — qatnashchilar sizni ko‘rmaydi. Bu yerda yozib bo‘lmaydi, xabarni o‘chirish mumkin.';
+
+  @override
+  String chatDeletedBy(String name, String when) {
+    return 'O‘chirildi · $name$when';
+  }
 }
 
 /// The translations for Uzbek, using the Cyrillic script (`uz_Cyrl`).
@@ -6984,4 +6989,9 @@ class AppLocalizationsUzCyrl extends AppLocalizationsUz {
   @override
   String get chatWatchingNotice =>
       '👁 Сиз бу ёзишмани эгаси сифатида кўряпсиз — қатнашчилар сизни кўрмайди. Бу ерда ёзиб бўлмайди, хабарни ўчириш мумкин.';
+
+  @override
+  String chatDeletedBy(String name, String when) {
+    return 'Ўчирилди · $name$when';
+  }
 }

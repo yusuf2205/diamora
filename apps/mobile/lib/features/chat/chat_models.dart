@@ -99,7 +99,12 @@ class ChatMessage {
     this.data,
     this.poll,
     this.linkPreview,
+    this.deletedByName,
+    this.deletedAt,
   });
+  /// a deleted message as the SUPER_ADMIN sees it: who deleted it and when (everyone else no longer gets it at all)
+  final String? deletedByName;
+  final DateTime? deletedAt;
   /// POLL / LOCATION / CONTACT / CARD: what it carries
   final Map<String, dynamic>? data;
   /// a poll's answers: { question, multiple, voters, options: [{ text, count, mine }] }
@@ -140,6 +145,8 @@ class ChatMessage {
         data: (j['data'] as Map?)?.cast<String, dynamic>(),
         poll: (j['poll'] as Map?)?.cast<String, dynamic>(),
         linkPreview: (j['linkPreview'] as Map?)?.cast<String, dynamic>(),
+        deletedByName: (j['deletedBy'] as Map?)?['fullName'] as String? ?? ((j['deletedBy'] as Map?) == null ? null : '—'),
+        deletedAt: _dtn((j['deletedBy'] as Map?)?['at']),
       );
 
   ChatMessage asDeleted() => ChatMessage(id: id, roomId: roomId, kind: 'TEXT', createdAt: createdAt, sender: sender, deleted: true, clientId: clientId);

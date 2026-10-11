@@ -119,8 +119,9 @@ describe('chat', () => {
 
     await late.api.delete(`/v1/chat/messages/${m1.id}`).expect(403);
     await admin.api.delete(`/v1/chat/messages/${m1.id}`).expect(200);
+    // gone for everyone (only the SUPER_ADMIN still sees it - chat-watch.spec)
     const after = (await w.api.get(`/v1/chat/rooms/${COMPANY_ROOM_ID}/messages`).expect(200)).body.items.find((x: { id: string }) => x.id === m1.id);
-    expect(after).toMatchObject({ deleted: true, text: null });
+    expect(after).toBeUndefined();
   });
 
   it('files: a photo (resized + thumbnail), a voice note, a document (always downloaded, never rendered)', async () => {

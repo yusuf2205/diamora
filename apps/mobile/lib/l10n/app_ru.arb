@@ -1187,5 +1187,7 @@
   "chatWatchEmpty": "Переписок пока нет",
   "chatWatchMessages": "{count, plural, one{{count} сообщение} few{{count} сообщения} other{{count} сообщений}}",
   "@chatWatchMessages": {"placeholders": {"count": {"type": "int"}}},
-  "chatWatchingNotice": "👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно."
+  "chatWatchingNotice": "👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно.",
+  "chatDeletedBy": "Удалено · {name}{when}",
+  "@chatDeletedBy": {"placeholders": {"name": {"type": "String"}, "when": {"type": "String"}}}
 }

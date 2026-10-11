@@ -1092,5 +1092,7 @@
   "chatWatchEmpty": "Hozircha yozishmalar yo‘q",
   "chatWatchMessages": "{count, plural, one{{count} ta xabar} other{{count} ta xabar}}",
   "@chatWatchMessages": {"placeholders": {"count": {"type": "int"}}},
-  "chatWatchingNotice": "👁 Siz bu yozishmani egasi sifatida ko‘ryapsiz — qatnashchilar sizni ko‘rmaydi. Bu yerda yozib bo‘lmaydi, xabarni o‘chirish mumkin."
+  "chatWatchingNotice": "👁 Siz bu yozishmani egasi sifatida ko‘ryapsiz — qatnashchilar sizni ko‘rmaydi. Bu yerda yozib bo‘lmaydi, xabarni o‘chirish mumkin.",
+  "chatDeletedBy": "O‘chirildi · {name}{when}",
+  "@chatDeletedBy": {"placeholders": {"name": {"type": "String"}, "when": {"type": "String"}}}
 }

@@ -6466,6 +6466,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'👁 Вы смотрите эту переписку как владелец — участники вас не видят. Писать здесь нельзя, удалить сообщение можно.'**
   String get chatWatchingNotice;
+
+  /// No description provided for @chatDeletedBy.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалено · {name}{when}'**
+  String chatDeletedBy(String name, String when);
 }
 
 class _AppLocalizationsDelegate
