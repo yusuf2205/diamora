@@ -808,13 +808,13 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
               key: const Key('chatMore'),
               onSelected: _roomAction,
               itemBuilder: (_) => [
-                if (!room.watching) PopupMenuItem(value: 'mute', child: Text(room.muted ? l.chatUnmute : l.chatMute)),
-                if (!room.watching) PopupMenuItem(value: 'scheduled', child: Text(l.chatScheduled)),
-                PopupMenuItem(value: 'info', child: Text(room.kind == 'DIRECT' ? l.chatShowProfile : l.chatInfo)),
-                if (room.canProtect) PopupMenuItem(value: 'protect', child: Text(room.protectContent ? l.chatProtectOff : l.chatProtectOn)),
-                if (!room.protectContent || room.canProtect) PopupMenuItem(value: 'export', child: Text(l.chatExport)),
-                if (!room.watching) PopupMenuItem(value: 'clear', child: Text(l.chatClearHistory)),
-                if (room.kind == 'DIRECT' && !room.watching) PopupMenuItem(value: 'delete', child: Text(l.chatDeleteChat, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+                if (!room.watching) chatMenuItem(context, 'mute', room.muted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, room.muted ? l.chatUnmute : l.chatMute),
+                if (!room.watching) chatMenuItem(context, 'scheduled', Icons.schedule_send_outlined, l.chatScheduled),
+                chatMenuItem(context, 'info', room.kind == 'DIRECT' ? Icons.person_outline_rounded : Icons.info_outline_rounded, room.kind == 'DIRECT' ? l.chatShowProfile : l.chatInfo),
+                if (room.canProtect) chatMenuItem(context, 'protect', room.protectContent ? Icons.lock_open_outlined : Icons.lock_outline_rounded, room.protectContent ? l.chatProtectOff : l.chatProtectOn),
+                if (!room.protectContent || room.canProtect) chatMenuItem(context, 'export', Icons.file_download_outlined, l.chatExport),
+                if (!room.watching) chatMenuItem(context, 'clear', Icons.cleaning_services_outlined, l.chatClearHistory),
+                if (room.kind == 'DIRECT' && !room.watching) chatMenuItem(context, 'delete', Icons.delete_outline_rounded, l.chatDeleteChat, danger: true),
               ],
             ),
         ],
@@ -1795,8 +1795,8 @@ class _RoomInfoSheetState extends ConsumerState<_RoomInfoSheet> {
                             _ => repo.updateGroup(_room.id, removeIds: [m.id]),
                           }),
                       itemBuilder: (_) => [
-                        if (_room.canEditAdmins) PopupMenuItem(value: m.isAdmin ? 'unadmin' : 'admin', child: Text(m.isAdmin ? l.chatRemoveAdmin : l.chatMakeAdmin)),
-                        if (_room.canManage && !_audienceChannel) PopupMenuItem(value: 'remove', child: Text(l.chatRemoveMember)),
+                        if (_room.canEditAdmins) chatMenuItem(context, m.isAdmin ? 'unadmin' : 'admin', m.isAdmin ? Icons.remove_moderator_outlined : Icons.add_moderator_outlined, m.isAdmin ? l.chatRemoveAdmin : l.chatMakeAdmin),
+                        if (_room.canManage && !_audienceChannel) chatMenuItem(context, 'remove', Icons.person_remove_outlined, l.chatRemoveMember, danger: true),
                       ],
                     ),
             ),
@@ -1982,4 +1982,17 @@ class _ReadInfo extends ConsumerWidget {
       },
     );
   }
+}
+
+/// A menu line with its icon on the left, like Telegram's (red for the destructive ones).
+PopupMenuItem<String> chatMenuItem(BuildContext context, String value, IconData icon, String text, {bool danger = false}) {
+  final color = danger ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant;
+  return PopupMenuItem<String>(
+    value: value,
+    child: Row(children: [
+      Icon(icon, size: 22, color: color),
+      const SizedBox(width: 16),
+      Expanded(child: Text(text, style: danger ? TextStyle(color: color) : null)),
+    ]),
+  );
 }
