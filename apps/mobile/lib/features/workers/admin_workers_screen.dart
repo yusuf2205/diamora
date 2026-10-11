@@ -39,11 +39,13 @@ class _AdminWorkersScreenState extends ConsumerState<AdminWorkersScreen> with Si
     // a manager adds a new worker on the spot too (an admin approves her afterwards)
     final canInvite = (me?.has('WORKER_APPROVE') ?? false) || me?.role == 'MANAGER';
     return Scaffold(
+      // a round button like Telegram's ✎: a wide one covered the list's own message on a short screen
       floatingActionButton: canInvite
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
+              key: const Key('addWorkerFab'),
+              tooltip: l.addWorker,
               onPressed: () => showAddWorkerSheet(context),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: Text(l.addWorker),
+              child: const Icon(Icons.person_add_alt_1_rounded),
             )
           : null,
       appBar: AppBar(
@@ -97,7 +99,7 @@ class _WorkersList extends ConsumerWidget {
         loading: () => const SkeletonList(),
         error: (e, _) => ListView(children: [EmptyState(icon: Icons.error_outline_rounded, title: errorText(context, e))]),
         data: (items) => items.isEmpty
-            ? ListView(children: [
+            ? ListView(padding: const EdgeInsets.only(bottom: 96), children: [
                 SizedBox(
                   height: 320,
                   child: EmptyState(
@@ -108,7 +110,7 @@ class _WorkersList extends ConsumerWidget {
                 ),
               ])
             : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 96), // the last card never under the round button
                 itemCount: items.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, i) => _WorkerTile(worker: items[i]),
