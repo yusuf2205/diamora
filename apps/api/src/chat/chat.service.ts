@@ -19,7 +19,6 @@ import {
 } from '@diamoraa/shared';
 import { fetchLinkPreview } from './link-preview';
 import { AiNotConfigured, speechToText, translate, type AiLang } from './yandex-ai';
-const aiLangSchema = z.object({ lang: z.enum(['ru', 'uz']) });
 import { z } from 'zod';
 import { ApiZodBody, Authenticated, CurrentUser } from '../common/decorators';
 import { AppError, fileRejected, forbidden, notFound, validationFailed } from '../common/errors';
@@ -33,6 +32,7 @@ import { PresenceModule, PresenceService } from '../presence/presence.service';
 import { PrismaService } from '../prisma/prisma.module';
 import { AuditService } from '../audit/audit.service';
 import { ENV, Env } from '../config/env';
+const aiLangSchema = z.object({ lang: z.enum(['ru', 'uz']) });
 
 /** The one chat of everyone: a fixed id, created on first use. */
 export const COMPANY_ROOM_ID = '00000000-0000-4000-8000-00000000c4a7';
