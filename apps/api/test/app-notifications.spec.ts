@@ -46,10 +46,8 @@ describe('in-app notifications (instead of Telegram)', () => {
     expect(bell.body.unread).toBe(got.length);
     const read = await f.workerApi.post('/v1/me/notifications/read', { all: true }).expect(200);
     expect(read.body.unread).toBe(0);
-    // and a copy of each in her Telegram (owner, 2026-10-11: many open the app rarely)
-    const tg = await t.prisma.notification.findMany({ where: { channel: 'TELEGRAM', workerId: f.workerId, type: { not: 'worker.approved' } } });
-    expect(tg.map((n) => n.body)).toEqual(expect.arrayContaining([expect.stringContaining('Вас ожидает новая работа'), expect.stringContaining('Вам выплатили 10 000 сум')]));
-    expect(tg).toHaveLength(got.length);
+    // nothing of this went to Telegram (owner, 2026-10-11: the app only)
+    expect(await t.prisma.notification.count({ where: { channel: 'TELEGRAM', workerId: f.workerId, type: { not: 'worker.approved' } } })).toBe(0);
   });
 
   it('staff: «работа готова» reaches her own manager and the admins, never a foreign manager', async () => {

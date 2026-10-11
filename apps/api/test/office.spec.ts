@@ -1,7 +1,7 @@
 import { WorkerDecisions } from '../src/workers/decisions';
 import { approveAndLoginWorker, createTestApp, nextTelegramId, registerViaBot, staffActor, superAdminActor, TestApp } from './support/app';
 
-describe('search, «Деньги», worker notices in Telegram, approving from Telegram (owner, 2026-10-11)', () => {
+describe('search, «Деньги», worker notices in the app only, approving from Telegram (owner, 2026-10-11)', () => {
   let t: TestApp;
   beforeAll(async () => (t = await createTestApp()));
   afterAll(() => t.close());
@@ -27,15 +27,15 @@ describe('search, «Деньги», worker notices in Telegram, approving from T
     await mgr.api.get('/v1/admin/money').expect(403);
   });
 
-  it('a worker\'s notices also go to her Telegram (outbox)', async () => {
+  it('a worker\'s notices stay in the app: nothing goes to her Telegram (owner, 2026-10-11)', async () => {
     const admin = await superAdminActor(t);
     const reg = await registerViaBot(t);
     const { workerId } = await approveAndLoginWorker(t, admin.api, reg.phone);
     await admin.api.post(`/v1/admin/workers/${workerId}/payout`, { amount: '1000', forced: true }).expect(200);
     await new Promise((r) => setTimeout(r, 300)); // the notice is written after the event
-    const tg = await t.prisma.notification.findMany({ where: { channel: 'TELEGRAM', workerId, type: 'cash_payment.created' } });
-    expect(tg).toHaveLength(1);
-    expect(tg[0].body).toContain('Вам выплатили');
+    expect(await t.prisma.notification.count({ where: { channel: 'TELEGRAM', workerId, type: 'cash_payment.created' } })).toBe(0);
+    const userId = (await t.prisma.workerProfile.findUniqueOrThrow({ where: { id: workerId } })).userId!;
+    expect(await t.prisma.notification.count({ where: { channel: 'APP', type: 'cash_payment.created', userId } })).toBe(1);
   });
 
   it('a new registration goes to the admin\'s Telegram with buttons; «Одобрить» there approves her', async () => {

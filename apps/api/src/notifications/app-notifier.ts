@@ -54,30 +54,9 @@ export class AppNotifier implements OnModuleInit {
         await this.bus.publish('notification.created', { userId, notificationId: row.id, title: n.title, body: n.body ?? null, link: n.link ?? null });
         // instantly to her phone too, even with the app closed (no-op without Firebase credentials)
         void this.push.send(userId, { id: row.id, title: n.title, body: n.body, link: n.link });
-        await this.mirrorToTelegram(userId, n);
       } catch (e) {
         if ((e as { code?: string }).code !== 'P2002') this.log.warn(`notify ${n.type}: ${(e as Error).message}`); // P2002 = already sent (dedupe)
       }
-    }
-  }
-
-  /**
-   * A worker's notices go to her Telegram too (owner, 2026-10-11): many open the app rarely but always read Telegram.
-   * Through the outbox (the bot process sends, retries); never fails the notice itself.
-   */
-  private async mirrorToTelegram(userId: string, n: Notice) {
-    try {
-      const w = await this.prisma.workerProfile.findFirst({ where: { userId, deletedAt: null }, select: { id: true, telegramChatId: true } });
-      if (!w?.telegramChatId) return;
-      await this.prisma.notification.create({
-        data: {
-          channel: 'TELEGRAM', workerId: w.id, telegramChatId: w.telegramChatId, type: n.type,
-          body: `🔔 ${n.title}${n.body ? `
-${n.body}` : ''}`, dedupeKey: n.dedupe ? `tg:${n.dedupe}:${userId}` : null,
-        },
-      });
-    } catch (e) {
-      if ((e as { code?: string }).code !== 'P2002') this.log.warn(`telegram mirror ${n.type}: ${(e as Error).message}`);
     }
   }
 
