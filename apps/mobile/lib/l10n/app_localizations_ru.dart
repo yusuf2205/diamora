@@ -3299,4 +3299,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get moneyProfit => 'Прибыль';
+
+  @override
+  String get chatSlideToCancel => 'Влево — отмена';
 }

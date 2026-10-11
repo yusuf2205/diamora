@@ -1110,5 +1110,6 @@
   "moneySales": "Продажи",
   "moneyMaterials": "Материалы",
   "moneyExpenses": "Расходы",
-  "moneyProfit": "Прибыль"
+  "moneyProfit": "Прибыль",
+  "chatSlideToCancel": "Влево — отмена"
 }

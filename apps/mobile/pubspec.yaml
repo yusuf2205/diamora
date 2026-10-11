@@ -1,7 +1,7 @@
 name: diamoraa_mobile
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.0-rc.51+51
+version: 1.0.0-rc.52+52
 
 environment:
   sdk: ^3.13.3
@@ -19,6 +19,7 @@ dependencies:
   firebase_messaging: ^16.7.0
   flutter:
     sdk: flutter
+  flutter_cache_manager: ^3.4.5
   flutter_local_notifications: ^22.3.1
   flutter_localizations:
     sdk: flutter

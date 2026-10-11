@@ -25,7 +25,7 @@ class PersonPhoto extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final avatar = url != null
-        ? CircleAvatar(radius: radius, backgroundImage: CachedNetworkImageProvider(url!))
+        ? CircleAvatar(radius: radius, backgroundImage: CachedNetworkImageProvider(url!, cacheKey: fileCacheKey(url!)))
         : CircleAvatar(radius: radius, backgroundColor: scheme.primaryContainer, foregroundColor: scheme.onPrimaryContainer, child: Text(initials(name), style: TextStyle(fontWeight: FontWeight.w700, fontSize: radius * 0.6)));
     if (!online) return avatar;
     return Stack(children: [

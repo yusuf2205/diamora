@@ -6028,6 +6028,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Прибыль'**
   String get moneyProfit;
+
+  /// No description provided for @chatSlideToCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Влево — отмена'**
+  String get chatSlideToCancel;
 }
 
 class _AppLocalizationsDelegate

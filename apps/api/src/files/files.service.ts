@@ -127,7 +127,9 @@ export class FilesService {
     return createHmac('sha256', this.env.FILE_SIGNING_SECRET).update(`${fileId}.${variant}.${exp}`).digest('base64url');
   }
   signedUrl(fileId: string, variant: FileVariant, now = Date.now(), ttlSeconds = this.env.SIGNED_URL_TTL_SECONDS): string {
-    const exp = Math.floor(now / 1000) + ttlSeconds;
+    // rounded up to the next full hour: the same link all hour long, so a browser / phone re-uses what it already
+    // downloaded instead of fetching the photo again on every refresh (a link lives at most ttl + 1 h)
+    const exp = Math.ceil((Math.floor(now / 1000) + ttlSeconds) / 3600) * 3600;
     return `${this.env.PUBLIC_API_URL.replace(/\/+$/, '')}/v1/files/${fileId}/${variant}?exp=${exp}&sig=${this.sig(fileId, variant, exp)}`;
   }
   /** `ttlSeconds`: a video / voice note keeps playing (and seeking) for a long time - its link must outlive the default 10 min */
@@ -165,7 +167,8 @@ export class FilesController {
   @Public()
   @Get(':id/:variant')
   @Header('X-Content-Type-Options', 'nosniff')
-  @Header('Cache-Control', 'private, max-age=300')
+  // a file never changes (a new upload is a new id): the browser may keep it as long as the link lives
+  @Header('Cache-Control', 'private, max-age=3600, immutable')
   async get(
     @Param('id', new ParseUUIDPipe()) id: string, @Param('variant') variant: string, @Res({ passthrough: true }) res: Response,
     @Query('exp') exp?: string, @Query('sig') sig?: string, @Headers('range') rangeHeader?: string,

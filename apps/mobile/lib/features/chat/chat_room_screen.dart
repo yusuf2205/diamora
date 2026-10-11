@@ -97,6 +97,8 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   // voice
   final _recorder = AudioRecorder();
   bool _recording = false;
+  /// slid up onto the lock: the recording goes on without the finger
+  bool _recLocked = false;
   DateTime? _recStarted;
   Timer? _recTick;
   StreamSubscription<Amplitude>? _ampSub;
@@ -379,9 +381,11 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     _ampSub = _recorder.onAmplitudeChanged(const Duration(milliseconds: 80)).listen((a) => _amps.add(((a.current + 50) / 50).clamp(0.0, 1.0)));
     setState(() { _recording = true; _recStarted = DateTime.now(); });
     _sendTyping('voice');
-    _recTick = Timer.periodic(const Duration(milliseconds: 250), (_) {
+    var ticks = 0;
+    // 10 times a second: the time and the button breathing with the voice; «записывает голосовое» to the others now and then
+    _recTick = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) setState(() {});
-      _sendTyping('voice');
+      if (++ticks % 25 == 0) _sendTyping('voice');
     });
   }
 
@@ -391,7 +395,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
     await _ampSub?.cancel();
     final started = _recStarted;
     final path = await _recorder.stop();
-    setState(() => _recording = false);
+    setState(() { _recording = false; _recLocked = false; });
     final ms = started == null ? 0 : DateTime.now().difference(started).inMilliseconds;
     if (!send || path == null || ms < 700) return; // a tap, not a recording
     await _sendPath(path, 'voice.m4a', 'VOICE', durationMs: ms, waveform: toBars(_amps)); // the bars others see
@@ -778,20 +782,6 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                           },
                         ),
         ),
-        if (_recording)
-          Container(
-            key: const Key('recordingBar'),
-            width: double.infinity,
-            color: Theme.of(context).colorScheme.errorContainer,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(children: [
-              Icon(Icons.fiber_manual_record_rounded, color: Theme.of(context).colorScheme.error),
-              const SizedBox(width: 8),
-              Text(formatDuration(DateTime.now().difference(_recStarted ?? DateTime.now()))),
-              const SizedBox(width: 12),
-              Expanded(child: Text(l.chatRecording, maxLines: 2)),
-            ]),
-          ),
         if (_replyTo != null || _editing != null)
           Material(
             key: const Key('composerContext'),
@@ -831,6 +821,11 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           onRecordStart: _startRecording,
           onRecordEnd: () => _stopRecording(),
           onRecordCancel: () => _stopRecording(send: false),
+          recording: _recording,
+          elapsed: DateTime.now().difference(_recStarted ?? DateTime.now()),
+          level: _amps.isEmpty ? 0 : _amps.last,
+          locked: _recLocked,
+          onLock: () => setState(() => _recLocked = true),
         ),
       ]),
     );
@@ -950,7 +945,7 @@ class _Bubble extends StatelessWidget {
                   aspectRatio: (f.width ?? 4) / (f.height ?? 3),
                   child: Hero(
                     tag: 'chat-media-${m.id}',
-                    child: CachedNetworkImage(imageUrl: f.thumbUrl ?? f.url, fit: BoxFit.cover, placeholder: (_, _) => ColoredBox(color: scheme.surfaceContainerHighest)),
+                    child: CachedNetworkImage(imageUrl: f.thumbUrl ?? f.url, cacheKey: fileCacheKey(f.thumbUrl ?? f.url), fit: BoxFit.cover, placeholder: (_, _) => ColoredBox(color: scheme.surfaceContainerHighest)),
                   ),
                 ),
               ),
@@ -967,7 +962,7 @@ class _Bubble extends StatelessWidget {
                   aspectRatio: (f.width ?? 16) / (f.height ?? 9),
                   child: Stack(fit: StackFit.expand, children: [
                     if (f.thumbUrl != null)
-                      Hero(tag: 'chat-media-${m.id}', child: CachedNetworkImage(imageUrl: f.thumbUrl!, fit: BoxFit.cover))
+                      Hero(tag: 'chat-media-${m.id}', child: CachedNetworkImage(imageUrl: f.thumbUrl!, cacheKey: fileCacheKey(f.thumbUrl!), fit: BoxFit.cover))
                     else
                       const ColoredBox(color: Colors.black87),
                     const Center(child: CircleAvatar(radius: 26, backgroundColor: Colors.black45, child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 34))),
@@ -1185,20 +1180,39 @@ class _OutgoingBubble extends StatelessWidget {
   }
 }
 
-/// Text field + attach; the right button is «send» while there is text, otherwise a hold-to-record microphone.
+/// Text field + attach; the right button is «send» while there is text, otherwise the microphone - like Telegram: touch
+/// it and the recording starts at once (a red dot and the time), the button grows and breathes with the voice; slide
+/// left to cancel, slide up to lock it (hands free), let go to send. A quick tap only says «hold to record».
 class _Composer extends StatefulWidget {
-  const _Composer({required this.controller, required this.onSend, required this.onAttach, required this.onRecordStart, required this.onRecordEnd, required this.onRecordCancel});
+  const _Composer({
+    required this.controller, required this.onSend, required this.onAttach, required this.onRecordStart, required this.onRecordEnd,
+    required this.onRecordCancel, this.recording = false, this.elapsed = Duration.zero, this.level = 0, this.locked = false, required this.onLock,
+  });
   final TextEditingController controller;
   final VoidCallback onSend;
   final VoidCallback onAttach;
   final VoidCallback onRecordStart;
   final VoidCallback onRecordEnd;
   final VoidCallback onRecordCancel;
+  final bool recording;
+  final Duration elapsed;
+  /// 0..1, the voice right now
+  final double level;
+  final bool locked;
+  final VoidCallback onLock;
   @override
   State<_Composer> createState() => _ComposerState();
 }
 
-class _ComposerState extends State<_Composer> {
+class _ComposerState extends State<_Composer> with SingleTickerProviderStateMixin {
+  late final AnimationController _blink = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  Offset? _down;
+  DateTime? _downAt;
+  Offset _drag = Offset.zero;
+  bool _gestureDone = false;
+  static const _cancelAt = 110.0;
+  static const _lockAt = 80.0;
+
   @override
   void initState() {
     super.initState();
@@ -1206,7 +1220,15 @@ class _ComposerState extends State<_Composer> {
   }
 
   @override
+  void didUpdateWidget(covariant _Composer old) {
+    super.didUpdateWidget(old);
+    if (widget.recording && !_blink.isAnimating) _blink.repeat(reverse: true);
+    if (!widget.recording && _blink.isAnimating) _blink.stop();
+  }
+
+  @override
   void dispose() {
+    _blink.dispose();
     widget.controller.removeListener(_changed);
     super.dispose();
   }
@@ -1238,52 +1260,173 @@ class _ComposerState extends State<_Composer> {
     c.value = TextEditingValue(text: c.text.replaceRange(at, end, e), selection: TextSelection.collapsed(offset: at + e.length));
   }
 
+  // ---- the microphone gesture ------------------------------------------------------------------------------------------
+  void _micDown(PointerDownEvent e) {
+    _down = e.position;
+    _downAt = DateTime.now();
+    _drag = Offset.zero;
+    _gestureDone = false;
+    widget.onRecordStart();
+  }
+
+  void _micMove(PointerMoveEvent e) {
+    if (_down == null || _gestureDone || widget.locked) return;
+    setState(() => _drag = e.position - _down!);
+    if (_drag.dx < -_cancelAt) {
+      _gestureDone = true;
+      HapticFeedback.lightImpact();
+      widget.onRecordCancel();
+    } else if (_drag.dy < -_lockAt) {
+      _gestureDone = true;
+      HapticFeedback.mediumImpact();
+      widget.onLock();
+    }
+    if (_gestureDone) setState(() => _drag = Offset.zero);
+  }
+
+  void _micUp(PointerUpEvent e) {
+    final quick = _downAt != null && DateTime.now().difference(_downAt!) < const Duration(milliseconds: 350);
+    final wasDone = _gestureDone;
+    _down = null;
+    setState(() => _drag = Offset.zero);
+    if (wasDone || widget.locked) return;
+    if (quick) {
+      widget.onRecordCancel();
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.chatHoldToRecord)));
+      return;
+    }
+    widget.onRecordEnd();
+  }
+
+  void _micCancel(PointerCancelEvent e) {
+    _down = null;
+    setState(() => _drag = Offset.zero);
+    if (!_gestureDone && !widget.locked) widget.onRecordCancel();
+  }
+
+  String _time(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final hasText = widget.controller.text.trim().isNotEmpty;
+    final rec = widget.recording;
+    final dx = _drag.dx.clamp(-_cancelAt, 0.0);
+    final dy = _drag.dy.clamp(-_lockAt, 0.0);
+
+    final mic = Listener(
+      key: const Key('chatMic'),
+      onPointerDown: _micDown,
+      onPointerMove: _micMove,
+      onPointerUp: _micUp,
+      onPointerCancel: _micCancel,
+      child: Transform.translate(
+        offset: rec && !widget.locked ? Offset(dx * 0.5, dy * 0.5) : Offset.zero,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: rec ? 64 + widget.level * 22 : 48,
+          height: rec ? 64 + widget.level * 22 : 48,
+          decoration: BoxDecoration(
+            color: scheme.primary,
+            shape: BoxShape.circle,
+            boxShadow: rec ? [BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 10 + widget.level * 30, spreadRadius: 2 + widget.level * 12)] : null,
+          ),
+          child: Icon(Icons.mic_rounded, color: scheme.onPrimary, size: rec ? 30 : 24),
+        ),
+      ),
+    );
+
+    final Widget field;
+    if (rec) {
+      field = Container(
+        key: const Key('recordingBar'),
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(children: [
+          FadeTransition(opacity: _blink, child: Icon(Icons.fiber_manual_record_rounded, color: scheme.error, size: 16)),
+          const SizedBox(width: 8),
+          Text(_time(widget.elapsed), style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()], fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: widget.locked
+                ? Center(child: TextButton(key: const Key('recordCancel'), onPressed: widget.onRecordCancel, child: Text(l.cancel.toUpperCase())))
+                : Opacity(
+                    opacity: (1 + dx / _cancelAt).clamp(0.2, 1.0),
+                    child: Transform.translate(
+                      offset: Offset(dx * 0.6, 0),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.chevron_left_rounded, color: scheme.outline),
+                        Flexible(child: Text(l.chatSlideToCancel, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.outline))),
+                      ]),
+                    ),
+                  ),
+          ),
+        ]),
+      );
+    } else {
+      field = TextField(
+        key: const Key('chatInput'),
+        controller: widget.controller,
+        minLines: 1,
+        maxLines: 6,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+          hintText: l.chatTypeMessage,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+          filled: true,
+          fillColor: scheme.surfaceContainerHigh,
+        ),
+      );
+    }
+
     return Material(
       color: scheme.surface,
       elevation: 3,
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            IconButton(key: const Key('chatAttach'), tooltip: l.chatAttach, icon: const Icon(Icons.attach_file_rounded), onPressed: widget.onAttach),
-            IconButton(key: const Key('chatEmoji'), tooltip: l.chatEmoji, icon: const Icon(Icons.emoji_emotions_outlined), onPressed: () => _pickEmoji(context)),
-            Expanded(
-              child: TextField(
-                key: const Key('chatInput'),
-                controller: widget.controller,
-                minLines: 1,
-                maxLines: 6,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: l.chatTypeMessage,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
-                  filled: true,
-                  fillColor: scheme.surfaceContainerHigh,
+        child: Stack(clipBehavior: Clip.none, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              rec ? const SizedBox.shrink() : IconButton(key: const Key('chatAttach'), tooltip: l.chatAttach, icon: const Icon(Icons.attach_file_rounded), onPressed: widget.onAttach),
+              rec ? const SizedBox.shrink() : IconButton(key: const Key('chatEmoji'), tooltip: l.chatEmoji, icon: const Icon(Icons.emoji_emotions_outlined), onPressed: () => _pickEmoji(context)),
+              Expanded(child: field),
+              const SizedBox(width: 6),
+              if (hasText && !rec)
+                IconButton.filled(key: const Key('chatSend'), tooltip: l.chatSend, icon: const Icon(Icons.send_rounded), onPressed: widget.onSend)
+              else if (widget.locked)
+                IconButton.filled(key: const Key('recordSend'), tooltip: l.chatSend, iconSize: 26, icon: const Icon(Icons.send_rounded), onPressed: widget.onRecordEnd)
+              else
+                SizedBox(width: 52, height: 48, child: OverflowBox(maxWidth: 100, maxHeight: 100, child: mic)),
+            ]),
+          ),
+          // the lock: slide the finger up onto it and the recording goes on by itself
+          if (rec && !widget.locked)
+            Positioned(
+              right: 14,
+              bottom: 72 - dy * 0.4,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                opacity: 1,
+                child: Material(
+                  elevation: 3,
+                  color: scheme.surface,
+                  shape: const StadiumBorder(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(dy < -_lockAt * 0.6 ? Icons.lock_rounded : Icons.lock_open_rounded, size: 20, color: scheme.primary),
+                      Icon(Icons.keyboard_arrow_up_rounded, size: 18, color: scheme.outline),
+                    ]),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            if (hasText)
-              IconButton.filled(key: const Key('chatSend'), tooltip: l.chatSend, icon: const Icon(Icons.send_rounded), onPressed: widget.onSend)
-            else
-              GestureDetector(
-                key: const Key('chatMic'),
-                onTap: () => ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(l.chatHoldToRecord))),
-                onLongPressStart: (_) => widget.onRecordStart(),
-                onLongPressEnd: (_) => widget.onRecordEnd(),
-                onLongPressCancel: widget.onRecordCancel,
-                child: CircleAvatar(radius: 24, backgroundColor: scheme.primary, foregroundColor: scheme.onPrimary, child: const Icon(Icons.mic_rounded)),
-              ),
-          ]),
-        ),
+        ]),
       ),
     );
   }
@@ -1486,7 +1629,7 @@ class _RoomInfoSheetState extends ConsumerState<_RoomInfoSheet> {
                           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
                               builder: (_) => m.kind == 'IMAGE' ? ChatImageScreen(url: m.file!.url, caption: m.text) : ChatVideoScreen(message: m))),
                           child: m.kind == 'IMAGE'
-                              ? CachedNetworkImage(imageUrl: m.file!.thumbUrl ?? m.file!.url, fit: BoxFit.cover)
+                              ? CachedNetworkImage(imageUrl: m.file!.thumbUrl ?? m.file!.url, cacheKey: fileCacheKey(m.file!.thumbUrl ?? m.file!.url), fit: BoxFit.cover)
                               : const ColoredBox(color: Colors.black87, child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 36)),
                         ),
                   ],
@@ -1607,7 +1750,7 @@ class _AlbumBubble extends StatelessWidget {
                     onTap: () => onOpen(m),
                     child: Stack(fit: StackFit.expand, children: [
                       if (m.file?.thumbUrl != null || m.kind == 'IMAGE')
-                        CachedNetworkImage(imageUrl: m.file!.thumbUrl ?? m.file!.url, fit: BoxFit.cover)
+                        CachedNetworkImage(imageUrl: m.file!.thumbUrl ?? m.file!.url, cacheKey: fileCacheKey(m.file!.thumbUrl ?? m.file!.url), fit: BoxFit.cover)
                       else
                         const ColoredBox(color: Colors.black87),
                       if (m.kind == 'VIDEO') const Center(child: Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 34)),

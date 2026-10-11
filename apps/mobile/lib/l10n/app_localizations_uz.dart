@@ -3259,6 +3259,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get moneyProfit => 'Foyda';
+
+  @override
+  String get chatSlideToCancel => 'Chapga — bekor qilish';
 }
 
 /// The translations for Uzbek, using the Cyrillic script (`uz_Cyrl`).
@@ -6508,4 +6511,7 @@ class AppLocalizationsUzCyrl extends AppLocalizationsUz {
 
   @override
   String get moneyProfit => 'Фойда';
+
+  @override
+  String get chatSlideToCancel => 'Чапга — бекор қилиш';
 }

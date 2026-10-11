@@ -37,6 +37,8 @@ class _Players implements ChatAudioEngine {
     // streams right away; a copy already on the phone plays from there
     final local = await ChatFiles.cached(m);
     await _p.setSource(local != null ? DeviceFileSource(local.path) : UrlSource(m.file!.url));
+    // and kept: next time it plays from the phone at once (a voice note is small)
+    if (local == null) unawaited(ChatFiles.get(m).then((_) {}, onError: (_) {}));
   }
   @override
   Future<void> resume() => _p.resume();

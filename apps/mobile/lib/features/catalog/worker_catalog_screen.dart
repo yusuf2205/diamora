@@ -63,7 +63,7 @@ class _CatalogCard extends StatelessWidget {
           Expanded(
             child: Stack(fit: StackFit.expand, children: [
               item.mainPhoto != null
-                  ? Image(image: CachedNetworkImageProvider(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url), fit: BoxFit.cover)
+                  ? Image(image: CachedNetworkImageProvider(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url, cacheKey: fileCacheKey(item.mainPhoto!.thumbUrl ?? item.mainPhoto!.url)), fit: BoxFit.cover)
                   : Container(color: Theme.of(context).colorScheme.surfaceContainerHighest, child: const Icon(Icons.image_rounded, size: 40)),
               if (item.isNew)
                 Positioned(

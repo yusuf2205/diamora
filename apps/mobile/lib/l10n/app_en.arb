@@ -987,5 +987,6 @@
   "moneySales": "Sales",
   "moneyMaterials": "Materials",
   "moneyExpenses": "Expenses",
-  "moneyProfit": "Profit"
+  "moneyProfit": "Profit",
+  "chatSlideToCancel": "Slide left to cancel"
 }

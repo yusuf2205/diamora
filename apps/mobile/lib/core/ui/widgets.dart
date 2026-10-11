@@ -307,3 +307,10 @@ List<Widget> barActions(BuildContext context, List<BarAction> actions, {int keep
     ),
   ];
 }
+
+/// A signed file link changes every time it is handed out (its expiry), the file behind it never does: images are cached
+/// on the phone by the FILE (id + size variant), so a photo seen once opens from the phone afterwards, not the network.
+String fileCacheKey(String url) {
+  final m = RegExp(r'/files/([0-9a-f-]{36})/(original|thumb)').firstMatch(url);
+  return m == null ? url : '${m[1]}:${m[2]}';
+}

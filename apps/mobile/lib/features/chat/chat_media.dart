@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../core/ui/widgets.dart' show fileCacheKey;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
@@ -93,7 +94,7 @@ class ChatImageScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white),
         body: Column(children: [
-          Expanded(child: InteractiveViewer(maxScale: 5, child: Center(child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain)))),
+          Expanded(child: InteractiveViewer(maxScale: 5, child: Center(child: CachedNetworkImage(imageUrl: url, cacheKey: fileCacheKey(url), fit: BoxFit.contain)))),
           if (caption != null && caption!.isNotEmpty) SafeArea(top: false, child: Padding(padding: const EdgeInsets.all(16), child: Text(caption!, style: const TextStyle(color: Colors.white)))),
         ]),
       );
@@ -123,6 +124,8 @@ class _ChatVideoScreenState extends State<ChatVideoScreen> {
       // plays while downloading (the server answers byte ranges); a copy already on the phone plays from there
       final local = await ChatFiles.cached(widget.message);
       final c = local != null ? VideoPlayerController.file(local) : VideoPlayerController.networkUrl(Uri.parse(widget.message.file!.url));
+      // a video up to 60 MB is kept on the phone while it plays: the next time it opens at once
+      if (local == null && (widget.message.file?.size ?? 0) <= 60 * 1024 * 1024) unawaited(ChatFiles.get(widget.message).then((_) {}, onError: (_) {}));
       await c.initialize();
       if (!mounted) {
         await c.dispose();

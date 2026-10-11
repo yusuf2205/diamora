@@ -23,6 +23,7 @@ import type { AuthUser } from '../common/request-context';
 import { ZodBody, ZodQuery } from '../common/zod.pipe';
 import { EventBus } from '../events/event-bus';
 import { FilesService } from '../files/files.service';
+import { faststart } from './faststart';
 import { PushService } from '../notifications/push.service';
 import { PresenceModule, PresenceService } from '../presence/presence.service';
 import { PrismaService } from '../prisma/prisma.module';
@@ -605,8 +606,19 @@ export class ChatService {
           stored = { id: a.id, mimeType: mime };
         } else if (!audio && s.family !== 'audio') {
           kind = 'VIDEO';
-          const a = await raw(s.mime, s.ext, src.thumb);
-          stored = { id: a.id, mimeType: s.mime, width: b.width ?? null, height: b.height ?? null, hasThumb: !!a.thumbKey };
+          // the index to the front: it starts playing at once instead of after the whole download
+          const fast = s.ext === 'mp4' || s.ext === 'mov' ? await faststart({ buffer: src.buffer, parts: src.parts }) : null;
+          try {
+            const a = fast
+              ? await this.files.storeRaw({
+                bucket: 'chat', stream: () => createReadStream(fast.path), size: fast.size, sha256: fast.sha256, mimeType: 'video/mp4', ext: 'mp4',
+                uploadedById: u.id, originalName: name, thumb: src.thumb,
+              })
+              : await raw(s.mime, s.ext, src.thumb);
+            stored = { id: a.id, mimeType: fast ? 'video/mp4' : s.mime, width: b.width ?? null, height: b.height ?? null, hasThumb: !!a.thumbKey };
+          } finally {
+            await fast?.cleanup();
+          }
         }
       }
     }

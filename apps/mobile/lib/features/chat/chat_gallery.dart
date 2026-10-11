@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../core/ui/widgets.dart' show fileCacheKey;
 import 'package:video_player/video_player.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -128,7 +130,7 @@ class _PhotoPage extends StatelessWidget {
             placeholder: (_, _) => thumb == null
                 ? const Center(child: CircularProgressIndicator(color: Colors.white))
                 : Stack(alignment: Alignment.center, children: [
-                    CachedNetworkImage(imageUrl: thumb, fit: BoxFit.contain),
+                    CachedNetworkImage(imageUrl: thumb, cacheKey: fileCacheKey(thumb), fit: BoxFit.contain),
                     const SizedBox(width: 36, height: 36, child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2.5)),
                   ]),
             errorWidget: (_, _, _) => const Icon(Icons.broken_image_rounded, color: Colors.white54, size: 48),
@@ -169,6 +171,8 @@ class _VideoPageState extends State<_VideoPage> {
     // an already-downloaded copy plays from the phone; otherwise straight from the server, while downloading
     final local = await ChatFiles.cached(widget.message);
     final c = local != null ? VideoPlayerController.file(local) : VideoPlayerController.networkUrl(Uri.parse(widget.message.file!.url));
+      // a video up to 60 MB is kept on the phone while it plays: the next time it opens at once
+      if (local == null && (widget.message.file?.size ?? 0) <= 60 * 1024 * 1024) unawaited(ChatFiles.get(widget.message).then((_) {}, onError: (_) {}));
     _c = c;
     c.addListener(() { if (mounted) setState(() {}); });
     try {
@@ -194,7 +198,7 @@ class _VideoPageState extends State<_VideoPage> {
     final ready = c != null && c.value.isInitialized;
     if (_failed) return Center(child: Text(l.chatFileFailed, style: const TextStyle(color: Colors.white)));
     return Stack(alignment: Alignment.center, children: [
-      if (!ready && f.thumbUrl != null) Center(child: CachedNetworkImage(imageUrl: f.thumbUrl!, fit: BoxFit.contain)),
+      if (!ready && f.thumbUrl != null) Center(child: CachedNetworkImage(imageUrl: f.thumbUrl!, cacheKey: fileCacheKey(f.thumbUrl!), fit: BoxFit.contain)),
       if (ready)
         Center(
           child: AspectRatio(

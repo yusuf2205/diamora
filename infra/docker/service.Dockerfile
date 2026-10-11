@@ -31,7 +31,8 @@ RUN pnpm --filter @diamoraa/shared build && pnpm --filter @diamoraa/database bui
 
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates tini && rm -rf /var/lib/apt/lists/*
+# ffmpeg: phone videos get their index moved to the front (chat/faststart.ts), so they start playing at once
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates tini ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build --chown=node:node /out /app
 USER node

@@ -3286,4 +3286,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moneyProfit => 'Profit';
+
+  @override
+  String get chatSlideToCancel => 'Slide left to cancel';
 }

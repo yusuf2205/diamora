@@ -250,7 +250,7 @@ class ChatAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    if (photo != null) return CircleAvatar(radius: radius, backgroundImage: CachedNetworkImageProvider(photo!));
+    if (photo != null) return CircleAvatar(radius: radius, backgroundImage: CachedNetworkImageProvider(photo!, cacheKey: fileCacheKey(photo!)));
     final avatar = CircleAvatar(
       radius: radius,
       backgroundColor: kind == 'COMPANY' ? scheme.primary : kind == 'GROUP' ? scheme.tertiaryContainer : kind == 'CHANNEL' ? scheme.secondaryContainer : scheme.primaryContainer,

@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../core/ui/widgets.dart' show fileCacheKey;
 
 import 'models.dart';
 
@@ -101,12 +102,12 @@ class _Slide extends StatelessWidget {
       if (f.thumbUrl != null)
         ImageFiltered(
           imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Image(image: CachedNetworkImageProvider(f.thumbUrl!), fit: BoxFit.cover, color: Colors.black38, colorBlendMode: BlendMode.darken, errorBuilder: (_, _, _) => ColoredBox(color: background)),
+          child: Image(image: CachedNetworkImageProvider(f.thumbUrl!, cacheKey: fileCacheKey(f.thumbUrl!)), fit: BoxFit.cover, color: Colors.black38, colorBlendMode: BlendMode.darken, errorBuilder: (_, _, _) => ColoredBox(color: background)),
         )
       else
         ColoredBox(color: background),
       Image(
-        image: CachedNetworkImageProvider(f.url),
+        image: CachedNetworkImageProvider(f.url, cacheKey: fileCacheKey(f.url)),
         fit: BoxFit.contain,
         loadingBuilder: (context, child, progress) => progress == null ? child : const Center(child: CircularProgressIndicator()),
         errorBuilder: (_, _, _) => const Center(child: Icon(Icons.broken_image_rounded, size: 48)),
@@ -153,7 +154,7 @@ class _CatalogPhotoViewerState extends State<CatalogPhotoViewer> {
                 onPageChanged: (i) => setState(() => _i = i),
                 itemBuilder: (_, i) => InteractiveViewer(
                   maxScale: 5,
-                  child: Center(child: Image(image: CachedNetworkImageProvider(widget.photos[i].file!.url), fit: BoxFit.contain)),
+                  child: Center(child: Image(image: CachedNetworkImageProvider(widget.photos[i].file!.url, cacheKey: fileCacheKey(widget.photos[i].file!.url)), fit: BoxFit.contain)),
                 ),
               ),
             ),
